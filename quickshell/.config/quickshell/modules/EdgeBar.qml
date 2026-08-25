@@ -110,6 +110,7 @@
 import QtQuick
 import QtQuick.Shapes
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Wayland
 import "dashboard"
 import "edgebarpath.js" as EdgeBarPath
@@ -164,6 +165,14 @@ PanelWindow {
     // to be reintroduced.
     readonly property bool _brackets: edgeBarWindow.style === "brackets"
     readonly property bool _hasBulge: !edgeBarWindow._vertical && !edgeBarWindow._brackets
+
+    // ── Segmented affects the TOP rail ONLY (Task 6) ────────────────────
+    // The study's own `draw()` leaves the bottom as an ordinary rail —
+    // `railH(H, INSET, RIGHT_EDGE, "bottom", BOTW, d.bot)`, the identical
+    // call Continuous makes — and this file matches that rather than
+    // segmenting both edges. The bottom instance therefore takes the plain
+    // `_outlinePath` branch below with nothing special about it.
+    readonly property bool _segmentedRun: edgeBarWindow.style === "segmented" && edgeBarWindow.edge === "top"
 
     // ── Per-style thickness (Task 4) ────────────────────────────────────
     // Halo is the one style that draws at a different weight: 2px, not
@@ -633,15 +642,59 @@ PanelWindow {
         })
         : ""
 
-    // What the single ShapePath below actually draws. Brackets' two arms
-    // are emitted as TWO SUBPATHS of one path string rather than two
-    // ShapePaths: a `Repeater` cannot instantiate a ShapePath (it is not an
-    // Item), and — more usefully — one ShapePath means both arms share one
-    // gradient coordinate space, so the colour reads continuous across the
-    // gap the way the study's four corners do.
+    // ── Segmented: which segment is lit (Task 6) ────────────────────────
+    // `Hyprland.focusedWorkspace.id` mapped to index `id - 1`, guarded
+    // exactly the way WorkspaceCapsule.qml guards it — `!!(Hyprland
+    // .focusedWorkspace && ...)` — so a null focused workspace during a
+    // monitor event lights nothing rather than throwing. This is the
+    // shell's ONE workspace source; no second model is introduced here.
+    //
+    // -1 means "light nothing", which is the CORRECT answer for a special
+    // workspace or an id above the segment count, not a gap to paper over.
+    readonly property int _activeSegment: {
+        if (!Hyprland.focusedWorkspace)
+            return -1;
+        const idx = Hyprland.focusedWorkspace.id - 1;
+        return (idx >= 0 && idx < Design.edgeBarSegmentCount) ? idx : -1;
+    }
+
+    // Two path strings, because the two need different fills: the merged
+    // bulge silhouette and the active segment ride the live accent flow,
+    // every surviving inactive segment is `Colours.outline` at
+    // `edgeBarSegmentInactiveOpacity`. See `buildSegmented` in
+    // edgebarpath.js for the whole-segment merge and why it is a span
+    // union rather than a per-segment opacity trick.
+    readonly property var _segPaths: edgeBarWindow._segmentedRun && edgeBarWindow._ww > 0
+        ? EdgeBarPath.buildSegmented({
+            count: Design.edgeBarSegmentCount,
+            gap: Design.edgeBarSegmentGap,
+            active: edgeBarWindow._activeSegment,
+            t: edgeBarWindow._t,
+            b: edgeBarWindow._b,
+            re: edgeBarWindow._re,
+            f: edgeBarWindow._f,
+            rc: edgeBarWindow._rc,
+            along: edgeBarWindow._ww,
+            xl: edgeBarWindow._xl,
+            xr: edgeBarWindow._xr,
+            surfaceDepth: edgeBarWindow._surfaceDepth,
+            flip: edgeBarWindow._flip,
+            axis: edgeBarWindow._vertical ? "vertical" : "horizontal"
+        })
+        : ({ gradient: "", outline: "" })
+
+    // What the accent-filled ShapePath below actually draws. Brackets' two
+    // arms and Segmented's segments are emitted as SUBPATHS of one path
+    // string rather than as several ShapePaths: a `Repeater` cannot
+    // instantiate a ShapePath (it is not an Item), and — more usefully —
+    // one ShapePath means every piece shares one gradient coordinate
+    // space, so the colour reads as a single continuous flow with windows
+    // cut into it rather than as separately-animating objects.
     readonly property string _shapePath: edgeBarWindow._brackets
         ? (edgeBarWindow._armNearPath + " " + edgeBarWindow._armFarPath)
-        : edgeBarWindow._outlinePath
+        : (edgeBarWindow._segmentedRun
+            ? edgeBarWindow._segPaths.gradient
+            : edgeBarWindow._outlinePath)
 
     Shape {
         anchors.fill: parent
@@ -691,6 +744,33 @@ PanelWindow {
 
             PathSvg {
                 path: edgeBarWindow._shapePath
+            }
+        }
+    }
+
+    // ── Segmented's INACTIVE segments (Task 6) ──────────────────────────
+    // A second Shape rather than a second ShapePath in the one above,
+    // because these need a flat `Colours.outline` fill instead of the
+    // accent gradient, and because the 0.45 has to live on an ITEM's
+    // `opacity`. The roles are `property string`, so folding the alpha
+    // into the colour (`Qt.rgba(Colours.outline.r, ...)`) would read `.r`
+    // off a JS string and silently resolve to black.
+    //
+    // `#6272a4` in the study is Dracula's `outline` role — translated,
+    // never written as a literal (colour-lint GATE-04 rejects one).
+    Shape {
+        anchors.fill: parent
+        preferredRendererType: Shape.CurveRenderer
+        visible: edgeBarWindow._segmentedRun
+        opacity: Design.edgeBarSegmentInactiveOpacity
+
+        ShapePath {
+            strokeWidth: -1
+            strokeColor: "transparent"
+            fillColor: Colours.outline
+
+            PathSvg {
+                path: edgeBarWindow._segPaths.outline
             }
         }
     }

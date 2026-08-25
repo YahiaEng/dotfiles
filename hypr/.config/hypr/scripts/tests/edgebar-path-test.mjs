@@ -59,9 +59,9 @@ function loadBuildOutline() {
         })
         .join("\n");
     const mod = { exports: {} };
-    const fn = new Function("module", "exports", stripped + "\nmodule.exports = { buildOutline };");
+    const fn = new Function("module", "exports", stripped + "\nmodule.exports = { buildOutline, buildSegmented };");
     fn(mod, mod.exports);
-    return mod.exports.buildOutline;
+    return mod.exports;
 }
 
 // ── Path parsing helpers — this generator only ever emits M/L/A/Z, in
@@ -109,7 +109,7 @@ function parseSweepFlags(p) {
     return flags;
 }
 
-const buildOutline = loadBuildOutline();
+const { buildOutline, buildSegmented } = loadBuildOutline();
 const golden = JSON.parse(readFileSync(GOLDEN_PATH, "utf8"));
 
 // The live parameter set (EdgeBar.qml's own tokens, Design.qml verified):
@@ -330,6 +330,74 @@ console.log("── Group 8: alongStart translates the run along its own axis �
     // predates this parameter.
     check("omitting alongStart === alongStart:0",
         buildOutline(Object.assign({}, base, { along: ARM })) === buildOutline(Object.assign({}, base, { alongStart: 0, along: ARM })));
+}
+
+// ── Group 9: Segmented, and the whole-segment merge ──────────────────
+// The merge (Q3-segmented) is the one rule with no other detector: a
+// half-segment cut at the bulge boundary produces a perfectly valid path
+// that simply looks wrong, with no QML error and no gate. Asserted here
+// against the segment arithmetic itself rather than against pixels.
+console.log("── Group 9: Segmented merges WHOLE segments, never a half ──");
+{
+    // The live top-rail parameter set: along = 2490 (the strip's resolved
+    // width on this 2560 panel), bulge width 760 (dashboardMinWidth)
+    // centred, n = 10, gap = 8 — the study's own numbers.
+    const N = 10, GAP = 8, ALONG = 2490;
+    const SEG = (ALONG - GAP * (N - 1)) / N;
+    const XL = ALONG / 2 - 380, XR = ALONG / 2 + 380;
+    const base = { count: N, gap: GAP, t: 6, re: 3, f: 3, rc: 1, along: ALONG, xl: XL, xr: XR, surfaceDepth: 16, flip: false, axis: "horizontal" };
+    const subpaths = (s) => (s ? s.split(" M ").length : 0);
+
+    // Resting state: bulge depth 0, no merge, all ten segments separate.
+    {
+        const r = buildSegmented(Object.assign({}, base, { b: 0, active: 2 }));
+        check("b=0: no NaN/undefined", !/NaN|undefined/.test(r.gradient + r.outline));
+        check("b=0: exactly " + N + " segments drawn (1 active + " + (N - 1) + " inactive)",
+            subpaths(r.gradient) === 1 && subpaths(r.outline) === N - 1);
+        check("b=0: every sweep flag is 0 or 1",
+            parseSweepFlags(r.gradient + " " + r.outline).every((f) => f === "0" || f === "1"));
+    }
+
+    // Bulged state: the merged silhouette absorbs whole segments only.
+    for (const b of [4, 10]) {
+        const r = buildSegmented(Object.assign({}, base, { b, active: 2 }));
+        check("b=" + b + ": no NaN/undefined", !/NaN|undefined/.test(r.gradient + r.outline));
+
+        // Recompute the expected absorption independently of the module.
+        const spans = [];
+        for (let i = 0; i < N; i++) {
+            const s = i * (SEG + GAP);
+            spans.push({ start: s, end: s + SEG });
+        }
+        const touched = spans.filter((s) => s.end > XL && s.start < XR);
+        const mStart = Math.min(XL, ...touched.map((s) => s.start));
+        const mEnd = Math.max(XR, ...touched.map((s) => s.end));
+        const survivors = spans.filter((s) => !(s.end > mStart && s.start < mEnd));
+
+        check("b=" + b + ": " + touched.length + " segments absorbed, " + survivors.length + " survive",
+            subpaths(r.gradient) + subpaths(r.outline) === survivors.length + 1);
+
+        // Every coordinate the merged silhouette emits along the run must
+        // lie inside [mStart, mEnd]. If a segment were cut at the bulge
+        // boundary instead of absorbed whole, the merged run would start
+        // or end at XL/XR rather than at a segment edge.
+        const gradCoords = parseCoords(r.gradient);
+        const alongs = gradCoords.map(([x]) => x);
+        check("b=" + b + ": merged run starts at a SEGMENT edge (" + mStart.toFixed(1) + "), not at the bulge edge (" + XL.toFixed(1) + ")",
+            Math.abs(Math.min(...alongs.filter((a) => a >= mStart - 1)) - mStart) < 1e-6 || alongs.includes(mStart));
+        check("b=" + b + ": no surviving segment straddles the merged span",
+            survivors.every((s) => s.end <= mStart + 1e-9 || s.start >= mEnd - 1e-9));
+        check("b=" + b + ": every sweep flag is 0 or 1",
+            parseSweepFlags(r.gradient + " " + r.outline).every((f) => f === "0" || f === "1"));
+    }
+
+    // A focused workspace outside 1..count lights nothing — correct, not
+    // a gap (a special workspace or id 11+ simply has no segment).
+    {
+        const r = buildSegmented(Object.assign({}, base, { b: 0, active: -1 }));
+        check("active=-1: nothing lit, all " + N + " segments inactive",
+            r.gradient === "" && subpaths(r.outline) === N);
+    }
 }
 
 console.log("");

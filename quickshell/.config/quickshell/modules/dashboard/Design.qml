@@ -903,5 +903,25 @@ Singleton {
     //    operator to judge live at this task's own checkpoint.
     readonly property real edgeBarBracketArmHoverExtra: 0.4
 
+    // ── Segmented (quick task 260824-ns3, Task 6) — the workspace rail ──
+    //    All three are the study's own values, verbatim
+    //    (`.planning/notes/edge-rail-studies.html:552-627`, the Segmented
+    //    block: `n = 10, gap = 8`, inactive drawn at `.45`). Segment WIDTH
+    //    is not a token — it is derived from these two and the rail's own
+    //    extent, `(along - gap * (n - 1)) / n`, so the rail fills whatever
+    //    width it is given rather than tiling a fixed-size chip.
+    //
+    //    10 is the workspace count this shell's bar already shows, so the
+    //    rail reads as one piece per workspace. A workspace id above 10,
+    //    or a special workspace, simply lights nothing — correct, not a
+    //    gap.
+    readonly property int edgeBarSegmentCount: 10
+    readonly property int edgeBarSegmentGap: 8
+    // The inactive segments' opacity. Applied to the Item, never folded
+    // into the colour: `Colours.*` roles are `property string`, so
+    // `Qt.rgba(Colours.outline.r, ...)` reads `.r` off a JS string and
+    // silently resolves to black.
+    readonly property real edgeBarSegmentInactiveOpacity: 0.45
+
     readonly property int edgeBarDwellMs: 400 // hover dwell before a bulge hover summons its surface (Task 5) — matches popoutDwellMs above
 }

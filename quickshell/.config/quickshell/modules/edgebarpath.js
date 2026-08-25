@@ -203,3 +203,103 @@ function buildOutline(params) {
     p += " A " + re + " " + re + " 0 0 " + S(a0, Y(re), a0 + re, Y(0), re, a0 + re, Y(re)) + " " + P(a0 + re, Y(0));
     return p + " Z";
 }
+
+// buildSegmented(params) — the Segmented style's top rail, as TWO path
+// strings so the caller can fill them differently:
+//
+//   { gradient, outline }
+//
+// `gradient` carries everything painted in the live accent flow — the
+// merged bulge silhouette (when the bulge has depth) plus the ACTIVE
+// segment if that segment survived the merge. `outline` carries every
+// surviving inactive segment. Both are multi-subpath strings; either may
+// be empty.
+//
+// Inputs, all explicit numbers as everywhere else in this file:
+//   count, gap          the study's own n = 10 and gap = 8
+//   active              index of the lit segment, or -1 for none
+//   t, b, re, f, rc     the same geometry the flat run uses
+//   along               the rail's along-axis extent
+//   xl, xr              the bulge span
+//   surfaceDepth, flip, axis
+//
+// ── THE MERGE, AND WHY IT IS A SPAN UNION RATHER THAN A PER-SEGMENT
+//    OPACITY TRICK ───────────────────────────────────────────────────
+// When the bulge has any depth the segments it covers must merge into the
+// bulge's own CONTINUOUS silhouette, because an attachment root cannot
+// have gaps in it — the AttachedCorner flare would have nothing to weld
+// to and the one-silhouette effect would break at exactly the joint it
+// exists to hide. So an intersecting segment is absorbed WHOLE: the
+// merged span grows out to that segment's own far end rather than cutting
+// it at the bulge boundary, and a half-segment can never be drawn.
+//
+// Segment geometry is the study's, verbatim:
+//   seg = (along - gap * (count - 1)) / count
+//   segment i spans [i * (seg + gap), i * (seg + gap) + seg]
+// and every segment is pill-capped through the SAME two-quarter-arc
+// construction `buildOutline` already emits. No new arc of any other
+// sweep angle is introduced anywhere here, so hazard 4 stays disarmed.
+function buildSegmented(params) {
+    var n = params.count, gap = params.gap;
+    var along = params.along, b = params.b;
+    var xl = params.xl, xr = params.xr, active = params.active;
+    var seg = (along - gap * (n - 1)) / n;
+
+    function span(i) {
+        var s = i * (seg + gap);
+        return { start: s, end: s + seg };
+    }
+
+    // The merged span: the bulge's own span, grown out to swallow every
+    // segment it touches whole. Null when the bulge has no depth, which
+    // is the resting state in animated mode — all `count` segments then
+    // stand separate, which is the intended reading.
+    var merged = null;
+    if (b > 0) {
+        var ms = xl, me = xr;
+        for (var i = 0; i < n; i++) {
+            var sp = span(i);
+            if (sp.end > xl && sp.start < xr) {
+                if (sp.start < ms) ms = sp.start;
+                if (sp.end > me) me = sp.end;
+            }
+        }
+        merged = { start: ms, end: me };
+    }
+
+    var gradient = "", outline = "";
+    function add(target, p) {
+        if (target === "gradient") gradient += (gradient ? " " : "") + p;
+        else outline += (outline ? " " : "") + p;
+    }
+
+    if (merged) {
+        // ONE continuous silhouette across the merged span, built by the
+        // ordinary flat-run-plus-bulge builder so its fillets, bulge
+        // corners and pill caps are the same shapes every other style
+        // uses — the bulge is not a special case here, the merged run is
+        // simply a shorter rail that happens to have one.
+        add("gradient", buildOutline({
+            t: params.t, b: b, re: params.re, f: params.f, rc: params.rc,
+            alongStart: merged.start, along: merged.end,
+            xl: xl, xr: xr,
+            surfaceDepth: params.surfaceDepth, flip: params.flip, axis: params.axis
+        }));
+    }
+
+    for (var j = 0; j < n; j++) {
+        var s2 = span(j);
+        // Absorbed into the merged silhouette — not drawn again, and never
+        // drawn as the half that fell outside.
+        if (merged && s2.end > merged.start && s2.start < merged.end)
+            continue;
+        add(j === active ? "gradient" : "outline", buildOutline({
+            t: params.t, b: 0, re: params.re, f: 0, rc: 0,
+            alongStart: s2.start, along: s2.end, bulge: false,
+            xl: 0, xr: 0,
+            surfaceDepth: params.surfaceDepth, flip: params.flip, axis: params.axis
+        }));
+    }
+
+    return { gradient: gradient, outline: outline };
+}
