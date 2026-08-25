@@ -19,6 +19,12 @@
 // exact contract one level up.
 import QtQuick
 import QtQuick.Controls
+// `..` is REQUIRED and is not optional tidiness: `sState` below is typed
+// `SettingsState`, which is declared in `../qmldir`, and qmllint returns 0
+// on a missing QML import — so its absence is invisible to every static
+// gate and only surfaces as "Type ... unavailable" when the shell starts.
+// `common/PageBase.qml:6` carries the same line for the same reason.
+import ".."
 import "../../"
 import "../../dashboard"
 
