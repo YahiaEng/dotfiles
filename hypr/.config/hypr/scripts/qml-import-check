@@ -1,0 +1,360 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════╗
+# ║              QML-IMPORT-CHECK (quick-260826-1n9)          ║
+# ║  Import-resolution gate: every capitalised QML type a       ║
+# ║  file references must be supplied by SOME import that       ║
+# ║  file actually declares.                                    ║
+# ╚══════════════════════════════════════════════════════════╝
+#
+# `qmllint` returns 0 on a missing QML import. This is the exact hole
+# quick-260825-wj2 fell through: common/StackPage.qml referenced
+# `SettingsState` without `import ".."`, four gates (settings-index-check
+# 167/0, colour-lint 398/0, motion-lint 585/0, qmllint 0) were all green,
+# and the shell would not start. This gate closes that failure class by
+# doing what qmllint does not: resolving every reference against the
+# file's own actual import graph, not the module's syntax alone.
+#
+# set -uo pipefail, deliberately NOT -e: the gate must survey the whole
+# tree and report every failure at the end, not die on the first one.
+set -uo pipefail
+
+# Every check strips `//`-comment lines, `/* */` block comments and
+# double-quoted string literals before matching, so a gate that matches
+# its own or its target's prose can never produce a false hit (this repo
+# has already been bitten by exactly that class of bug elsewhere —
+# grep-gate-matches-own-comment).
+#
+# ── Resolution model ────────────────────────────────────────────────────
+# For each *.qml file, the set of type names it may legally reference is
+# the union of:
+#   1. Its own directory's local types — if that directory carries a
+#      qmldir manifest, exactly the type names that manifest declares
+#      (singleton/internal entries included, by their SECOND token — an
+#      undeclared sibling .qml in a qmldir-bearing directory is NOT
+#      resolvable, which is the whole reason common/qmldir discipline
+#      exists); if there is no qmldir, every sibling *.qml basename.
+#   2. Each `import "<relative path>"` directory's types, by the SAME
+#      qmldir-or-basenames rule, resolved relative to the file. A path
+#      that does not exist is a FAIL, named. A path ending `.js` is a
+#      script import (one file, not a directory of types) and is skipped.
+#   3. Each `import <Dotted.Module>` (unquoted) — mapped to a directory
+#      under the Qt QML root (`qmake6 -query QT_INSTALL_QML`, falling
+#      back to /usr/lib/qt6/qml), unioning every type name found in
+#      `exports: ["<Module>/<Name> <version>"]` across that directory's
+#      own *.qmltypes files, PLUS every type reachable by following that
+#      module's own qmldir `import`/`default import`/`optional import`
+#      lines (not `depends` — that keyword is documented as build-time
+#      only and does not expose types), recursively. This is what keeps
+#      Quickshell.Hyprland's `HyprlandFocusGrab` (declared under the
+#      private `Quickshell.Hyprland._FocusGrab` submodule and reached only
+#      via that module's own un-"auto"-marked `import` lines) and QQC2's
+#      `TextField`/`Button`/etc. (declared under `QtQuick.Controls.Basic`,
+#      reached only via QtQuick.Controls's own `default import
+#      QtQuick.Controls.Basic auto` line) from reading as false positives
+#      — DERIVED from the installed modules' own manifests, never a
+#      hand-written allowlist. A module directory with no .qmltypes is a
+#      NOTE, not a FAIL — a future Qt layout change degrades to noise
+#      rather than a wall of false failures. That is the safe direction.
+#   4. Inline components declared in the file itself:
+#      `^\s*component\s+([A-Z][A-Za-z0-9_]*)\s*:`.
+#   5. The file's own root type id and any `id:` values are never treated
+#      as types (the patterns below never match a lowercase `id:` line).
+#
+# Referenced identifiers are collected from three anchored shapes only:
+#   - object declarations:        ^\s*([A-Z][A-Za-z0-9_]*)\s*\{
+#   - typed property declarations: property\s+([A-Z][A-Za-z0-9_]*)\s
+#     (this also matches the `required property` / `readonly property`
+#     forms, since the pattern is not anchored to line start)
+#   - list-typed declarations:     list<([A-Z][A-Za-z0-9_]*)>
+# Dotted forms (Text.WordWrap, Easing.BezierSpline, StackView.Immediate,
+# Component.onCompleted, …) are enum/attached references, not
+# instantiations — none of the three patterns above can match a dot, so
+# they are excluded structurally, not by a separate exclusion list.
+#
+# Usage:
+#   qml-import-check [<dir>]
+#       No argument: scans quickshell/.config/quickshell (this repo's own
+#       tree, relative to the current working directory).
+#   Exit codes: 0 clean / 1 any FAIL / 2 invalid target (directory missing).
+#
+# Deliberately no --self-test flag (same idiom as settings-index-check):
+# falsification is exercised inline by this gate's own creation task —
+# temporarily remove common/StackPage.qml's `import ".."`, confirm FAIL
+# naming SettingsState, restore, confirm PASS. Recorded in the SUMMARY,
+# not wired into this script.
+
+TARGET="${1:-quickshell/.config/quickshell}"
+
+if [[ ! -d "$TARGET" ]]; then
+    echo "qml-import-check: target directory does not exist: $TARGET" >&2
+    exit 2
+fi
+
+QML_ROOT="$(qmake6 -query QT_INSTALL_QML 2>/dev/null)"
+if [[ -z "$QML_ROOT" || ! -d "$QML_ROOT" ]]; then
+    QML_ROOT="/usr/lib/qt6/qml"
+fi
+
+python3 - "$TARGET" "$QML_ROOT" <<'PYEOF'
+import os
+import re
+import sys
+import glob
+
+TARGET = os.path.normpath(sys.argv[1])
+QML_ROOT = os.path.normpath(sys.argv[2])
+
+FAILS = []   # list[str]
+NOTES = []   # list[str]
+
+OBJ_RE = re.compile(r'^\s*([A-Z][A-Za-z0-9_]*)\s*\{')
+PROP_RE = re.compile(r'\bproperty\s+([A-Z][A-Za-z0-9_]*)\s')
+LIST_RE = re.compile(r'list<([A-Z][A-Za-z0-9_]*)>')
+COMPONENT_RE = re.compile(r'^\s*component\s+([A-Z][A-Za-z0-9_]*)\s*:')
+IMPORT_QUOTED_RE = re.compile(r'^\s*import\s+"([^"]+)"')
+IMPORT_DOTTED_RE = re.compile(r'^\s*import\s+([A-Za-z][A-Za-z0-9_.]*)')
+EXPORT_RE = re.compile(r'"[A-Za-z0-9_.]+/([A-Za-z_][A-Za-z0-9_]*)\s+[0-9]')
+
+
+def strip_comments(text):
+    # Block comments: replace with the same number of newlines so line
+    # numbers in FAIL reports stay accurate.
+    def repl_block(m):
+        return '\n' * m.group(0).count('\n')
+    text = re.sub(r'/\*.*?\*/', repl_block, text, flags=re.S)
+    # Line comments: drop everything after `//` on the line.
+    text = re.sub(r'//[^\n]*', '', text)
+    return text
+
+
+def strip_strings(text):
+    # Double-quoted string literals: collapse to an empty string so a
+    # literal that happens to look like a type reference (e.g. a comment
+    # this gate is deliberately allowlisted against) can never match.
+    return re.sub(r'"(?:[^"\\\n]|\\.)*"', '""', text)
+
+
+def parse_qmldir(path):
+    """Return (types: set[str], deps: set[str]) declared by a qmldir file.
+
+    Directive keywords (module, plugin, classname, designersupported,
+    typeinfo, linktarget, prefer, depends, default, optional, static,
+    system, …) are always lowercase in qmldir syntax, while every real
+    QML type name is capitalised by convention — so a lowercase first
+    token is treated as a directive, never hand-listed by name. `depends`
+    lines are explicitly skipped: that keyword is documented as a
+    build-time dependency declaration only and does not expose types to
+    consumers, unlike `import` / `default import` / `optional import`.
+    """
+    types = set()
+    deps = set()
+    try:
+        with open(path, encoding='utf-8', errors='replace') as fh:
+            lines = fh.readlines()
+    except OSError:
+        return types, deps
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith('#'):
+            continue
+        parts = line.split()
+        if not parts:
+            continue
+        head = parts[0]
+        if head in ('singleton', 'internal'):
+            if len(parts) >= 2:
+                types.add(parts[1])
+            continue
+        if 'import' in parts:
+            i = parts.index('import')
+            if i + 1 < len(parts):
+                deps.add(parts[i + 1])
+            continue
+        if head == 'depends':
+            continue
+        if not head[0].isupper():
+            continue
+        types.add(head)
+    return types, deps
+
+
+DIR_TYPE_CACHE = {}
+
+
+def dir_local_types(d):
+    """Types resolvable from directory `d` alone (qmldir-or-basenames)."""
+    d = os.path.normpath(d)
+    if d in DIR_TYPE_CACHE:
+        return DIR_TYPE_CACHE[d]
+    qmldir_path = os.path.join(d, 'qmldir')
+    if os.path.isfile(qmldir_path):
+        types, deps = parse_qmldir(qmldir_path)
+        for dep in deps:
+            types |= resolve_dotted_module(dep)
+    else:
+        types = set()
+        for f in glob.glob(os.path.join(d, '*.qml')):
+            types.add(os.path.splitext(os.path.basename(f))[0])
+    DIR_TYPE_CACHE[d] = types
+    return types
+
+
+MODULE_TYPE_CACHE = {}
+
+
+def resolve_dotted_module(dotted_name, _visited=None):
+    """Types reachable via `import <dotted_name>`, following the module's
+    own qmldir import graph recursively (never `depends`)."""
+    if _visited is None:
+        _visited = set()
+    if dotted_name in _visited:
+        return set()
+    _visited = _visited | {dotted_name}
+    if dotted_name in MODULE_TYPE_CACHE:
+        return MODULE_TYPE_CACHE[dotted_name]
+
+    d = os.path.join(QML_ROOT, *dotted_name.split('.'))
+    types = set()
+    if not os.path.isdir(d):
+        NOTES.append(f'NOTE: module directory not found for import {dotted_name}: {d}')
+        MODULE_TYPE_CACHE[dotted_name] = types
+        return types
+
+    qmltypes_files = glob.glob(os.path.join(d, '*.qmltypes'))
+    if not qmltypes_files:
+        NOTES.append(f'NOTE: no .qmltypes under {d} for import {dotted_name} (treated as unresolvable-but-not-failing)')
+    for qt in qmltypes_files:
+        try:
+            with open(qt, encoding='utf-8', errors='replace') as fh:
+                content = fh.read()
+        except OSError:
+            continue
+        types |= set(EXPORT_RE.findall(content))
+
+    qmldir_path = os.path.join(d, 'qmldir')
+    if os.path.isfile(qmldir_path):
+        # A module's qmldir can ALSO declare types directly (`TypeName
+        # Version File.qml`) that back a pure-QML-composed type over a
+        # C++ implementation class — e.g. Quickshell.Io's `FileView` is
+        # exported from quickshell-io.qmltypes only as the internal
+        # `FileViewInternal`; the public `FileView` name comes solely
+        # from `FileView 0.0 FileView.qml` in that module's qmldir. Same
+        # shape for QtQuick.Controls.Basic's `TextField`/`Button`/etc.
+        # Not just `deps` — the direct declarations must be unioned too.
+        qmldir_types, deps = parse_qmldir(qmldir_path)
+        types |= qmldir_types
+        for dep in deps:
+            types |= resolve_dotted_module(dep, _visited)
+
+    MODULE_TYPE_CACHE[dotted_name] = types
+    return types
+
+
+def process_file(path):
+    rel = os.path.relpath(path, start='.')
+    try:
+        with open(path, encoding='utf-8', errors='replace') as fh:
+            raw_text = fh.read()
+    except OSError as e:
+        FAILS.append(f'FAIL {rel} — could not read file: {e}')
+        return
+
+    comments_only = strip_comments(raw_text)   # keeps string literals intact — for import lines
+    clean = strip_strings(comments_only)       # comments AND strings gone — for identifier matching
+    comment_lines = comments_only.split('\n')
+    lines = clean.split('\n')
+    file_dir = os.path.dirname(path)
+
+    available = set()
+    available |= dir_local_types(file_dir)
+
+    scope_desc = [f'own directory ({file_dir}): {len(dir_local_types(file_dir))} type(s)']
+
+    inline_components = set()
+    for line in lines:
+        m = COMPONENT_RE.match(line)
+        if m:
+            inline_components.add(m.group(1))
+    available |= inline_components
+    if inline_components:
+        scope_desc.append(f'inline components: {sorted(inline_components)}')
+
+    for lineno, line in enumerate(comment_lines, start=1):
+        stripped = line.strip()
+        if not stripped.startswith('import '):
+            continue
+        mq = IMPORT_QUOTED_RE.match(line)
+        if mq:
+            qpath = mq.group(1)
+            if qpath.endswith('.js'):
+                continue
+            target = os.path.normpath(os.path.join(file_dir, qpath))
+            if not os.path.isdir(target):
+                FAILS.append(f'FAIL {rel}:{lineno} — import "{qpath}" does not resolve to a directory: {target}')
+                scope_desc.append(f'import "{qpath}" -> MISSING ({target})')
+                continue
+            t = dir_local_types(target)
+            available |= t
+            scope_desc.append(f'import "{qpath}" -> {target} ({len(t)} type(s))')
+            continue
+        md = IMPORT_DOTTED_RE.match(line)
+        if md:
+            mod = md.group(1)
+            t = resolve_dotted_module(mod)
+            available |= t
+            scope_desc.append(f'import {mod} ({len(t)} type(s))')
+            continue
+
+    referenced = []  # list[(identifier, lineno)]
+    for lineno, line in enumerate(lines, start=1):
+        for m in OBJ_RE.finditer(line):
+            referenced.append((m.group(1), lineno))
+        for m in PROP_RE.finditer(line):
+            referenced.append((m.group(1), lineno))
+        for m in LIST_RE.finditer(line):
+            referenced.append((m.group(1), lineno))
+
+    unresolved = [(ident, ln) for ident, ln in referenced if ident not in available]
+    if unresolved:
+        for ident, ln in unresolved:
+            FAILS.append(f'FAIL {rel}:{ln} — type "{ident}" is not supplied by any import')
+        FAILS.append(f'       import scopes for {rel}:')
+        for d in scope_desc:
+            FAILS.append(f'         - {d}')
+
+
+def main():
+    qml_files = sorted(glob.glob(os.path.join(TARGET, '**', '*.qml'), recursive=True))
+    if not qml_files:
+        print(f'qml-import-check: no .qml files found under {TARGET}', file=sys.stderr)
+        sys.exit(2)
+
+    for f in qml_files:
+        process_file(f)
+
+    print('qml-import-check — QML import-resolution gate')
+    print(f'  target: {TARGET}')
+    print(f'  scanned: {len(qml_files)} file(s)')
+    print()
+
+    for n in NOTES:
+        print(f'  {n}')
+    if NOTES:
+        print()
+
+    for f in FAILS:
+        print(f'  {f}')
+
+    fail_lines = [f for f in FAILS if f.startswith('FAIL ')]
+    print()
+    if fail_lines:
+        print(f'Summary: {len(fail_lines)} unresolved reference(s) across {len(qml_files)} file(s) scanned')
+        sys.exit(1)
+    else:
+        print(f'Summary: 0 unresolved references across {len(qml_files)} file(s) scanned')
+        sys.exit(0)
+
+
+main()
+PYEOF
+exit $?
