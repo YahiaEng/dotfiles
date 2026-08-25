@@ -133,6 +133,22 @@ Singleton {
             category: "shell",
             slug: "apps"
         },
+        // Services + Language & region (quick task 260825-wj2 Task 6) —
+        // inserted at 12, 13. Both flat, no sub-pages.
+        {
+            label: "Services",
+            icon: "build",
+            description: "Poll intervals and refresh cadence",
+            category: "shell",
+            slug: "services"
+        },
+        {
+            label: "Language & region",
+            icon: "globe",
+            description: "UI language, weather location, units",
+            category: "shell",
+            slug: "language-region"
+        },
         // Updates + About (quick task 260825-wj2 Task 3) — both flat, no
         // sub-pages.
         {

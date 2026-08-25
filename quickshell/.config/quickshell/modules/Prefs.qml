@@ -198,7 +198,18 @@ Singleton {
         "launcher.favouriteApps",
         "launcher.hiddenApps",
         "apps.terminal",
-        "apps.audio"
+        "apps.audio",
+        // Quick task 260825-wj2 Task 6 — Services page's four poll-interval
+        // steppers, each stored in the unit its own consumer already uses
+        // (the unit conversion happens at the row, not at any consumer
+        // site), and Language & region's three unit pickers.
+        "services.weatherRefreshMs",
+        "services.newsTtlMinutes",
+        "services.resourcesPollMs",
+        "services.updatesPollMs",
+        "region.unitsTemp",
+        "region.unitsWind",
+        "region.unitsPrecip"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -260,7 +271,19 @@ Singleton {
         "launcher.favouriteApps": ([]),
         "launcher.hiddenApps": ([]),
         "apps.terminal": "kitty",
-        "apps.audio": "pavucontrol"
+        "apps.audio": "pavucontrol",
+        // Quick task 260825-wj2 Task 6 — the four literals each consumer
+        // already hardcoded, so an install that never opens Services
+        // behaves exactly as today. "auto" for the units keeps an existing
+        // hand-edited weather.json authoritative instead of silently
+        // overwriting it.
+        "services.weatherRefreshMs": 900000,
+        "services.newsTtlMinutes": 0,
+        "services.resourcesPollMs": 2000,
+        "services.updatesPollMs": 1800000,
+        "region.unitsTemp": "auto",
+        "region.unitsWind": "auto",
+        "region.unitsPrecip": "auto"
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

@@ -192,7 +192,8 @@ Singleton {
         { pageIdx: 9, section: "Dashboard panels", label: "Calendar", keywords: "dashboard panel calendar month grid" },
         { pageIdx: 9, section: "Dashboard panels", label: "Media", keywords: "dashboard panel media now playing" },
         { pageIdx: 9, section: "Dashboard panels", label: "Resources", keywords: "dashboard panel resources cpu memory storage battery" },
-        { pageIdx: 9, section: "Content sources", label: "Weather location", keywords: "weather source location city forecast" },
+        // Weather location moved to Language & region (quick task
+        // 260825-wj2 Task 6) — its RowIndex entry moved with it.
         { pageIdx: 9, section: "Content sources", label: "News sources", keywords: "news source feed rss" },
 
         // ── pageIdx 10 — Session ───────────────────────────────────────────
@@ -232,15 +233,28 @@ Singleton {
         { pageIdx: 11, subPageIdx: 2, section: "Details", label: "App ID", keywords: "apps info id desktop entry", jumpSubPageIdx: 1 },
         { pageIdx: 11, subPageIdx: 2, section: "Details", label: "Command", keywords: "apps info command exec", jumpSubPageIdx: 1 },
 
-        // ── pageIdx 12 — Updates (quick task 260825-wj2 Task 3) ──────────
-        { pageIdx: 12, section: "Updates", label: "Update status", keywords: "updates status checking uptodate pending count" },
-        { pageIdx: 12, section: "Updates", label: "Pending update", keywords: "updates pending package repo aur" },
-        { pageIdx: 12, section: "Updates", label: "System is up to date", keywords: "updates uptodate none pending" },
-        { pageIdx: 12, section: "Updates", label: "Update system", keywords: "updates upgrade paru terminal system" },
+        // ── pageIdx 12 — Services (quick task 260825-wj2 Task 6, D-9) ────
+        { pageIdx: 12, section: "Polling", label: "Weather refresh", keywords: "services polling weather refresh interval minutes" },
+        { pageIdx: 12, section: "Polling", label: "News cache lifetime", keywords: "services polling news cache ttl minutes" },
+        { pageIdx: 12, section: "Polling", label: "System stats refresh", keywords: "services polling cpu memory gpu refresh interval seconds" },
+        { pageIdx: 12, section: "Polling", label: "Update check", keywords: "services polling updates check interval minutes" },
 
-        // ── pageIdx 13 — About (quick task 260825-wj2 Task 3) ────────────
-        { pageIdx: 13, section: "System", label: "System information", keywords: "about system fastfetch os host kernel uptime packages cpu gpu memory" },
-        { pageIdx: 13, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
-        { pageIdx: 13, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
+        // ── pageIdx 13 — Language & region (quick task 260825-wj2 Task 6) ─
+        { pageIdx: 13, section: "Region", label: "UI language", keywords: "language region translation locale" },
+        { pageIdx: 13, section: "Region", label: "Weather location", keywords: "weather source location city forecast region" },
+        { pageIdx: 13, section: "Region", label: "Temperature units", keywords: "region units temperature celsius fahrenheit metric imperial weather" },
+        { pageIdx: 13, section: "Region", label: "Wind speed units", keywords: "region units wind speed kmh mph metric imperial weather" },
+        { pageIdx: 13, section: "Region", label: "Precipitation units", keywords: "region units precipitation rain mm inch metric imperial weather" },
+
+        // ── pageIdx 14 — Updates (quick task 260825-wj2 Task 3) ──────────
+        { pageIdx: 14, section: "Updates", label: "Update status", keywords: "updates status checking uptodate pending count" },
+        { pageIdx: 14, section: "Updates", label: "Pending update", keywords: "updates pending package repo aur" },
+        { pageIdx: 14, section: "Updates", label: "System is up to date", keywords: "updates uptodate none pending" },
+        { pageIdx: 14, section: "Updates", label: "Update system", keywords: "updates upgrade paru terminal system" },
+
+        // ── pageIdx 15 — About (quick task 260825-wj2 Task 3) ────────────
+        { pageIdx: 15, section: "System", label: "System information", keywords: "about system fastfetch os host kernel uptime packages cpu gpu memory" },
+        { pageIdx: 15, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
+        { pageIdx: 15, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
     ]
 }

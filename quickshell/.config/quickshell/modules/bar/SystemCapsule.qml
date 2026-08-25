@@ -484,7 +484,10 @@ BarCapsule {
     // hour"; the arithmetic for a 1,800,000ms/30-minute interval is two,
     // corrected here and recorded in the SUMMARY as a Rule 1 fix).
     readonly property string updatesCheckCommand: "checkupdates"
-    readonly property int updatesPollIntervalMs: 1800000
+    // Quick task 260825-wj2 Task 6 — Services page's "Update check"
+    // stepper. The literal `1800000` stays as Prefs' own `_defaults`
+    // value, so an install that never opens that page is unaffected.
+    readonly property int updatesPollIntervalMs: Prefs.getValue("services.updatesPollMs")
     property int pendingUpdatesCount: 0
 
     // Athena's own #custom-updates rule is a FILLED pill (style-athena.scss

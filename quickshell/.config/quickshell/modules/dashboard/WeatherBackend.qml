@@ -87,6 +87,10 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+// Prefs (quick task 260825-wj2 Task 6) — the modules/-root `qs.modules`
+// manifest, the same relative import Design.qml (this directory's own
+// sibling) already uses to reach the same singleton.
+import "../"
 
 Scope {
     id: root
@@ -105,8 +109,15 @@ Scope {
     //    invisible to it (SystemResources.qml's own header note, reused
     //    verbatim here). D-32/D-33 name these as approximate starting
     //    points; naming them is what makes retuning a one-number edit. ────
-    readonly property int cacheTtlMs: 15 * 60 * 1000
-    readonly property int refreshIntervalMs: 15 * 60 * 1000
+    // Both driven by the SAME Prefs key (quick task 260825-wj2 Task 6,
+    // Services page's "Weather refresh" stepper) — the refresh Timer below
+    // no-ops while the cache is still fresh, so driving only
+    // `refreshIntervalMs` would ship a knob that visibly does nothing at
+    // any value under the cache TTL. The literal `15 * 60 * 1000` stays as
+    // Prefs' own `_defaults` value, so an install that never opens that
+    // page behaves exactly as today.
+    readonly property int cacheTtlMs: Prefs.getValue("services.weatherRefreshMs")
+    readonly property int refreshIntervalMs: Prefs.getValue("services.weatherRefreshMs")
     readonly property int staleBadgeMs: 60 * 60 * 1000
     readonly property int staleWarnMs: 6 * 60 * 60 * 1000
     readonly property int clockIntervalMs: 60 * 1000
@@ -173,9 +184,26 @@ Scope {
 
     readonly property alias lat: state.lat
     readonly property alias lon: state.lon
-    readonly property alias unitsTemp: state.units_temp
-    readonly property alias unitsWind: state.units_wind
-    readonly property alias unitsPrecip: state.units_precip
+    // Plain `readonly property string`, not an alias (quick task
+    // 260825-wj2 Task 6, Language & region page's three unit pickers) — an
+    // alias cannot carry a fallback chain. Resolution order, in one place:
+    // the Prefs value when it is a real unit ("metric"/"imperial"); else
+    // the hand-editable `weather.json` value; else "metric". Prefs'
+    // default is "auto", which is what keeps an existing hand-edited
+    // `weather.json` authoritative instead of being silently overwritten
+    // by a fresh install's default the first time this file loads.
+    readonly property string unitsTemp: {
+        var p = Prefs.getValue("region.unitsTemp");
+        return (p === "metric" || p === "imperial") ? p : (state.units_temp || "metric");
+    }
+    readonly property string unitsWind: {
+        var p = Prefs.getValue("region.unitsWind");
+        return (p === "metric" || p === "imperial") ? p : (state.units_wind || "metric");
+    }
+    readonly property string unitsPrecip: {
+        var p = Prefs.getValue("region.unitsPrecip");
+        return (p === "metric" || p === "imperial") ? p : (state.units_precip || "metric");
+    }
     // Raw alias mirroring the pattern above exactly — this is what lets
     // `onCityChanged` below fire the same way `onLatChanged` etc. already
     // do. `cityOverride` (below) is the trimmed, public-facing value

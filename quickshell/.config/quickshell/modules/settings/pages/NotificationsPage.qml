@@ -167,36 +167,12 @@ PageBase {
     }
 
     // ── Content sources — N-06, InfoRows (see file header) ───────────────
+    // Weather location moved to Language & region (quick task 260825-wj2
+    // Task 6) — its own FileView/weatherCityOverride reader moved with it.
     SettingsSection {
         id: sourcesSection
         title: "Content sources"
         icon: "cloud"
-
-        FileView {
-            id: weatherStateFile
-            path: Quickshell.env("HOME") + "/.local/state/theme/weather.json"
-            watchChanges: true
-            onFileChanged: reload()
-        }
-        readonly property string weatherCityOverride: {
-            try {
-                var obj = JSON.parse(weatherStateFile.text() || "{}");
-                return (obj && typeof obj.city === "string") ? obj.city.trim() : "";
-            } catch (e) {
-                return "";
-            }
-        }
-
-        // Operator fix wave finding 4: plain-language rewrite. Engineering
-        // note (kept, not deleted): weather.json is a hand-edit-only file
-        // — WeatherBackend has no writer function, so there is no "Change"
-        // control to build here (N-06).
-        InfoRow {
-            label: "Weather location"
-            subtext: (sourcesSection.weatherCityOverride.length > 0
-                ? ("Set to: " + sourcesSection.weatherCityOverride)
-                : "Automatic, based on your timezone.") + " To set a specific city, edit ~/.local/state/theme/weather.json."
-        }
 
         FileView {
             id: newsSourcesFile

@@ -112,6 +112,9 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Services.UPower
+// Prefs (quick task 260825-wj2 Task 6) — the modules/-root `qs.modules`
+// manifest, the same relative import Design.qml already uses.
+import "../"
 
 Scope {
     id: root
@@ -129,7 +132,11 @@ Scope {
     // ── Cadence + smoothing constants (D-36) — named so no timer below
     //    ever carries a bare number; motion-lint cannot see this, so this
     //    is a source assertion (see acceptance criteria). ─────────────────
-    readonly property int fastPollInterval: 2000
+    // Quick task 260825-wj2 Task 6 — Services page's "System stats
+    // refresh" stepper (seconds in the UI, ms in Prefs — the reference's
+    // own convention). The literal `2000` stays as Prefs' own `_defaults`
+    // value, so an install that never opens that page is unaffected.
+    readonly property int fastPollInterval: Prefs.getValue("services.resourcesPollMs")
     readonly property int slowPollInterval: 30000
     // The short first CPU/network delta window. Named here in 14-09 rather
     // than left as a bare `interval: 400` on primeTimer — this block's own

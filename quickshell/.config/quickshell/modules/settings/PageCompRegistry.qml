@@ -103,6 +103,12 @@ Singleton {
         }
     }
 
+    readonly property Component servicesComp: Component {
+        ServicesPage {}
+    }
+    readonly property Component languageRegionComp: Component {
+        LanguageRegionPage {}
+    }
     readonly property Component updatesComp: Component {
         UpdatesPage {}
     }
@@ -113,7 +119,7 @@ Singleton {
     // Index-locked to PageRegistry.pages, in the identical order documented
     // there: [Appearance, Wallpaper, Bar, Audio, Network, Connected
     // devices, Display, Input, Window manager, Notifications, Session,
-    // Apps, Updates, About].
+    // Apps, Services, Language & region, Updates, About].
     readonly property list<Component> comps: [
         appearanceComp,
         wallpaperComp,
@@ -127,6 +133,8 @@ Singleton {
         notificationsComp,
         sessionComp,
         appsComp,
+        servicesComp,
+        languageRegionComp,
         updatesComp,
         aboutComp
     ]
@@ -149,6 +157,8 @@ Singleton {
         "notifications",
         "session",
         "apps",
+        "services",
+        "language-region",
         "updates",
         "about"
     ]

@@ -156,6 +156,9 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+// Prefs (quick task 260825-wj2 Task 6) — the modules/-root `qs.modules`
+// manifest, the same relative import Design.qml already uses.
+import "../"
 
 Scope {
     id: root
@@ -263,7 +266,16 @@ Scope {
     readonly property int maxSources: 8 // hard, not configurable
     readonly property int maxItemsPerSource: root.clamp(newsState.max_items_per_source, 1, 50)
     readonly property int maxItemsTotal: root.clamp(newsState.max_items_total, 1, 200)
-    readonly property int ttlMs: root.clamp(newsState.ttl_minutes, 1, 1440) * 60 * 1000
+    // services.newsTtlMinutes (quick task 260825-wj2 Task 6, Services
+    // page's "News cache lifetime" stepper) — 0 means "follow
+    // news-sources.json"'s own ttl_minutes, Prefs' own default. The clamp
+    // stays on BOTH paths — a hand-edited prefs.json cannot produce an
+    // unbounded fetch cadence either way.
+    readonly property int ttlMs: {
+        var prefMinutes = Prefs.getValue("services.newsTtlMinutes");
+        var minutes = (prefMinutes > 0) ? prefMinutes : newsState.ttl_minutes;
+        return root.clamp(minutes, 1, 1440) * 60 * 1000;
+    }
     readonly property int maxResponseBytes: 2 * 1024 * 1024
 
     // D-41 register, driven from the published state below — the same

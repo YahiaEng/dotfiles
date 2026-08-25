@@ -26,3 +26,7 @@ AboutPage 1.0 AboutPage.qml
 # Connected devices + sub-page (quick task 260825-wj2 Task 4, D-8).
 BluetoothPage 1.0 BluetoothPage.qml
 BtDeviceInfoPage 1.0 BtDeviceInfoPage.qml
+# Services + Language & region (quick task 260825-wj2 Task 6) — flat, no
+# sub-pages.
+ServicesPage 1.0 ServicesPage.qml
+LanguageRegionPage 1.0 LanguageRegionPage.qml
