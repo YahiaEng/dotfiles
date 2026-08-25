@@ -52,6 +52,18 @@ Item {
             return result;
         for (var i = 0; i < item.children.length; i++) {
             var child = item.children[i];
+            // Defect 3 fix (quick-260826-1n9, Task 3) — a StackPage is a
+            // StackView, and QQC2 keeps every non-current element parented
+            // to the StackView with `visible: false` rather than removed.
+            // Without this guard the walk returned BOTH the hidden root
+            // page's rows and the visible sub-page's rows on any page
+            // with a sub-page pushed (Apps, Connected devices) — a search
+            // jump could ring a row on the invisible page underneath, and
+            // keyboard focus could land there too. Skipping (and not
+            // recursing into) an invisible child fixes both, and also
+            // silently fixes `visible: false` rows on flat pages.
+            if (child.visible === false)
+                continue;
             if (child.focusable === true)
                 result.push(child);
             else
@@ -229,7 +241,21 @@ Item {
                 root.contentFocused = true;
                 root.contentRowIdx = foundIdx;
                 root._applyRowFocusVisual();
-                root._scrollRowIntoView();
+                // Defect 2 fix — deferred ONLY here, not in
+                // enterContent()/moveContentRow() below (both already
+                // operator-verified working, grim+PIL, quick-260821-6z1;
+                // changing a verified path to fix an unverified one is
+                // not this fix's job). `_swapTo` incubates the new page
+                // synchronously and calls `_recollectRows()` in the very
+                // next statement — Qt has not yet run the polish pass
+                // that lays out the page's Column/sizes its Flickable, so
+                // `_scrollRowIntoView()`'s `row.mapToItem(...)` and
+                // `flick.contentHeight` reads would both see stale/zeroed
+                // geometry (every row maps to y≈0, contentHeight unset)
+                // and the nudge would silently never move `contentY` — the
+                // row WOULD be ringed, just off-screen. `Qt.callLater`
+                // pushes the read past that pass.
+                Qt.callLater(root._scrollRowIntoView);
             } else {
                 console.warn("Pages: search jump target not found on this page: " + targetLabel);
             }
@@ -258,20 +284,44 @@ Item {
             console.warn("Pages: failed to incubate page at index " + idx);
         }
 
-        // ── Sub-page deep-link (quick task 260825-wj2 Task 1, D-5) — the
-        //    target page object does not exist until the incubation just
-        //    above, so this is the earliest point `openSubPage` can run.
-        //    Only a StackPage-wrapped comp exposes `openSubPage`; a bare
+        // ── Sub-page deep-link (quick task 260825-wj2 Task 1, D-5; fixed
+        //    quick-260826-1n9 Task 3, defect 4) — the target page object
+        //    does not exist until the incubation just above, so this is
+        //    the earliest point a sub-page push can be requested. Only a
+        //    StackPage-wrapped comp exposes `openSubPage`; a bare
         //    PageBase does not, so this is guarded rather than assumed —
         //    a plain page whose pendingSubPageIdx somehow arrived >0 (it
         //    should not, since only sub-page-bearing rows set it) simply
         //    lands on the page's root with no sub-page opened, not a
-        //    crash. ──────────────────────────────────────────────────────
-        if (root.sState.pendingSubPageIdx > 0 && root.currentItem && typeof root.currentItem.openSubPage === "function")
-            root.currentItem.openSubPage(root.sState.pendingSubPageIdx, true);
+        //    crash.
+        //
+        //    ROUTED THROUGH `sState.openSubPage()`, not
+        //    `currentItem.openSubPage()` directly — calling the
+        //    StackPage's own method bypassed `sState.subPageIdxStack`
+        //    entirely: StackView.depth became 2 while the stack stayed
+        //    `[]`, so Settings.qml's Escape handler (gated on
+        //    `subPageIdxStack.length > 0`) closed the whole WINDOW
+        //    instead of popping the sub-page. `sState.openSubPage()`
+        //    updates the stack AND emits `subPageOpened`, which
+        //    StackPage's own `Connections` (StackPage.qml:136) picks up
+        //    to perform the actual push — the identical mechanism a
+        //    real (non-search) sub-page navigation already uses. ────────
+        var didDeepLinkSubPage = root.sState.pendingSubPageIdx > 0 && root.currentItem && typeof root.currentItem["openSubPage"] === "function";
+        if (didDeepLinkSubPage)
+            root.sState.openSubPage(root.sState.pendingSubPageIdx);
         root.sState.pendingSubPageIdx = -1;
 
-        root._recollectRows();
+        // Skip the immediate recollect when a sub-page deep-link was just
+        // requested: the StackPage's push (triggered above, via its own
+        // Connections) has not settled on this same tick, so an immediate
+        // `_recollectRows()` here would fail to find the pending label,
+        // log the not-found warning, and CLEAR `pendingRowLabel` — leaving
+        // nothing for the deferred pass this file's own `onSubPageOpened`
+        // handler (above) runs once the push HAS settled. A LOCAL
+        // boolean, not `sState` state — this decision belongs to this one
+        // `_swapTo` call only.
+        if (!didDeepLinkSubPage)
+            root._recollectRows();
     }
 
     // Operator live-pass item 3 (PARTIAL — "moving between them feels
@@ -412,6 +462,17 @@ Item {
         target: root.sState
         function onCurrentPageIdxChanged() {
             root.goTo(root.sState.currentPageIdx);
+        }
+
+        // Defect 1 fix (quick-260826-1n9, Task 3) — the same-page half of
+        // a search jump: SettingsState emits this instead of a
+        // currentPageIdx write when the target row is already on the
+        // showing page (that write would be a no-op and fire no change
+        // signal at all). `Qt.callLater`, not a bare call: the same
+        // child-binding-lags-parent-signal reasoning `onSubPageOpened`/
+        // `onSubPageClosed` below already state.
+        function onRowJumpRequested() {
+            Qt.callLater(root._recollectRows);
         }
 
         // Sub-page push/pop (quick task 260825-wj2 Task 1) — a StackPage

@@ -77,6 +77,15 @@ QtObject {
 
     signal close()
 
+    // Search-jump defect 1 (quick-260826-1n9, Task 3) — a same-page
+    // result never fires anything without this: QML only emits a
+    // property's change signal when the value actually differs, so
+    // `goToPage(idx)` below is a silent no-op when `idx === currentPageIdx`
+    // (the common case — the window opens on page 0). Pages.qml listens
+    // for this signal and re-collects rows directly, the same effect
+    // `onCurrentPageIdxChanged` has for a cross-page jump.
+    signal rowJumpRequested()
+
     // ── Search (quick-260821-6z1 Task 3, D-06/F-01/PD-08) — `searchText`
     //    drives NavRail's own model switch (PageRegistry.pages when
     //    empty, `searchResults` below otherwise). `pendingRowLabel` is
@@ -157,6 +166,19 @@ QtObject {
         root.pendingRowLabel = row.label;
         root.searchText = "";
         root.pendingSubPageIdx = (row.jumpSubPageIdx !== undefined) ? row.jumpSubPageIdx : ((row.subPageIdx !== undefined) ? row.subPageIdx : 0);
-        root.goToPage(row.pageIdx);
+        // Defect 1 fix — a result on the page ALREADY showing must not go
+        // through `goToPage()`: that only writes `currentPageIdx` and QML
+        // emits no change signal for a write that doesn't change the
+        // value, so `Pages.qml`'s `onCurrentPageIdxChanged` handler (and
+        // therefore the whole swap/recollect/scroll chain) would never
+        // run at all — the click would do nothing, with `pendingRowLabel`
+        // left set to poison the NEXT real page swap. Deliberately NOT
+        // "set currentPageIdx = -1 first to force a change signal": that
+        // would destroy and re-incubate the current page, losing its
+        // scroll position and any live Process/FileView children.
+        if (row.pageIdx === root.currentPageIdx)
+            root.rowJumpRequested();
+        else
+            root.goToPage(row.pageIdx);
     }
 }
