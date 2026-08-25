@@ -1,6 +1,6 @@
 ---
 created: 2026-08-23T01:20:00.000Z
-updated: 2026-08-25T09:05:00.000Z
+updated: 2026-08-25T17:35:00.000Z
 title: steamwebhelper crash loop — bad IPC reason 213 (INVALID_INITIATOR_ORIGIN)
 area: general
 severity: minor
@@ -133,3 +133,18 @@ Severity stays `minor`: Steam remains usable, games launch, and the workaround h
   workaround and its caveat
 - Local whole-log measurement of `~/.local/share/Steam/logs/cef_log.txt` 2026-08-25
   (HIGH confidence, direct, all 12 events, log unwritten since 2026-08-23 06:30)
+
+## Closed 2026-08-25 — NOT OURS (operator decision)
+
+Operator closed this as **INTENDED**: reason 213 is Chromium's own
+`INVALID_INITIATOR_ORIGIN`, read directly out of
+`content/browser/bad_message.h` at the matching tag, so the fault is inside
+Steam's CEF build and not in anything this repo configures, themes or launches.
+No dotfiles change would fix it and none should be attempted.
+
+Kept for the record rather than deleted, because the identification cost real
+primary-source work and the next person to see a blank Steam window should not
+have to redo it. The workaround still stands: `steam -shutdown` quits cleanly,
+and `systemctl --user stop app-Hyprland-steam-*.scope` kills a wedged cgroup.
+
+Filing it upstream stays available to the operator; it is not repo work.

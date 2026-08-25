@@ -208,10 +208,20 @@ doctor 28/0 (re-run after the one real failure it caught), colour-lint 365/0,
 motion-lint 552/0, settings-index 121/0, keybind-doctor 13/0,
 hypr-equivalence 3/0. `reserved` still `[0,6,50,6]`.
 
-## Still outstanding
+## Still outstanding — CLOSED BY ROUND 4 (superseded 2026-08-25)
 
-The **attached popout has still never been rendered**. The fix above is
-code-evident, not pixel-verified, and after shipping one bug here I do not want
-to call it done on reasoning alone. It needs either an operator click or — much
-better — a shell restart, which registers the `popout` IPC target added earlier
-and lets every future popout check be done from here without asking.
+**What this said, and it is no longer true:** "The attached popout has still
+never been rendered. The fix above is code-evident, not pixel-verified."
+
+Round 4 rendered it and measured it. The reveal was captured from the shell's
+own `console.log` — the width ran `w=8 -> 15 -> 22 -> ... -> 357` with
+`clip=true` — and the same round diagnosed the flare tab by a controlled
+comparison on real pixels, reading ~606 (the bar's rim blue) with the bulge on
+against 132-139 (background) with it forced to zero. Neither measurement is
+available to a surface that never painted.
+
+The instrument note in that round is the part worth carrying forward: `grim`
+cannot be raced against a 500ms animation at ~150ms per capture, so
+time-varying behaviour is measured through `console.log`, not screenshots.
+
+Nothing from this section is open.
