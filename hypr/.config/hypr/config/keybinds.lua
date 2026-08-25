@@ -251,15 +251,18 @@ hl.bind(mainMod .. " + D", hl.dsp.global("quickshell:dashboard")) -- Summon dash
 -- three this phase adds — see the D-15-04 comment above audioPanelShortcut
 -- in shell.qml for the full asymmetry rationale.
 hl.bind(mainMod .. " + A", hl.dsp.global("quickshell:audio-panel")) -- Summon audio mixer panel (PANEL-02)
--- Workspace overview (Phase 16 Plan 02 tracer, D-16-18/OVER-01): `O`
--- verified free under every existing $mainMod combination. Identifier below
+-- Workspace overview (Phase 16 Plan 02 tracer, D-16-18/OVER-01): moved
+-- from `O` to `Tab` on 2026-08-25 at the operator's request. `Tab` was
+-- verified free the same way `O` was -- no other bind in this tree uses
+-- it, and `hyprctl binds` showed no live SUPER+Tab before the swap. `O`
+-- is now unbound and free for reuse. Identifier below
 -- byte-matches shortcuts.json's appid:name pair — keybind-doctor's
 -- cross-check contract. Toggle-on-press shape, same as screencopy-probe's
 -- own bind above — D-16-19 deliberately exempts the overview from the
 -- fullscreen refusal guard dashboardShortcut/audioPanelShortcut respect,
 -- so this bind (unlike those two) needs no such guard on the Quickshell
 -- side either.
-hl.bind(mainMod .. " + O", hl.dsp.global("quickshell:overview")) -- Summon workspace overview (OVER-01)
+hl.bind(mainMod .. " + Tab", hl.dsp.global("quickshell:overview")) -- Summon workspace overview (OVER-01)
 
 -- ── Notification center ──────────────────────────────
 -- Phase 19 Plan 06 (D-19-16): repointed from an exec_cmd shelling to the
