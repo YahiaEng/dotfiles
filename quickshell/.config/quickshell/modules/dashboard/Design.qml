@@ -851,6 +851,40 @@ Singleton {
     //    returns — they are the same number for that reason.
     readonly property int edgeBarWeldRim: 4
 
+    // ── edgeBarWeldFlareRadius (quick task 260825-ore) — the concave
+    //    fillet that carries the horizontal rail into the slab's flank at
+    //    the two weld corners. DERIVED, and the derivation is the point.
+    //
+    //    The slab is a pill, so its cap radius is `_weldSlabWidth / 2`
+    //    (26 here) and the cap's WIDEST point sits at depth = that radius,
+    //    where the cap's own tangent is vertical. Bar.qml centres the
+    //    fillet arc at `(_weldSlabX - F, edgeBarThickness + F)`, so the
+    //    arc's far end lands at `(_weldSlabX, edgeBarThickness + F)` with a
+    //    vertical tangent too. Setting
+    //
+    //        F = capRadius - edgeBarThickness
+    //
+    //    makes those two points COINCIDE and their tangents MATCH — the
+    //    rail's underside, the arc and the slab's flank become one
+    //    continuous outline rather than three pieces that meet.
+    //
+    //    Any other value breaks that by construction: larger and the arc's
+    //    end pokes outside the cap as a square nub, smaller and it lands on
+    //    the cap's curve at an angle, leaving the kink this fillet exists to
+    //    remove. So this is NOT a taste knob — retune `barColumnWidth` or
+    //    `edgeBarWeldRim` and it follows them automatically.
+    //
+    //    (For scale against the reference: Caelestia's frame joins a 10px
+    //    border to its bar through a 25px corner — `borderconfig.hpp`
+    //    `rounding 25`, `thickness 10`. 20 against a 6px rail is the same
+    //    order, arrived at by geometry instead of by tuning.)
+    //    All three inputs are declared ABOVE this line (barColumnWidth,
+    //    edgeBarThickness, and edgeBarWeldRim immediately preceding) —
+    //    a later-declared member read at construction time throws
+    //    "is not a function"/undefined in this shell, and a fallback chain
+    //    then turns it into a plausible wrong number.
+    readonly property int edgeBarWeldFlareRadius: (barColumnWidth + 2 * edgeBarWeldRim) / 2 - edgeBarThickness
+
     // ── Halo (quick task 260824-ns3, Task 4) — the four-edge hairline ───
     //    The style draws all four screen edges at a thickness the other
     //    styles never use, so it carries its OWN thickness/end-radius pair

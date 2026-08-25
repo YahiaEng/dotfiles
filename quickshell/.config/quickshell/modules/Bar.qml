@@ -469,6 +469,85 @@ PanelWindow {
         return p + " Z";
     }
 
+    // ── The weld stub's outline, WITH its corner flare (quick task
+    //    260825-ore) ───────────────────────────────────────────────────
+    // Was a bare four-point rectangle on each stub. Measured on the live
+    // Continuous bar (grim + raw per-pixel dump, the operator's standing
+    // rule for any visual claim): at y=5 material ran left from x=2543, at
+    // y=6 it collapsed to x=2510. That step was the rail's underside
+    // terminating in a hard kink against the slab's pill cap — the joint
+    // Caelestia's frame does not have anywhere (`ContentWindow.qml` builds
+    // the whole border as ONE SDF `BlobInvertedRect`, so its 10px border
+    // and its bar share a single outline through one 25px corner —
+    // `borderconfig.hpp`: thickness 10, rounding 25, smoothing 20).
+    //
+    // ── WHY THE RADIUS IS DERIVED AND NOT TUNED ─────────────────────────
+    // The slab is a pill, so its cap radius is `_weldSlabWidth / 2` and the
+    // cap's WIDEST point — the one place its tangent is vertical — sits at
+    // exactly that depth. The flare's arc is centred at
+    // `(_weldSlabX - F, t + F)`, which puts:
+    //
+    //   near end  (_weldSlabX - F, t)      tangent HORIZONTAL -> continues
+    //                                      the rail's underside
+    //   far end   (_weldSlabX,     t + F)  tangent VERTICAL   -> continues
+    //                                      the slab's flank
+    //
+    // and `Design.edgeBarWeldFlareRadius` is defined as
+    // `capRadius - edgeBarThickness`, which is precisely the F that makes
+    // that far end LAND ON the cap's widest point. So the two curves are
+    // coincident AND tangent by construction, and the rail, the arc and the
+    // slab read as one continuous outline. See that token's own comment for
+    // what each other value would break.
+    //
+    // ── SWEEP FLAGS ARE DERIVED, NOT GUESSED ────────────────────────────
+    // The trap `AttachedCorner.qml` and `edgebarpath.js` both spell out at
+    // length: the wrong flag silently selects the OTHER valid centre for the
+    // same endpoints and radius, rendering a CONVEX bulge that looks
+    // deliberate and is wrong. Worked through `edgebarpath.js`'s own
+    // `_arcCentre` (in domain — both arcs here are quarter circles):
+    //
+    //   top    (_weldSlabX, t+F) -> (_weldSlabX-F, t), centre wanted
+    //          (_weldSlabX-F, t+F): x1p = y1p = F/2 -> sign -1 -> sweep 0
+    //   bottom (_weldSlabX, 0)   -> (_weldSlabX-F, F), centre wanted
+    //          (_weldSlabX-F, 0):   y1p = -F/2       -> sign +1 -> sweep 1
+    //
+    // The bottom is the top mirrored in depth, and a mirror flips
+    // handedness — so it is RE-DERIVED above rather than reused, the same
+    // discipline `edgebarpath.js` enforces by resolving every flag against
+    // the centre its own axis demands.
+    //
+    // `flip` mirrors the depth axis for the bottom stub, so one
+    // implementation serves both corners — never a second hand-authored
+    // path string, which is the doctrine `edgebarpath.js` already
+    // established for this same silhouette.
+    function _weldStubPath(flip) {
+        var t = Design.edgeBarThickness;
+        var f = Design.edgeBarWeldFlareRadius;
+        var w = barWindow._weldRunEnd;
+        var sx = barWindow._weldSlabX;
+        var h = t + f; // the stub box's own depth — the mirror axis
+        function Y(v) {
+            return flip ? h - v : v;
+        }
+        // Clockwise from the screen-edge corner. The outer edge (depth 0,
+        // flush to the screen) is the full run; the flare is an excursion
+        // of the INNER face alone, exactly like the strip's own bulge.
+        var p = "M 0 " + Y(0);
+        p += " L " + w + " " + Y(0);
+        // Down the far side and back along the flare's deepest line. Both
+        // lie beyond `_weldSlabX`, i.e. UNDER the slab (which is declared
+        // after these stubs and therefore paints over them), so this pair
+        // is never visible — it exists so the flare joins the slab with no
+        // seam rather than butting against its edge.
+        p += " L " + w + " " + Y(h);
+        p += " L " + sx + " " + Y(h);
+        // The concave fillet itself.
+        p += " A " + f + " " + f + " 0 0 " + (flip ? 1 : 0) + " " + (sx - f) + " " + Y(t);
+        // The rail's underside, on to the far end of the run.
+        p += " L 0 " + Y(t);
+        return p + " Z";
+    }
+
     // 3. Two horizontal weld stubs — the 1860 -> 1892 run that closes the
     //    silhouette: strip end -> stub -> slab. Tucked under the slab's
     //    own rounded cap (the stub's x=0 sits at the widened surface's
@@ -480,8 +559,12 @@ PanelWindow {
         visible: barWindow._continuousWeld
         x: 0
         y: 0
+        // Deep enough to CONTAIN the flare, rather than relying on
+        // QQuickShape rendering outside its own item rect (it does — see
+        // AttachedCorner.qml's rim note — but a box that matches the
+        // geometry is what makes the path below readable).
         width: barWindow._weldRunEnd
-        height: Design.edgeBarThickness
+        height: Design.edgeBarThickness + Design.edgeBarWeldFlareRadius
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
@@ -511,7 +594,7 @@ PanelWindow {
                 }
             }
             PathSvg {
-                path: "M 0 0 L " + weldStubTop.width + " 0 L " + weldStubTop.width + " " + weldStubTop.height + " L 0 " + weldStubTop.height + " Z"
+                path: barWindow._weldStubPath(false)
             }
         }
     }
@@ -519,9 +602,13 @@ PanelWindow {
         id: weldStubBottom
         visible: barWindow._continuousWeld
         x: 0
-        y: Math.max(0, barWindow.height - Design.edgeBarThickness)
+        // Moved UP by the flare depth (and grown by it), so the box still
+        // ends flush with the screen edge while containing the flare — the
+        // mirror of the top stub, whose `y` stays 0 and which grows
+        // downward instead.
+        y: Math.max(0, barWindow.height - Design.edgeBarThickness - Design.edgeBarWeldFlareRadius)
         width: barWindow._weldRunEnd
-        height: Design.edgeBarThickness
+        height: Design.edgeBarThickness + Design.edgeBarWeldFlareRadius
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
@@ -551,7 +638,7 @@ PanelWindow {
                 }
             }
             PathSvg {
-                path: "M 0 0 L " + weldStubBottom.width + " 0 L " + weldStubBottom.width + " " + weldStubBottom.height + " L 0 " + weldStubBottom.height + " Z"
+                path: barWindow._weldStubPath(true)
             }
         }
     }
