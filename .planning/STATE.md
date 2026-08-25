@@ -746,6 +746,26 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
+WORKED 2026-08-25 (late night) — **260825-pyf round 4: the flare tab removed, and the popouts now EXTRUDE from the bar's rim.** `ad8920e4`, pushed.
+
+**THE FLARE TAB WAS THE BULGE SHOWING THROUGH — and the mechanism generalises.** `buildOutline` draws each concave shoulder OUTSIDE the span it is handed: from the flat run it travels to `xr + f` before filleting back to `xr`. So a bulge spanning exactly the panel's extent actually reaches `f` PAST the panel at both ends. The panel hides the bulge wherever it overlaps it — but in the flare band beyond the panel's edge only the flare's quarter-pipe fill is painted, and that fill HUGS THE WELD CORNER, leaving the outer part transparent. The bulge showed through there as a small square tab of bar-coloured pixels. **Diagnosed by a CONTROLLED COMPARISON rather than by reading the code:** with the bulge forced to zero depth the same rows read 132-139 (background) where they had read ~606 (the bar's rim blue), and nothing else in the frame changed. Span is now inset by the fillet radius — the stated condition (`xl - f >= panelTop`, `xr + f <= panelBottom`), not a padding guess.
+
+**THE SPAWN IS A REVEAL NOW, NOT A TRANSLATE.** Measured at 8x slow motion, the old motion swept its left rim 2235 -> 2188 -> 2166 -> 2153: a fully-formed card travelling its own 360px width, with the flares riding along so the weld only arrived in the final frame. A container pinned to the surface's right edge — the bar's own coloured rim — now grows its width from zero, with the panel anchored to that same edge so it NEVER MOVES. The flares sit at the panel's right end, so they are inside the reveal from the first frame and the weld is present the whole way out.
+
+**ALL SIX VISUAL CHILDREN HAD TO MOVE TOGETHER**, and this is the structural fact to remember about this file: they anchor to EACH OTHER (`anchors.fill: panel`, the flares' `panel.top`/`panel.bottom`), and QML permits anchoring only to a sibling or the parent — so leaving any of them outside the new container would have made those anchors illegal. A first attempt to wrap a contiguous LINE RANGE was caught by an assertion before it wrote: root-level `readonly property` declarations are interleaved between those children and would have been swallowed into a child Item.
+
+**THE SAME CONSTRUCTION-VS-CONFIGURATION TRAP BIT AGAIN, IN A NEW PLACE.** The reveal's width first read `(opened || !_slideFromBar) ? width : 0`. `_slideFromBar` is `attached && vertical`, and **`vertical` is assigned by the loader AFTER construction** — so at construction this evaluated to the FULL width, and by the time `vertical` arrived and flipped it, the deferred `opened` had already fired. Width went 360 -> 0 -> 360 and the panel just appeared. Measured: 0.9s into an 8x-slowed reveal, content still began at x=2142, the panel's full left edge. **The lesson beyond the fix: depending on a loader-assigned property for the CLOSED/initial state is what makes this dangerous, because the initial state is the one evaluated at construction.** Unconditional 0 is safe — an unclipped Item of zero width still renders its children, which covers the unattached case.
+
+**TWO INSTRUMENT LESSONS:** (a) racing `grim` against an animation does not work — ~150ms per capture against a 500ms motion, and even at 8x my frames kept landing outside the window. The shell's own `console.log` is the reliable channel for anything time-varying, and it is what confirmed the reveal (`w=8 -> 15 -> 22 -> ... -> 357, clip=true`). (b) **The bulge log proved the bulge had NEVER painted by emitting NOTHING** — an absent signal, readable only because the line logs on change. It fired every animated frame though (2042 lines in one session) and is now throttled to the two states that carry information.
+
+**A SHELL GOTCHA THAT WASTED TWO STEPS:** `grep` output was silently swallowed several times in this environment — `grep -c pattern file` printed nothing while the pattern demonstrably matched. Reading the log through Python (`re.sub` the ANSI codes, then filter) is reliable; bare `grep` on `~/.cache/quickshell.log` is not.
+
+**GATES once each:** doctor 28/0, colour-lint 365/0, motion-lint 552/0, settings-index 121/0, keybind-doctor 13/0.
+
+Resume file: None. NEXT ACTION: operator judges the reveal's feel and the cleaned flare junction.
+
+---
+
 WORKED 2026-08-25 (night) — **260825-pyf round 3. Three operator-reported faults, all mine, all now MEASURED ON SCREEN.** `b4173689`, pushed.
 
 **THE PROCESS FAILURE FIRST, because it caused the rest.** The operator's standing rule is to verify with screenshots and pixels. I measured COORDINATES and cropped a 60px corner, and never once looked at a whole panel or at a popout at all. Every fault below was visible in a single screenshot I did not take. Coordinates agreeing with a formula is not the same as the surface looking right.
