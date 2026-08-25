@@ -660,7 +660,72 @@ ShellRoot {
         Qt.callLater(() => {
             root._edgeBarMountArmed = true;
         });
+        root._applyWindowRim();
     }
+
+    // ── RIMLESS WINDOWS WHILE ANY RAIL IS UP (operator round 12) ────────
+    // "For all styles, except off, I want you to make hyprland windows
+    // rimless/without the border."
+    //
+    // Routed through `hypr-overrides.sh look --border-size`, never a direct
+    // hyprctl call: that script validates against a closed allowlist,
+    // applies live via `hyprctl eval`, VERIFIES against `hyprctl -j` rather
+    // than trusting the `ok` reply, and persists atomically so the value
+    // survives the `hyprctl reload` the theme pipeline fires on every theme
+    // switch. `hyprctl keyword` is not an option here at all — this build
+    // answers it with "keyword can't work with non-legacy parsers. Use
+    // eval." (measured, not assumed), the same Lua-parser family that makes
+    // `hyprctl dispatch workspace N` a silent no-op on this host.
+    //
+    // COOPERATING WITH THE WINDOW MANAGER PAGE. That page already owns a
+    // border-size slider reading the live value. If this simply forced 0
+    // and restored a hardcoded 3, it would quietly discard whatever the
+    // operator set there. Instead the live value is READ first and stashed
+    // in `edgeBar.restoreBorderSize`, and only a NON-ZERO reading is
+    // stashed — on a restart with a rail already up the live value is
+    // already 0, and capturing that would destroy the remembered size.
+    function _applyWindowRim(): void {
+        if (root.edgeBarStyle === "off") {
+            root._setBorderSize(Prefs.getValue("edgeBar.restoreBorderSize"));
+        } else {
+            borderProbe.running = true;
+        }
+    }
+
+    function _setBorderSize(px: int): void {
+        Quickshell.execDetached([
+            Quickshell.env("HOME") + "/.config/hypr/scripts/hypr-overrides.sh",
+            "look",
+            "--border-size",
+            String(px)
+        ]);
+    }
+
+    Process {
+        id: borderProbe
+        command: ["hyprctl", "getoption", "general:border_size", "-j"]
+        stdout: StdioCollector { id: borderProbeCollector }
+        onExited: (code) => {
+            if (code === 0) {
+                try {
+                    const live = JSON.parse(borderProbeCollector.text).int;
+                    // Only a real border is worth remembering — see above.
+                    if (live > 0)
+                        Prefs.setValue("edgeBar.restoreBorderSize", live);
+                } catch (e) {
+                    console.warn("shell: could not parse border_size probe — "
+                        + "leaving edgeBar.restoreBorderSize at its stored value");
+                }
+            }
+            root._setBorderSize(0);
+        }
+    }
+
+    // Applied once at startup too, not only on change — see the call in
+    // the shell root's single `Component.onCompleted` further down. It
+    // cannot live in a second handler of its own: two
+    // `Component.onCompleted` blocks on the SAME object is a duplicate
+    // signal handler, which QML rejects outright.
 
     LazyLoader {
         id: edgeBarTopLoader
@@ -1494,6 +1559,10 @@ ShellRoot {
         // Order is load-bearing — see the comment above.
         root.reportFullscreenIntent();
         startupReassertTimer.running = true;
+        // Operator round 12 — put the window border into the state the
+        // stored edge-bar style implies. Last because it is independent of
+        // the two above and must not be able to reorder them.
+        root._applyWindowRim();
     }
 
     // ── Shell-root IPC surface (Phase 15 Plan 03, Task 1) — the seam every

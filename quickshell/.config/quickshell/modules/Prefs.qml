@@ -149,7 +149,15 @@ Singleton {
         // surface it summons is open; OFF is round 10's static bulge,
         // unchanged. Default ON because the operator asked to try it —
         // flip this row in Settings > Bar to compare, no restart needed.
-        "edgeBar.animatedBulge"
+        "edgeBar.animatedBulge",
+        // edgeBar.restoreBorderSize (operator round 12) — NOT a settings
+        // row and deliberately not one. Every style except "off" now makes
+        // Hyprland's windows rimless, so this remembers the border size to
+        // put BACK when the edge bar is switched off. It is captured from
+        // the LIVE value immediately before the shell zeroes it, which is
+        // what keeps this cooperating with the Window Manager page's own
+        // border-size slider instead of overwriting whatever that set.
+        "edgeBar.restoreBorderSize"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -193,7 +201,10 @@ Singleton {
         "launcher.sortMode": "alpha",
         "launcher.launchCounts": ({}),
         "edgeBar.style": "continuous",
-        "edgeBar.animatedBulge": true
+        "edgeBar.animatedBulge": true,
+        // Hyprland's own compositor default for this host, and the literal
+        // hyprland.lua falls back to (`overrides.general.border_size or 3`).
+        "edgeBar.restoreBorderSize": 3
     })
 
     // ── Helper functions — ALL declared here, above the FileView and
