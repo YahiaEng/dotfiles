@@ -7,7 +7,7 @@ stopped_at: "Quick task 260825-x9p COMPLETE (three rounds): popouts spawn from b
 last_updated: "2026-08-25T21:10:00.000Z"
 last_activity: 2026-08-25
 last_activity_desc: The popout dismiss was never our animation — the loader destroyed the surface on the first frame and Hyprland slid it off screen; close() now asks and teardown waits for dismissFinished, so the exit ends on the bar's right edge.
-state_head: 0ce20e2d
+state_head: c0780d13
 progress:
   total_phases: 6
   completed_phases: 6
