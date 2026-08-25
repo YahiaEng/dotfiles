@@ -216,6 +216,17 @@ Singleton {
         { pageIdx: 10, subPageIdx: 2, section: "Launcher", label: "Favourite", keywords: "apps info favourite pin launcher", jumpSubPageIdx: 1 },
         { pageIdx: 10, subPageIdx: 2, section: "Launcher", label: "Hidden", keywords: "apps info hidden hide launcher", jumpSubPageIdx: 1 },
         { pageIdx: 10, subPageIdx: 2, section: "Details", label: "App ID", keywords: "apps info id desktop entry", jumpSubPageIdx: 1 },
-        { pageIdx: 10, subPageIdx: 2, section: "Details", label: "Command", keywords: "apps info command exec", jumpSubPageIdx: 1 }
+        { pageIdx: 10, subPageIdx: 2, section: "Details", label: "Command", keywords: "apps info command exec", jumpSubPageIdx: 1 },
+
+        // ── pageIdx 11 — Updates (quick task 260825-wj2 Task 3) ──────────
+        { pageIdx: 11, section: "Updates", label: "Update status", keywords: "updates status checking uptodate pending count" },
+        { pageIdx: 11, section: "Updates", label: "Pending update", keywords: "updates pending package repo aur" },
+        { pageIdx: 11, section: "Updates", label: "System is up to date", keywords: "updates uptodate none pending" },
+        { pageIdx: 11, section: "Updates", label: "Update system", keywords: "updates upgrade paru terminal system" },
+
+        // ── pageIdx 12 — About (quick task 260825-wj2 Task 3) ────────────
+        { pageIdx: 12, section: "System", label: "System information", keywords: "about system fastfetch os host kernel uptime packages cpu gpu memory" },
+        { pageIdx: 12, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
+        { pageIdx: 12, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
     ]
 }

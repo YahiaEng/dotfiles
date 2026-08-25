@@ -112,6 +112,22 @@ Singleton {
             description: "Default applications, favourites and hidden",
             category: "shell",
             slug: "apps"
+        },
+        // Updates + About (quick task 260825-wj2 Task 3) — appended at 11,
+        // 12. No renumbering; both flat, no sub-pages.
+        {
+            label: "Updates",
+            icon: "update",
+            description: "Pending package updates, system upgrade",
+            category: "system",
+            slug: "updates"
+        },
+        {
+            label: "About",
+            icon: "info",
+            description: "System information, credits",
+            category: "about",
+            slug: "about"
         }
     ]
 

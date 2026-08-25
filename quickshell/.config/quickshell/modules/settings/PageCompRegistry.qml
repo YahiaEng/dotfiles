@@ -90,9 +90,16 @@ Singleton {
         }
     }
 
+    readonly property Component updatesComp: Component {
+        UpdatesPage {}
+    }
+    readonly property Component aboutComp: Component {
+        AboutPage {}
+    }
+
     // Index-locked to PageRegistry.pages, in the identical order documented
     // there: [Appearance, Wallpaper, Bar, Audio, Network, Display, Input,
-    // Window manager, Notifications, Session, Apps].
+    // Window manager, Notifications, Session, Apps, Updates, About].
     readonly property list<Component> comps: [
         appearanceComp,
         wallpaperComp,
@@ -104,7 +111,9 @@ Singleton {
         windowManagerComp,
         notificationsComp,
         sessionComp,
-        appsComp
+        appsComp,
+        updatesComp,
+        aboutComp
     ]
 
     // Index-locked to `comps` above (and therefore to `PageRegistry.pages`
@@ -123,7 +132,9 @@ Singleton {
         "window-manager",
         "notifications",
         "session",
-        "apps"
+        "apps",
+        "updates",
+        "about"
     ]
 
     Component.onCompleted: {
