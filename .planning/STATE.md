@@ -626,7 +626,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 
 [From .planning/todos/pending/ — ideas captured during sessions]
 
-None yet.
+1. **`steamwebhelper` crash loop on NVIDIA + XWayland** (`2026-08-23-steamwebhelper-crash-loop-on-nvidia-xwayland.md`, severity `minor`) — Steam's CEF renderer is killed with `bad IPC message, reason 213` and respawns; measured 37 respawns / 22 kills whole-log, firing minutes-to-hours apart, not seconds. Steam-side: reproduces with `steam` launched bare from a terminal, no quickshell/uwsm/launcher involved. **Two remedies already tried and BOTH FAILED** — clearing `htmlcache`, and `-cef-disable-gpu`. Any future attempt must be judged over hours by counting `bad IPC message` across the whole log, never by a short quiet window (a false "fixed" was recorded that way once already). Workaround: `steam -shutdown`.
 
 ### Blockers/Concerns
 
@@ -755,7 +755,7 @@ CLOSED 2026-08-25 — **quick task 260824-ns3 is COMPLETE and OPERATOR-SIGNED-OF
 
 **TWO CONSTANTS LEFT TUNABLE, both approved as-is:** `edgeBarBracketArmHoverExtra` (0.4) and `edgeBarHaloThickness` (2).
 
-**ONE QUESTION RAISED AND NEVER ANSWERED, not a defect:** the bottom bulge's hover opens the launcher in MENU mode (Super-tap), not apps mode (Super+Space). The operator said "super-tab/super+space" when asking for hover-dismiss. If they meant the app grid should be what the bottom bulge summons, that is a small wiring change in `shell.qml`'s `onBulgeHoverTriggered` — currently `launcherMenuShortcut._toggleMenu()`.
+**THE ONE OPEN QUESTION IS NOW CLOSED — RESOLVED AS INTENDED (operator, 2026-08-25):** *"Hover behaves as I want it."* The bottom bulge's hover opens the launcher in MENU mode (Super-tap), NOT apps mode (Super+Space), and that is CORRECT. The earlier ambiguity came from the operator writing "super-tab/super+space" while asking for hover-dismiss — that phrasing named the drawers being discussed, not a requested mode change. `shell.qml`'s `onBulgeHoverTriggered` keeps `launcherMenuShortcut._toggleMenu()`; no code change was made and none is wanted. **Do not re-raise this.**
 
 **GATES at `7ee1621c` (once each):** doctor 28/0, colour-lint 362/0, motion-lint 549/0, keybind-doctor 13/0, settings-index-check 120/0, path golden 123/123.
 
