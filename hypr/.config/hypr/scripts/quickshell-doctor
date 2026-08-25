@@ -1854,6 +1854,52 @@ _qsd_matches() {  # _qsd_matches <text> <grep-args...>
     grep -q "$@" <<<"$text"
 }
 
+# _qsd_zone_is_noreserve <stripped-qml> — true when EVERY `exclusiveZone:`
+# declaration in the text submits a zone that reserves nothing.
+#
+# This used to be a literal `exclusiveZone: 0` match, which was correct while
+# 0 was the only non-reserving value anyone wrote. It is not any more:
+# `bar/SectionPopout.qml` declares `exclusiveZone: _slideFromBar ? -1 : 0`,
+# and -1 is the layer-shell value for "reserve nothing AND ignore everyone
+# else's zone" — strictly stronger than 0, never weaker. Measured while the
+# popout was open: `reserved` stayed `0 6 50 6`, so nothing was reserved.
+#
+# So the test is a WHITELIST of shapes that are provably non-reserving, which
+# is deliberately stricter than "contains no positive number". Accepted:
+#
+#     exclusiveZone: 0
+#     exclusiveZone: -1
+#     exclusiveZone: <condition> ? (-1|0) : (-1|0)
+#
+# Anything else fails, INCLUDING an identifier-valued zone such as
+# `exclusiveZone: barWindow.reservedZoneExtent`. That is not an oversight: a
+# `noreserve` row must prove it reserves nothing, and an identifier could hold
+# any value. A first draft tested "the value contains no positive integer
+# literal", which let identifiers through and was strictly weaker than the
+# literal-0 match it replaced — a gate edit must never lose coverage to gain
+# a case.
+#
+# EVERY declaration is checked, not merely the first: a file that reserves on
+# one branch and not another must fail rather than be let through by whichever
+# line happened to be found first.
+_qsd_zone_is_noreserve() {  # _qsd_zone_is_noreserve <stripped-qml>
+    local text="$1" values line found=0
+    values="$(sed -n 's/.*exclusiveZone[[:space:]]*:[[:space:]]*//p' <<<"$text")"
+    [[ -n "$values" ]] || return 1
+    while IFS= read -r line; do
+        # Trim trailing whitespace and an optional statement separator.
+        line="${line%"${line##*[![:space:];]}"}"
+        [[ -n "$line" ]] || continue
+        found=1
+        # Herestring, never a pipe into grep -q: under `set -o pipefail` a
+        # short-circuiting grep can exit 141 on a match and flip the verdict
+        # by input length. This script has shipped that bug before.
+        grep -qE '^(-1|0|[^?]*\?[[:space:]]*(-1|0)[[:space:]]*:[[:space:]]*(-1|0))$' \
+            <<<"$line" || return 1
+    done <<<"$values"
+    [[ "$found" -eq 1 ]]
+}
+
 # Forward + reservation-permission closure: every registry row's file
 # must exist under the scan root, declare its own namespace value/prefix
 # exactly once, and — for every row NOT permitted to reserve — declare a
@@ -1907,7 +1953,7 @@ _qsd_assert_bar_surface_registry_forward() {
         _qsd_matches "$stripped" -F "$r_ns" || missing=$((missing + 1))
         if [[ "$r_reserve" == "noreserve" ]]; then
             local ez_ok=0
-            _qsd_matches "$stripped" -E 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' && ez_ok=1
+            _qsd_zone_is_noreserve "$stripped" && ez_ok=1
             if [[ "$ez_ok" -eq 0 && "$used_instance_fallback" -eq 1 && "$r_file" != "toast/Toast.qml" ]]; then
                 # Fallback (see header above): a Toast-derived INSTANCE row
                 # (identified by having needed the layerNamespace marker
@@ -1921,7 +1967,7 @@ _qsd_assert_bar_surface_registry_forward() {
                 # reach it.
                 local base_stripped
                 base_stripped="$(_qsd_strip_qml_comments "$scan_root/toast/Toast.qml" 2>/dev/null)"
-                _qsd_matches "$base_stripped" -E 'exclusiveZone[[:space:]]*:[[:space:]]*0\b' && ez_ok=1
+                _qsd_zone_is_noreserve "$base_stripped" && ez_ok=1
             fi
             [[ "$ez_ok" -eq 0 ]] && unexpected_reservation=$((unexpected_reservation + 1))
         fi
