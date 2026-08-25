@@ -217,10 +217,50 @@ Singleton {
         return true;
     }
 
+    // ── CLOSING IS SPLIT (quick task 260825-x9p round 3) ────────────────
+    // Operator: "The dismiss currently animates all the way to the rightmost
+    // edge of the screen. It should stop at the right edge of the bar."
+    //
+    // It was not our animation at all. `close()` cleared `openSection`, the
+    // trigger's LazyLoader is keyed on exactly that, so the surface was
+    // DESTROYED on the first frame and `SectionPopout.requestDismiss()` never
+    // ran — measured, with a probe on the exit path: 84 x-change frames on
+    // the way in, ZERO on the way out, and no `dismiss.begin` line at all.
+    // What was on screen instead was Hyprland's own layer-close animation
+    // sliding the whole surface off the right of the screen.
+    //
+    // The signal was already wired for the animated path — the trigger
+    // connects the surface's `dismissFinished` to the controller — but every
+    // caller reached this function directly, so the connection could only
+    // ever fire after something else had already torn the surface down. Esc
+    // and focus-loss were the only routes through `requestDismiss()`, i.e.
+    // the animation worked exactly where it was least used.
+    //
+    // This is the same defect class fixed for the config panels earlier the
+    // same day, and it is worth stating as a rule: if a surface owns an exit
+    // animation, the property its loader is keyed on must be cleared by the
+    // END of that animation, never by the thing that starts it.
+    signal dismissAsked()
+
+    function close() {
+        if (root.openSection === "")
+            return;
+        root.pinnedSection = "";
+        // Ask, do not tear down. The open surface answers by playing its
+        // exit and emitting `dismissFinished`, which lands on `closeNow`.
+        root.dismissAsked();
+        console.log("popout: dismiss requested");
+    }
+
     // The SECOND (and last) place openSection is ever assigned — see
     // open() above for the first. This invariant is what makes
     // one-open-at-a-time hold no matter how many bodies 18-14 adds.
-    function close() {
+    //
+    // Reached only from a surface's own `dismissFinished`, so the loader is
+    // deactivated after the exit has played rather than during it. A popout
+    // with motion off still lands here immediately: `requestDismiss()`
+    // emits `dismissFinished` straight away in that case.
+    function closeNow() {
         root.pinnedSection = "";
         root.openSection = "";
         console.log("popout: dismiss");

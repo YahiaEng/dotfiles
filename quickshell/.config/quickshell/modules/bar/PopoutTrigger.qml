@@ -191,7 +191,13 @@ Item {
             popoutLoader.item.vertical = Qt.binding(function () { return BarEntryModel.isVertical; });
             popoutLoader.item.pinned = Qt.binding(function () { return triggerRoot.pinned; });
             popoutLoader.item.triggerCentre = Qt.binding(function () { return triggerRoot._publishedCentre; });
-            popoutLoader.item.dismissFinished.connect(PopoutController.close);
+            // `closeNow`, not `close`: this is the END of the exit, so it
+            // tears the loader down. `close()` merely ASKS, and the ask is
+            // relayed the other way by the connection just below — without
+            // that pair the surface was destroyed on the first frame of its
+            // own exit (quick task 260825-x9p round 3).
+            popoutLoader.item.dismissFinished.connect(PopoutController.closeNow);
+            PopoutController.dismissAsked.connect(popoutLoader.item.requestDismiss);
             // The triggering entry and the popout are ONE hover region
             // (D-18-21) — relay the loaded surface's own hover edge into
             // the controller's popoutEntered/popoutExited exactly as this
