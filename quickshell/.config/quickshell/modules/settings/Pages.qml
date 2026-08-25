@@ -9,6 +9,12 @@
 // destroy/incubate past the fade-out sidesteps that entirely.
 import QtQuick
 import "../"
+// Design (the shared spacing/type constants) is registered in
+// modules/dashboard/qmldir, not modules/qmldir — this import is what makes
+// `Design.panelPadding` below resolve. qmllint does NOT catch a missing QML
+// import; an unresolved singleton reads as `undefined` at runtime and only
+// surfaces in ~/.cache/quickshell.log.
+import "../dashboard"
 
 Item {
     id: root
@@ -255,10 +261,42 @@ Item {
     // without hand-rolling a raw value or misusing a wrongly-scoped
     // token — left as-is rather than hardcode a duration motion-lint
     // would (correctly) reject anyway.
+    // ── Directional slide alongside the fade (quick task 260825-v3u) ─────
+    //    Caelestia's Pages.qml does exactly this: the incoming page enters
+    //    offset by one padding step in the direction of travel and settles
+    //    to 0 while it fades in. Forward (a higher page index) enters from
+    //    below, backward from above, so the rail's own up/down geometry and
+    //    the content's motion agree instead of the content appearing in
+    //    place regardless of which way you moved.
+    //
+    //    THE TOTAL DURATION IS DELIBERATELY UNCHANGED, and that is the whole
+    //    reason this is safe to add here. The comment block above records
+    //    two rounds of operator pushback on this swap FEELING LAGGY, both
+    //    resolved by shortening it (562ms -> ~500ms) and ending with "the
+    //    animation is already opacity-only (no slide/transform to trim)".
+    //    The slide runs INSIDE the existing fade-in stage, in parallel, on
+    //    the same token — it adds a dimension to the motion, never a
+    //    millisecond to it. If the swap is ever judged laggy again, the
+    //    duration is still the thing to cut, and this transform is not it.
+    //
+    //    `Translate` rather than Caelestia's anchors.topMargin: pages here
+    //    are incubated with `anchors.fill = root` (:177), so a margin
+    //    animation would fight the fill anchor. A transform moves the
+    //    rendered result without touching layout at all.
+    readonly property int _swapShiftDistance: Design.panelPadding
+    property int _lastIdx: 0
+
+    transform: Translate {
+        id: swapShift
+    }
+
     SequentialAnimation {
         id: swapAnim
 
         property int targetIdx: 0
+        // Set at `goTo()` time, before the sequence runs: +1 when moving
+        // down the rail, -1 when moving up.
+        property int direction: 1
 
         PropertyAnimation {
             target: root
@@ -271,13 +309,31 @@ Item {
         ScriptAction {
             script: root._swapTo(swapAnim.targetIdx)
         }
-        PropertyAnimation {
-            target: root
-            property: "opacity"
-            to: 1
-            duration: Motion.motionEnabled ? Motion.standardDuration : 0
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.standardEasing
+        // Placed the new page at its start offset in the same frame it was
+        // incubated, so the first frame of the fade-in is already displaced
+        // rather than jumping on the second.
+        PropertyAction {
+            target: swapShift
+            property: "y"
+            value: Motion.motionEnabled ? root._swapShiftDistance * swapAnim.direction : 0
+        }
+        ParallelAnimation {
+            PropertyAnimation {
+                target: root
+                property: "opacity"
+                to: 1
+                duration: Motion.motionEnabled ? Motion.standardDuration : 0
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+            PropertyAnimation {
+                target: swapShift
+                property: "y"
+                to: 0
+                duration: Motion.motionEnabled ? Motion.standardDuration : 0
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
         }
     }
 
@@ -293,6 +349,13 @@ Item {
     // closed->open, regardless of entry mechanism.
     function goTo(idx) {
         swapAnim.targetIdx = idx;
+        // Direction is read BEFORE `_lastIdx` is updated, and `_lastIdx`
+        // tracks what was asked for rather than what is currently mounted:
+        // `restart()` on an in-flight swap replaces its target, so keying
+        // off the mounted page would give the wrong direction for a second
+        // click that lands mid-animation.
+        swapAnim.direction = (idx >= root._lastIdx) ? 1 : -1;
+        root._lastIdx = idx;
         swapAnim.restart();
     }
 
@@ -303,5 +366,12 @@ Item {
         }
     }
 
-    Component.onCompleted: root._swapTo(root.sState.currentPageIdx)
+    Component.onCompleted: {
+        // The first page of a closed->open transition is shown directly,
+        // unanimated, exactly as before — `_lastIdx` is seeded here so the
+        // FIRST swap after that has a real reference to compare against
+        // instead of always reading as "forward from 0".
+        root._lastIdx = root.sState.currentPageIdx;
+        root._swapTo(root.sState.currentPageIdx);
+    }
 }

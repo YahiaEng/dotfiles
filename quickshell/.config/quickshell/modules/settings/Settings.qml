@@ -90,14 +90,58 @@ FloatingWindow {
         bluetoothBackend: win.bluetoothBackend
     }
 
-    title: "Settings"
-    color: Colours.surface
-    minimumSize.width: 900
-    minimumSize.height: 620
-    implicitWidth: 960
-    implicitHeight: 640
+    // ── Window identity and size (quick task 260825-v3u, operator D-2) ───
+    //    Both dimensions come from Caelestia's `NexusTokens`
+    //    (plugin/src/Caelestia/Config/tokens.hpp:212-220), read from source
+    //    rather than eyeballed: heightMult 0.7, ratio 16/9, minWidth 800,
+    //    minHeight 500. `Nexus.qml` derives its own implicitHeight the same
+    //    way. This file's header already recorded that its composition came
+    //    from that window; the sizing now comes from there too.
+    //
+    //    SCREEN-RELATIVE, NOT A FIXED PAIR, and that is the point of copying
+    //    the formula rather than its output: 960x640 was 37% of the width of
+    //    this 2560x1440 host and would be a different fraction of every other
+    //    display the shell is ever installed on. On this host the formula
+    //    resolves to 1792x1008.
+    //
+    //    `screen` (WindowInterface's own QuickshellScreenInfo, verified
+    //    against /usr/lib/qt6/qml/Quickshell/_Window/quickshell-window.qmltypes)
+    //    is null until the window is mapped, so it is guarded rather than
+    //    dereferenced: an unguarded `win.screen.height` throws at
+    //    construction and QML then leaves implicitHeight at 0 permanently —
+    //    the undefined-branch-destroys-the-binding failure this repo has
+    //    already shipped once. 1080 is the fallback, giving 1344x756.
+    readonly property int _screenHeight: (win.screen && win.screen.height > 0) ? win.screen.height : 1080
+    readonly property real _heightMult: 0.7
+    readonly property real _aspectRatio: 16 / 9
 
-    readonly property int navRailWidth: 260
+    // The current page's name rides in the title, as Caelestia's
+    // WindowFactory.qml does ("Nexus — %1"), so the window is identifiable
+    // from a taskbar or an alt-tab list rather than reading "Settings" on
+    // all ten pages. Index-guarded: `currentPageIdx` is seeded from
+    // `initialPageIdx` and could in principle arrive out of range.
+    title: {
+        var pages = PageRegistry.pages;
+        var idx = win.sState ? win.sState.currentPageIdx : 0;
+        return (idx >= 0 && idx < pages.length) ? "Settings — " + pages[idx].label : "Settings";
+    }
+    color: Colours.surface
+    minimumSize.width: 800
+    minimumSize.height: 500
+    implicitHeight: Math.max(500, Math.round(win._screenHeight * win._heightMult))
+    implicitWidth: Math.max(800, Math.round(win.implicitHeight * win._aspectRatio))
+
+    // Proportional, so the rail keeps its share of a window that is now
+    // screen-sized. Caelestia uses `min(maxNavWidth, width / 3)`; the divisor
+    // here is 4 rather than 3 because their nav rows are a taller, more
+    // spacious shape than this rail's compact list — width/3 of 1792 would be
+    // 597px of mostly empty rail. width/4 keeps the rail at roughly the 27%
+    // share it had at 960x640, and the 340 cap stops it growing without limit
+    // on an ultrawide.
+    // `win.width` is 0 until the window is mapped; falling back to
+    // implicitWidth keeps the rail from rendering at zero width for the
+    // first frame and shoving the whole Row.
+    readonly property int navRailWidth: Math.min(340, Math.round(Math.max(win.width, win.implicitWidth) / 4))
 
     Rectangle {
         id: background
