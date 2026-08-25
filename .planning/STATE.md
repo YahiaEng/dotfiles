@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "EDGE BAR STYLE PICKER: Tasks 1-3 of 8 DONE and OPERATOR-APPROVED ('it now looks good'). Task 1 = edgeBar.style key + migration + derived predicates (8e4417c9). Task 2 = edgebarpath.js extraction + vertical transposition (bf4bdbfa). Task 3 = Continuous, REVERSES D-2 (7498035b) plus a four-fault round-2 fix (9fbd4cea). NEXT: Tasks 4-7 = Halo, Brackets, Segmented, settings completion. Task 8 is a blocking operator checkpoint. Plan at .planning/quick/260824-ns3-implement-the-edge-bar-style-picker-per-/260824-ns3-PLAN.md (UNTRACKED, commit it). Brief at .planning/notes/edge-bar-style-directions.md; shapes source of truth is .planning/notes/edge-rail-studies.html (vendored)."
-last_updated: "2026-08-24T19:40:00.000Z"
-last_activity: 2026-08-24
-last_activity_desc: "quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
-state_head: 9fbd4cea
+stopped_at: "EDGE BAR STYLE PICKER: Tasks 1-7 of 8 DONE, committed and pushed. T1 edgeBar.style key + migration (8e4417c9); T2 edgebarpath.js + vertical (bf4bdbfa); T3 Continuous, REVERSES D-2 (7498035b) + four-fault fix (9fbd4cea), OPERATOR-APPROVED; T4 Halo (e533d9dd); T5 Brackets (0178c4e9); T6 Segmented (c80e9b41); T7 settings picker (ae9ec82a). ONLY TASK 8 REMAINS — a BLOCKING operator checkpoint: the visual/hover judgements this host cannot make. Halo, Brackets and Segmented have NEVER been seen by the operator. Two constants flagged for tuning at T8: edgeBarBracketArmHoverExtra (0.4) and edgeBarHaloThickness (2). Plan + SUMMARY at .planning/quick/260824-ns3-implement-the-edge-bar-style-picker-per-/; shapes source of truth is .planning/notes/edge-rail-studies.html (vendored)."
+last_updated: "2026-08-25T03:25:00.000Z"
+last_activity: 2026-08-25
+last_activity_desc: "quick task 260824-ns3 Tasks 4-7 executed and pushed (e533d9dd..ae9ec82a) — Halo, Brackets, Segmented and the settings picker completion. All six gates green, path golden 59/59 -> 123/123. Only the blocking operator checkpoint (Task 8) remains. PRIOR: quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
+state_head: ae9ec82a
 progress:
   total_phases: 6
   completed_phases: 6
@@ -739,6 +739,36 @@ after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
 synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
+
+RESUMED then WORKED 2026-08-25 — /gsd-resume-work into /gsd-quick resume. **Tasks 4-7 are DONE, committed and pushed** (`e533d9dd` Halo, `0178c4e9` Brackets, `c80e9b41` Segmented, `ae9ec82a` settings). `origin/main` level with HEAD at `ae9ec82a`. The PLAN file is TRACKED (landed in 95f37857) — the older "UNTRACKED, commit it" warning is RESOLVED, do not re-raise it.
+
+**ONLY TASK 8 REMAINS and it is BLOCKING-HUMAN.** The operator has never seen Halo, Brackets or Segmented. Do not self-certify it; do not mark the task complete without their answers.
+
+**GATES, independently re-run by the orchestrator at `ae9ec82a` (not taken on the executor's word):** quickshell-doctor 28/0, colour-lint 362/0, motion-lint 549/0, keybind-doctor 13/0, settings-index-check 120/0, path golden **123/123** (was 59/59; the horizontal golden is still character-identical). No count fell.
+
+**MEASURED `reserved`, all five styles, live-switched with no restart — these are the real numbers, not the study table's estimates:**
+```
+off         [0,0,50,0]   surfaces: (none)
+continuous  [0,6,50,6]   top bottom
+brackets    [0,0,50,0]   top bottom left right
+segmented   [0,6,50,6]   top bottom
+halo        [2,2,50,2]   top bottom left right
+```
+**DC-2 CONFIRMED AND CHEAPER THAN SPECIFIED:** Halo's right rail lands at x 2498-2499 (outer face at `screenW-50-10 = 2500`, the study's RIGHT_EDGE) and reserves **zero** — the 50 is the bar's own. The study table estimated 8px; that is not what shipped. Halo left edge reads accent `(216,172,151)` at columns 0-1 and background from column 2 — a real 2px run off raw RGB. Cols 12-14 are the Hyprland window border (10px `gaps_out` inside the boundary), distinguished by POSITION not threshold.
+
+**THE ONE NEW ARCHITECTURAL TRAP — a mapped layer surface's `exclusiveZone` CANNOT be lowered to zero.** Probed, not theorised, with four live measurements: hardcoded `0` gives `[0,0,50,0]`; positive->0 is **silently dropped**; 0->42 **is** applied; and Halo's 6->2 (positive->positive) applies. So the zone can be raised or moved between positives, but a change TO ZERO is ignored for the life of the surface. Brackets measured `[0,6,50,6]` instead of `[0,0,50,0]` because of it — at startup (loaders mount before `Prefs` resolves) AND on every live style switch, which is exactly the Task 8 flow. Fixed in `shell.qml` with `_edgeBarMountArmed`, which drops for one event-loop turn on any style change so all four strips are **REMOUNTED rather than mutated**. This extends R3's "a mounted-but-invisible surface keeps its exclusiveZone" reasoning from OFF to "on but cheaper than before". Never lower an exclusiveZone to 0 in place; remount.
+
+**SECOND TOOLING TRAP:** `hyprctl dispatch workspace N` fails silently here — this build parses dispatch as Lua. Working form is `hyprctl dispatch "hl.dsp.focus({ workspace = N })"`, per `keybinds.lua:315-320`. Tooling only, no shipped code.
+
+**LIVE SHAPE CONFIRMATIONS:** Brackets top rail = two painted runs (10..229) and (2280..2499), 220px arms, nothing between them, no bulge; 220 is `round(2490 x 170/1920)` — PROPORTIONAL, not a literal 170. Cap profile across y 0-5 reaches x 228,229,229,229,229,228 — convex, no inward notch, so the `_arcCentre` 90-degree hazard held. Brackets panels open unattached (launcher bottom at y=1427, both corners round inward, no flares). Segmented at rest = 10 runs / 9 gaps at ~241px = `(2490-8*9)/10`; merged = 7 runs, longest 992px at x 759..1750, starting and ending on SEGMENT edges (not the bulge edges 875/1635) — proving whole-segment union, 4 absorbed whole. Halo with `animatedBulge` OFF is a 12px mass at the top centre and a 2px hairline off-centre — the static permanent bulge, NOT "no bulge".
+
+**INVARIANTS RE-CHECKED BY THE ORCHESTRATOR:** `EdgeBar.qml` has 0 press-accepting handlers (T-ns3-03 holds) and exactly ONE real `WlrLayershell.namespace` binding at line 303 — a bare grep returns 2 because line 295 is the COMMENT stating the rule. That is the known self-matching-grep artifact; doctor's own check is green.
+
+**TWO CONSTANTS THE OPERATOR MAY WANT TO TUNE AT TASK 8:** `edgeBarBracketArmHoverExtra` (0.4) and `edgeBarHaloThickness` (2, if the hairline gets lost).
+
+Shell left on **Continuous** with `animatedBulge` ON (the defaults), restarted after the last edit, `quickshell.log` clean below the last start marker.
+
+Resume file: None. NEXT ACTION: put Task 8's per-style questions to the operator.
 
 RESUMED then WORKED 2026-08-24 (evening) — /gsd-resume-work into /gsd-quick. Quick task **260824-ns3** (edge bar style picker) is **3 of 8 tasks done, all committed and pushed**, tree clean at `9fbd4cea`. The operator has SEEN Continuous live and approved it: *"it now looks good."* Context cleared at their request immediately after.
 
