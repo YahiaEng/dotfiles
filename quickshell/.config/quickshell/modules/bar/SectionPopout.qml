@@ -162,7 +162,23 @@ PanelWindow {
 
     // A glance surface reserves nothing, so opening one never reflows a
     // window — declared explicitly rather than left at a default.
-    exclusiveZone: 0
+    // ── -1 WHILE WELDED, SO THE SURFACE CAN REACH UNDER THE BAR ────────
+    // (quick task 260825-x9p.) `ExclusionMode.Ignore` alone never did this,
+    // and Bar.qml's own note blamed it for the wrong reason: an explicit
+    // non-negative `exclusiveZone` OVERRIDES the Ignore mapping, so the
+    // surface kept being placed inside every other surface's zone. MEASURED
+    // both ways — `margins.right: 0` with `exclusiveZone: 0` put the right
+    // edge at 2510 (the usable boundary), with `-1` at 2560 (the true screen
+    // edge).
+    //
+    // That is what lets the closed panel sit BEHIND the bar rather than
+    // merely outside a surface that stopped at the bar's face. It also makes
+    // every margin here screen-relative rather than usable-relative, which
+    // the two attached margins below now account for.
+    //
+    // Only while welded. Unattached keeps 0 so its margins keep their old
+    // usable-relative meaning and that posture does not move.
+    exclusiveZone: popoutWindow._slideFromBar ? -1 : 0
     // Ignore, NOT PanelDialog's Normal: this frame's margins must measure
     // from the true screen edge to be computable from Design tokens
     // alone. Normal mode would offset every popout by the bar's own
@@ -170,7 +186,24 @@ PanelWindow {
     // back out. Ignoring other surfaces' reservations still reserves
     // nothing itself (exclusiveZone is 0 above either way).
     exclusionMode: ExclusionMode.Ignore
-    WlrLayershell.layer: WlrLayer.Overlay
+    // ── BELOW THE BAR, ON PURPOSE (quick task 260825-x9p) ──────────────
+    // Top, not Overlay, and it is the whole mechanism for "spawn from
+    // behind the bar". The bar and the two rails moved UP to Overlay in the
+    // same change; this surface stays at Top, so the bar is painted OVER it
+    // and a panel parked behind the slab is hidden BY THE BAR rather than by
+    // the edge of its own surface.
+    //
+    // It also un-inverts the weld. `Bar.qml`'s own note says the bulge
+    // "protrudes OVER the panel, exactly as the top rail's bulge does over
+    // the dashboard" — but with this surface above the bar the PANEL covered
+    // the BULGE, the exact opposite. Measured after the swap: bar-coloured
+    // pixels now occupy x 2488..2501 across the panel's rows, which is the
+    // bulge sitting on top of the panel where it was always meant to.
+    //
+    // Still above every application window (Top is above the window layer),
+    // and below the transient Overlay surfaces — dashboard, config panels,
+    // launcher — which is the ordering `EdgeBar.qml:309` describes.
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-bar-" + popoutWindow.sectionId
     // On demand only when pinned, none otherwise — differs from
     // PanelDialog's permanent OnDemand on purpose: T-18-13-01's whole
@@ -210,7 +243,11 @@ PanelWindow {
 
     readonly property int flareRadius: popoutWindow.attached ? Design.attachedCornerRadius : 0
 
+    // Welded, the surface is the panel PLUS the slab it hides behind, so a
+    // panel parked one full width to the right is covered by the bar rather
+    // than by the surface's own edge.
     implicitWidth: popoutWindow.panelWidth
+        + (popoutWindow._slideFromBar ? PopoutController.rootSlabWidth : 0)
     implicitHeight: popoutWindow.panelHeight + 2 * popoutWindow.flareRadius
 
     // The panel proper. Everything that used to fill the window now fills
@@ -938,10 +975,20 @@ PanelWindow {
     // `triggerCentre` instead would leave a panel near either end of the bar
     // hanging off the shelf it is meant to sit on.
     readonly property real _attachedTop: PopoutController.rootCentre - popoutWindow.height / 2
-    readonly property real _attachedClampedTop: Math.max(popoutWindow._windowTopMargin,
+    // Welded, `exclusiveZone: -1` makes this margin measure from the true
+    // screen edge rather than the usable area, so the bound has to carry the
+    // top rail's own reservation itself — `exclusiveZone: _t` at
+    // EdgeBar.qml:335, i.e. `Design.edgeBarThickness`. Without it a clamped
+    // popout would sit 6px higher than the window edge it lines up with.
+    // The term moved here FROM `openTop` below, where it did the same
+    // conversion in the other direction; it belongs on the clamp, so every
+    // value downstream is already screen-space.
+    readonly property real _attachedEdgeMargin: popoutWindow._windowTopMargin
+        + (popoutWindow._slideFromBar ? Design.edgeBarThickness : 0)
+    readonly property real _attachedClampedTop: Math.max(popoutWindow._attachedEdgeMargin,
         Math.min(popoutWindow._attachedTop,
                  (popoutWindow.screen ? popoutWindow.screen.height : popoutWindow.height)
-                 - popoutWindow.height - popoutWindow._windowTopMargin))
+                 - popoutWindow.height - popoutWindow._attachedEdgeMargin))
 
     margins.top: popoutWindow.vertical
         ? (popoutWindow.attached ? popoutWindow._attachedClampedTop : popoutWindow._windowTopMargin)
@@ -950,8 +997,13 @@ PanelWindow {
     // Attached: sit the panel's trailing edge exactly on the bulge's face,
     // so the two silhouettes meet and the flares below can weld them.
     // Unattached: the window's own right-edge inset.
+    // Attached: anchor to the slab's OUTER edge, measured from the true
+    // screen edge (see `exclusiveZone` above). The surface then spans the
+    // panel plus the slab, so `x: 0` still seats the panel's right edge on
+    // the slab's inner face exactly as `rootInset` used to, while the region
+    // under the bar belongs to this surface and the bar covers it.
     margins.right: popoutWindow.vertical
-        ? (popoutWindow.attached ? PopoutController.rootInset : popoutWindow._verticalRightMargin)
+        ? (popoutWindow.attached ? PopoutController.rootOuterInset : popoutWindow._verticalRightMargin)
         : 0
 
     // ── Frame-owned constants, re-declared by the SAME names PanelDialog
@@ -1063,16 +1115,13 @@ PanelWindow {
         // whatever the top rail reserves — `exclusiveZone: _t` at
         // EdgeBar.qml:335, i.e. `Design.edgeBarThickness`.
         //
-        // MEASURED, not derived and hoped for: with this term missing the
-        // bulge came back at 44..314 against a panel at 50..320 — short by
-        // exactly 6 — and `hyprctl layers` put the surface at screen y 26
-        // against its own `margins.top` of 20. Adding it lands the span on
-        // the panel exactly.
-        //
-        // Only while attached, which is Continuous-only, which is the one
-        // style where that rail exists to reserve anything.
+        // The rail term that used to be added here now lives on
+        // `_attachedEdgeMargin`, so `_attachedClampedTop` is ALREADY screen
+        // space and this is a plain sum. Keeping the conversion in one place
+        // is the point: it was measured once (without it the bulge came back
+        // 44..314 against a panel at 50..320, short by exactly 6) and there
+        // is now only one line that can get it wrong.
         value: popoutWindow._attachedClampedTop + popoutWindow.flareRadius
-            + (popoutWindow.attached ? Design.edgeBarThickness : 0)
     }
     Binding {
         target: PopoutController

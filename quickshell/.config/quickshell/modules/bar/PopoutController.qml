@@ -140,6 +140,22 @@ Singleton {
     // popout can set its own margin against that edge directly.
     property real rootInset: 0
 
+    // ── THE SLAB, SO THE POPOUT CAN HIDE BEHIND IT (260825-x9p) ─────────
+    // The popout's surface now extends past the slab's inner face and under
+    // the bar, so its closed panel is genuinely BEHIND the bar rather than
+    // merely outside a surface that stopped at the bar's edge. Both numbers
+    // are the bar's own live geometry, measured from the TRUE screen edge —
+    // the popout runs `exclusiveZone: -1` while welded, which is what makes
+    // its margins screen-relative instead of usable-relative.
+    //
+    // `rootOuterInset` is screen edge -> slab's OUTER edge (its own 6px
+    // margin), so a surface anchored there stops exactly where the slab
+    // stops and never paints in the gap beyond it. `rootSlabWidth` is how
+    // much further the surface must extend to cover the slab, which is
+    // exactly how far the closed panel hides.
+    property real rootOuterInset: 0
+    property real rootSlabWidth: 0
+
     // ── THE PANEL'S ACTUAL ALONG-AXIS TOP, POST-CLAMP (260825-w4c) ──────
     // Written by the popout AFTER its own clamp has run, read by the bar as
     // the bulge's span. This exists because the bulge and the panel used to

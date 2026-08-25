@@ -156,7 +156,7 @@ PanelWindow {
     // ── Layer posture — copies Overview.qml's structural template; the
     //    only properties whose VALUE changes are exclusiveZone/implicit
     //    extent, both driven by `vertical`. ─────────────────────────────
-    WlrLayershell.layer: WlrLayer.Top
+    WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     focusable: false
@@ -691,6 +691,25 @@ PanelWindow {
         target: PopoutController
         property: "rootCentre"
         value: barWindow._popoutBulgeCentre
+    }
+    // Screen edge -> the slab's OUTER edge, and the slab's own width. The
+    // popout anchors to the first and widens by the second so it reaches
+    // under the bar without spilling into the 6px gap outside it. Taken
+    // from the same live geometry `rootInset` walks, never re-derived from
+    // tokens — this family's whole history of position bugs is second
+    // copies of the bar's arithmetic drifting apart.
+    Binding {
+        target: PopoutController
+        property: "rootOuterInset"
+        value: barWindow.screen
+            ? barWindow.screen.width
+              - (barWindow._barSurfaceX + barWindow._weldSlabX + barWindow._weldSlabWidth)
+            : 0
+    }
+    Binding {
+        target: PopoutController
+        property: "rootSlabWidth"
+        value: barWindow._weldSlabWidth
     }
 
     // A single rounded-rect fill path — GradientBorder.qml's own

@@ -306,7 +306,7 @@ PanelWindow {
     implicitHeight: edgeBarWindow._vertical ? 0 : edgeBarWindow._surfaceDepth
     implicitWidth: edgeBarWindow._vertical ? edgeBarWindow._surfaceDepth : 0
 
-    WlrLayershell.layer: WlrLayer.Top // never Overlay — always-on chrome sits below transient dialogs (Bar.qml's own note)
+    WlrLayershell.layer: WlrLayer.Overlay // never Overlay — always-on chrome sits below transient dialogs (Bar.qml's own note)
     // EXACTLY ONE `WlrLayershell.namespace` binding may exist in this file,
     // permanently: quickshell-doctor's registry FORWARD check counts the
     // marker and requires the count to be 1. All four edges resolve through
