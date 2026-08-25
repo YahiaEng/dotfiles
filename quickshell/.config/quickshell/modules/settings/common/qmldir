@@ -22,3 +22,9 @@ StackPage 1.0 StackPage.qml
 # StepperRow (quick task 260825-wj2 Task 5, D-9) — the sixth row primitive,
 # reserved for continuous numeric values with an increment (poll intervals).
 StepperRow 1.0 StepperRow.qml
+# TextRow (quick-260826-1n9 Task 2, D-10) — the seventh row primitive, a
+# first-class editable text field (label/subtext + committed(value)).
+# Declared here in the same commit that creates it — an undeclared type
+# in a directory carrying a manifest is unresolvable forever with no
+# load error, per this file's own header.
+TextRow 1.0 TextRow.qml

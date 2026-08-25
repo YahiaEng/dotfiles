@@ -164,12 +164,20 @@ Item {
     //    `stepSize`, clamped at `to`" is well defined. Left/Right are
     //    deliberately NOT reached for here either, for the identical
     //    collision this file already names for SliderRow.
+    //
+    //    TextRow (quick-260826-1n9, D-10) IS handled too — `beginEdit`
+    //    checked alongside `stepUp`, ahead of the generic three, for the
+    //    identical reason: a genuinely-declared function is either
+    //    present or `undefined`, and no other row type declares
+    //    `beginEdit`, so this ordering cannot rot as row types are added.
     function activateContentRow() {
         if (!root.contentFocused || root.contentRowIdx < 0 || root.contentRowIdx >= root._focusableRows.length)
             return;
         var row = root._focusableRows[root.contentRowIdx];
         if (typeof row.stepUp === "function") {
             row.stepUp();
+        } else if (typeof row.beginEdit === "function") {
+            row.beginEdit();
         } else if (row.checked !== undefined) {
             row.toggled(!row.checked);
         } else if (row.model !== undefined) {

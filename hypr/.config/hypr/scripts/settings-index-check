@@ -24,8 +24,8 @@
 # CHECK A — for each (pageIdx, subPageIdx) pair, the count of matching
 #           RowIndex entries equals the count of row-primitive
 #           declarations (ToggleRow/SliderRow/SelectRow/NavRow/InfoRow/
-#           StepperRow) in the pair's mapped page file. The index-to-file
-#           mapping is parsed from PageCompRegistry.qml's own `comps:`
+#           StepperRow/TextRow) in the pair's mapped page file. The
+#           index-to-file mapping is parsed from PageCompRegistry.qml's own `comps:`
 #           array — NEVER a hardcoded list, so this gate cannot itself
 #           drift from the registry it checks against.
 #
@@ -178,7 +178,7 @@ done
 N=${#PAGE_FILES[@]}
 
 # ── CHECK A (pair-keyed, D-4) ─────────────────────────────────────────
-ROW_PRIMITIVE_RE='^[[:space:]]*(ToggleRow|SliderRow|SelectRow|NavRow|InfoRow|StepperRow)[[:space:]]*\{'
+ROW_PRIMITIVE_RE='^[[:space:]]*(ToggleRow|SliderRow|SelectRow|NavRow|InfoRow|StepperRow|TextRow)[[:space:]]*\{'
 for ((i = 0; i < N; i++)); do
     f="${PAGE_FILES[$i]}"
     if [[ ! -f "$f" ]]; then
