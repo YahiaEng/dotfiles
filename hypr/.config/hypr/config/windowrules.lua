@@ -216,7 +216,15 @@ hl.window_rule({ match = { class = [[^(code-url-handler)$]] }, opacity = "0.90 0
 hl.window_rule({ match = { class = [[^(Code)$]] }, opacity = "0.90 0.88" })
 hl.window_rule({ match = { class = [[^(codium-url-handler)$]] }, opacity = "0.90 0.88" })
 hl.window_rule({ match = { class = [[^(codium)$]] }, opacity = "0.90 0.88" })
-hl.window_rule({ match = { class = [[^(zen)$]] }, opacity = "0.90 0.88" })
+-- Zen is the one member of this family whose content you look AT rather
+-- than through: at 0.90 the wallpaper reads faintly through a playing
+-- video, which is distracting on exactly the surface that most needs to
+-- be opaque. Focused is 1.0 for that reason; unfocused stays at the
+-- family's 0.88 so a background browser still recedes like every other
+-- window here. Operator decision D-1, quick task 260825-v3u — the
+-- alternative considered and rejected was dropping Zen from the
+-- translucency family entirely ("1.0 1.0").
+hl.window_rule({ match = { class = [[^(zen)$]] }, opacity = "1.0 0.88" })
 
 -- ── Blur rules ───────────────────────────────────────
 -- NOT MECHANICALLY VERIFIABLE beyond key-name/no-configerrors — no
