@@ -114,3 +114,61 @@ notification's right edge by 12px.
   the bar and the bulge paints over it.
 - `quickshell-doctor` still unrun against any of today's changes — it restarts
   the shell and is operator-only.
+
+---
+
+# Round 2 — the occlusion direction was wrong
+
+Operator: **"the bulge is now on top of the panels"** and **"the spawn/dismiss
+animation should start/end from the right edge of the bar respectively. It
+currently starts animating from the rightmost edge of the screen."**
+
+## The bulge report invalidates round 1's central move
+
+Stacking the bar above the popout to hide the parked panel **necessarily** put
+the bulge on top of the panel too. They are the same surface, and the bulge
+protrudes 14px past the slab's face — exactly where the panel's right edge
+lives. Whichever surface is on top owns that band.
+
+Round 1 celebrated this as "un-inverting the weld", citing `Bar.qml`'s note
+that the bulge "protrudes OVER the panel". **That note describes the intent;
+the operator's eye is the authority on the result.** I treated a comment as
+evidence of what should be on screen.
+
+So the stacking is back to baseline — bar and both rails at `Top`, popout at
+`Overlay` — and the parked panel is hidden by its own **clip** instead.
+`spawnClip` is no longer `anchors.fill: parent`: it is the panel's width
+pinned to the surface's left, so its right edge lands on the slab's inner face
+and it clips there.
+
+| check | result |
+|---|---|
+| bulge over the panel (x 2488..2501, panel rows) | **none** — panel-coloured, was bar-coloured |
+| popout painting over the bar (x 2502..2554, open vs closed) | only the slab's two 4px rims differ, both bar-coloured cyan, differing solely in the accent gradient's phase |
+
+## The start position was one panel-width short
+
+The closed offset was a bare `panelWidth`, which parks the panel's left edge on
+the slab's **inner** face. With the surface extended past the bar and nothing
+clipping it, the panel then filled the slab's transparent middle — which is why
+it read as coming from the screen edge.
+
+It is now `panelWidth + rootSlabWidth`, so the panel parks on the slab's
+**outer** edge — the bar's right edge — and crosses the bar unseen behind the
+clip before appearing at its face. Both terms are real extents (the panel's own
+width, the bar's published slab width), never the surface's resolved width.
+
+## What survived from round 1
+
+The `exclusiveZone: -1` finding and the extended surface both stay — they are
+what let the panel park at the bar's right edge at all. The layer swap did not.
+
+Baseline geometry re-confirmed: bar `2478 0 76 1440`, rails `10 0 2490 16`,
+`reserved 0 6 50 6`. The notif-popups tradeoff named in round 1 is gone with
+the layer revert.
+
+Bulge span equals panel span on all eight: resources `50..320`, wifi
+`1021..1291`, audio `954..1286`, clock `1070..1390`, media `862..1143`,
+bluetooth `1102..1222`, ethernet `1103..1281`, tray `862..982`.
+
+Gates re-run once each, all green; `qmllint` 0 on both edited QML files.
