@@ -154,7 +154,16 @@ PanelWindow {
     // They draw a plain run (`bulge: false` in the path call below), which
     // is an explicit branch in `edgebarpath.js` rather than a zero-depth
     // bulge — see that file for why passing `b = 0` self-intersects.
-    readonly property bool _hasBulge: !edgeBarWindow._vertical
+    //
+    // Brackets carries no bulge on ANY edge (Q3-brackets). The study's own
+    // table scores that shape `0 direct` rails-with-a-panel; it is a
+    // property of the shape, not a gap in the drawing. Two alternatives
+    // were put to the operator and declined — grafting a centre bulge on,
+    // and growing the arms until they meet (which would make Brackets a
+    // resting state of Continuous rather than its own shape). Neither is
+    // to be reintroduced.
+    readonly property bool _brackets: edgeBarWindow.style === "brackets"
+    readonly property bool _hasBulge: !edgeBarWindow._vertical && !edgeBarWindow._brackets
 
     // ── Per-style thickness (Task 4) ────────────────────────────────────
     // Halo is the one style that draws at a different weight: 2px, not
@@ -212,9 +221,25 @@ PanelWindow {
     // with a non-negative exclusive zone is still positioned inside every
     // other surface's zone, so the bar's own 50 puts this rail at
     // `screenW - 50 - 10` with no arithmetic here at all.
-    margins.left: edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin
+    //
+    // BRACKETS ADDS A SECOND, SAME-SHAPED EXCEPTION on the LEFT rail. That
+    // style reserves nothing anywhere (see `exclusiveZone` below), so its
+    // vertical arms are free to sit where the study draws them —
+    // `corner(INSET, 0, ...)`, i.e. flush to the horizontal screen edge but
+    // inset by the side margin from the vertical one. Halo's left rail
+    // reserves, so it stays flush at x = 0 where the study draws IT
+    // (`rect{x: 0, w: k}`). The two styles genuinely differ here; this is
+    // not an inconsistency to tidy away.
+    readonly property real _anchoredMargin: (edgeBarWindow.edge === "right"
+        || (edgeBarWindow._brackets && edgeBarWindow.edge === "left"))
+        ? Design.edgeBarSideMargin
+        : 0
+
+    margins.left: edgeBarWindow._vertical
+        ? (edgeBarWindow.edge === "left" ? edgeBarWindow._anchoredMargin : 0)
+        : Design.edgeBarSideMargin
     margins.right: edgeBarWindow._vertical
-        ? (edgeBarWindow.edge === "right" ? Design.edgeBarSideMargin : 0)
+        ? (edgeBarWindow.edge === "right" ? edgeBarWindow._anchoredMargin : 0)
         : Design.edgeBarSideMargin
     margins.top: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
     margins.bottom: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
@@ -271,10 +296,19 @@ PanelWindow {
     focusable: false
 
     // D-4 — the strip's own FLAT thickness alone, never thickness+bulge.
-    // The right rail is the DC-2 exception (see the margins block above):
-    // it reserves nothing and overhangs, because it cannot both sit at the
-    // study's drawn position and reserve, those being the same number.
-    exclusiveZone: edgeBarWindow.edge === "right" ? 0 : edgeBarWindow._t
+    //
+    // Two things reserve nothing at all:
+    //   - the right rail on any four-sided style, the DC-2 exception (see
+    //     the margins block above): it cannot both sit at the study's drawn
+    //     position and reserve, those being the same number;
+    //   - EVERY Brackets surface. The corners overhang entirely, which is
+    //     that shape's whole cost advantage — the study's own table scores
+    //     it at zero screen cost, and `reserved` measures [0,0,50,0] with
+    //     it selected (the 50 is the BAR's, not this file's).
+    // The registry row for this file is `reserve`, so the doctor's
+    // `exclusiveZone: 0` forward assertion (which fires only on `noreserve`
+    // rows) does not apply either way.
+    exclusiveZone: (edgeBarWindow._brackets || edgeBarWindow.edge === "right") ? 0 : edgeBarWindow._t
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
 
@@ -439,6 +473,67 @@ PanelWindow {
     readonly property real _xl: edgeBarWindow._cx - edgeBarWindow._wb / 2
     readonly property real _xr: edgeBarWindow._cx + edgeBarWindow._wb / 2
 
+    // ── Brackets' arm length (Task 5) ───────────────────────────────────
+    // PROPORTIONAL, never the study's raw 170. That number was measured on
+    // a 1920-wide capture; this panel is 2560x1440 and the next one will be
+    // a third size, so the arm is a fraction of THIS surface's own
+    // along-axis extent. See Design.edgeBarBracketArmFraction.
+    readonly property real _armBase: Math.round(edgeBarWindow._ww * Design.edgeBarBracketArmFraction)
+
+    // Which of the two corners on this surface is being dwelled. Pushed up
+    // from the hit regions' own HoverHandlers rather than read back off
+    // them, for the same declare-before-use reason `_bulgeHovered` records
+    // just above.
+    property bool _armNearHovered: false
+    property bool _armFarHovered: false
+
+    // The hover landmark this style has INSTEAD of a bulge (Q3-brackets):
+    // the hovered corner's arm extends toward the centre. It grows ALONG
+    // the edge and never into it, so no surface dimension changes on any
+    // frame and hazard 2 cannot fire here by construction.
+    readonly property real _armNearTarget: edgeBarWindow._armBase
+        * (edgeBarWindow._armNearHovered ? 1 + Design.edgeBarBracketArmHoverExtra : 1)
+    readonly property real _armFarTarget: edgeBarWindow._armBase
+        * (edgeBarWindow._armFarHovered ? 1 + Design.edgeBarBracketArmHoverExtra : 1)
+
+    // Bound, but drivable by the Behaviors below — the same shape `_b` uses.
+    property real _armNear: edgeBarWindow._armNearTarget
+    property real _armFar: edgeBarWindow._armFarTarget
+
+    Behavior on _armNear {
+        enabled: Motion.motionEnabled && edgeBarWindow._brackets
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            // The identical reversal pair the bulge uses — grows on
+            // `standard`, retracts along that same curve played backwards.
+            // No new Motion token name is introduced anywhere in this
+            // block: motion-lint CHECK A derives its allow-list from
+            // motion.json's semantic keys plus `<camelKey>ReverseEasing`
+            // and reports anything else dangling.
+            easing.bezierCurve: edgeBarWindow._armNearHovered ? Motion.standardEasing : Motion.standardReverseEasing
+        }
+    }
+    Behavior on _armFar {
+        enabled: Motion.motionEnabled && edgeBarWindow._brackets
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: edgeBarWindow._armFarHovered ? Motion.standardEasing : Motion.standardReverseEasing
+        }
+    }
+
+    // Guards the degenerate frames a layer surface passes through on its
+    // way up: `_ww` arrives in STAGES, so `_armBase` is 0 for the first
+    // frames and a run shorter than its own two pill caps would emit a
+    // backwards path. Also keeps the two arms from ever meeting in the
+    // middle — at the live scale the hovered pair reaches 2 * 225 * 1.4 =
+    // 630 of 2540, so this only ever fires during startup.
+    readonly property bool _armsValid: edgeBarWindow._brackets
+        && edgeBarWindow._armNear > 2 * edgeBarWindow._re
+        && edgeBarWindow._armFar > 2 * edgeBarWindow._re
+        && edgeBarWindow._armNear + edgeBarWindow._armFar < edgeBarWindow._ww
+
     // ── The full strip outline (operator round 7 reshape; extracted to
     //    `edgebarpath.js` in quick task 260824-ns3 Task 2, hazard 1/4) ────
     // Built for edge="top" (depth=0 at the screen edge, material extending
@@ -485,6 +580,68 @@ PanelWindow {
         flip: edgeBarWindow._flip,
         axis: edgeBarWindow._vertical ? "vertical" : "horizontal"
     })
+
+    // ── Brackets' two arms (Task 5) ─────────────────────────────────────
+    // One L per corner: a horizontal arm on the top/bottom surface plus a
+    // vertical arm on the left/right surface. Each surface therefore draws
+    // TWO short runs, one at each end of its own along axis — the same four
+    // instances Task 4 already mounts, no new surface anywhere.
+    //
+    // HAZARD 4 IS DISARMED BY CONSTRUCTION HERE AND MUST STAY THAT WAY.
+    // The study draws each arm as `rect{..., rx: k/2}` — a pill-capped bar,
+    // which is EXACTLY the two-quarter-arc cap `edgebarpath.js` already
+    // emits. Every arm is built from that same construction and NO arc of
+    // any other sweep angle is added. `_arcCentre` hardcodes SVG F.6.5's
+    // offset scalar to 1, exact only for a quarter circle; a 180-degree cap
+    // resolved through it is precisely the round-10 bug where both
+    // candidate centres missed, `_shoulderSweep` fell through to its `: 0`
+    // branch and the caps curved INWARD — biting 4px off the left end and
+    // 6px off the right, with no QML error and no gate saying anything. The
+    // corner joints are where it will try again.
+    readonly property string _armNearPath: edgeBarWindow._armsValid
+        ? EdgeBarPath.buildOutline({
+            t: edgeBarWindow._t,
+            b: 0,
+            re: edgeBarWindow._re,
+            f: 0,
+            rc: 0,
+            alongStart: 0,
+            along: edgeBarWindow._armNear,
+            bulge: false,
+            xl: 0,
+            xr: 0,
+            surfaceDepth: edgeBarWindow._surfaceDepth,
+            flip: edgeBarWindow._flip,
+            axis: edgeBarWindow._vertical ? "vertical" : "horizontal"
+        })
+        : ""
+    readonly property string _armFarPath: edgeBarWindow._armsValid
+        ? EdgeBarPath.buildOutline({
+            t: edgeBarWindow._t,
+            b: 0,
+            re: edgeBarWindow._re,
+            f: 0,
+            rc: 0,
+            alongStart: edgeBarWindow._ww - edgeBarWindow._armFar,
+            along: edgeBarWindow._ww,
+            bulge: false,
+            xl: 0,
+            xr: 0,
+            surfaceDepth: edgeBarWindow._surfaceDepth,
+            flip: edgeBarWindow._flip,
+            axis: edgeBarWindow._vertical ? "vertical" : "horizontal"
+        })
+        : ""
+
+    // What the single ShapePath below actually draws. Brackets' two arms
+    // are emitted as TWO SUBPATHS of one path string rather than two
+    // ShapePaths: a `Repeater` cannot instantiate a ShapePath (it is not an
+    // Item), and — more usefully — one ShapePath means both arms share one
+    // gradient coordinate space, so the colour reads continuous across the
+    // gap the way the study's four corners do.
+    readonly property string _shapePath: edgeBarWindow._brackets
+        ? (edgeBarWindow._armNearPath + " " + edgeBarWindow._armFarPath)
+        : edgeBarWindow._outlinePath
 
     Shape {
         anchors.fill: parent
@@ -533,15 +690,45 @@ PanelWindow {
             }
 
             PathSvg {
-                path: edgeBarWindow._outlinePath
+                path: edgeBarWindow._shapePath
             }
         }
     }
 
-    // ── Bulge overhang hit area (GT-6) — the only input-live rectangle on
-    //    this surface. The hover reveal below is scoped to this same
-    //    item, so what the operator SEES (the permanent bulge landmark,
-    //    D-3) and what actually triggers are the same object (P-3).
+    // ── ONE DWELL CHAIN, THREE HIT REGIONS (Task 5, DC-1) ───────────────
+    // Brackets moves the LANDMARK to the corners, so it moves the hit
+    // regions there too — but the summon itself is not removed. R5/R6
+    // (dwelled hover opens the dashboard from the top surface and the
+    // launcher's menu mode from the bottom) is shipped, operator-approved
+    // behaviour, and silently dropping it on one style would be a
+    // capability loss nobody asked for. What changes on Brackets is only
+    // WHERE you aim.
+    //
+    // The enter/exit logic is factored into these two functions rather than
+    // copied into each HoverHandler, so the re-arm-ONLY-on-a-genuine-exit
+    // rule (round 10) keeps having exactly one implementation. Declared
+    // above every caller, per this file's own declare-before-use
+    // discipline.
+    function _hoverEnter(): void {
+        // A pointer merely crossing must not summon anything — only start
+        // the dwell timer while ARMED. Disarmed briefly after a fire (see
+        // the timer below), so a surface that dismisses while the pointer
+        // is still resting here does not immediately re-fire.
+        if (edgeBarWindow._bulgeArmed)
+            bulgeDwellTimer.start();
+    }
+    function _hoverExit(): void {
+        bulgeDwellTimer.stop();
+        edgeBarWindow._bulgeArmed = true;
+    }
+
+    // ── Bulge overhang hit area (GT-6) — the input-live rectangle on the
+    //    styles that HAVE a bulge. The hover reveal below is scoped to this
+    //    same item, so what the operator SEES (the permanent bulge
+    //    landmark, D-3) and what actually triggers are the same object
+    //    (P-3). Zero-area on Brackets and on both vertical rails, where
+    //    `_wb` is 0 — those get the two corner regions further down
+    //    instead.
     // OPERATOR ROUND 10: this rectangle used to be the bulge's overhang
     // exactly — `y: _t, height: _b` — which tied the hover target's depth
     // to the PAINT. Every round that thinned the bulge therefore shrank
@@ -598,18 +785,61 @@ PanelWindow {
                 // binding — see `_bulgeHovered` there for why it is not
                 // read directly off this handler.
                 edgeBarWindow._bulgeHovered = bulgeHover.hovered;
-                if (bulgeHover.hovered) {
-                    // A pointer merely crossing the bulge must not summon
-                    // anything — only start the dwell timer while ARMED.
-                    // Disarmed briefly after a fire (see the timer below),
-                    // so a surface that dismisses while the pointer is
-                    // still resting here does not immediately re-fire.
-                    if (edgeBarWindow._bulgeArmed)
-                        bulgeDwellTimer.start();
-                } else {
-                    bulgeDwellTimer.stop();
-                    edgeBarWindow._bulgeArmed = true;
-                }
+                if (bulgeHover.hovered)
+                    edgeBarWindow._hoverEnter();
+                else
+                    edgeBarWindow._hoverExit();
+            }
+        }
+    }
+
+    // ── Brackets' two corner hit regions (Task 5, DC-1) ─────────────────
+    // One per corner of this surface, each `_armLength` along the edge by
+    // `Design.edgeBarHoverDepth` deep — the same depth the bulge region
+    // already uses, so the target is no harder to hit than the one it
+    // replaces. Both feed the SAME HoverHandler / `_bulgeArmed` / dwell
+    // Timer / `bulgeHoverTriggered()` chain, reused verbatim: the top
+    // surface still opens the dashboard and the bottom still opens the
+    // launcher's menu mode, exactly as they do on every other style.
+    //
+    // Zero-area on every style but Brackets (`_armsValid` is false there),
+    // so the mask below admits no input from them at all.
+    Item {
+        id: armNearHitArea
+        readonly property real _len: edgeBarWindow._armsValid ? edgeBarWindow._armNear : 0
+        x: 0
+        y: 0
+        width: edgeBarWindow._vertical ? edgeBarWindow._surfaceDepth : armNearHitArea._len
+        height: edgeBarWindow._vertical ? armNearHitArea._len : edgeBarWindow._surfaceDepth
+
+        HoverHandler {
+            id: armNearHover
+            onHoveredChanged: {
+                edgeBarWindow._armNearHovered = armNearHover.hovered;
+                if (armNearHover.hovered)
+                    edgeBarWindow._hoverEnter();
+                else
+                    edgeBarWindow._hoverExit();
+            }
+        }
+    }
+    Item {
+        id: armFarHitArea
+        readonly property real _len: edgeBarWindow._armsValid ? edgeBarWindow._armFar : 0
+        readonly property real _start: edgeBarWindow._ww - armFarHitArea._len
+        x: edgeBarWindow._vertical ? 0 : armFarHitArea._start
+        y: edgeBarWindow._vertical ? armFarHitArea._start : 0
+        width: edgeBarWindow._vertical ? edgeBarWindow._surfaceDepth : armFarHitArea._len
+        height: edgeBarWindow._vertical ? armFarHitArea._len : edgeBarWindow._surfaceDepth
+
+        HoverHandler {
+            id: armFarHover
+            onHoveredChanged: {
+                edgeBarWindow._armFarHovered = armFarHover.hovered;
+                if (armFarHover.hovered)
+                    edgeBarWindow._hoverEnter();
+                else
+                    edgeBarWindow._hoverExit();
             }
         }
     }
@@ -633,7 +863,17 @@ PanelWindow {
     // launcher's menu mode on the bottom instance).
     signal bulgeHoverTriggered()
 
+    // ONE mask, unioning the three hit regions — a `Region` with child
+    // `Region`s, never a second `mask` assignment. Exactly one of the two
+    // groups is non-zero on any given style (bulge OR corners), so this
+    // never widens the input surface beyond what the style actually draws.
     mask: Region {
         item: bulgeHitArea
+        Region {
+            item: armNearHitArea
+        }
+        Region {
+            item: armFarHitArea
+        }
     }
 }

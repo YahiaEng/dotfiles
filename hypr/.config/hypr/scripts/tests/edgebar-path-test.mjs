@@ -291,6 +291,47 @@ for (const c of CASES) {
     check(c.key + ": omitted `bulge` === bulge:true", omitted === explicit);
 }
 
+// ── Group 8: `alongStart` translates the run, nothing else ───────────
+// Brackets draws TWO short runs per surface from ONE builder (Task 5).
+// The far arm is the near arm translated along the run's own axis — if
+// `alongStart` ever changed anything but the along coordinates, the two
+// arms would silently stop being the same shape.
+console.log("── Group 8: alongStart translates the run along its own axis ──");
+{
+    const base = { t: 6, b: 0, re: 3, f: 3, rc: 1, along: 0, xl: 0, xr: 0, surfaceDepth: 16, bulge: false };
+    const ARM = 225, EXTENT = 2540;
+
+    for (const axis of ["horizontal", "vertical"]) {
+        for (const flip of [false, true]) {
+            const key = "arm_" + axis + "_flip" + flip;
+            const near = buildOutline(Object.assign({}, base, { alongStart: 0, along: ARM, axis, flip }));
+            const far = buildOutline(Object.assign({}, base, { alongStart: EXTENT - ARM, along: EXTENT, axis, flip }));
+
+            check(key + ": no NaN/undefined in either arm", !/NaN|undefined/.test(near) && !/NaN|undefined/.test(far));
+            check(key + ": both arms carry exactly 4 arcs", parseSweepFlags(near).length === 4 && parseSweepFlags(far).length === 4);
+            check(key + ": both arms resolve the same sweep flags", parseSweepFlags(near).join() === parseSweepFlags(far).join());
+
+            const nc = parseCoords(near), fc = parseCoords(far);
+            check(key + ": same coordinate-pair count", nc.length === fc.length);
+            if (nc.length === fc.length) {
+                const D = EXTENT - ARM;
+                // The far arm's ALONG coordinates are the near arm's plus
+                // the offset; its DEPTH coordinates are untouched.
+                const alongIdx = axis === "vertical" ? 1 : 0;
+                const depthIdx = axis === "vertical" ? 0 : 1;
+                check(key + ": far arm is the near arm translated by " + D + " along, depth untouched",
+                    nc.every((c, i) => Math.abs(fc[i][alongIdx] - (c[alongIdx] + D)) < 1e-9
+                        && Math.abs(fc[i][depthIdx] - c[depthIdx]) < 1e-9));
+            }
+        }
+    }
+
+    // And omitting `alongStart` is identical to passing 0 — the golden
+    // predates this parameter.
+    check("omitting alongStart === alongStart:0",
+        buildOutline(Object.assign({}, base, { along: ARM })) === buildOutline(Object.assign({}, base, { alongStart: 0, along: ARM })));
+}
+
 console.log("");
 console.log(total + " assertions, " + (total - failures) + " passed, " + failures + " failed");
 process.exit(failures > 0 ? 1 : 0);

@@ -618,9 +618,42 @@ ShellRoot {
     //    still applies, a mounted-but-`visible:false` layer surface keeps
     //    its `exclusiveZone`, so unmounting is the only way a style can
     //    genuinely cost nothing on the edges it does not draw.
+    //
+    // ── A STYLE CHANGE REMOUNTS THE STRIPS, IT DOES NOT MUTATE THEM ─────
+    //    MEASURED on this host 2026-08-25, and the reason this gate
+    //    exists: a layer surface's `exclusiveZone` can be RAISED after it
+    //    is mapped (probed 0 -> 42: `reserved` followed) and can be
+    //    changed between two positive values (Halo's 6 -> 2 followed), but
+    //    a change to ZERO is NOT applied — the old reservation persists
+    //    for the life of the surface (probed 6 -> 0 and 99 -> 0: `reserved`
+    //    stayed at 6 and 99).
+    //
+    //    Brackets reserves nothing on any edge, so without this gate,
+    //    switching to it from any other style would leave a 6px band
+    //    reserved forever with nothing drawn in it — and switching to it
+    //    at STARTUP does the same, because `Prefs` resolves after the
+    //    top/bottom loaders have already mounted on the default style.
+    //
+    //    `_edgeBarMountArmed` drops for exactly one event-loop turn on
+    //    every style change, which destroys all four strips and lets the
+    //    new style's surfaces be created from scratch with the reservation
+    //    it actually wants. This is the same reasoning R3 already applies
+    //    to OFF, extended to the case R3 did not have: a style that is on
+    //    but costs less than the one before it.
+    property bool _edgeBarMountArmed: true
+    onEdgeBarStyleChanged: {
+        root._edgeBarMountArmed = false;
+        // Re-armed on the NEXT turn, never in this one — the loaders have
+        // to actually observe the false before they will observe the true,
+        // and a binding read inside this handler still sees the old value.
+        Qt.callLater(() => {
+            root._edgeBarMountArmed = true;
+        });
+    }
+
     LazyLoader {
         id: edgeBarTopLoader
-        active: root.edgeBarRailPresent
+        active: root.edgeBarRailPresent && root._edgeBarMountArmed
 
         EdgeBar {
             id: edgeBarTop
@@ -637,7 +670,7 @@ ShellRoot {
     }
     LazyLoader {
         id: edgeBarBottomLoader
-        active: root.edgeBarRailPresent
+        active: root.edgeBarRailPresent && root._edgeBarMountArmed
 
         EdgeBar {
             id: edgeBarBottom
@@ -660,7 +693,7 @@ ShellRoot {
 
     LazyLoader {
         id: edgeBarLeftLoader
-        active: root._edgeBarFourSided
+        active: root._edgeBarFourSided && root._edgeBarMountArmed
 
         EdgeBar {
             id: edgeBarLeft
@@ -671,7 +704,7 @@ ShellRoot {
     }
     LazyLoader {
         id: edgeBarRightLoader
-        active: root._edgeBarFourSided
+        active: root._edgeBarFourSided && root._edgeBarMountArmed
 
         EdgeBar {
             id: edgeBarRight

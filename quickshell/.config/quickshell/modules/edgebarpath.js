@@ -75,7 +75,13 @@ function _shoulderSweep(x1, y1, x2, y2, r, expectedCx, expectedCy) {
 //   re            pill-cap radius (= t/2, a true semicircle)
 //   f             concave shoulder fillet radius
 //   rc            convex bulge-corner radius
-//   along         the strip's own along-axis extent (was `ww`)
+//   along         the run's FAR along-axis bound (was `ww`)
+//   alongStart    the run's NEAR along-axis bound. Default 0, so every
+//                 caller that draws a full-surface run — and the
+//                 committed golden — is byte-identical by construction.
+//                 Brackets needs it: that style draws TWO short runs per
+//                 surface, one at each end, from ONE builder rather than
+//                 a second hand-authored path (Task 5).
 //   xl, xr        the bulge span's along-axis bounds
 //   surfaceDepth  the surface's own depth (the mirror axis for `flip`)
 //   flip          mirror the depth axis (edge: bottom/right)
@@ -113,6 +119,7 @@ function _shoulderSweep(x1, y1, x2, y2, r, expectedCx, expectedCy) {
 function buildOutline(params) {
     var t = params.t, b = params.b, re = params.re, f = params.f, rc = params.rc;
     var along = params.along, xl = params.xl, xr = params.xr;
+    var a0 = params.alongStart === undefined ? 0 : params.alongStart;
     var surfaceDepth = params.surfaceDepth, flip = !!params.flip;
     var squareEnd = !!params.squareEnd;
     var bulge = params.bulge === undefined ? true : !!params.bulge;
@@ -155,7 +162,7 @@ function buildOutline(params) {
     // walk-order exactly for axis:"horizontal"). The OUTER edge (depth
     // 0, flush to the screen) is one straight run from cap to cap; the
     // bulge is an excursion of the INNER face only.
-    var p = "M " + P(re, Y(0));
+    var p = "M " + P(a0 + re, Y(0));
     if (squareEnd) {
         // Butt end. The run reaches the surface's far edge at full
         // thickness and stops there with no cap, because something else
@@ -190,9 +197,9 @@ function buildOutline(params) {
     }
     // Inner face onward to the left cap. With `bulge: false` this is the
     // WHOLE inner face — one straight run, cap to cap.
-    p += " L " + P(re, Y(t));
+    p += " L " + P(a0 + re, Y(t));
     // Left pill cap, same two-quarter-arc construction as the right.
-    p += " A " + re + " " + re + " 0 0 " + S(re, Y(t), 0, Y(re), re, re, Y(re)) + " " + P(0, Y(re));
-    p += " A " + re + " " + re + " 0 0 " + S(0, Y(re), re, Y(0), re, re, Y(re)) + " " + P(re, Y(0));
+    p += " A " + re + " " + re + " 0 0 " + S(a0 + re, Y(t), a0, Y(re), re, a0 + re, Y(re)) + " " + P(a0, Y(re));
+    p += " A " + re + " " + re + " 0 0 " + S(a0, Y(re), a0 + re, Y(0), re, a0 + re, Y(re)) + " " + P(a0 + re, Y(0));
     return p + " Z";
 }

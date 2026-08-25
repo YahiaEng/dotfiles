@@ -872,5 +872,36 @@ Singleton {
     readonly property int edgeBarHaloThickness: 2
     readonly property int edgeBarHaloEndRadius: 1
 
+    // ── Brackets (quick task 260824-ns3, Task 5) — the corner L pieces ──
+    //    ARM LENGTH IS A FRACTION, NEVER A LENGTH. The study measured its
+    //    arms at 170px on a 1920-wide capture
+    //    (`.planning/notes/edge-rail-studies.html:552-627`, `L = 170`);
+    //    this panel is 2560x1440, and every other panel this shell may run
+    //    on is a third number. Storing the ratio and multiplying by each
+    //    surface's OWN along-axis extent is what makes the shape scale —
+    //    a hardcoded 170 would read as a stub on a 4K panel and as a full
+    //    rail on a 1366-wide laptop.
+    //
+    //    Written as the division rather than its decimal expansion so the
+    //    provenance survives: the numerator is the study's measurement,
+    //    the denominator is the capture it was measured on.
+    readonly property real edgeBarBracketArmFraction: 170 / 1920
+
+    // ── edgeBarBracketArmHoverExtra ─────────────────────────────────────
+    //    How far a hovered corner's arms extend TOWARD THE CENTRE, as a
+    //    fraction of the base arm length. Brackets draws no bulge
+    //    (Q3-brackets), so the extension is this style's entire hover
+    //    landmark — the thing that says "you are on the target" before the
+    //    dwell fires.
+    //
+    //    Free of the resizing-layer-surface hazard by construction: the
+    //    arms grow ALONG the edge, never into it, so no surface dimension
+    //    changes on any frame. That is why this is a length fraction and
+    //    not a depth one.
+    //
+    //    0.4 is a visual constant, not a derived one — flagged for the
+    //    operator to judge live at this task's own checkpoint.
+    readonly property real edgeBarBracketArmHoverExtra: 0.4
+
     readonly property int edgeBarDwellMs: 400 // hover dwell before a bulge hover summons its surface (Task 5) — matches popoutDwellMs above
 }
