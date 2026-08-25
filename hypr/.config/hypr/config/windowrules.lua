@@ -46,11 +46,25 @@ hl.window_rule({
 -- "org.quickshell" — title alone ("Settings") is not a stable match
 -- criterion since Quickshell's other summonable surfaces could plausibly
 -- retitle in the future; class is Quickshell's own fixed toplevel identity.
+--
+-- NO `size` TERM, deliberately (quick task 260825-v3u round 2). This rule
+-- carried `size = "960 640"` from the task that first created the window,
+-- and a Hyprland size rule OVERRIDES the client's own requested geometry —
+-- so Settings.qml's implicitWidth/implicitHeight were inert the whole time
+-- and the window measured exactly 960x640 no matter what the QML asked for.
+-- Measured live before removing it (`hyprctl clients -j`, class
+-- org.quickshell): at [775,400] size [960,640] against a QML asking for
+-- 1792x1008.
+--
+-- The window's size is the QML's business now, because only the QML knows
+-- the screen: Settings.qml derives it as screen height x 0.7 at 16:9
+-- (Caelestia's NexusTokens). Restoring a literal here would re-pin it to
+-- one display's pixels and silently defeat that again. `float` and
+-- `center` stay — placement IS the compositor's business.
 hl.window_rule({
     name = "float-settings",
     match = { class = [[^(org\.quickshell)$]] },
     float = true,
-    size = "960 640",
     center = true,
 })
 
