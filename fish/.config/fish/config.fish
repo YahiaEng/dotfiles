@@ -215,6 +215,7 @@ if status is-interactive
     alias c clear
     alias codium 'codium --ozone-platform=wayland'
     alias zed "$HOME/.local/bin/zed"
+    alias zel zellij
 
     # ── Keybindings ──────────────────────────────────
     # zsh's `bindkey -e` + Ctrl-P/Ctrl-N history search are fish defaults
