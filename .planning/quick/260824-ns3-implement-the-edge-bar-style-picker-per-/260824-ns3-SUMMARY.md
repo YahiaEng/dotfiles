@@ -3,7 +3,7 @@ quick_id: 260824-ns3
 phase: quick-260824-ns3
 plan: 01
 subsystem: quickshell-shell
-status: incomplete
+status: complete
 tags: [edge-bar, style-picker, layer-shell, qml, hyprland]
 requires:
   - quickshell/.config/quickshell/modules/Prefs.qml
@@ -60,7 +60,7 @@ workspace pieces with a whole-segment bulge merge, and the settings row
 that switches between them — with every reservation measured off
 `hyprctl -j monitors` rather than asserted.
 
-## STATUS: INCOMPLETE — Task 8 is open
+## STATUS: COMPLETE — Task 8 signed off by the operator 2026-08-25
 
 **Tasks 4, 5, 6 and 7 are done, committed and pushed.** Tasks 1-3 were
 done, committed and operator-approved in the prior session.
@@ -428,3 +428,45 @@ is nil on this build and there is no input-injection tool, so the arming
 behaviour was proven with a forced positive control (both drawers self-closed
 between t=1s and t=4s) and the keyboard exemption with the shipped code (both
 stayed open past t=8s). The feel is the operator's call, and they approved it.
+
+
+---
+
+## Task 8 — OPERATOR SIGN-OFF, 2026-08-25. Task closed.
+
+All five styles judged live by the operator across three feedback rounds.
+
+| Task 8 item | Verdict |
+|---|---|
+| 1. Continuous — one silhouette, bar still reads as the bar, hover unchanged | **approved** |
+| 2. Brackets — four corners, no bulge, corner summon, panels free-floating | **approved** |
+| 3. Segmented — lit segment tracks workspace, bulge absorbs whole segments | **approved** |
+| 4. Halo — hairline frame, static masses present, thinner swell | **approved** |
+| 5. Off — nothing drawn, launcher drops from the top, border restored | **approved**, after one fix |
+| 6. Two Rails removal — gone from every style and fallback | **approved** |
+| 7. Screen cost — measured vectors match expectation | **approved** |
+
+**ONE DEFECT FOUND AT SIGN-OFF AND FIXED** (`7ee1621c`): Off still showed the
+"Animate the bulge" row, which did nothing there. Hidden; the row is now an
+allow-list of Continuous and Halo only.
+
+**THE OPERATOR ALSO VERIFIED SOMETHING THIS HOST NEVER TESTED:** every style in
+**horizontal bar mode** — *"I also checked all styles with horizontal bar mode
+and all styles behave and look correctly."* Every automated measurement in this
+task was taken with the bar vertical (the live orientation), so the horizontal
+half of Task 2's axis transposition had no live evidence behind it until this.
+It now does.
+
+### Final commit range
+
+`8e4417c9` (Task 1) .. `7ee1621c` (Task 8 fix) — 11 code commits plus docs.
+
+### Final gate counts
+
+`quickshell-doctor` 28/0 · `colour-lint` 362/0 · `motion-lint` 549/0 ·
+`keybind-doctor` 13/0 · `settings-index-check` 120/0 · path golden 123/123.
+
+### Two constants left deliberately tunable
+
+`edgeBarBracketArmHoverExtra` (0.4) and `edgeBarHaloThickness` (2) — both
+approved as-is, both named here so a future round knows where to reach.
