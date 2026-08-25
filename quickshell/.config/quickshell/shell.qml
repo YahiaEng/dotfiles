@@ -77,6 +77,17 @@ ShellRoot {
     // second Prefs.getValue at either call site would be a divergent
     // resolution point.
     readonly property bool edgeBarAnimatedBulge: Prefs.getValue("edgeBar.animatedBulge")
+    // Operator round 12 — Segmented has no "animate the bulge" choice any
+    // more (the row is hidden on it in BarPage.qml), so the stored pref
+    // must not be able to strand it in the permanent-merge state it can no
+    // longer be switched out of. Forced true HERE, once, beside the style
+    // resolution, rather than at each of the four loaders — every strip
+    // reads this one value and there is no second place for the two to
+    // disagree. Both ternary branches are real bools: never `undefined`,
+    // which would remove the binding outright.
+    readonly property bool edgeBarAnimatedBulgeEffective: root.edgeBarStyle === "segmented"
+        ? true
+        : root.edgeBarAnimatedBulge
 
     // Selected-tab memory (D-14, Phase 14 Plan 03): the dashboard drawer's
     // LazyLoader destroys the surface on dismiss, so this is the only
@@ -661,7 +672,7 @@ ShellRoot {
             style: root.edgeBarStyle
             // Matches the dashboard, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthTop
-            animatedBulge: root.edgeBarAnimatedBulge
+            animatedBulge: root.edgeBarAnimatedBulgeEffective
             // Holds the swell for as long as the surface THIS strip summons
             // is up, so the bulge does not collapse under the drawer the
             // moment the pointer leaves the strip and enters it.
@@ -678,7 +689,7 @@ ShellRoot {
             style: root.edgeBarStyle
             // Matches the launcher, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthBottom
-            animatedBulge: root.edgeBarAnimatedBulge
+            animatedBulge: root.edgeBarAnimatedBulgeEffective
             surfaceOpen: launcherLoader.active
         }
     }
@@ -699,7 +710,7 @@ ShellRoot {
             id: edgeBarLeft
             edge: "left"
             style: root.edgeBarStyle
-            animatedBulge: root.edgeBarAnimatedBulge
+            animatedBulge: root.edgeBarAnimatedBulgeEffective
         }
     }
     LazyLoader {
@@ -710,7 +721,7 @@ ShellRoot {
             id: edgeBarRight
             edge: "right"
             style: root.edgeBarStyle
-            animatedBulge: root.edgeBarAnimatedBulge
+            animatedBulge: root.edgeBarAnimatedBulgeEffective
         }
     }
 

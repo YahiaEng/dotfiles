@@ -216,15 +216,26 @@ PageBase {
             label: "Animate the bulge"
             // True on every style this row is visible for, which is why it
             // says "a permanent one" rather than naming a size: on
-            // Continuous and Segmented switching this off leaves the
-            // shallow static bulge, and on Halo it leaves a much deeper
-            // motionless mass at each centre. Both are landmarks; neither
-            // is "nothing".
+            // Continuous switching this off leaves the shallow 4px static
+            // bulge, and on Halo it leaves a deeper 6px motionless mass at
+            // each centre. Both are landmarks; neither is "nothing".
+            // (Segmented used to be in this list — round 12 removed the
+            // choice there, see the visibility comment below.)
             subtext: "Rest the edges flat and swell the centre only while you hover it or its panel is open, instead of showing a permanent one"
-            // Hidden on Brackets, and ONLY on Brackets: that shape draws no
-            // bulge at all, so there is nothing here to animate and a
-            // live-looking row that does nothing is worse than an absent
-            // one.
+            // Hidden on Brackets and on Segmented.
+            //
+            // Brackets draws no bulge at all, so there is nothing here to
+            // animate and a live-looking row that does nothing is worse
+            // than an absent one.
+            //
+            // Segmented is operator round 12: the row was visible and did
+            // work there, but the operator judged the permanent-merge state
+            // it produces and removed the choice ("the always show bulge
+            // option should not exist in this style"). On Segmented the
+            // merge is the bulge ABSORBING whole segments, and holding that
+            // union permanently reads as segments simply missing rather
+            // than as a landmark. shell.qml forces the animated value on
+            // this style so the pref cannot strand it in the hidden state.
             //
             // Deliberately NOT disabled when the edge bar is off, and not
             // hidden there either: ToggleRow has no styled disabled state
@@ -237,6 +248,7 @@ PageBase {
             // settings-index-check's static scan keeps counting it against
             // its RowIndex entry regardless of what is on screen.
             visible: Prefs.getValue("edgeBar.style") !== "brackets"
+                && Prefs.getValue("edgeBar.style") !== "segmented"
             checked: Prefs.getValue("edgeBar.animatedBulge")
             onToggled: (value) => Prefs.setValue("edgeBar.animatedBulge", value)
         }
