@@ -102,6 +102,10 @@ PanelWindow {
     signal dismissRequested()
     signal dismissFinished()
 
+    // Guards re-entry the way PowerMenu._beginDismiss and Dashboard's own
+    // dismiss do — a second dismiss mid-flight must not restart the exit.
+    property bool _dismissing: false
+
     function requestDismiss() {
         popoutWindow.dismissRequested();
         if (!Motion.motionEnabled) {
@@ -110,7 +114,31 @@ PanelWindow {
             popoutWindow.dismissFinished();
             return;
         }
-        exitFade.start();
+        if (popoutWindow._dismissing)
+            return;
+        // Order matters: the flag must be set BEFORE `opened` flips, because
+        // every Behavior above reads it to choose the mirrored easing at the
+        // moment the animation starts. Setting it after would run the first
+        // exit on the entrance curve.
+        popoutWindow._dismissing = true;
+        popoutWindow.opened = false;
+        exitHold.start();
+    }
+
+    // Emits the real `dismissFinished()` only once the exit has actually
+    // played, so the host never destroys this surface with a frame of exit
+    // still on screen — the property Dashboard.qml's own dismiss relies on.
+    //
+    // A timer rather than one Behavior's `onRunningChanged`: the slide and
+    // the fade run on DIFFERENT tokens (spatial vs emphasized), so there is
+    // no single animation whose end is the exit's end. The hold is the
+    // longer of the two, read from the tokens rather than restated, so the
+    // motion-scale axis still governs it.
+    Timer {
+        id: exitHold
+        interval: Math.max(Motion.spatialInDuration, Motion.emphasizedInDuration)
+        repeat: false
+        onTriggered: popoutWindow.dismissFinished()
     }
 
     // Esc routes through this rather than straight to requestDismiss() —
@@ -155,10 +183,105 @@ PanelWindow {
     //    PanelDialog's 850x620. bodyColumn below carries a fixed inner
     //    width off Design tokens, never off popoutWindow's own resolved
     //    width (that would be circular), so this clamp is deterministic. ─
-    implicitWidth: Math.max(Design.popoutMinWidth, Math.min(Design.popoutMaxWidth, bodyColumn.implicitWidth + Design.spacingMd * 2))
+    // ── PANEL vs WINDOW (quick task 260825-pyf, Task 4) ─────────────────
+    // These used to BE the window's implicit size. They are now the
+    // PANEL's, and the window is the panel plus room for the weld flares.
+    //
+    // The flares have to exist, and they have to paint OUTSIDE the panel:
+    // `AttachedCorner`'s whole reason for being a separate sibling rather
+    // than a property of the panel is that a concave corner cannot be
+    // rendered by the panel's own Rectangle and must be drawn beyond its
+    // bounds. The dashboard gets that for free — its `panel` is an Item
+    // inside a full-screen window. This surface was sized exactly to its
+    // content, so there was nowhere for a flare to go, and without one the
+    // panel would meet the bulge at a hard corner: precisely the butt joint
+    // just removed from the weld corners in 260825-ore.
+    //
+    // So the window grows by `attachedCornerRadius` at each end of the BAR
+    // axis and the panel is inset by the same amount. Only the bar axis:
+    // the flares sit at the two corners where the panel meets the bar's
+    // edge, which for a vertical bar means above and below it, never
+    // further into the screen. And only while attached — unattached the
+    // window is exactly its panel again, byte-identical to before.
+    readonly property real panelWidth: Math.max(Design.popoutMinWidth, Math.min(Design.popoutMaxWidth, bodyColumn.implicitWidth + Design.spacingMd * 2))
     // Header, body, ONE spacing gap, the foot band, and a final spacing
     // gap below it (Task 3 appends the foot band to this sum).
-    implicitHeight: Design.popoutHeaderHeight + bodyColumn.implicitHeight + Design.spacingMd + popoutFoot.height + Design.spacingMd
+    readonly property real panelHeight: Design.popoutHeaderHeight + bodyColumn.implicitHeight + Design.spacingMd + popoutFoot.height + Design.spacingMd
+
+    readonly property int flareRadius: popoutWindow.attached ? Design.attachedCornerRadius : 0
+
+    implicitWidth: popoutWindow.panelWidth
+    implicitHeight: popoutWindow.panelHeight + 2 * popoutWindow.flareRadius
+
+    // The panel proper. Everything that used to fill the window now fills
+    // this, so the flares have the margin they need to draw into.
+    // ── Entrance and exit (quick task 260825-pyf, Task 4) ───────────────
+    // `Dashboard.qml`'s own two lines, verbatim in shape:
+    //     y: opened ? 0 : -height
+    //     opacity: opened ? 1 : 0
+    // — a slide along the axis it is attached to, plus a fade, on the
+    // spatial register, with the exit running the ENTRANCE easing MIRRORED
+    // rather than the shorter out-token (operator round 9, 260823-9ak: the
+    // dismiss must be a reverse of the spawn, not a different, faster
+    // motion on a different curve family).
+    //
+    // WHICH AXIS depends on where it is rooted, and that is the whole
+    // point: attached, it grows sideways out of the bulge on the bar's
+    // edge; unattached, it drops from the top of the Hyprland windows. Both
+    // are the dashboard's motion, aimed at the edge this panel actually
+    // belongs to.
+    //
+    // POSITIONED, NOT TRANSFORMED. `panel` carries an explicit x/y/width/
+    // height rather than `anchors.fill` plus a Translate, because the two
+    // weld flares are SIBLINGS anchored to `panel.top`/`panel.bottom`:
+    // anchors track an item's real geometry, so moving `panel.x` carries
+    // them along, while a transform would have slid the panel out from
+    // under two flares left standing at the bulge. Dashboard.qml's own
+    // panel/flare pair is built exactly this way for exactly this reason.
+    property bool opened: false
+    readonly property bool _slideFromBar: popoutWindow.attached && popoutWindow.vertical
+
+    Item {
+        id: panel
+        width: popoutWindow.panelWidth
+        height: popoutWindow.panelHeight
+
+        // Tucked BEHIND the bar's edge when closed (a full panel width to
+        // the right), so it emerges from under the bulge rather than
+        // fading in beside it.
+        x: popoutWindow.opened || !popoutWindow._slideFromBar ? 0 : panel.width
+        // The flare inset is a constant offset, present in both states —
+        // only the slide term switches, so the panel never lands 24px off
+        // its own window.
+        y: popoutWindow.flareRadius
+            + (popoutWindow.opened || popoutWindow._slideFromBar ? 0 : -popoutWindow.panelHeight)
+        opacity: popoutWindow.opened ? 1 : 0
+
+        Behavior on x {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.spatialInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: popoutWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
+            }
+        }
+        Behavior on y {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.spatialInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: popoutWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
+            }
+        }
+        Behavior on opacity {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.emphasizedInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: popoutWindow._dismissing ? Motion.emphasizedInReverseEasing : Motion.emphasizedInEasing
+            }
+        }
+    }
 
     // ── Anchoring arithmetic — Design tokens plus triggerCentre plus this
     //    window's own screen handle; no literal pixel value anywhere.
@@ -265,12 +388,66 @@ PanelWindow {
     readonly property real _horizontalDesiredLeft: popoutWindow.triggerCentre + Design.barSideMargin - popoutWindow.width / 2
     readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))
 
-    readonly property real _verticalDesiredTop: popoutWindow.triggerCentre + Design.barSideMargin - popoutWindow.height / 2
-    readonly property real _verticalClampedTop: Math.max(Design.barSideMargin, Math.min(popoutWindow._verticalDesiredTop, (popoutWindow.screen ? popoutWindow.screen.height : popoutWindow.height) - popoutWindow.height - Design.barSideMargin))
+    // The vertical pair that used to live here — `_verticalDesiredTop` and
+    // `_verticalClampedTop`, tracking `triggerCentre` down the bar — is GONE
+    // (quick task 260825-pyf, Task 4), not merely unused. Neither posture
+    // wants it any more: attached aligns to the bar's own clamped bulge
+    // centre (`_attachedClampedTop`), and unattached is pinned to the top of
+    // the Hyprland windows by request. Left in place they would have read
+    // as the live positioning path to the next person to open this file.
+    //
+    // The origin-conversion notes above are NOT stale with them: the
+    // horizontal pair below still performs exactly that conversion, and the
+    // `+ Design.barSideMargin` in it is the same bar-window-to-screen origin
+    // those paragraphs were written about.
 
-    margins.top: popoutWindow.vertical ? popoutWindow._verticalClampedTop : popoutWindow._horizontalTopMargin
+    // ── ATTACHED vs UNATTACHED (quick task 260825-pyf, Task 4) ──────────
+    // Attached: the bar's edge has grown a bulge under this popout and the
+    // panel welds to it, the way the dashboard welds to the top rail.
+    // Unattached: there is no painted bar edge to weld to, so the panel
+    // spawns from the top of the Hyprland windows instead.
+    //
+    // The predicate is the BAR's, published rather than re-derived here —
+    // `rootAttached` is false for every style but Continuous AND for
+    // Continuous while the bar is horizontal, because outside that one
+    // combination the bar paints no continuous edge at all (`barContent` is
+    // a bare Item; the slab and its core are both `visible:
+    // _continuousWeld`). Deriving it here from `edgeBarStyle` would get the
+    // horizontal case wrong, which is precisely the class of mistake
+    // `edgeBarPanelsAttach` already caught once: a predicate that is false
+    // for TWO different reasons cannot be re-derived from one of them.
+    readonly property bool attached: PopoutController.rootAttached
+
+    // Where the top of the Hyprland windows actually is — the reserved
+    // boundary PLUS gaps_out, verified on all four edges against live
+    // client geometry (reserved [0,6,50,6] + gap 20 -> at=[20,26], and the
+    // far edges match too). The compositor has already placed this surface
+    // past the reserved zone, so only the gap is added here; adding the
+    // reservation again is the double-count this file's own margin notes
+    // record twice.
+    readonly property int _windowTopMargin: WindowInset.insetFor("top")
+
+    // Attached, vertical: the panel's own along-axis centre lines up with
+    // the BULGE's centre — `rootCentre`, which the bar has already clamped
+    // into the slab's straight section. Aligning to this popout's raw
+    // `triggerCentre` instead would leave a panel near either end of the bar
+    // hanging off the shelf it is meant to sit on.
+    readonly property real _attachedTop: PopoutController.rootCentre - popoutWindow.height / 2
+    readonly property real _attachedClampedTop: Math.max(popoutWindow._windowTopMargin,
+        Math.min(popoutWindow._attachedTop,
+                 (popoutWindow.screen ? popoutWindow.screen.height : popoutWindow.height)
+                 - popoutWindow.height - popoutWindow._windowTopMargin))
+
+    margins.top: popoutWindow.vertical
+        ? (popoutWindow.attached ? popoutWindow._attachedClampedTop : popoutWindow._windowTopMargin)
+        : popoutWindow._horizontalTopMargin
     margins.left: popoutWindow.vertical ? 0 : popoutWindow._horizontalClampedLeft
-    margins.right: popoutWindow.vertical ? popoutWindow._verticalRightMargin : 0
+    // Attached: sit the panel's trailing edge exactly on the bulge's face,
+    // so the two silhouettes meet and the flares below can weld them.
+    // Unattached: the window's own right-edge inset.
+    margins.right: popoutWindow.vertical
+        ? (popoutWindow.attached ? PopoutController.rootInset : popoutWindow._verticalRightMargin)
+        : 0
 
     // ── Frame-owned constants, re-declared by the SAME names PanelDialog
     //    uses so a body file reads them identically off either frame. ───
@@ -282,11 +459,19 @@ PanelWindow {
     //    stay diffable: background, rim, focus grab, cascade, content. ───
     Rectangle {
         id: popoutBackground
-        anchors.fill: parent
-        // Uniform on all four corners — deliberately NOT PanelDialog's
-        // bottom-only rounding, because this surface floats clear of
-        // every screen edge and has none to sit flush against.
+        anchors.fill: panel
+        // Uniform on all four corners while UNATTACHED — the original
+        // reasoning, still true then: the surface floats clear of every
+        // screen edge and has none to sit flush against.
+        //
+        // Attached, the two corners on the bar side square off so the panel
+        // and the bulge form one silhouette instead of two shapes touching.
+        // Same rule the dashboard applies to its own top pair, and the same
+        // reason: a rounded corner against a flat shelf leaves a visible
+        // pinch that the flares below then have nothing to weld across.
         radius: Design.popoutCornerRadius
+        topRightRadius: popoutWindow.attached ? 0 : Design.popoutCornerRadius
+        bottomRightRadius: popoutWindow.attached ? 0 : Design.popoutCornerRadius
         color: Qt.rgba(popoutWindow.surfaceBase.r, popoutWindow.surfaceBase.g, popoutWindow.surfaceBase.b, popoutWindow.panelSurfaceOpacity)
 
         // 0.78 sits above the ^quickshell-.* family layer rule's
@@ -304,15 +489,77 @@ PanelWindow {
 
     GradientBorder {
         id: popoutRim
-        anchors.fill: parent
+        anchors.fill: panel
         borderWidth: popoutWindow.borderWidth
-        // All four corners handed the SAME Design.popoutCornerRadius the
-        // background above reads, so rim and surface can never disagree
-        // about the frame's shape.
+        // Every corner handed the SAME value the background above reads,
+        // including the attached squaring — rim and surface must never
+        // disagree about the frame's shape, and that is a stronger reason
+        // now than when all four were one constant.
         topLeftRadius: Design.popoutCornerRadius
-        topRightRadius: Design.popoutCornerRadius
+        topRightRadius: popoutBackground.topRightRadius
         bottomLeftRadius: Design.popoutCornerRadius
-        bottomRightRadius: Design.popoutCornerRadius
+        bottomRightRadius: popoutBackground.bottomRightRadius
+    }
+
+    // ── The weld flares (quick task 260825-pyf, Task 4) ─────────────────
+    // The concave corners that carry the panel's silhouette into the
+    // bulge's, so the two read as one shape. Exactly what
+    // `Dashboard.qml`'s own `dashboardFlareLeft`/`Right` pair does where it
+    // meets the top rail — the same component, the same inputs, TRANSPOSED
+    // for an edge that runs vertically instead of horizontally.
+    //
+    // ── READ THE edge/side NAMES CAREFULLY, THEY LOOK BACKWARDS ─────────
+    // `AttachedCorner` names its two lines for the horizontal case it was
+    // written for: `edge` picks which local Y is the attached-edge line and
+    // `side` picks which local X is the panel-touching line. Here those
+    // ROLES ARE SWAPPED — the attached edge is the bulge's vertical face and
+    // the panel-touching lines are horizontal. The shape does not care: a
+    // quarter-pipe in a square is fully determined by WHICH CORNER the
+    // material hugs, and (edge, side) together pick that corner. So the
+    // right combination is chosen by naming the corner, not by reading the
+    // property names literally:
+    //
+    //   panel's TOP-right corner    -> material hugs local (R, R)
+    //                               -> touchX = R (side "left"),
+    //                                  edgeY  = R (edge "bottom")
+    //   panel's BOTTOM-right corner -> material hugs local (R, 0)
+    //                               -> touchX = R (side "left"),
+    //                                  edgeY  = 0 (edge "top")
+    //
+    // Hence `edge: "bottom"` on the flare at the panel's TOP. That is not a
+    // typo and it is not a bug — inverting it to match the name would put
+    // the arc on the wrong diagonal and render a CONVEX lump, which is the
+    // failure that file's own header warns "will look deliberate and be
+    // wrong". Its sweep-flag derivation covers all four combinations, so
+    // both of these resolve through the same formula the dashboard's pair
+    // does; nothing new is hand-derived here.
+    AttachedCorner {
+        id: popoutFlareTop
+        visible: popoutWindow.attached
+        edge: "bottom"
+        side: "left"
+        flareRadius: Design.attachedCornerRadius
+        anchors.right: panel.right
+        anchors.bottom: panel.top
+        fillColour: popoutBackground.color
+        borderWidth: popoutWindow.borderWidth
+        angle: popoutRim.startAngle + popoutRim.angle
+        gradientCentre: Qt.point(panel.width / 2 - popoutFlareTop.x, panel.height / 2 - popoutFlareTop.y)
+        gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
+    }
+    AttachedCorner {
+        id: popoutFlareBottom
+        visible: popoutWindow.attached
+        edge: "top"
+        side: "left"
+        flareRadius: Design.attachedCornerRadius
+        anchors.right: panel.right
+        anchors.top: panel.bottom
+        fillColour: popoutBackground.color
+        borderWidth: popoutWindow.borderWidth
+        angle: popoutRim.startAngle + popoutRim.angle
+        gradientCentre: Qt.point(panel.width / 2 - popoutFlareBottom.x, panel.height / 2 - popoutFlareBottom.y)
+        gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
     }
 
     // T-18-13-01's whole mitigation, and this plan's single most
@@ -352,14 +599,27 @@ PanelWindow {
         // barSideMargin here would re-introduce the exact double-count
         // this file's own margin notes record twice.
         popoutWindow.publishRoot();
+        // Deferred by one turn so the closed state is COMMITTED before the
+        // open state is assigned — otherwise both are set within the same
+        // frame, the Behaviors see no transition, and the panel simply
+        // appears at its final position with no entrance at all. Same
+        // reason the shell defers other construction-time flips rather than
+        // assigning them inline.
+        Qt.callLater(function () {
+            popoutWindow.opened = true;
+        });
     }
 
     // Kept as a named function rather than inlined so the along-axis
     // choice is stated once and both the extent and any future consumer
     // read the same definition of "along".
     function publishRoot() {
+        // The PANEL's extent, never the window's: while attached the window
+        // is `2 * flareRadius` taller, and sizing the bulge to that would
+        // make the shelf overhang the panel it roots by a flare at each
+        // end. `panelHeight`/`panelWidth` are the content-bounded pair.
         PopoutController.publishRoot(popoutWindow.triggerCentre,
-                                     popoutWindow.vertical ? popoutWindow.height : popoutWindow.width);
+                                     popoutWindow.vertical ? popoutWindow.panelHeight : popoutWindow.panelWidth);
     }
 
     // The popout is content-bounded, so its along-axis extent is not known
@@ -368,24 +628,25 @@ PanelWindow {
     // panel it roots rather than the zero-size frame that existed for one
     // frame. The CENTRE is not re-read here: that is the snapshot, and
     // re-reading it is what this file's margin notes warn against.
-    onHeightChanged: if (popoutWindow.vertical) popoutWindow.publishRoot()
-    onWidthChanged: if (!popoutWindow.vertical) popoutWindow.publishRoot()
+    onPanelHeightChanged: if (popoutWindow.vertical) popoutWindow.publishRoot()
+    onPanelWidthChanged: if (!popoutWindow.vertical) popoutWindow.publishRoot()
 
 
-    // Exit motion — faster than the entrance on purpose, the codebase's
-    // existing quick-to-leave asymmetry, read off Motion and never
-    // restated as a literal duration here. Copies Cascade's own
-    // motion-disabled collapse fence (requestDismiss() above).
-    NumberAnimation {
-        id: exitFade
-        target: content
-        property: "opacity"
-        to: 0
-        duration: Motion.emphasizedOutDuration
-        easing.type: Easing.BezierSpline
-        easing.bezierCurve: Motion.emphasizedOutEasing
-        onFinished: popoutWindow.dismissFinished()
-    }
+    // The content-level `exitFade` that used to live here is GONE (quick
+    // task 260825-pyf, Task 4), replaced by the panel-level slide-and-fade
+    // above. Two reasons, not one:
+    //
+    //  1. It faded `content` only, so the background and rim stayed at full
+    //     opacity while the text under them vanished — invisible while the
+    //     compositor was fading the whole surface out on top of it, and
+    //     immediately visible once the panel started MOVING as well.
+    //  2. It ran `emphasizedOut` — the quick-to-leave asymmetry. Operator
+    //     round 9 of 260823-9ak overturned exactly that for the dashboard:
+    //     the dismiss must be the spawn reversed, same duration, entrance
+    //     easing mirrored. This surface now follows the same rule, which is
+    //     the whole point of putting it on the dashboard's language.
+    //
+    // `dismissFinished()` is emitted by `exitHold` above instead.
 
     // ── Whole-surface hover (Phase 18 Plan 13 Task 2, D-18-21) — the
     //    trigger and this popout are ONE hover region held as two
@@ -400,7 +661,7 @@ PanelWindow {
 
     Item {
         id: content
-        anchors.fill: parent
+        anchors.fill: panel
         focus: true
         Keys.onEscapePressed: popoutWindow.handleEscape()
         Component.onCompleted: content.forceActiveFocus()

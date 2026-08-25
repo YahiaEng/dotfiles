@@ -113,6 +113,33 @@ Singleton {
         root.openExtent = extent;
     }
 
+    // ── The other direction: what the bar's edge is actually doing ──────
+    // Written by `Bar.qml`, read by `SectionPopout`. The bar owns every one
+    // of these — where its slab sits, how deep the bulge has grown this
+    // frame, and where the bulge ended up after clamping — so the popout
+    // reads three finished numbers instead of recomputing bar internals
+    // from tokens. That is deliberate: a popout that derived the bulge face
+    // from `barEdgeMargin + barColumnWidth + weldRim + depth` would be a
+    // second copy of the bar's arithmetic, and this family's whole history
+    // of position bugs is second copies of arithmetic drifting apart.
+    //
+    // `rootAttached` is false whenever there is no painted bar edge to weld
+    // to — every style but Continuous, and Continuous itself while the bar
+    // is horizontal. The popout's unattached posture (top of the Hyprland
+    // windows) is the fallback, not an error state.
+    property bool rootAttached: false
+
+    // Distance from the anchored SCREEN edge to the bulge's face, so the
+    // popout can set its own margin against that edge directly.
+    property real rootInset: 0
+
+    // The bulge's along-axis centre in screen space, AFTER the bar has
+    // clamped it into the slab's straight section. The popout must align to
+    // THIS and not to its own `triggerCentre`: near the top or bottom of the
+    // bar the two differ, and aligning to the unclamped value would leave
+    // the panel hanging off the end of the shelf it is supposed to sit on.
+    property real rootCentre: 0
+
     // Refuses and returns false for an id that fails validation; returns
     // true unchanged if it is already the open section; otherwise clears
     // pinnedSection FIRST — the ordered transition that makes "opening a

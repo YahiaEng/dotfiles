@@ -53,6 +53,14 @@ import Quickshell
 import Quickshell.Wayland
 import "dashboard"
 import "bar"
+// The rails' own path builder (quick task 260825-pyf, Task 3). The slab is
+// a vertical run with pill caps and a bulge on its inner face — which is
+// precisely what `buildOutline` already draws, so the popout bulge reuses
+// the golden-tested builder rather than hand-rolling a second one with its
+// own sweep-flag risk. Verified before adoption: with `bulge: false` it
+// reproduces `_weldRoundedRect(52, 1440, 26)` exactly, same bbox, same
+// shape, differing only in drawing each cap as two quarter arcs.
+import "edgebarpath.js" as EdgeBarPath
 
 PanelWindow {
     id: barWindow
@@ -446,6 +454,114 @@ PanelWindow {
         : 1
     readonly property real _stripGradX1: GradientPhase.phase * barWindow._stripPeriod - (barWindow._barSurfaceX - Design.edgeBarSideMargin)
 
+    // ── The popout's root: a bulge on the bar's own edge (quick task
+    //    260825-pyf, Task 3) ───────────────────────────────────────────
+    // The dashboard grows out of a bulge on the top rail; a bar popout now
+    // grows out of one on the bar's edge, in the same vocabulary. The
+    // dashboard's bulge is CENTRED because the dashboard is centred — the
+    // principle is "a bulge sized to the panel, at the panel's position",
+    // and for a glance surface that position is beside its own capsule.
+    //
+    // CONTINUOUS ONLY, by the same `_continuousWeld` predicate that gates
+    // every other weld piece in this file. It is not a style check bolted
+    // on: outside Continuous the bar has no painted edge at all
+    // (`barContent` is a bare Item, and the slab and its core are both
+    // `visible: _continuousWeld`), so there is no edge to swell. The other
+    // four styles take the popout's unattached posture instead.
+    //
+    // ── DEPTH AND SPAN COME FROM THE RAILS' OWN TOKENS ──────────────────
+    // Not new numbers. `edgeBarBulgeExtra` (the rails' resting bulge) plus
+    // `edgeBarBulgeSwellExtra` (what a rail adds while the surface it roots
+    // is open) is exactly the depth a rail reaches under an open dashboard,
+    // so an open popout sits on the same shelf. The span is the popout's own
+    // along-axis extent, which is the direct analogue of the top rail's
+    // `edgeBarBulgeWidthTop: dashboardMinWidth` — the panel's own size.
+    // Fillet and corner radii are the rails' verbatim.
+    readonly property real _popoutBulgeDepthOpen: Design.edgeBarBulgeExtra + Design.edgeBarBulgeSwellExtra
+
+    // Animated 0 -> depth so the shelf grows under the popout rather than
+    // popping. Driven off `anyOpen`, NOT off the centre/extent pair — those
+    // are snapshots and must never be animated (see PopoutController).
+    property real popoutBulgeDepth: 0
+    Behavior on popoutBulgeDepth {
+        enabled: Motion.motionEnabled
+        NumberAnimation {
+            // The dashboard's own register, which is the point of the
+            // exercise: the same growth the rail performs under a drawer.
+            duration: PopoutController.anyOpen ? Motion.spatialInDuration : Motion.spatialOutDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: PopoutController.anyOpen ? Motion.spatialInEasing : Motion.spatialOutEasing
+        }
+    }
+    Binding {
+        target: barWindow
+        property: "popoutBulgeDepth"
+        value: (barWindow._continuousWeld && PopoutController.anyOpen) ? barWindow._popoutBulgeDepthOpen : 0
+    }
+
+    // The bulge's span in the SLAB's own along coordinates. `openCentre` is
+    // already in the bar window's along-axis space and the slab is
+    // `y: 0, height: barWindow.height`, so slab-local along IS window along
+    // — zero conversions, which is the whole reason PopoutController
+    // publishes in that space (see its own comment on the three times this
+    // family shipped a double-added origin).
+    //
+    // CLAMPED INTO THE SLAB'S STRAIGHT SECTION. `buildOutline` assumes the
+    // bulge sits on the flat run, not across a pill cap; letting a span
+    // reach into a cap would put a fillet on top of the cap's own arc and
+    // self-intersect the outline — the same silent class as round 10's
+    // broken fillet invariant, which raised nothing and just looked wrong.
+    // A popout near the very top or bottom of the bar therefore roots at
+    // the nearest legal point rather than off the end.
+    readonly property real _popoutBulgeHalf: Math.max(0, PopoutController.openExtent / 2)
+    readonly property real _popoutBulgeCap: barWindow._weldSlabWidth / 2
+    readonly property real _popoutBulgeCentre: Math.max(
+        barWindow._popoutBulgeCap + barWindow._popoutBulgeHalf,
+        Math.min(PopoutController.openCentre,
+                 barWindow.height - barWindow._popoutBulgeCap - barWindow._popoutBulgeHalf))
+    readonly property real _popoutBulgeXl: barWindow._popoutBulgeCentre - barWindow._popoutBulgeHalf
+    readonly property real _popoutBulgeXr: barWindow._popoutBulgeCentre + barWindow._popoutBulgeHalf
+
+    // A span that would not fit between the two caps at all collapses the
+    // bulge rather than drawing a degenerate one — `buildOutline`'s own
+    // note on why `bulge: false` is an explicit branch and not "pass b = 0":
+    // a zero-width bulge still emits four zero-radius arcs and a backwards
+    // face segment, which self-intersects silently.
+    readonly property bool _popoutBulgeVisible: barWindow.popoutBulgeDepth > 0.01
+        && barWindow._popoutBulgeXr > barWindow._popoutBulgeXl
+
+    // ── Publish the shelf back to the popout ────────────────────────────
+    // The bar owns this arithmetic and the popout reads the finished
+    // numbers — see PopoutController's own comment for why a second copy in
+    // the popout would be the exact shape of every position bug this family
+    // has shipped.
+    //
+    // `rootInset` walks out from the screen's right edge: the bar's own edge
+    // margin, then the full slab, then however deep the bulge has grown this
+    // frame. Measured against live values 6 + 52 + 14 = 72, and the slab's
+    // left edge is at screen x 2502 (2560 - 58), so the bulge face lands at
+    // 2488 — which is 2560 - 72. Consistent by construction, not by tuning.
+    //
+    // `_popoutBulgeCentre` is already SCREEN along-axis: the weld sets
+    // `margins.top: 0`, so this surface's y origin is the screen's. That is
+    // only true while welded, which is exactly when `rootAttached` is true —
+    // so the value is never published out of a frame where it would be wrong.
+    Binding {
+        target: PopoutController
+        property: "rootAttached"
+        value: barWindow._continuousWeld
+    }
+    Binding {
+        target: PopoutController
+        property: "rootInset"
+        value: Design.barEdgeMargin + barWindow._weldSlabWidth + barWindow.popoutBulgeDepth
+    }
+    Binding {
+        target: PopoutController
+        property: "rootCentre"
+        value: barWindow._popoutBulgeCentre
+    }
+
     // A single rounded-rect fill path — GradientBorder.qml's own
     // `_roundedRect` reasoning applies verbatim (no `PathRectangle` in
     // this Qt build's QtQuick/Shapes), simplified to one uniform radius
@@ -681,7 +797,34 @@ PanelWindow {
                 }
             }
             PathSvg {
-                path: barWindow._weldRoundedRect(weldSlab.width, weldSlab.height, weldSlab.width / 2)
+                // Was `_weldRoundedRect(w, h, w/2)`. Same shape when no
+                // popout is open — verified before the switch, identical
+                // bbox and identical geometry, the only difference being
+                // that each cap is drawn as two quarter arcs (which is what
+                // keeps every arc inside `_arcCentre`'s quarter-circle
+                // domain — see edgebarpath.js's own domain note).
+                //
+                // `flip: true` because the slab's OUTER edge is its right
+                // side, flush to the screen, and its INNER face is the left
+                // one the bulge protrudes from — the mirror case `Y()`
+                // already implements. `re == t / 2` is the pill-cap
+                // precondition the builder states, and it holds exactly
+                // here: 26 == 52 / 2.
+                path: EdgeBarPath.buildOutline({
+                    t: weldSlab.width,
+                    b: barWindow.popoutBulgeDepth,
+                    re: weldSlab.width / 2,
+                    f: Design.edgeBarFilletRadius,
+                    rc: Design.edgeBarBulgeCornerRadius,
+                    along: weldSlab.height,
+                    alongStart: 0,
+                    xl: barWindow._popoutBulgeXl,
+                    xr: barWindow._popoutBulgeXr,
+                    bulge: barWindow._popoutBulgeVisible,
+                    surfaceDepth: weldSlab.width,
+                    flip: true,
+                    axis: "vertical"
+                })
             }
         }
     }
