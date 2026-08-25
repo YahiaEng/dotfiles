@@ -172,3 +172,66 @@ Bulge span equals panel span on all eight: resources `50..320`, wifi
 bluetooth `1102..1222`, ethernet `1103..1281`, tray `862..982`.
 
 Gates re-run once each, all green; `qmllint` 0 on both edited QML files.
+
+---
+
+# Round 3 — the dismiss animation was never ours
+
+Operator: bulge fixed, spawn right. **"The dismiss currently animates all the
+way to the rightmost edge of the screen. It should stop at the right edge of
+the bar."**
+
+## It was Hyprland's layer-close animation, not our exit
+
+`PopoutController.close()` cleared `openSection`, and every trigger's
+`LazyLoader` is keyed on exactly that — so the surface was **destroyed on the
+first frame** and `SectionPopout.requestDismiss()` never ran. What was on
+screen was the compositor sliding the whole surface off the right of the
+output, which is exactly what "all the way to the rightmost edge" describes.
+
+The wiring for the animated path already existed — the trigger connects the
+surface's `dismissFinished` to the controller — but **every caller reached
+`close()` directly**, so that connection could only fire after something else
+had already torn the surface down. Esc and focus-loss were the only routes
+through `requestDismiss()`: the animation worked exactly where it was least
+used.
+
+Same defect class as the config panels earlier the same day. The rule:
+
+> If a surface owns an exit animation, the property its loader is keyed on must
+> be cleared by the **end** of that animation, never by the thing that starts
+> it.
+
+## The frames lied and the log did not
+
+A `grim` time-series across the dismissal looked like a clean retraction —
+leftmost non-background pixel marching 2142 → 2184 → 2337 → 2490. It was an
+artifact: the panel's background is a **gradient**, dark at its left edge, so
+as the compositor slid the surface away the dimmest columns crossed the
+background threshold first and imitated a retraction.
+
+The probe settled it in one reading: **84 x-change frames inbound, ZERO
+outbound**, and no `dismiss.begin` line at all. For anything time-varying the
+shell's own `console.log` is the instrument; frames are for static geometry.
+
+## The fix
+
+`close()` now only **asks** — a new `dismissAsked` signal the trigger relays to
+the loaded surface's `requestDismiss`. `closeNow()` does the teardown and is
+reached only from `dismissFinished`. Motion-off still lands there immediately,
+since `requestDismiss` emits `dismissFinished` straight away in that case.
+`open()` is untouched, so switching popouts stays an instant replace.
+
+| measurement | result |
+|---|---|
+| exit frames | 83 (was 0) |
+| travel | x 0 → 412, screen left **2142 → 2554** = the bar's right edge |
+| `dismiss.end` | `panelX=412.0` — exit completes before teardown |
+| posture across the exit | `attached`/`vertical`/`slideFromBar` all true, `implicitWidth` 412, `margins.right` 6 — no mid-exit re-layout |
+| slab's transparent middle (2506..2549) during dismissal | clean at every sample |
+
+Invariants re-checked: one popout alive at a time, switching replaces
+instantly, close tears down to zero, bulge span still equals panel span
+(resources `50..320`, clock `1070..1390`, tray `862..982`).
+
+Gates green once each; `qmllint` 0 on all three files.
