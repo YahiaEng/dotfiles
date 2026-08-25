@@ -302,6 +302,30 @@ PanelWindow {
     // emerges from, not something to keep visible underneath it.
     property bool edgeBarPanelsAttach: false
 
+    // Threaded in by operator round 12. The comment above used to say this
+    // drawer needs only the ATTACHMENT predicate "because it is always
+    // top" — true of its DIRECTION, but the shape question is not a
+    // direction question. Three states have to be told apart here, and
+    // attachment alone collapses two of them:
+    //
+    //   off        no rail        -> square top, clipped rim  (original)
+    //   attached   welded to rail -> square top, clipped rim  (original)
+    //   Brackets   rail, unwelded -> ROUND top, full rim      (the gap)
+    //
+    // `edgeBarPanelsAttach` is false in BOTH the first and third rows, so
+    // branching on it alone would have changed the no-rail case too. This
+    // mirrors the doctrine Launcher.qml's own radii comment states: leave
+    // the no-rail (off) and rail+attached cases byte-identical, and change
+    // only the rail-present-but-unattached one.
+    property bool edgeBarRailPresent: false
+
+    // The floating case, and the only one round 12 changes: a rail exists
+    // but this drawer does not weld to it, so its top edge is an OUTER
+    // edge again — it must round like any other free corner, and the rim
+    // must not be clipped along it.
+    readonly property bool _floatingFromRail: dashboardWindow.edgeBarRailPresent
+        && !dashboardWindow.edgeBarPanelsAttach
+
     margins.top: dashboardWindow.edgeBarPanelsAttach ? 0 : dashboardWindow.drawerTopMargin
 
     // ── Dynamic per-tab geometry (D-02/D-04 SUPERSEDED, render-gate
@@ -698,8 +722,9 @@ PanelWindow {
     Rectangle {
         id: background
         anchors.fill: parent
-        topLeftRadius: 0
-        topRightRadius: 0
+        // Round only when floating free of a rail — see `_floatingFromRail`.
+        topLeftRadius: dashboardWindow._floatingFromRail ? dashboardWindow.cornerRadius : 0
+        topRightRadius: dashboardWindow._floatingFromRail ? dashboardWindow.cornerRadius : 0
         bottomLeftRadius: dashboardWindow.cornerRadius
         bottomRightRadius: dashboardWindow.cornerRadius
         color: Qt.rgba(dashboardWindow.surfaceBase.r, dashboardWindow.surfaceBase.g, dashboardWindow.surfaceBase.b, dashboardWindow.drawerSurfaceOpacity)
@@ -742,18 +767,27 @@ PanelWindow {
     Item {
         id: dashboardBorderClip
         anchors.fill: parent
-        anchors.topMargin: Design.attachedCornerRadius
+        // ROUND 12: no longer unconditional. The clip exists to stop the
+        // ring drawing along an edge that has stopped being an outer edge
+        // because a flare is welded across it. On Brackets there IS no
+        // flare (`AttachedCorner.visible` reads the same predicate), so
+        // clipping the top there removed rim that should be drawn — the
+        // other half of "the app drawer upper corners are cut off".
+        anchors.topMargin: dashboardWindow._floatingFromRail ? 0 : Design.attachedCornerRadius
         clip: true
 
         GradientBorder {
             id: dashboardGradientBorder
             x: 0
-            y: -Design.attachedCornerRadius
+            // Mirrors `anchors.topMargin` above, exactly as Launcher.qml's
+            // twin does — the two must move together or the rim shifts.
+            y: dashboardWindow._floatingFromRail ? 0 : -Design.attachedCornerRadius
             width: panel.width
             height: panel.height
             borderWidth: dashboardWindow.borderWidth
-            topLeftRadius: 0
-            topRightRadius: 0
+            // Mirrors `background`'s own radii above.
+            topLeftRadius: dashboardWindow._floatingFromRail ? dashboardWindow.cornerRadius : 0
+            topRightRadius: dashboardWindow._floatingFromRail ? dashboardWindow.cornerRadius : 0
             bottomLeftRadius: dashboardWindow.cornerRadius
             bottomRightRadius: dashboardWindow.cornerRadius
         }

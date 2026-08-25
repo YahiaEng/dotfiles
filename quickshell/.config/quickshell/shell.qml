@@ -475,6 +475,9 @@ ShellRoot {
             // ATTACHMENT predicate (quick task 260824-ns3) — Brackets has
             // a rail present but its panels do not weld.
             edgeBarPanelsAttach: root.edgeBarPanelsAttach
+            // Round 12 — the dashboard needs BOTH predicates to tell the
+            // no-rail case apart from the rail-present-but-unattached one.
+            edgeBarRailPresent: root.edgeBarRailPresent
             mediaBackend: mediaBackendInstance
             weatherBackend: weatherBackendInstance
             systemResources: systemResourcesInstance
