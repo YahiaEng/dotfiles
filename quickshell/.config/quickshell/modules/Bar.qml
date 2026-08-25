@@ -517,7 +517,29 @@ PanelWindow {
     // broken fillet invariant, which raised nothing and just looked wrong.
     // A popout near the very top or bottom of the bar therefore roots at
     // the nearest legal point rather than off the end.
-    readonly property real _popoutBulgeHalf: Math.max(0, PopoutController.openExtent / 2)
+    // ── INSET BY THE SHOULDER FILLET, so the bulge stays fully covered ──
+    // `buildOutline` draws each concave shoulder OUTSIDE the span it is
+    // given: from the flat run it travels to `xr + f` before filleting back
+    // to `xr`. So a bulge spanning exactly the panel's extent actually
+    // reaches `f` past the panel at both ends.
+    //
+    // That mattered visibly. The panel hides the bulge everywhere it
+    // overlaps it, but in the flare band beyond the panel's edge only the
+    // flare's quarter-pipe fill is painted — and that fill hugs the weld
+    // corner, leaving the outer part of the band transparent. The bulge
+    // showed through there as a small square tab of bar-coloured pixels
+    // beside the flare's arc.
+    //
+    // CONFIRMED BY CONTROLLED COMPARISON rather than by reading: with the
+    // bulge forced to zero depth the same rows read 132-139 (background)
+    // where they had read ~606 (the bar's rim blue). Nothing else in the
+    // frame changed.
+    //
+    // Insetting by the fillet radius puts both shoulders inside the span
+    // the panel covers, which is the condition stated rather than a padding
+    // guess: xl - f >= panelTop and xr + f <= panelBottom.
+    readonly property real _popoutBulgeHalf: Math.max(0,
+        PopoutController.openExtent / 2 - Design.edgeBarFilletRadius)
     readonly property real _popoutBulgeCap: barWindow._weldSlabWidth / 2
     readonly property real _popoutBulgeCentre: Math.max(
         barWindow._popoutBulgeCap + barWindow._popoutBulgeHalf,
@@ -534,11 +556,20 @@ PanelWindow {
     readonly property bool _popoutBulgeVisible: barWindow.popoutBulgeDepth > 0.01
         && barWindow._popoutBulgeXr > barWindow._popoutBulgeXl
 
-    // One line per bulge state change, on the shell's existing log idiom.
+    // One line per bulge SETTLE, on the shell's existing log idiom. It
+    // logged every animated frame at first — 2042 lines in one session,
+    // which buries the log the way the retired per-frame debug lines did.
+    // The guard keeps the two states that carry information (fully grown,
+    // fully retracted) and drops the ~60 intermediate frames between them.
+    //
     // The bulge is a shape on a layer surface, so the only ways to observe
     // it are a screenshot or this; having both means a disagreement between
-    // them is itself informative.
-    onPopoutBulgeDepthChanged: console.log("barbulge: depth=" + barWindow.popoutBulgeDepth.toFixed(1)
+    // them is itself informative — and this line is what proved the bulge
+    // was never painting at all, by emitting nothing rather than a wrong
+    // value.
+    onPopoutBulgeDepthChanged: if (barWindow.popoutBulgeDepth <= 0.01
+        || barWindow.popoutBulgeDepth >= barWindow._popoutBulgeDepthOpen - 0.01)
+        console.log("barbulge: depth=" + barWindow.popoutBulgeDepth.toFixed(1)
         + " visible=" + barWindow._popoutBulgeVisible
         + " weld=" + barWindow._continuousWeld
         + " anyOpen=" + PopoutController.anyOpen

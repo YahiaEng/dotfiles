@@ -241,31 +241,61 @@ PanelWindow {
     property bool opened: false
     readonly property bool _slideFromBar: popoutWindow.attached && popoutWindow.vertical
 
+    // ── SPAWN FROM THE BAR'S RIM ────────────────────────────────────────
+    // The panel used to TRANSLATE in by its own full width. Measured at 8x
+    // slow motion, its left rim swept 2235 -> 2188 -> 2166 -> 2153: a
+    // fully-formed card flying in, with its content travelling 360px and —
+    // because the flares ride on the panel — the weld only arriving in the
+    // final frame.
+    //
+    // It is REVEALED now instead. This container is pinned to the surface's
+    // right edge, which is the bar's own coloured rim, and its WIDTH grows
+    // from zero. `panel` inside is anchored to that same right edge, so it
+    // never moves: the rim appears to extrude it. The two flares sit at the
+    // panel's right end, so they are inside the reveal from the very first
+    // frame and the weld is present the whole way out.
+    //
+    // ALL SIX VISUAL CHILDREN MOVED IN TOGETHER, deliberately. They anchor
+    // to each other (`anchors.fill: panel`, the flares' `panel.top`/
+    // `panel.bottom`), and QML only permits anchoring to a sibling or the
+    // parent — leaving any of them outside while `panel` moved in would
+    // have made those anchors illegal. Moving the set preserves every one
+    // of them unchanged.
+    //
+    // `clip` is on ONLY while attached. Unattached there is no rim to grow
+    // from: the panel drops from the top of the Hyprland windows on the
+    // dashboard's vertical slide, and clipping would cut the flares that
+    // mode does not draw anyway.
     Item {
-        id: panel
-        width: popoutWindow.panelWidth
-        height: popoutWindow.panelHeight
-
-        // Tucked BEHIND the bar's edge when closed (a full panel width to
-        // the right), so it emerges from under the bulge rather than
-        // fading in beside it.
-        x: popoutWindow.opened || !popoutWindow._slideFromBar ? 0 : panel.width
-        // The flare inset is a constant offset, present in both states —
-        // only the slide term switches, so the panel never lands 24px off
-        // its own window.
-        y: popoutWindow.flareRadius
-            + (popoutWindow.opened || popoutWindow._slideFromBar ? 0 : -popoutWindow.panelHeight)
+        id: spawnClip
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        // ── THE CLOSED WIDTH IS 0 UNCONDITIONALLY ───────────────────────
+        // It used to read `(opened || !_slideFromBar) ? width : 0`, and the
+        // reveal never started from zero. `_slideFromBar` is
+        // `attached && vertical`, and `vertical` is assigned by the loader
+        // AFTER construction — so at construction it was false, this
+        // evaluated to the FULL width, and by the time `vertical` arrived
+        // and flipped it to 0 the deferred `opened` had already fired. The
+        // width animated 360 -> 0 -> 360 and the panel simply appeared.
+        // Measured: 0.9s into a deliberately 8x-slowed reveal, content
+        // still began at x=2142, the panel's full left edge.
+        //
+        // This is the SAME trap that put every popout at the top of the bar
+        // earlier in this task — a construction-time read of a property the
+        // loader has not assigned yet. Depending on it for the CLOSED state
+        // is what makes it dangerous, because the closed state is the one
+        // evaluated at construction.
+        //
+        // Unconditional 0 is safe for the unattached case too: `clip` is
+        // false there, and an unclipped Item of zero width still renders its
+        // children in full.
+        width: popoutWindow.opened ? popoutWindow.width : 0
+        clip: popoutWindow._slideFromBar
         opacity: popoutWindow.opened ? 1 : 0
 
-        Behavior on x {
-            enabled: Motion.motionEnabled
-            NumberAnimation {
-                duration: Motion.spatialInDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: popoutWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
-            }
-        }
-        Behavior on y {
+        Behavior on width {
             enabled: Motion.motionEnabled
             NumberAnimation {
                 duration: Motion.spatialInDuration
@@ -281,179 +311,31 @@ PanelWindow {
                 easing.bezierCurve: popoutWindow._dismissing ? Motion.emphasizedInReverseEasing : Motion.emphasizedInEasing
             }
         }
+
+    Item {
+        id: panel
+        width: popoutWindow.panelWidth
+        height: popoutWindow.panelHeight
+
+        // PINNED to the container's right edge — the bar's rim — so the
+        // reveal above extrudes it rather than sliding it. No `x` of its
+        // own any more, and no Behavior on x: the only motion left here is
+        // the UNATTACHED drop from the top of the windows.
+        anchors.right: parent.right
+        // The flare inset is a constant offset, present in both states, so
+        // the panel never lands 24px off its own window.
+        y: popoutWindow.flareRadius
+            + (popoutWindow.opened || popoutWindow._slideFromBar ? 0 : -popoutWindow.panelHeight)
+
+        Behavior on y {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.spatialInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: popoutWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
+            }
+        }
     }
-
-    // ── Anchoring arithmetic — Design tokens plus triggerCentre plus this
-    //    window's own screen handle; no literal pixel value anywhere.
-    //    Single-edge-margin arithmetic, the same shape D-18-38 fixed for
-    //    the bar's own reservation — never doubled. ──────────────────────
-    // MEASURED 2026-08-12 (GATE-02 finding F5). These were
-    // `barEdgeMargin + barHeight + spacingXs` (52) and
-    // `barEdgeMargin + barColumnWidth + spacingXs` (54) — the bar's own extent
-    // added on top of an offset the compositor had ALREADY applied. This is an
-    // anchored layer surface (top + left/right, exclusiveZone 0), so the
-    // compositor already places it past the bar's 48px exclusive zone; adding
-    // the extent again double-counted it. `hyprctl layers` returned
-    // `quickshell-bar-wifi y=100` against a bar whose bottom edge is 48 — the
-    // operator reported it as "the popup cards appear too low". The margin here
-    // is therefore only the GAP past the edge the compositor already found,
-    // nothing more. BarTooltip.qml:78-90 records the identical failure and the
-    // identical correction, found hours earlier on the same layer posture; this
-    // file is the sibling that taught it the wrong expression and never got the
-    // fix. Keep the two files' shape identical.
-    //
-    // Then aligned to the WINDOW edge, operator's call 2026-08-12, after a first
-    // attempt at 0 was rejected. The reserved boundary and the window edge are
-    // NOT the same line, which is the trap here: Hyprland insets tiled windows
-    // by general:gaps_out BELOW the reserved zone. MEASURED on this host —
-    // reserved [0,48,0,0], gaps_out 10, border_size 3, and a tiled window
-    // reporting `at=[13,61] size=[2534,1366]`, so its visible outer border edge
-    // is at y=58 and x=10, not 48/0. A margin of 0 put the card at the reserved
-    // boundary (measured y=48), floating 10px clear of the window it was meant
-    // to line up with.
-    //
-    // barSideMargin (10) is that inset, and the bar itself already uses it for
-    // exactly this alignment on the other axis: the bar measures x=10 w=2540,
-    // flush with the window's left and right outer edges. Reusing it here makes
-    // the popout's leading edge land on the window's leading edge. It matches
-    // gaps_out by value rather than by binding — if general:gaps_out changes,
-    // this alignment needs revisiting (a QML surface cannot read it live).
-    // ── LIVE, NOT HARDCODED (quick task 260825-pyf, Task 2) ─────────────
-    // These were `Design.barSideMargin` (10), chosen because gaps_out was
-    // 10 on the day it was measured — and the note above says so, ending
-    // "if general:gaps_out changes, this alignment needs revisiting (a QML
-    // surface cannot read it live)."
-    //
-    // It changed. gaps_out is 20 now (operator-confirmed intended,
-    // 2026-08-25) with border_size 0, and tiled clients report at=[20,26]
-    // against reserved [0,6,50,6]. So every popout was landing 10px inside
-    // the window edge it was written to line up with — a real, measurable
-    // miss, not a theoretical one.
-    //
-    // `WindowInset` reads the option live and re-reads it on every
-    // Hyprland `configreloaded`, which is exactly when it can change:
-    // `lib/reload.sh` runs `hyprctl reload` on every theme and motion
-    // apply, re-applying `~/.local/state/hypr/overrides.lua` where
-    // gaps_out actually lives on this host.
-    //
-    // Per-edge, not one number: gaps_out is a four-sided CSS gap, so the
-    // top margin asks for the top gap and the right margin asks for the
-    // right one. They are equal today; asking correctly costs nothing and
-    // stops this file being wrong again the moment they are not.
-    readonly property int _horizontalTopMargin: WindowInset.insetFor("top")
-    readonly property int _verticalRightMargin: WindowInset.insetFor("right")
-
-    // triggerCentre is ALREADY a scene-absolute coordinate — PopoutTrigger.qml
-    // publishes it via mapToItem(null, 0, 0) — so barSideMargin must NOT be
-    // added here as an origin. It was, on both axes, until 2026-08-12, which
-    // put every popout 10px off the glyph it belongs to.
-    //
-    // BarTooltip.qml:94-100 records the identical mistake with its own live
-    // numbers, taken from the same publisher: "spotify's glyph centre 40
-    // against a tooltip centre of 50, discord 68 against 78, steam 96 against
-    // 106". That file corrected itself and did not sweep this one — the third
-    // time in this family that BarTooltip found a bug, fixed only itself, and
-    // left the sibling it had copied the expression FROM still carrying it
-    // (see _horizontalTopMargin above for the second).
-    //
-    // barSideMargin stays in the CLAMP below, where it is a screen-edge inset
-    // rather than an origin — that use was always correct and is unchanged.
-    // ── Origin conversion, MEASURED 2026-08-13 ──────────────────────────────
-    // The paragraph above is right that barSideMargin is not an offset to be
-    // guessed at, and wrong that `triggerCentre` is scene-absolute. It is not:
-    // PopoutTrigger.publishAnchor() computes it with
-    // `triggerRoot.mapToItem(null, 0, 0)`, and `mapToItem(null, ...)` maps into
-    // the item's OWN WINDOW — for a bar entry, the bar's PanelWindow. These
-    // margins, by contrast, are screen-relative. The two spaces differ by the
-    // bar window's own origin along its long axis, which is
-    // Design.barSideMargin in BOTH orientations (Bar.qml sets
-    // `margins.top: vertical ? barSideMargin : barEdgeMargin` and
-    // `margins.left: vertical ? 0 : barSideMargin`, so whichever axis the
-    // popout slides along, the offset is barSideMargin).
-    //
-    // Measured live, vertical, with the audio popout open:
-    //   audio trigger true screen centre .......... 1094
-    //     (hover-verified: a pointer at screen y=1094 hovers that trigger)
-    //   quickshell-bar-audio surface .............. y 917, h 334 -> centre 1084
-    // — ten pixels high, the same error and the same cause BarDrawer.qml
-    // carried until it was corrected the same day. BarTooltip.qml is NOT
-    // corrected here and must not be: its host (BarTooltipHost.qml) already
-    // converts the centre before publishing it, so adding the origin again
-    // would move every tooltip 10px the other way. The rule across this family
-    // is that whoever consumes a raw mapToItem() value converts it exactly
-    // once.
-    //
-    // barSideMargin still appears in the CLAMPS below as a screen-edge inset —
-    // a different job, correct before and after.
-    readonly property real _horizontalDesiredLeft: popoutWindow.triggerCentre + Design.barSideMargin - popoutWindow.width / 2
-    readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))
-
-    // The vertical pair that used to live here — `_verticalDesiredTop` and
-    // `_verticalClampedTop`, tracking `triggerCentre` down the bar — is GONE
-    // (quick task 260825-pyf, Task 4), not merely unused. Neither posture
-    // wants it any more: attached aligns to the bar's own clamped bulge
-    // centre (`_attachedClampedTop`), and unattached is pinned to the top of
-    // the Hyprland windows by request. Left in place they would have read
-    // as the live positioning path to the next person to open this file.
-    //
-    // The origin-conversion notes above are NOT stale with them: the
-    // horizontal pair below still performs exactly that conversion, and the
-    // `+ Design.barSideMargin` in it is the same bar-window-to-screen origin
-    // those paragraphs were written about.
-
-    // ── ATTACHED vs UNATTACHED (quick task 260825-pyf, Task 4) ──────────
-    // Attached: the bar's edge has grown a bulge under this popout and the
-    // panel welds to it, the way the dashboard welds to the top rail.
-    // Unattached: there is no painted bar edge to weld to, so the panel
-    // spawns from the top of the Hyprland windows instead.
-    //
-    // The predicate is the BAR's, published rather than re-derived here —
-    // `rootAttached` is false for every style but Continuous AND for
-    // Continuous while the bar is horizontal, because outside that one
-    // combination the bar paints no continuous edge at all (`barContent` is
-    // a bare Item; the slab and its core are both `visible:
-    // _continuousWeld`). Deriving it here from `edgeBarStyle` would get the
-    // horizontal case wrong, which is precisely the class of mistake
-    // `edgeBarPanelsAttach` already caught once: a predicate that is false
-    // for TWO different reasons cannot be re-derived from one of them.
-    readonly property bool attached: PopoutController.rootAttached
-
-    // Where the top of the Hyprland windows actually is — the reserved
-    // boundary PLUS gaps_out, verified on all four edges against live
-    // client geometry (reserved [0,6,50,6] + gap 20 -> at=[20,26], and the
-    // far edges match too). The compositor has already placed this surface
-    // past the reserved zone, so only the gap is added here; adding the
-    // reservation again is the double-count this file's own margin notes
-    // record twice.
-    readonly property int _windowTopMargin: WindowInset.insetFor("top")
-
-    // Attached, vertical: the panel's own along-axis centre lines up with
-    // the BULGE's centre — `rootCentre`, which the bar has already clamped
-    // into the slab's straight section. Aligning to this popout's raw
-    // `triggerCentre` instead would leave a panel near either end of the bar
-    // hanging off the shelf it is meant to sit on.
-    readonly property real _attachedTop: PopoutController.rootCentre - popoutWindow.height / 2
-    readonly property real _attachedClampedTop: Math.max(popoutWindow._windowTopMargin,
-        Math.min(popoutWindow._attachedTop,
-                 (popoutWindow.screen ? popoutWindow.screen.height : popoutWindow.height)
-                 - popoutWindow.height - popoutWindow._windowTopMargin))
-
-    margins.top: popoutWindow.vertical
-        ? (popoutWindow.attached ? popoutWindow._attachedClampedTop : popoutWindow._windowTopMargin)
-        : popoutWindow._horizontalTopMargin
-    margins.left: popoutWindow.vertical ? 0 : popoutWindow._horizontalClampedLeft
-    // Attached: sit the panel's trailing edge exactly on the bulge's face,
-    // so the two silhouettes meet and the flares below can weld them.
-    // Unattached: the window's own right-edge inset.
-    margins.right: popoutWindow.vertical
-        ? (popoutWindow.attached ? PopoutController.rootInset : popoutWindow._verticalRightMargin)
-        : 0
-
-    // ── Frame-owned constants, re-declared by the SAME names PanelDialog
-    //    uses so a body file reads them identically off either frame. ───
-    readonly property color surfaceBase: Colours.surface
-    readonly property real panelSurfaceOpacity: 0.78
-    readonly property int borderWidth: Design.borderWidth
 
     // ── Chrome, in PanelDialog's own declaration order so the two files
     //    stay diffable: background, rim, focus grab, cascade, content. ───
@@ -576,6 +458,7 @@ PanelWindow {
         gradientCentre: Qt.point(panel.width / 2 - popoutFlareTop.x, panel.height / 2 - popoutFlareTop.y)
         gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
     }
+
     AttachedCorner {
         id: popoutFlareBottom
         visible: popoutWindow.attached
@@ -590,134 +473,6 @@ PanelWindow {
         gradientCentre: Qt.point(panel.width / 2 - popoutFlareBottom.x, panel.height / 2 - popoutFlareBottom.y)
         gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
     }
-
-    // T-18-13-01's whole mitigation, and this plan's single most
-    // important safety property: bound to `pinned`, so an unpinned
-    // preview holds no grab and requests no keyboard focus — hovering one
-    // never takes the next keystroke away from the window the user is
-    // typing in.
-    HyprlandFocusGrab {
-        id: popoutGrab
-        windows: [ popoutWindow ]
-        active: popoutWindow.pinned
-        onCleared: popoutWindow.requestDismiss()
-    }
-
-    readonly property Cascade entranceCascade: Cascade {}
-
-    // FOLDED INTO THE EXISTING HANDLER, not added as a second one (quick
-    // task 260825-pyf, Task 1). A second `Component.onCompleted` on the
-    // same object is a DUPLICATE SIGNAL HANDLER and QML rejects the file
-    // outright — the trap this shell hit twice in one session during
-    // 260824-ns3 round 12, on `shell.qml` and `Dashboard.qml` both.
-    Component.onCompleted: {
-        popoutWindow.entranceCascade.bands = [popoutHeader, bodyColumn, popoutFoot];
-        popoutWindow.entranceCascade.armed = true;
-        popoutWindow.entranceCascade.run();
-        // NOTE: the bulge root is NOT published here. See the Bindings
-        // below — `triggerCentre` and `vertical` do not exist yet at this
-        // point, and reading them here shipped a bug.
-        // Deferred by one turn so the closed state is COMMITTED before the
-        // open state is assigned — otherwise both are set within the same
-        // frame, the Behaviors see no transition, and the panel simply
-        // appears at its final position with no entrance at all. Same
-        // reason the shell defers other construction-time flips rather than
-        // assigning them inline.
-        Qt.callLater(function () {
-            popoutWindow.opened = true;
-        });
-    }
-
-    // ── Publishing the bulge root — BINDINGS, NOT A CONSTRUCTION-TIME CALL
-    //    (fixed 2026-08-25, operator-reported) ─────────────────────────
-    // This was a `publishRoot()` call in `Component.onCompleted`, and it
-    // was WRONG in a way that looked plausible and shipped:
-    //
-    //   PopoutTrigger.qml:173-175 assigns `vertical`, `pinned` and
-    //   `triggerCentre` onto the item AFTER the component has been
-    //   created. At `Component.onCompleted` all three are still at their
-    //   declared defaults — `triggerCentre` is 0 and `vertical` is false.
-    //
-    // So every popout published centre 0. The bar clamped that into the
-    // slab's straight section, which pins it to the same place regardless
-    // of which capsule was clicked, and all eight opened stacked near the
-    // top of the bar instead of beside their own icon. Reported exactly
-    // that way: "all popouts spawn from the same location which is at the
-    // top and far away from the bar."
-    //
-    // The reasoning that produced the bug was that a fresh-per-summon
-    // component makes construction time and summon time the same instant.
-    // That part is true. What it missed is that the loader's property
-    // assignments land AFTER construction — being built at summon time
-    // does not mean being CONFIGURED at construction time.
-    //
-    // Bindings instead, so a later assignment simply flows through. This
-    // does not reintroduce the live-scene-mapping hazard the snapshot
-    // existed to avoid: `triggerCentre` is bound to the trigger's own
-    // `_publishedCentre`, which is already a snapshot taken in
-    // `publishAnchor()`. The snapshot lives in PopoutTrigger, where it
-    // belongs — forwarding it is not re-measuring it.
-    Binding {
-        target: PopoutController
-        property: "openCentre"
-        // RAW: already in the bar window's own space, which is the space
-        // the bar wants. Adding barSideMargin here would re-introduce the
-        // double-count this file's margin notes record twice.
-        value: popoutWindow.triggerCentre
-    }
-    Binding {
-        target: PopoutController
-        property: "openExtent"
-        // The PANEL's extent, never the window's: while attached the window
-        // is `2 * flareRadius` taller, and sizing the bulge to that would
-        // make the shelf overhang the panel it roots by a flare at each end.
-        // Also inherently late-settling — the popout is content-bounded, so
-        // this is 0 until the body's bands have laid out, which is a second
-        // reason a one-shot read at construction could never have worked.
-        value: popoutWindow.vertical ? popoutWindow.panelHeight : popoutWindow.panelWidth
-    }
-
-    // One line per summon, on the shell's existing state-change log idiom.
-    // This is the ONLY instrument that can reach an attached popout from
-    // outside the session: the surface cannot be summoned without a
-    // pointer, so a screenshot needs an operator click, but the log is
-    // readable at any time and reports the numbers a screenshot would have
-    // to be reverse-engineered into.
-    onOpenedChanged: if (popoutWindow.opened) console.log("popout: section=" + popoutWindow.sectionId
-        + " attached=" + popoutWindow.attached + " vertical=" + popoutWindow.vertical
-        + " triggerCentre=" + popoutWindow.triggerCentre
-        + " rootCentre=" + PopoutController.rootCentre.toFixed(1)
-        + " rootInset=" + PopoutController.rootInset.toFixed(1)
-        + " panel=" + popoutWindow.panelWidth.toFixed(0) + "x" + popoutWindow.panelHeight.toFixed(0)
-        + " margins=[t " + popoutWindow.margins.top.toFixed(1) + ", r " + popoutWindow.margins.right.toFixed(1) + "]")
-
-
-    // The content-level `exitFade` that used to live here is GONE (quick
-    // task 260825-pyf, Task 4), replaced by the panel-level slide-and-fade
-    // above. Two reasons, not one:
-    //
-    //  1. It faded `content` only, so the background and rim stayed at full
-    //     opacity while the text under them vanished — invisible while the
-    //     compositor was fading the whole surface out on top of it, and
-    //     immediately visible once the panel started MOVING as well.
-    //  2. It ran `emphasizedOut` — the quick-to-leave asymmetry. Operator
-    //     round 9 of 260823-9ak overturned exactly that for the dashboard:
-    //     the dismiss must be the spawn reversed, same duration, entrance
-    //     easing mirrored. This surface now follows the same rule, which is
-    //     the whole point of putting it on the dashboard's language.
-    //
-    // `dismissFinished()` is emitted by `exitHold` above instead.
-
-    // ── Whole-surface hover (Phase 18 Plan 13 Task 2, D-18-21) — the
-    //    trigger and this popout are ONE hover region held as two
-    //    independent booleans; this is the popout's own half, relayed by
-    //    PopoutTrigger.qml into PopoutController.popoutEntered()/
-    //    popoutExited(). Read-only from outside this file; nothing but
-    //    this HoverHandler ever writes it. Attached to `content` (a real
-    //    Item filling the window), the same way BarCapsule.qml's own
-    //    HoverHandler attaches to its Rectangle root rather than to a
-    //    non-Item window type. ────────────────────────────────────────
-    readonly property bool hovered: popoutHoverHandler.hovered
 
     Item {
         id: content
@@ -905,4 +660,311 @@ PanelWindow {
             }
         }
     }
+
+    }
+
+
+    // ── Anchoring arithmetic — Design tokens plus triggerCentre plus this
+    //    window's own screen handle; no literal pixel value anywhere.
+    //    Single-edge-margin arithmetic, the same shape D-18-38 fixed for
+    //    the bar's own reservation — never doubled. ──────────────────────
+    // MEASURED 2026-08-12 (GATE-02 finding F5). These were
+    // `barEdgeMargin + barHeight + spacingXs` (52) and
+    // `barEdgeMargin + barColumnWidth + spacingXs` (54) — the bar's own extent
+    // added on top of an offset the compositor had ALREADY applied. This is an
+    // anchored layer surface (top + left/right, exclusiveZone 0), so the
+    // compositor already places it past the bar's 48px exclusive zone; adding
+    // the extent again double-counted it. `hyprctl layers` returned
+    // `quickshell-bar-wifi y=100` against a bar whose bottom edge is 48 — the
+    // operator reported it as "the popup cards appear too low". The margin here
+    // is therefore only the GAP past the edge the compositor already found,
+    // nothing more. BarTooltip.qml:78-90 records the identical failure and the
+    // identical correction, found hours earlier on the same layer posture; this
+    // file is the sibling that taught it the wrong expression and never got the
+    // fix. Keep the two files' shape identical.
+    //
+    // Then aligned to the WINDOW edge, operator's call 2026-08-12, after a first
+    // attempt at 0 was rejected. The reserved boundary and the window edge are
+    // NOT the same line, which is the trap here: Hyprland insets tiled windows
+    // by general:gaps_out BELOW the reserved zone. MEASURED on this host —
+    // reserved [0,48,0,0], gaps_out 10, border_size 3, and a tiled window
+    // reporting `at=[13,61] size=[2534,1366]`, so its visible outer border edge
+    // is at y=58 and x=10, not 48/0. A margin of 0 put the card at the reserved
+    // boundary (measured y=48), floating 10px clear of the window it was meant
+    // to line up with.
+    //
+    // barSideMargin (10) is that inset, and the bar itself already uses it for
+    // exactly this alignment on the other axis: the bar measures x=10 w=2540,
+    // flush with the window's left and right outer edges. Reusing it here makes
+    // the popout's leading edge land on the window's leading edge. It matches
+    // gaps_out by value rather than by binding — if general:gaps_out changes,
+    // this alignment needs revisiting (a QML surface cannot read it live).
+    // ── LIVE, NOT HARDCODED (quick task 260825-pyf, Task 2) ─────────────
+    // These were `Design.barSideMargin` (10), chosen because gaps_out was
+    // 10 on the day it was measured — and the note above says so, ending
+    // "if general:gaps_out changes, this alignment needs revisiting (a QML
+    // surface cannot read it live)."
+    //
+    // It changed. gaps_out is 20 now (operator-confirmed intended,
+    // 2026-08-25) with border_size 0, and tiled clients report at=[20,26]
+    // against reserved [0,6,50,6]. So every popout was landing 10px inside
+    // the window edge it was written to line up with — a real, measurable
+    // miss, not a theoretical one.
+    //
+    // `WindowInset` reads the option live and re-reads it on every
+    // Hyprland `configreloaded`, which is exactly when it can change:
+    // `lib/reload.sh` runs `hyprctl reload` on every theme and motion
+    // apply, re-applying `~/.local/state/hypr/overrides.lua` where
+    // gaps_out actually lives on this host.
+    //
+    // Per-edge, not one number: gaps_out is a four-sided CSS gap, so the
+    // top margin asks for the top gap and the right margin asks for the
+    // right one. They are equal today; asking correctly costs nothing and
+    // stops this file being wrong again the moment they are not.
+    readonly property int _horizontalTopMargin: WindowInset.insetFor("top")
+    readonly property int _verticalRightMargin: WindowInset.insetFor("right")
+
+    // triggerCentre is ALREADY a scene-absolute coordinate — PopoutTrigger.qml
+    // publishes it via mapToItem(null, 0, 0) — so barSideMargin must NOT be
+    // added here as an origin. It was, on both axes, until 2026-08-12, which
+    // put every popout 10px off the glyph it belongs to.
+    //
+    // BarTooltip.qml:94-100 records the identical mistake with its own live
+    // numbers, taken from the same publisher: "spotify's glyph centre 40
+    // against a tooltip centre of 50, discord 68 against 78, steam 96 against
+    // 106". That file corrected itself and did not sweep this one — the third
+    // time in this family that BarTooltip found a bug, fixed only itself, and
+    // left the sibling it had copied the expression FROM still carrying it
+    // (see _horizontalTopMargin above for the second).
+    //
+    // barSideMargin stays in the CLAMP below, where it is a screen-edge inset
+    // rather than an origin — that use was always correct and is unchanged.
+    // ── Origin conversion, MEASURED 2026-08-13 ──────────────────────────────
+    // The paragraph above is right that barSideMargin is not an offset to be
+    // guessed at, and wrong that `triggerCentre` is scene-absolute. It is not:
+    // PopoutTrigger.publishAnchor() computes it with
+    // `triggerRoot.mapToItem(null, 0, 0)`, and `mapToItem(null, ...)` maps into
+    // the item's OWN WINDOW — for a bar entry, the bar's PanelWindow. These
+    // margins, by contrast, are screen-relative. The two spaces differ by the
+    // bar window's own origin along its long axis, which is
+    // Design.barSideMargin in BOTH orientations (Bar.qml sets
+    // `margins.top: vertical ? barSideMargin : barEdgeMargin` and
+    // `margins.left: vertical ? 0 : barSideMargin`, so whichever axis the
+    // popout slides along, the offset is barSideMargin).
+    //
+    // Measured live, vertical, with the audio popout open:
+    //   audio trigger true screen centre .......... 1094
+    //     (hover-verified: a pointer at screen y=1094 hovers that trigger)
+    //   quickshell-bar-audio surface .............. y 917, h 334 -> centre 1084
+    // — ten pixels high, the same error and the same cause BarDrawer.qml
+    // carried until it was corrected the same day. BarTooltip.qml is NOT
+    // corrected here and must not be: its host (BarTooltipHost.qml) already
+    // converts the centre before publishing it, so adding the origin again
+    // would move every tooltip 10px the other way. The rule across this family
+    // is that whoever consumes a raw mapToItem() value converts it exactly
+    // once.
+    //
+    // barSideMargin still appears in the CLAMPS below as a screen-edge inset —
+    // a different job, correct before and after.
+    readonly property real _horizontalDesiredLeft: popoutWindow.triggerCentre + Design.barSideMargin - popoutWindow.width / 2
+    readonly property real _horizontalClampedLeft: Math.max(Design.barSideMargin, Math.min(popoutWindow._horizontalDesiredLeft, (popoutWindow.screen ? popoutWindow.screen.width : popoutWindow.width) - popoutWindow.width - Design.barSideMargin))
+
+    // The vertical pair that used to live here — `_verticalDesiredTop` and
+    // `_verticalClampedTop`, tracking `triggerCentre` down the bar — is GONE
+    // (quick task 260825-pyf, Task 4), not merely unused. Neither posture
+    // wants it any more: attached aligns to the bar's own clamped bulge
+    // centre (`_attachedClampedTop`), and unattached is pinned to the top of
+    // the Hyprland windows by request. Left in place they would have read
+    // as the live positioning path to the next person to open this file.
+    //
+    // The origin-conversion notes above are NOT stale with them: the
+    // horizontal pair below still performs exactly that conversion, and the
+    // `+ Design.barSideMargin` in it is the same bar-window-to-screen origin
+    // those paragraphs were written about.
+
+    // ── ATTACHED vs UNATTACHED (quick task 260825-pyf, Task 4) ──────────
+    // Attached: the bar's edge has grown a bulge under this popout and the
+    // panel welds to it, the way the dashboard welds to the top rail.
+    // Unattached: there is no painted bar edge to weld to, so the panel
+    // spawns from the top of the Hyprland windows instead.
+    //
+    // The predicate is the BAR's, published rather than re-derived here —
+    // `rootAttached` is false for every style but Continuous AND for
+    // Continuous while the bar is horizontal, because outside that one
+    // combination the bar paints no continuous edge at all (`barContent` is
+    // a bare Item; the slab and its core are both `visible:
+    // _continuousWeld`). Deriving it here from `edgeBarStyle` would get the
+    // horizontal case wrong, which is precisely the class of mistake
+    // `edgeBarPanelsAttach` already caught once: a predicate that is false
+    // for TWO different reasons cannot be re-derived from one of them.
+    readonly property bool attached: PopoutController.rootAttached
+
+    // Where the top of the Hyprland windows actually is — the reserved
+    // boundary PLUS gaps_out, verified on all four edges against live
+    // client geometry (reserved [0,6,50,6] + gap 20 -> at=[20,26], and the
+    // far edges match too). The compositor has already placed this surface
+    // past the reserved zone, so only the gap is added here; adding the
+    // reservation again is the double-count this file's own margin notes
+    // record twice.
+    readonly property int _windowTopMargin: WindowInset.insetFor("top")
+
+    // Attached, vertical: the panel's own along-axis centre lines up with
+    // the BULGE's centre — `rootCentre`, which the bar has already clamped
+    // into the slab's straight section. Aligning to this popout's raw
+    // `triggerCentre` instead would leave a panel near either end of the bar
+    // hanging off the shelf it is meant to sit on.
+    readonly property real _attachedTop: PopoutController.rootCentre - popoutWindow.height / 2
+    readonly property real _attachedClampedTop: Math.max(popoutWindow._windowTopMargin,
+        Math.min(popoutWindow._attachedTop,
+                 (popoutWindow.screen ? popoutWindow.screen.height : popoutWindow.height)
+                 - popoutWindow.height - popoutWindow._windowTopMargin))
+
+    margins.top: popoutWindow.vertical
+        ? (popoutWindow.attached ? popoutWindow._attachedClampedTop : popoutWindow._windowTopMargin)
+        : popoutWindow._horizontalTopMargin
+    margins.left: popoutWindow.vertical ? 0 : popoutWindow._horizontalClampedLeft
+    // Attached: sit the panel's trailing edge exactly on the bulge's face,
+    // so the two silhouettes meet and the flares below can weld them.
+    // Unattached: the window's own right-edge inset.
+    margins.right: popoutWindow.vertical
+        ? (popoutWindow.attached ? PopoutController.rootInset : popoutWindow._verticalRightMargin)
+        : 0
+
+    // ── Frame-owned constants, re-declared by the SAME names PanelDialog
+    //    uses so a body file reads them identically off either frame. ───
+    readonly property color surfaceBase: Colours.surface
+    readonly property real panelSurfaceOpacity: 0.78
+    readonly property int borderWidth: Design.borderWidth
+
+
+
+
+    // T-18-13-01's whole mitigation, and this plan's single most
+    // important safety property: bound to `pinned`, so an unpinned
+    // preview holds no grab and requests no keyboard focus — hovering one
+    // never takes the next keystroke away from the window the user is
+    // typing in.
+    HyprlandFocusGrab {
+        id: popoutGrab
+        windows: [ popoutWindow ]
+        active: popoutWindow.pinned
+        onCleared: popoutWindow.requestDismiss()
+    }
+
+    readonly property Cascade entranceCascade: Cascade {}
+
+    // FOLDED INTO THE EXISTING HANDLER, not added as a second one (quick
+    // task 260825-pyf, Task 1). A second `Component.onCompleted` on the
+    // same object is a DUPLICATE SIGNAL HANDLER and QML rejects the file
+    // outright — the trap this shell hit twice in one session during
+    // 260824-ns3 round 12, on `shell.qml` and `Dashboard.qml` both.
+    Component.onCompleted: {
+        popoutWindow.entranceCascade.bands = [popoutHeader, bodyColumn, popoutFoot];
+        popoutWindow.entranceCascade.armed = true;
+        popoutWindow.entranceCascade.run();
+        // NOTE: the bulge root is NOT published here. See the Bindings
+        // below — `triggerCentre` and `vertical` do not exist yet at this
+        // point, and reading them here shipped a bug.
+        // Deferred by one turn so the closed state is COMMITTED before the
+        // open state is assigned — otherwise both are set within the same
+        // frame, the Behaviors see no transition, and the panel simply
+        // appears at its final position with no entrance at all. Same
+        // reason the shell defers other construction-time flips rather than
+        // assigning them inline.
+        Qt.callLater(function () {
+            popoutWindow.opened = true;
+        });
+    }
+
+    // ── Publishing the bulge root — BINDINGS, NOT A CONSTRUCTION-TIME CALL
+    //    (fixed 2026-08-25, operator-reported) ─────────────────────────
+    // This was a `publishRoot()` call in `Component.onCompleted`, and it
+    // was WRONG in a way that looked plausible and shipped:
+    //
+    //   PopoutTrigger.qml:173-175 assigns `vertical`, `pinned` and
+    //   `triggerCentre` onto the item AFTER the component has been
+    //   created. At `Component.onCompleted` all three are still at their
+    //   declared defaults — `triggerCentre` is 0 and `vertical` is false.
+    //
+    // So every popout published centre 0. The bar clamped that into the
+    // slab's straight section, which pins it to the same place regardless
+    // of which capsule was clicked, and all eight opened stacked near the
+    // top of the bar instead of beside their own icon. Reported exactly
+    // that way: "all popouts spawn from the same location which is at the
+    // top and far away from the bar."
+    //
+    // The reasoning that produced the bug was that a fresh-per-summon
+    // component makes construction time and summon time the same instant.
+    // That part is true. What it missed is that the loader's property
+    // assignments land AFTER construction — being built at summon time
+    // does not mean being CONFIGURED at construction time.
+    //
+    // Bindings instead, so a later assignment simply flows through. This
+    // does not reintroduce the live-scene-mapping hazard the snapshot
+    // existed to avoid: `triggerCentre` is bound to the trigger's own
+    // `_publishedCentre`, which is already a snapshot taken in
+    // `publishAnchor()`. The snapshot lives in PopoutTrigger, where it
+    // belongs — forwarding it is not re-measuring it.
+    Binding {
+        target: PopoutController
+        property: "openCentre"
+        // RAW: already in the bar window's own space, which is the space
+        // the bar wants. Adding barSideMargin here would re-introduce the
+        // double-count this file's margin notes record twice.
+        value: popoutWindow.triggerCentre
+    }
+    Binding {
+        target: PopoutController
+        property: "openExtent"
+        // The PANEL's extent, never the window's: while attached the window
+        // is `2 * flareRadius` taller, and sizing the bulge to that would
+        // make the shelf overhang the panel it roots by a flare at each end.
+        // Also inherently late-settling — the popout is content-bounded, so
+        // this is 0 until the body's bands have laid out, which is a second
+        // reason a one-shot read at construction could never have worked.
+        value: popoutWindow.vertical ? popoutWindow.panelHeight : popoutWindow.panelWidth
+    }
+
+    // One line per summon, on the shell's existing state-change log idiom.
+    // This is the ONLY instrument that can reach an attached popout from
+    // outside the session: the surface cannot be summoned without a
+    // pointer, so a screenshot needs an operator click, but the log is
+    // readable at any time and reports the numbers a screenshot would have
+    // to be reverse-engineered into.
+    onOpenedChanged: if (popoutWindow.opened) console.log("popout: section=" + popoutWindow.sectionId
+        + " attached=" + popoutWindow.attached + " vertical=" + popoutWindow.vertical
+        + " triggerCentre=" + popoutWindow.triggerCentre
+        + " rootCentre=" + PopoutController.rootCentre.toFixed(1)
+        + " rootInset=" + PopoutController.rootInset.toFixed(1)
+        + " panel=" + popoutWindow.panelWidth.toFixed(0) + "x" + popoutWindow.panelHeight.toFixed(0)
+        + " margins=[t " + popoutWindow.margins.top.toFixed(1) + ", r " + popoutWindow.margins.right.toFixed(1) + "]")
+
+
+    // The content-level `exitFade` that used to live here is GONE (quick
+    // task 260825-pyf, Task 4), replaced by the panel-level slide-and-fade
+    // above. Two reasons, not one:
+    //
+    //  1. It faded `content` only, so the background and rim stayed at full
+    //     opacity while the text under them vanished — invisible while the
+    //     compositor was fading the whole surface out on top of it, and
+    //     immediately visible once the panel started MOVING as well.
+    //  2. It ran `emphasizedOut` — the quick-to-leave asymmetry. Operator
+    //     round 9 of 260823-9ak overturned exactly that for the dashboard:
+    //     the dismiss must be the spawn reversed, same duration, entrance
+    //     easing mirrored. This surface now follows the same rule, which is
+    //     the whole point of putting it on the dashboard's language.
+    //
+    // `dismissFinished()` is emitted by `exitHold` above instead.
+
+    // ── Whole-surface hover (Phase 18 Plan 13 Task 2, D-18-21) — the
+    //    trigger and this popout are ONE hover region held as two
+    //    independent booleans; this is the popout's own half, relayed by
+    //    PopoutTrigger.qml into PopoutController.popoutEntered()/
+    //    popoutExited(). Read-only from outside this file; nothing but
+    //    this HoverHandler ever writes it. Attached to `content` (a real
+    //    Item filling the window), the same way BarCapsule.qml's own
+    //    HoverHandler attaches to its Rectangle root rather than to a
+    //    non-Item window type. ────────────────────────────────────────
+    readonly property bool hovered: popoutHoverHandler.hovered
+
 }
