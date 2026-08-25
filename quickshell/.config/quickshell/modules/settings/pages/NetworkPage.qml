@@ -1,29 +1,33 @@
-// modules/settings/pages/NetworkPage.qml — page index 4 of the ten-page
+// modules/settings/pages/NetworkPage.qml — page index 4 of the settings
 // layout (quick-260821-6z1 Task 2 split, D-05/PD-02). Follow-up feature
 // wave, operator request verbatim: "make wifi and bluetooth options open
 // inline." Same NavRow -> real-controls transformation AudioPage.qml
-// (Task 13) already received, over the shell's single WifiBackend/
-// BluetoothBackend instances — threaded through
-// SettingsState.wifiBackend/.bluetoothBackend the same way
+// (Task 13) already received, over the shell's single WifiBackend
+// instance — threaded through SettingsState.wifiBackend the same way
 // SettingsState.audioBackend already reaches AudioPage.qml. Settings.qml
-// relays both from shell.qml's own wifiBackendInstance/
-// bluetoothBackendInstance — the SAME instances the wifi/bluetooth
-// panels already share, never a second instance.
+// relays it from shell.qml's own wifiBackendInstance — the SAME instance
+// the wifi panel already shares, never a second instance.
 //
-// WifiPanel.qml and BluetoothPanel.qml are NOT touched by this wave —
-// the Audio precedent's own rule ("AudioPanel.qml is not touched at
-// all") applies here too. The one change this wave makes OUTSIDE this
-// file is in shell.qml: both backends' `panelOpen` gate widens to also
-// cover "the settings window is open and showing this page" (see
-// shell.qml's own `settingsShowingNetwork`) — without it neither
-// backend's live truth (wifi scanning, the bluetooth device model) is
-// ever turned on while this page is the one actually rendering it, and
-// the inline list would always read empty.
+// Wi-Fi ONLY as of quick task 260825-wj2 Task 4 — the Bluetooth half
+// (page-level state, DeviceRow, and the whole "Bluetooth" SettingsSection)
+// moved out to its own page, `BluetoothPage.qml` ("Connected devices",
+// D-8), because Caelestia's own structure gives Bluetooth its own page
+// rather than sharing this one. This file's own gate checks that the
+// Bluetooth backend relay property is gone entirely after the cut, per
+// this quick task's own verify.
+//
+// WifiPanel.qml is NOT touched by this wave — the Audio precedent's own
+// rule ("AudioPanel.qml is not touched at all") applies here too. The one
+// change this wave makes OUTSIDE this file is in shell.qml: the backend's
+// `panelOpen` gate widens to also cover "the settings window is open and
+// showing this page" (see shell.qml's own `settingsShowingNetwork`) —
+// without it the backend's live truth (wifi scanning) is never turned on
+// while this page is the one actually rendering it, and the inline list
+// would always read empty.
 //
 // Row-scoped interaction state (expandedNetwork/pendingNetwork/
-// failedNetwork for Wi-Fi, expandedAddress/failedAddress for Bluetooth)
-// reproduces WifiPanel.qml's/BluetoothPanel.qml's OWN shape deliberately,
-// not a re-derived one: WifiPanel.qml keeps its own pendingNetwork/
+// failedNetwork) reproduces WifiPanel.qml's OWN shape deliberately, not a
+// re-derived one: WifiPanel.qml keeps its own pendingNetwork/
 // failedNetwork copies rather than binding straight to
 // `backend.connectingNetwork`, because ITS OWN watchdog timer has to be
 // able to resolve a stranded request independently of whatever the
@@ -32,7 +36,7 @@
 // copies. This page copies that shape exactly, for the same reason.
 //
 // Deliberately NOT reproduced here — real capability gaps, not
-// omissions of effort, named exactly as the panels already found them:
+// omissions of effort, named exactly as the panel already found them:
 //   - Hidden Wi-Fi networks: `Quickshell.Networking` exposes no
 //     hidden-network API at all (WifiPanel.qml's own T-15-14 header) —
 //     joining one needs that file's subprocess-based SSID probe. The
@@ -44,9 +48,8 @@
 //     An enterprise row here shows the same static "Use Advanced to
 //     connect" text WifiPanel.qml shows, for the same reason.
 //
-// Every row's identity is the network/device OBJECT (network) or its
-// ADDRESS (bluetooth), never a name string (T-15-08) — an SSID or a
-// Bluetooth device name is attacker-controllable text arriving over the
+// Every row's identity is the network OBJECT, never a name string
+// (T-15-08) — an SSID is attacker-controllable text arriving over the
 // air, and two rows can legitimately share one.
 import QtQuick
 import QtQuick.Controls
@@ -63,7 +66,6 @@ PageBase {
     title: "Network"
 
     readonly property var wifiBackend: root.sState.wifiBackend
-    readonly property var bluetoothBackend: root.sState.bluetoothBackend
 
     // ═══════════════════════════════════════════════════════════════════
     // Wi-Fi — mirrors WifiPanel.qml's Task 3 additions at a reduced but
@@ -209,87 +211,11 @@ PageBase {
         command: ["nm-connection-editor"]
     }
 
-    // ═══════════════════════════════════════════════════════════════════
-    // Bluetooth — mirrors BluetoothPanel.qml's own row shape at the same
-    // reduced-but-real depth as the Wi-Fi half above.
-    // ═══════════════════════════════════════════════════════════════════
-    readonly property bool adapterPresent: root.bluetoothBackend ? root.bluetoothBackend.adapterPresent : false
-    readonly property bool adapterBlocked: root.bluetoothBackend ? root.bluetoothBackend.adapterBlocked : false
-    readonly property bool adapterEnabled: root.bluetoothBackend ? root.bluetoothBackend.adapterEnabled : false
-
-    property string expandedAddress: ""
-    property string confirmingForgetAddress: ""
-    property string failedAddress: ""
-    property string failedReason: ""
-
-    // Routed through here rather than straight to `backend.pressDevice` —
-    // clearing this row's own failure slot the moment a NEW action starts
-    // on it is what keeps a stale "Couldn't pair" from lingering under a
-    // fresh spinner (BluetoothPanel.qml's own handleRowPress()).
-    function handleBtRowPress(device) {
-        if (!device || !root.bluetoothBackend)
-            return;
-        root.failedAddress = "";
-        root.failedReason = "";
-        root.bluetoothBackend.pressDevice(device);
-    }
-
-    // BlueZ icon class used only as a lookup key, never rendered directly
-    // (T-15-08) — BluetoothPanel.qml's own deviceGlyph(), copied verbatim.
-    function deviceGlyph(device) {
-        var icon = device ? device.icon : "";
-        switch (icon) {
-        case "audio-headset":
-        case "audio-headphones":
-        case "audio-card":
-            return "headphones";
-        case "input-keyboard":
-            return "keyboard";
-        case "input-mouse":
-            return "mouse";
-        case "input-gaming":
-            return "sports_esports";
-        case "input-tablet":
-            return "stylus";
-        case "phone":
-        case "phone-smartphone":
-            return "smartphone";
-        case "computer":
-            return "computer";
-        case "printer":
-            return "print";
-        case "camera-video":
-            return "videocam";
-        default:
-            return "bluetooth";
-        }
-    }
-
-    Connections {
-        target: root.bluetoothBackend
-        function onDeviceActionFailed(device, reasonText) {
-            root.failedAddress = device ? device.address : "";
-            root.failedReason = reasonText;
-        }
-    }
-
-    property bool _bluemanManagerAvailable: true
-    Process {
-        id: bluemanManagerProbe
-        command: ["which", "blueman-manager"]
-        onExited: function (exitCode, exitStatus) {
-            if (exitCode !== 0)
-                root._bluemanManagerAvailable = false;
-        }
-    }
-    Process {
-        id: bluemanManagerProcess
-        command: ["blueman-manager"]
-    }
-
+    // Bluetooth (page-level state, DeviceRow, and the whole "Bluetooth"
+    // SettingsSection) moved to BluetoothPage.qml (quick task 260825-wj2
+    // Task 4, D-8) — this page is Wi-Fi only from here down.
     Component.onCompleted: {
         nmConnectionEditorProbe.running = true;
-        bluemanManagerProbe.running = true;
     }
 
     // ── NetworkRow — the Wi-Fi list's one row shape (current, saved and
@@ -620,289 +546,6 @@ PageBase {
         }
     }
 
-    // ── DeviceRow — the Bluetooth list's one row shape, condensed from
-    //    BluetoothPanel.qml's own DeviceRow. Row identity is the
-    //    device's ADDRESS (T-15-08), never its name. ──────────────────────
-    component DeviceRow: Item {
-        id: deviceRow
-
-        property var device: null
-
-        readonly property string address: deviceRow.device ? deviceRow.device.address : ""
-        readonly property string verb: (root.bluetoothBackend && deviceRow.device) ? root.bluetoothBackend.contextualVerb(deviceRow.device) : ""
-        readonly property bool isPending: deviceRow.address !== "" && root.bluetoothBackend && root.bluetoothBackend.pendingAddress === deviceRow.address
-        readonly property bool isPendingPair: deviceRow.isPending && root.bluetoothBackend.pendingVerb === "pair"
-        readonly property bool isFailed: deviceRow.address !== "" && root.failedAddress === deviceRow.address
-        readonly property bool isExpanded: deviceRow.address !== "" && root.expandedAddress === deviceRow.address
-        readonly property bool isConfirmingForget: deviceRow.address !== "" && root.confirmingForgetAddress === deviceRow.address
-        readonly property bool isConnectedNow: deviceRow.device ? deviceRow.device.connected : false
-        readonly property bool batteryAvailable: deviceRow.device ? deviceRow.device.batteryAvailable : false
-
-        width: parent ? parent.width : 0
-        implicitHeight: rowColumn.implicitHeight
-        height: implicitHeight
-
-        // quick-260821-swp (R-2): implicitHeight is spatial — retargeted
-        // onto spatial-move.
-        Behavior on implicitHeight {
-            enabled: Motion.motionEnabled
-            NumberAnimation {
-                duration: Motion.spatialMoveDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.spatialMoveEasing
-            }
-        }
-
-        Column {
-            id: rowColumn
-            width: parent.width
-            spacing: Design.spacingXs
-
-            Item {
-                id: collapsedBtRow
-                width: parent.width
-                height: 40
-
-                // Same border-ring-not-fill discipline as NetworkRow
-                // above, same reason.
-                Rectangle {
-                    anchors.fill: parent
-                    radius: Design.spacingXs
-                    color: "transparent"
-                    border.width: deviceRow.isConnectedNow ? 2 : 0
-                    border.color: Colours.primary
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    anchors.rightMargin: chevronArea.width
-                    onClicked: root.handleBtRowPress(deviceRow.device)
-                }
-
-                Text {
-                    id: btGlyph
-                    anchors.left: parent.left
-                    anchors.leftMargin: Design.spacingSm
-                    anchors.verticalCenter: parent.verticalCenter
-                    font.family: Design.symbolFontFamily
-                    font.pixelSize: Design.iconSizeMd
-                    text: root.deviceGlyph(deviceRow.device)
-                    color: Colours.onSurfaceVariant
-                }
-
-                Text {
-                    id: btNameText
-                    anchors.left: btGlyph.right
-                    anchors.leftMargin: Design.spacingSm
-                    anchors.right: btTrailing.left
-                    anchors.rightMargin: Design.spacingSm
-                    anchors.verticalCenter: parent.verticalCenter
-                    elide: Text.ElideRight
-                    maximumLineCount: 1
-                    // Explicit plain-text pin (T-15-08) — a device name
-                    // is attacker-controllable text arriving over the air.
-                    textFormat: Text.PlainText
-                    text: deviceRow.device ? deviceRow.device.deviceName : ""
-                    font.pixelSize: Design.settingsFontRow
-                    color: Colours.onSurface
-
-                    HoverHandler {
-                        id: btNameHover
-                    }
-                    ThemedToolTip {
-                        visible: btNameHover.hovered
-                        text: btNameText.text
-                    }
-                }
-
-                Row {
-                    id: btTrailing
-                    anchors.right: chevronArea.left
-                    anchors.rightMargin: Design.spacingSm
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: Design.spacingSm
-
-                    Row {
-                        spacing: Design.spacingSm
-                        visible: !deviceRow.isFailed
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: deviceRow.isPending
-                            font.family: Design.symbolFontFamily
-                            font.pixelSize: Design.iconSizeMd
-                            text: "progress_activity"
-                            color: Colours.primary
-                            opacity: 0.7
-
-                            RotationAnimation on rotation {
-                                running: deviceRow.isPending && Motion.motionEnabled
-                                loops: Animation.Infinite
-                                from: 0
-                                to: 360
-                                duration: Motion.ambientDuration
-                            }
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: !deviceRow.isPending
-                            text: deviceRow.verb === "pair" ? "Pair" : deviceRow.verb === "connect" ? "Connect" : deviceRow.verb === "disconnect" ? "Disconnect" : ""
-                            font.pixelSize: Design.settingsFontRow
-                            color: Colours.primary
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: root.handleBtRowPress(deviceRow.device)
-                            }
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            visible: deviceRow.isPendingPair
-                            text: "Cancel"
-                            font.pixelSize: Design.settingsFontRow
-                            color: Colours.onSurfaceVariant
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: root.bluetoothBackend && root.bluetoothBackend.cancelPair(deviceRow.device)
-                            }
-                        }
-                    }
-
-                    // *Failed* — scoped to this row only, with an
-                    // explicit Retry (G-15-8's own addition): the row
-                    // stays pressable and `handleBtRowPress()` already
-                    // clears this row's failure slot before re-invoking,
-                    // matching BluetoothPanel.qml's own failedRow.
-                    Row {
-                        visible: deviceRow.isFailed
-                        spacing: Design.spacingSm
-
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            elide: Text.ElideRight
-                            width: 140
-                            horizontalAlignment: Text.AlignRight
-                            text: root.failedReason
-                            font.pixelSize: Design.settingsFontSub
-                            color: Colours.error
-                        }
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: "Retry"
-                            font.pixelSize: Design.settingsFontRow
-                            color: Colours.primary
-
-                            MouseArea {
-                                anchors.fill: parent
-                                onClicked: root.handleBtRowPress(deviceRow.device)
-                            }
-                        }
-                    }
-                }
-
-                Item {
-                    id: chevronArea
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Design.iconSizeMd + Design.spacingSm
-                    height: parent.height
-
-                    Text {
-                        anchors.centerIn: parent
-                        font.family: Design.symbolFontFamily
-                        font.pixelSize: Design.iconSizeMd
-                        text: deviceRow.isExpanded ? "expand_less" : "expand_more"
-                        color: Colours.onSurfaceVariant
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            root.expandedAddress = deviceRow.isExpanded ? "" : deviceRow.address;
-                            root.confirmingForgetAddress = "";
-                        }
-                    }
-                }
-            }
-
-            // Expansion — battery (only when available), address, and a
-            // separated Forget. Renders in place, below the row, inside
-            // this page's own scroll body — no popup of any kind.
-            Column {
-                width: parent.width
-                spacing: Design.spacingXs
-                visible: deviceRow.isExpanded
-
-                Text {
-                    visible: deviceRow.batteryAvailable
-                    text: deviceRow.device ? "Battery " + Math.round(deviceRow.device.battery) + "%" : ""
-                    font.pixelSize: Design.settingsFontSub
-                    color: Colours.onSurfaceVariant
-                }
-                Text {
-                    // Explicit plain-text pin (T-15-08) — the MAC
-                    // address is over-the-air text like the name above.
-                    textFormat: Text.PlainText
-                    text: deviceRow.device ? deviceRow.device.address : ""
-                    font.pixelSize: Design.settingsFontSub
-                    color: Colours.onSurfaceVariant
-                }
-
-                Row {
-                    visible: !deviceRow.isConfirmingForget
-                    Text {
-                        text: "Forget"
-                        font.pixelSize: Design.settingsFontSub
-                        color: Colours.error
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: root.confirmingForgetAddress = deviceRow.address
-                        }
-                    }
-                }
-                Row {
-                    visible: deviceRow.isConfirmingForget
-                    spacing: Design.spacingSm
-
-                    Text {
-                        width: parent.width - btForgetYes.implicitWidth - btForgetNo.implicitWidth - Design.spacingSm * 2
-                        textFormat: Text.PlainText
-                        text: "Forget " + (deviceRow.device ? deviceRow.device.deviceName : "") + "?"
-                        font.pixelSize: Design.settingsFontSub
-                        color: Colours.onSurface
-                        wrapMode: Text.WordWrap
-                    }
-                    Text {
-                        id: btForgetYes
-                        text: "Forget"
-                        font.pixelSize: Design.settingsFontSub
-                        font.weight: Design.weightEmphasis
-                        color: Colours.error
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                root.bluetoothBackend.forget(deviceRow.device);
-                                root.confirmingForgetAddress = "";
-                            }
-                        }
-                    }
-                    Text {
-                        id: btForgetNo
-                        text: "Cancel"
-                        font.pixelSize: Design.settingsFontSub
-                        color: Colours.onSurfaceVariant
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: root.confirmingForgetAddress = ""
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     SettingsSection {
         title: "Wi-Fi"
@@ -1000,112 +643,4 @@ PageBase {
         }
     }
 
-    SettingsSection {
-        title: "Bluetooth"
-        icon: "bluetooth"
-
-        ToggleRow {
-            label: "Bluetooth"
-            visible: root.adapterPresent && !root.adapterBlocked
-            subtext: root.adapterEnabled ? "On" : "Off"
-            checked: root.adapterEnabled
-            onToggled: (value) => root.bluetoothBackend && root.bluetoothBackend.setAdapterEnabled(value)
-        }
-        InfoRow {
-            visible: !root.adapterPresent
-            label: "No Bluetooth adapter found"
-            subtext: "This machine has no Bluetooth controller Quickshell can see."
-        }
-        InfoRow {
-            visible: root.adapterPresent && root.adapterBlocked
-            label: "Bluetooth is blocked"
-            subtext: "Switched off by rfkill (a hardware or software block) — run \"rfkill unblock bluetooth\" in a terminal, or check for a physical switch, then reopen this page."
-        }
-        InfoRow {
-            visible: root.adapterPresent && !root.adapterBlocked && !root.adapterEnabled
-            label: "Turn on Bluetooth to manage devices"
-            subtext: "Paired and nearby devices appear here once Bluetooth is on."
-        }
-
-        Column {
-            width: parent.width
-            spacing: Design.spacingXs
-            visible: root.adapterPresent && !root.adapterBlocked && root.adapterEnabled
-
-            Repeater {
-                model: root.bluetoothBackend ? root.bluetoothBackend.connectedDevices : []
-                delegate: DeviceRow {
-                    device: modelData
-                }
-            }
-            Repeater {
-                model: root.bluetoothBackend ? root.bluetoothBackend.pairedDevices : []
-                delegate: DeviceRow {
-                    device: modelData
-                }
-            }
-            Repeater {
-                model: root.bluetoothBackend ? root.bluetoothBackend.discoveredDevices : []
-                delegate: DeviceRow {
-                    device: modelData
-                }
-            }
-
-            Text {
-                visible: root.bluetoothBackend
-                    ? (root.bluetoothBackend.connectedDevices.length === 0 && root.bluetoothBackend.pairedDevices.length === 0 && root.bluetoothBackend.discoveredDevices.length === 0 && !root.bluetoothBackend.discovering)
-                    : false
-                text: "No paired devices"
-                font.pixelSize: Design.settingsFontRow
-                color: Colours.onSurfaceVariant
-            }
-
-            Row {
-                width: parent.width
-                spacing: Design.spacingSm
-
-                // The ONLY call site of `startDiscovery()` on this page,
-                // matching BluetoothPanel.qml's own single-call-site
-                // discipline.
-                Text {
-                    visible: !(root.bluetoothBackend && root.bluetoothBackend.discovering)
-                    text: "Add device"
-                    font.pixelSize: Design.settingsFontRow
-                    font.weight: Design.weightEmphasis
-                    color: Colours.primary
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.bluetoothBackend && root.bluetoothBackend.startDiscovery()
-                    }
-                }
-                Text {
-                    visible: root.bluetoothBackend ? root.bluetoothBackend.discovering : false
-                    text: "Searching for devices…"
-                    font.pixelSize: Design.settingsFontSub
-                    color: Colours.onSurfaceVariant
-                }
-                Text {
-                    visible: root.bluetoothBackend ? root.bluetoothBackend.discovering : false
-                    text: "Stop"
-                    font.pixelSize: Design.settingsFontSub
-                    color: Colours.onSurfaceVariant
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: root.bluetoothBackend && root.bluetoothBackend.stopDiscovery()
-                    }
-                }
-            }
-        }
-
-        NavRow {
-            label: "Advanced Bluetooth settings"
-            subtext: root._bluemanManagerAvailable
-                ? "Opens the full Bluetooth manager for less common options."
-                : "blueman-manager is not installed."
-            onActivated: if (root._bluemanManagerAvailable)
-                bluemanManagerProcess.startDetached()
-        }
-    }
 }

@@ -54,6 +54,19 @@ Singleton {
     readonly property Component networkComp: Component {
         NetworkPage {}
     }
+    // Connected devices (quick task 260825-wj2 Task 4, D-8) —
+    // StackPage-wrapped: sub-page 0 is the root (BluetoothPage), 1 is
+    // device info.
+    readonly property Component bluetoothComp: Component {
+        StackPage {
+            Component {
+                BluetoothPage {}
+            }
+            Component {
+                BtDeviceInfoPage {}
+            }
+        }
+    }
     readonly property Component displayComp: Component {
         DisplayPage {}
     }
@@ -98,14 +111,16 @@ Singleton {
     }
 
     // Index-locked to PageRegistry.pages, in the identical order documented
-    // there: [Appearance, Wallpaper, Bar, Audio, Network, Display, Input,
-    // Window manager, Notifications, Session, Apps, Updates, About].
+    // there: [Appearance, Wallpaper, Bar, Audio, Network, Connected
+    // devices, Display, Input, Window manager, Notifications, Session,
+    // Apps, Updates, About].
     readonly property list<Component> comps: [
         appearanceComp,
         wallpaperComp,
         barComp,
         audioComp,
         networkComp,
+        bluetoothComp,
         displayComp,
         inputComp,
         windowManagerComp,
@@ -127,6 +142,7 @@ Singleton {
         "bar",
         "audio",
         "network",
+        "bluetooth",
         "display",
         "input",
         "window-manager",

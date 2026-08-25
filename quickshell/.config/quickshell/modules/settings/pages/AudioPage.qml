@@ -142,20 +142,44 @@ PageBase {
         Repeater {
             model: root.audioBackend ? root.audioBackend.streamNodes : []
 
-            SliderRow {
-                id: streamRow
+            // Wrapping Column (quick task 260825-wj2 Task 4) — holds the
+            // existing volume slider plus the new mute toggle for the SAME
+            // stream. The explicit `width` here is load-bearing: a bare
+            // Column derives its width from the MAX of its children, while
+            // both row primitives below derive THEIRS from `parent.width` —
+            // the exact circular binding `SettingsSection.qml`'s own header
+            // already measured at 81px. Binding to the Repeater's own
+            // parent (this SettingsSection's content column) breaks the
+            // cycle with a real, non-self-referential width, the same fix
+            // that file's header describes.
+            Column {
+                id: streamColumn
                 required property var modelData
+                width: parent ? parent.width : 0
 
-                // Static label (RowIndex's jump-key match is by exact
-                // label, and a per-stream dynamic label would collide
-                // with itself across Repeater instances — the same
-                // reasoning InputPage.qml's per-device rows already
-                // apply); the real per-app name rides as subtext.
-                label: "Per-app volume"
-                subtext: root.audioBackend ? root.audioBackend.streamLabel(streamRow.modelData) : ""
-                from: 0; to: 1; stepSize: 0.01
-                value: (streamRow.modelData && streamRow.modelData.audio) ? streamRow.modelData.audio.volume : 0
-                onMoved: (v) => root.audioBackend && root.audioBackend.setStreamVolume(streamRow.modelData, v)
+                SliderRow {
+                    id: streamRow
+
+                    // Static label (RowIndex's jump-key match is by exact
+                    // label, and a per-stream dynamic label would collide
+                    // with itself across Repeater instances — the same
+                    // reasoning InputPage.qml's per-device rows already
+                    // apply); the real per-app name rides as subtext.
+                    label: "Per-app volume"
+                    subtext: root.audioBackend ? root.audioBackend.streamLabel(streamColumn.modelData) : ""
+                    from: 0; to: 1; stepSize: 0.01
+                    value: (streamColumn.modelData && streamColumn.modelData.audio) ? streamColumn.modelData.audio.volume : 0
+                    onMoved: (v) => root.audioBackend && root.audioBackend.setStreamVolume(streamColumn.modelData, v)
+                }
+                ToggleRow {
+                    // STATIC label, same reasoning as the slider above.
+                    label: "Per-app mute"
+                    subtext: root.audioBackend ? root.audioBackend.streamLabel(streamColumn.modelData) : ""
+                    checked: (streamColumn.modelData && streamColumn.modelData.audio) ? streamColumn.modelData.audio.muted : false
+                    // The node OBJECT, never an id (this repo's standing
+                    // MPRIS lesson) — `setStreamMuted` reads it directly.
+                    onToggled: (v) => root.audioBackend && root.audioBackend.setStreamMuted(streamColumn.modelData, v)
+                }
             }
         }
         InfoRow {

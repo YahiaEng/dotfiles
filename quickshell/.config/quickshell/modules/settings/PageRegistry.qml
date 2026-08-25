@@ -10,18 +10,26 @@
 // (NavRail.qml's own isCategoryStart/isCategoryEnd) into the operator's
 // four visual clusters: appearance / connectivity / display / shell.
 //
+// Extended by quick task 260825-wj2 to the Caelestia settings-page-group
+// order that plan's own page-order table decides once: Apps/Updates/About
+// appended (Tasks 2-3, no renumbering), then Connected devices INSERTED at
+// 5 (Task 4, this file) shifting Display through About each +1. Services
+// and Language & region insert further still (Task 6).
+//
 // ── Deep-link resolution (PD-03) — TWO-STAGE, in `shell.qml`'s
 //    `openSettingsPage(name)`:
 //      1. Exact `slug` match FIRST — the new, precise per-page keys below
 //         (`bar`, `notifications`, `session`, …).
 //      2. `category` first-match-wins by index SECOND — the legacy keys
 //         (`appearance`, `connectivity`, `display`, `shell`) resolve to
-//         whichever page is FIRST in `pages[]` carrying that category,
-//         exactly as they did before this split (`appearance`->0,
-//         `connectivity`->3, `display`->5, `shell`->7). There are zero
-//         external callers of the legacy keys today (grepped over
-//         quickshell/, hypr/ — only the IPC verb itself), so this
-//         introduces no regression.
+//         whichever page is FIRST in `pages[]` carrying that category.
+//         There are zero external callers of the legacy keys today
+//         (grepped over quickshell/, hypr/ — only the IPC verb itself), so
+//         a page-order change introduces no regression as long as each
+//         category's FIRST member stays the same page — verified below by
+//         inspection: appearance->0, connectivity->3, display->6 (was 5,
+//         moved down by Connected devices' insertion), shell->8 (was 7,
+//         same reason). Still asserted live at Component.onCompleted.
 //    `shell.qml`'s own `Component.onCompleted` runs an assertion that all
 //    four legacy category keys still resolve to an in-range index, and
 //    warns by name if one stops. ─────────────────────────────────────────
@@ -64,9 +72,22 @@ Singleton {
         {
             label: "Network",
             icon: "settings_input_antenna",
-            description: "Wi-Fi, Bluetooth",
+            // Bluetooth left this page for its own (quick task 260825-wj2
+            // Task 4, D-8) — Caelestia's own Network description, now that
+            // it is accurate again.
+            description: "Wi-Fi, ethernet, VPN",
             category: "connectivity",
             slug: "network"
+        },
+        // Connected devices (quick task 260825-wj2 Task 4, D-8) — inserted
+        // at 5, shifting every page below it +1. StackPage-wrapped: one
+        // sub-page, device info.
+        {
+            label: "Connected devices",
+            icon: "devices_other",
+            description: "Bluetooth pairing and device management",
+            category: "connectivity",
+            slug: "bluetooth"
         },
         {
             label: "Display",
@@ -103,8 +124,7 @@ Singleton {
             category: "shell",
             slug: "session"
         },
-        // Apps (quick task 260825-wj2 Task 2) — appended at index 10, no
-        // renumbering of the ten pages above. StackPage-wrapped (D-2): two
+        // Apps (quick task 260825-wj2 Task 2). StackPage-wrapped (D-2): two
         // sub-pages, All apps and App info.
         {
             label: "Apps",
@@ -113,8 +133,8 @@ Singleton {
             category: "shell",
             slug: "apps"
         },
-        // Updates + About (quick task 260825-wj2 Task 3) — appended at 11,
-        // 12. No renumbering; both flat, no sub-pages.
+        // Updates + About (quick task 260825-wj2 Task 3) — both flat, no
+        // sub-pages.
         {
             label: "Updates",
             icon: "update",

@@ -985,13 +985,17 @@ ShellRoot {
     //    backend instances (never a second WifiBackend/BluetoothBackend —
     //    the AudioPage precedent's own rule), so `panelOpen` must widen
     //    to cover "the settings window is open and showing the Network
-    //    page (pageIdx 4, `<page_map>`)" — without this, both backends'
-    //    live truth (wifi scanning, bluetooth's device model) stays off
-    //    while NetworkPage.qml is the one actually rendering it, and the
-    //    inline list would always read empty. Null-guarded: `settingsLoader.item`
-    //    does not exist until the loader has actually incubated its
-    //    content. ─────────────────────────────────────────────────────────
-    // The Network page's index is LOOKED UP by its stable `slug`, never
+    //    page" — without this, the backend's live truth (wifi scanning)
+    //    stays off while NetworkPage.qml is the one actually rendering it,
+    //    and the inline list would always read empty. Null-guarded:
+    //    `settingsLoader.item` does not exist until the loader has
+    //    actually incubated its content. ────────────────────────────────
+    // Split as of quick task 260825-wj2 Task 4 (D-8): Bluetooth moved to
+    // its own page ("Connected devices"), so it now gets its OWN slug
+    // lookup and its OWN gate below — `settingsShowingNetwork` covers Wi-Fi
+    // only from here down.
+    //
+    // Both pages' indexes are LOOKED UP by their stable `slug`, never
     // hardcoded. `settings-index-check` guards PageRegistry/PageCompRegistry/
     // RowIndex against index drift, but it cannot see a literal index living
     // over here in shell.qml — a page reorder would silently gate these
@@ -1005,8 +1009,16 @@ ShellRoot {
         }
         return -1;
     }
+    readonly property int bluetoothPageIdx: {
+        for (var i = 0; i < PageRegistry.pages.length; i++) {
+            if (PageRegistry.pages[i].slug === "bluetooth")
+                return i;
+        }
+        return -1;
+    }
 
     readonly property bool settingsShowingNetwork: settingsLoader.active && settingsLoader.item !== null && settingsLoader.item.sState.currentPageIdx === root.networkPageIdx
+    readonly property bool settingsShowingBluetooth: settingsLoader.active && settingsLoader.item !== null && settingsLoader.item.sState.currentPageIdx === root.bluetoothPageIdx
 
     WifiBackend {
         id: wifiBackendInstance
@@ -1039,8 +1051,10 @@ ShellRoot {
         // Same widening as WifiBackend above, same reason — discovery
         // itself stays opt-in (BluetoothBackend.qml's own `startDiscovery()`
         // is still the only call site), but the device model and adapter
-        // state need to be live while this page is showing it.
-        panelOpen: bluetoothPanelLoader.active || root.settingsShowingNetwork
+        // state need to be live while this page is showing it. Gated on
+        // `settingsShowingBluetooth`, NOT `settingsShowingNetwork` — quick
+        // task 260825-wj2 Task 4 (D-8) split Bluetooth onto its own page.
+        panelOpen: bluetoothPanelLoader.active || root.settingsShowingBluetooth
     }
 
     // ── Workspace overview (Phase 16 Plan 02, the phase's tracer,
