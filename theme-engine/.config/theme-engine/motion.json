@@ -21,6 +21,7 @@
     "extra-long4": 1000
   },
   "_comment_spatial_easings": "spatial-in/spatial-out/spatial-move (R-2) are the ONLY three easing names a style may ever push a control-point Y above 1.0 on — every other name below stays monotonic within [0,1] in every style, forever, so a fade or a colour can never be given overshoot by construction. Seeded here identical to emphasized-decelerate/emphasized-accelerate/standard so this task's Task 1 restructure moves nothing on screen; Task 2 gives each non-md3 style its own points for these three names only.",
+  "_comment_multi_segment_easings": "An easing is normally FOUR numbers - one cubic's two control points, with the (1,1) endpoint appended at render time. `emphasized` is the exception: TEN numbers, which render to twelve, which is Qt's BezierSpline layout of SIX numbers per cubic SEGMENT (c1x,c1y,c2x,c2y,endX,endY) and therefore TWO segments. That is Material 3's real emphasized easing and it cannot be expressed as a single cubic. IT IS A QML-ONLY EASING BY NECESSITY: Hyprland's hl.curve takes exactly two control points, so lib/motion.sh SKIPS any easing that is not four numbers when registering Hyprland curves and when writing CSS cubic-bezier(), rather than truncating it into a plausible-looking wrong curve. No hypr_leaves entry in any style may name it - register_hypr_leaf would find no registered curve and would drop the leaf entirely.",
   "easings": {
     "standard": [0.2, 0, 0, 1],
     "standard-decelerate": [0, 0, 0, 1],
@@ -34,7 +35,9 @@
     "css-linear": [0, 0, 1, 1],
     "spatial-in": [0.05, 0.7, 0.1, 1],
     "spatial-out": [0.3, 0, 0.8, 0.15],
-    "spatial-move": [0.2, 0, 0, 1]
+    "spatial-move": [0.2, 0, 0, 1],
+    "emphasized": [0.05, 0, 0.13333333, 0.06, 0.16666667, 0.4, 0.20833333, 0.82, 0.25, 1],
+    "effects": [0.2, 0, 0, 1]
   },
   "_comment_semantic_leaf_channels": "semantic's four leaf-* entries are LEAF-ONLY SPEED CHANNELS. A Hyprland leaf normally takes its duration from its own curve name, which welds curve and speed together and stops two leaves sharing a curve from holding different speeds. A leaf entry's optional `speed_key` field names one of these channels instead, breaking that weld. They are named for the DURATION TOKEN they carry, never for a millisecond count, so they stay honest under the accessibility multiplier, which scales them like any other semantic entry. Their `easing` is filler and is never read: a leaf takes its bezier from its own `curve`, and only the channel's DURATION is used. Nothing in the base tables points at them and Motion.qml walks a FIXED _pairNames list, so they reach neither QML nor any existing style. NOTE: every key inside 'semantic' MUST be a {duration,easing} object, never a comment string - lib/motion.sh renders it with `.semantic | to_entries[] | $D[$v.duration]`, which a string value breaks. Added 2026-08-25 for 'zen'.",
   "semantic": {
@@ -50,7 +53,8 @@
     "leaf-medium2": { "duration": "medium2", "easing": "standard" },
     "leaf-medium4": { "duration": "medium4", "easing": "standard" },
     "leaf-long2": { "duration": "long2", "easing": "standard" },
-    "leaf-long4": { "duration": "long4", "easing": "standard" }
+    "leaf-long4": { "duration": "long4", "easing": "standard" },
+    "colour": { "duration": "short4", "easing": "effects" }
   },
   "indicators": {
     "blink-slow": { "duration_ms": 1000, "easing": "css-linear" },
@@ -185,16 +189,18 @@
       "easings": {
         "spatial-in": [0.38, 1.21, 0.22, 1],
         "spatial-out": [0.42, 1.67, 0.21, 0.9],
-        "spatial-move": [0.38, 1.21, 0.22, 1]
+        "spatial-move": [0.38, 1.21, 0.22, 1],
+        "effects": [0.34, 0.88, 0.34, 1]
       },
       "_comment_no_semantic": "This style overrides NO semantic entries either, and that is the DECOUPLING, deliberately chosen on 2026-08-25 after an earlier revision set semantic.standard to 600ms. That worked but was overreach: semantic.standard is also Motion.standardDuration, so every QML surface bound to it ran at 600ms, and Caelestia's animations.lua says nothing whatsoever about shell-side timing \u2014 its shell keeps its own separate tokens, which this repo has not ported. Each leaf below therefore names a leaf-only `speed_key` channel instead of borrowing a shared semantic name. THE CONSEQUENCE, worth stating outright: zen changes Hyprland's animations ONLY. Every QML surface animates exactly as it does under md3. If the shell should feel Caelestia-like too, that is a separate port of Caelestia's shell tokens, not a change to this style.",
       "_comment_shell_durations": "Ported from the same tokens.hpp (AnimDurationTokens defaults): small 200, normal 400, large 600, extraLarge 1000, expressiveFastSpatial 350, expressiveDefaultSpatial 500, expressiveSlowSpatial 650, expressiveFastEffects 150, expressiveDefaultEffects 200, expressiveSlowEffects 300. Every one of those values already exists in this repo's durations table, so nothing was rounded or invented. Mapping: standard -> Anim.Standard (normal 400); standard-slow -> Anim.StandardLarge (large 600); emphasized-in/-out -> Caelestia's emphasizedDecel/emphasizedAccel tokens at normal 400 / small 200; spatial-in and spatial-move -> expressiveDefaultSpatial 500; spatial-out -> expressiveFastSpatial 350. 'ambient' is left at base because base ALREADY equals Caelestia's extraLarge 1000, and 'stagger-offset' is left at base because Caelestia has no counterpart for it.",
-      "_comment_shell_not_portable": "TWO THINGS IN CAELESTIA'S SHELL TOKENS THIS SCHEMA CANNOT HOLD, stated rather than quietly dropped. (1) Its `emphasized` curve is a TWELVE-value multi-segment cubic path ({0.05,0, 2/15,0.06, 1/6,0.4, 5/24,0.82, 0.25,1, 1,1}) built from successive addCubicBezierSegment calls; every easing here is a single four-number cubic and Hyprland's hl.curve takes two control points only, so it is representable in neither consumer. Caelestia's emphasizedDecel/emphasizedAccel ARE representable and are what emphasized-in/-out use. (2) Its colour animations (CAnim.qml) run on expressiveSlowEffects - 300ms of {0.34,0.88,0.34,1} - but this repo has no colour/effects-specific semantic channel: its ~58 colour bindings all read a shared monotonic name, overwhelmingly 'standard'. Giving colour its own channel was explicitly REJECTED by quick-260821-swp as 90 retargets and default-unsafe, so colour here follows 'standard' at 400ms on Caelestia's own standard curve. Both are limits of this repo's token model, not values that were guessed.",
+      "_comment_shell_fully_ported": "The two tokens an earlier revision could not carry are now BOTH ported, after the operator ruled that expanding this repo's motion language beats dropping Caelestia values. (1) `emphasized` is Caelestia's real MD3 two-segment spline and is what emphasized-in/-out now use, at Anim.Emphasized's normal 400 / small 200 - Caelestia drives BOTH directions from that one curve rather than from a decel/accel pair, so pointing both at it is the faithful reading. It is QML-only of necessity; see _comment_multi_segment_easings at the top of this file. (2) `colour` is a dedicated colour/effects channel carrying Caelestia's CAnim token, expressiveSlowEffects at 300ms - every ColorAnimation and colour Behavior in the shell binds it now instead of the generic `standard` pair. quick-260821-swp had rejected such a channel as 90 retargets and default-unsafe, and the SAFETY half of that objection is answered structurally rather than by promise: `colour` and its `effects` easing sit on the permanently-monotonic side of the R-2 split, so a colour still cannot overshoot in any style - which matters more than for opacity, because an overshooting colour interpolation extrapolates PAST the target where opacity would clamp.",
       "semantic": {
         "standard": { "duration": "medium4", "easing": "standard" },
         "standard-slow": { "duration": "long4", "easing": "standard" },
-        "emphasized-in": { "duration": "medium4", "easing": "emphasized-decelerate" },
-        "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
+        "emphasized-in": { "duration": "medium4", "easing": "emphasized" },
+        "emphasized-out": { "duration": "short4", "easing": "emphasized" },
+        "colour": { "duration": "medium2", "easing": "effects" },
         "spatial-in": { "duration": "long2", "easing": "spatial-in" },
         "spatial-out": { "duration": "medium3", "easing": "spatial-out" },
         "spatial-move": { "duration": "long2", "easing": "spatial-move" }

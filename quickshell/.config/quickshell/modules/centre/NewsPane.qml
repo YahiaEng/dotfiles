@@ -245,9 +245,9 @@ Item {
                 Behavior on color {
                     enabled: Motion.motionEnabled
                     ColorAnimation {
-                        duration: Motion.standardDuration
+                        duration: Motion.colourDuration
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.colourEasing
                     }
                 }
 
@@ -317,9 +317,9 @@ Item {
                 Behavior on color {
                     enabled: Motion.motionEnabled
                     ColorAnimation {
-                        duration: Motion.standardDuration
+                        duration: Motion.colourDuration
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.colourEasing
                     }
                 }
 
@@ -373,9 +373,9 @@ Item {
                 Behavior on color {
                     enabled: Motion.motionEnabled
                     ColorAnimation {
-                        duration: Motion.standardDuration
+                        duration: Motion.colourDuration
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.colourEasing
                     }
                 }
 
@@ -1160,9 +1160,9 @@ Item {
                 Behavior on color {
                     enabled: Motion.motionEnabled
                     ColorAnimation {
-                        duration: Motion.standardDuration
+                        duration: Motion.colourDuration
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.standardEasing
+                        easing.bezierCurve: Motion.colourEasing
                     }
                 }
             }

@@ -205,14 +205,23 @@ theme_engine_validate_motion_values() {
         return 1
     fi
 
+    # A stored easing omits the trailing (1,1) endpoint, which the QML writer
+    # appends. Qt's BezierSpline layout is SIX numbers per cubic segment
+    # (c1x,c1y,c2x,c2y,endX,endY), so a stored curve of n segments is 6n-2
+    # numbers: 4 for one segment, 10 for two, 16 for three. The rule is
+    # therefore `length % 6 == 4`, not `length == 4` — the latter held until
+    # 2026-08-25 and correctly refused Caelestia's two-segment MD3
+    # `emphasized` curve, blocking the render rather than shipping a
+    # truncated one. Widened, not removed: 5, 6 or 8 numbers are still hard
+    # errors, and a single-cubic curve is still exactly 4.
     local bad_easings
     bad_easings="$(jq -r '
         .easings | to_entries[]
-        | select((.value | type != "array") or (.value | length != 4)
+        | select((.value | type != "array") or ((.value | length) % 6 != 4)
                  or ([.value[] | (type != "number") or isnan or isinfinite] | any))
         | .key' "$motion_json_effective" 2>/dev/null)"
     if [[ -n "$bad_easings" ]]; then
-        echo "motion.sh: easing(s) with malformed control points (need exactly 4 finite numbers): $bad_easings" >&2
+        echo "motion.sh: easing(s) with malformed control points (need 6n-2 finite numbers: 4, 10, 16, ...): $bad_easings" >&2
         return 1
     fi
 
@@ -495,7 +504,7 @@ theme_engine_render_motion_files() {
             printf '  --motion-duration-%s: %sms;\n' "$token" "$ms"
         done <<< "$resolved"
         jq -r '
-            .easings | to_entries[] |
+            .easings | to_entries[] | select(.value | length == 4) |
             "  --motion-easing-\(.key): cubic-bezier(\(.value | join(", ")));"
         ' "$motion_eff"
         echo "}"
@@ -713,7 +722,17 @@ theme_engine_render_hypr_tokens() {
         # keys (never bare identifiers) because easing names carry hyphens
         # (e.g. "standard-decelerate"), which is not valid Lua identifier
         # syntax as a bare table key.
-        jq -r '.easings | to_entries[] |
+        # MULTI-SEGMENT EASINGS ARE SKIPPED HERE, not truncated. Hyprland's
+        # hl.curve takes exactly two control points, so an easing carrying
+        # more than one cubic segment (Caelestia's MD3 `emphasized`, ten
+        # numbers = two segments) has no representation at all. Emitting its
+        # first four numbers would silently register a DIFFERENT curve that
+        # looks plausible and is wrong, which is the worst possible failure
+        # here. Skipped instead: registered_curves then has no entry, and
+        # register_hypr_leaf already refuses to emit a leaf whose curve is
+        # unregistered. No leaf in any shipped style names one.
+        jq -r '
+            .easings | to_entries[] | select(.value | length == 4) |
             "            [\"\(.key)\"] = { type = \"bezier\", points = { {\(.value[0]), \(.value[1])}, {\(.value[2]), \(.value[3])} } },"' \
             "$motion_eff"
         echo "        },"
@@ -786,7 +805,7 @@ theme_engine_render_motion_scss() {
 
         # $motion-easing-<name> — every declared easing, unconditionally.
         jq -r '
-            .easings | to_entries[] |
+            .easings | to_entries[] | select(.value | length == 4) |
             "$motion-easing-\(.key): cubic-bezier(\(.value | join(", ")));"
         ' "$motion_eff"
 

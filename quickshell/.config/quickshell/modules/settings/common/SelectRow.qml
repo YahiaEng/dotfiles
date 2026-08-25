@@ -85,9 +85,9 @@ Control {
         Behavior on border.color {
             enabled: Motion.motionEnabled
             ColorAnimation {
-                duration: Motion.standardDuration
+                duration: Motion.colourDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+                easing.bezierCurve: Motion.colourEasing
             }
         }
     }
@@ -141,9 +141,9 @@ Control {
             Behavior on color {
                 enabled: Motion.motionEnabled
                 ColorAnimation {
-                    duration: Motion.standardDuration
+                    duration: Motion.colourDuration
                     easing.type: Easing.BezierSpline
-                    easing.bezierCurve: Motion.standardEasing
+                    easing.bezierCurve: Motion.colourEasing
                 }
             }
 
@@ -313,9 +313,9 @@ Control {
                     Behavior on border.color {
                         enabled: Motion.motionEnabled
                         ColorAnimation {
-                            duration: Motion.standardDuration
+                            duration: Motion.colourDuration
                             easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.standardEasing
+                            easing.bezierCurve: Motion.colourEasing
                         }
                     }
                 }

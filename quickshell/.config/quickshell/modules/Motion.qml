@@ -71,7 +71,16 @@ Singleton {
     // emphasizedIn/emphasizedOut/staggerOffset/ambient) stays monotonic in
     // every style, forever — that split is what makes a bouncing fade
     // impossible by construction rather than by a maintained list.
-    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out", "stagger-offset", "ambient", "spatial-in", "spatial-out", "spatial-move"]
+    //
+    // 2026-08-25's "colour" key is APPENDED as the NINTH entry, same
+    // append-only discipline. It is the dedicated COLOUR/effects channel
+    // ported from Caelestia's shell (CAnim.qml animates every colour on
+    // expressiveSlowEffects rather than on the generic standard token).
+    // It joins standard/emphasizedIn/emphasizedOut/staggerOffset/ambient on
+    // the permanently-monotonic side of the R-2 split: a colour must never
+    // overshoot, because an overshooting colour interpolation extrapolates
+    // PAST the target rather than clamping the way opacity does.
+    readonly property var _pairNames: ["standard", "emphasized-in", "emphasized-out", "stagger-offset", "ambient", "spatial-in", "spatial-out", "spatial-move", "colour"]
 
     property bool loadHealthy: true
 
@@ -172,7 +181,14 @@ Singleton {
         var entry = (motion.semantic && motion.semantic[key]) || null;
         var durationValid = !!entry && typeof entry.duration_ms === "number"
             && isFinite(entry.duration_ms) && entry.duration_ms > 0;
-        var easingValid = !!entry && Array.isArray(entry.bezier) && entry.bezier.length === 6;
+        // A Qt BezierSpline is SIX numbers PER CUBIC SEGMENT (c1x,c1y,
+        // c2x,c2y,endX,endY), so a valid curve is any positive multiple of
+        // six — not six exactly. It was === 6 until 2026-08-25, which
+        // silently rejected Caelestia's MD3 `emphasized` curve (twelve
+        // numbers = two segments) and fell back to the hardcoded default
+        // below, i.e. the wrong curve with no error anywhere.
+        var easingValid = !!entry && Array.isArray(entry.bezier)
+            && entry.bezier.length >= 6 && entry.bezier.length % 6 === 0;
         return {
             name: key,
             propertyName: root._camel(key),
@@ -207,6 +223,13 @@ Singleton {
     readonly property var emphasizedOutEasing: pairs[2].easingValid ? pairs[2].easing : [0.3, 0, 0.8, 0.15, 1, 1]
     readonly property int staggerOffsetDuration: pairs[3].duration || 50
     readonly property var staggerOffsetEasing: pairs[3].easingValid ? pairs[3].easing : [0.2, 0, 0, 1, 1, 1]
+    // colour — index 8, the ninth _pairNames entry. Every ColorAnimation and
+    // `Behavior on <colour property>` in the tree binds these two rather
+    // than the generic standard pair. The fallbacks mirror base motion.json
+    // (200ms, the standard curve), so a missing/empty motion.json leaves
+    // colour animating exactly as it did before this channel existed.
+    readonly property int colourDuration: pairs[8].duration || 200
+    readonly property var colourEasing: pairs[8].easingValid ? pairs[8].easing : [0.2, 0, 0, 1, 1, 1]
 
     // ── spatial-in/out/move (quick-260821-swp) ──────────────────────────
     //    These six aliases were MISSING until 2026-08-22 even though
