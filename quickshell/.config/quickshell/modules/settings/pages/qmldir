@@ -15,3 +15,8 @@ InputPage 1.0 InputPage.qml
 WindowManagerPage 1.0 WindowManagerPage.qml
 NotificationsPage 1.0 NotificationsPage.qml
 SessionPage 1.0 SessionPage.qml
+# Apps + sub-pages (quick task 260825-wj2 Task 2, D-1: flat, not nested —
+# names carry the grouping instead).
+AppsPage 1.0 AppsPage.qml
+AllAppsPage 1.0 AllAppsPage.qml
+AppInfoPage 1.0 AppInfoPage.qml

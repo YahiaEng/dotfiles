@@ -50,6 +50,10 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+// Prefs (quick task 260825-wj2 Task 2) — resolves the modules/-root
+// `qs.modules` manifest, the same relative import `Launcher.qml` (this
+// directory's own sibling) already uses to reach the same singleton.
+import ".."
 
 Singleton {
     id: root
@@ -184,7 +188,13 @@ Singleton {
                 },
                 {
                     text: "  Audio",
-                    command: `uwsm app -- pavucontrol`
+                    // Reads the configured mixer (quick task
+                    // 260825-wj2 Task 2, Apps page's own "Audio"
+                    // SelectRow) — falls back to the literal
+                    // `pavucontrol` this entry always launched, via
+                    // Prefs' own hardcoded default, so an install
+                    // that never opens that page is unaffected.
+                    command: `uwsm app -- ${Prefs.getValue("apps.audio")}`
                 },
                 {
                     text: "  Display",

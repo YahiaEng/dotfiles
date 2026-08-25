@@ -188,7 +188,10 @@ PageBase {
         // be torn down mid-launch along with this page.
         Process {
             id: editorProc
-            command: ["uwsm", "app", "--", "kitty",
+            // Configured terminal (quick task 260825-wj2 Task 2) — falls
+            // back to the literal "kitty" this Process always launched, via
+            // Prefs' own hardcoded default.
+            command: ["uwsm", "app", "--", Prefs.getValue("apps.terminal"),
                 "--class", "idle-overrides-editor",
                 "--title", "Idle & Lock Overrides",
                 "-o", "background_opacity=0.85",

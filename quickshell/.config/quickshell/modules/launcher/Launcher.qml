@@ -230,7 +230,21 @@ PanelWindow {
     // call shape and needs no separate cache-invalidation contract. `counts`
     // is `undefined` in alpha mode (never read) and always defined in
     // frecency mode (`filteredApps` only fetches it when needed).
-    function _compareApps(a, b, counts) {
+    // `favSet` (quick task 260825-wj2 Task 2) — a plain object keyed by
+    // desktop-entry id, the SAME hoisted-lookup-map shape `counts` already
+    // uses, for the identical reason: a per-comparison Prefs read would be
+    // ~1,500 redundant fetches per keystroke for one unchanging array.
+    // Ranks ahead of BOTH the existing alpha/frecency ordering (D-7's own
+    // instruction) — a favourited app always sorts before a non-favourited
+    // one, regardless of sort mode, and the existing tiebreaker only
+    // decides ties WITHIN each favourite/non-favourite half.
+    function _compareApps(a, b, counts, favSet) {
+        if (favSet) {
+            const favA = favSet[a.id] ? 1 : 0;
+            const favB = favSet[b.id] ? 1 : 0;
+            if (favA !== favB)
+                return favB - favA;
+        }
         if (launcherWindow.sortMode === launcherWindow.sortModeFrecency) {
             const countA = counts[a.id] || 0;
             const countB = counts[b.id] || 0;
@@ -265,14 +279,30 @@ PanelWindow {
     //    composes with this by calling it as ITS tiebreaker").
     readonly property var filteredApps: {
         const q = LauncherState.query.trim();
+
+        // Hidden/favourite (quick task 260825-wj2 Task 2) — THIS is the
+        // single point Apps page's two toggles reach the launcher (D-6's
+        // own key_links instruction). Both arrays read ONCE per
+        // re-evaluation into a lookup map, the same hoist-out-of-the-loop
+        // discipline `counts` below already established, never per-app or
+        // per-comparison.
+        const hidden = Prefs.getValue("launcher.hiddenApps");
+        const hiddenSet = {};
+        for (let i = 0; i < hidden.length; i++)
+            hiddenSet[hidden[i]] = true;
+        const favourites = Prefs.getValue("launcher.favouriteApps");
+        const favSet = {};
+        for (let i = 0; i < favourites.length; i++)
+            favSet[favourites[i]] = true;
+
         const all = DesktopEntries.applications.values.filter(function (e) {
-            return !e.noDisplay;
+            return !e.noDisplay && !hiddenSet[e.id];
         });
         const counts = launcherWindow.sortMode === launcherWindow.sortModeFrecency ? Prefs.getValue("launcher.launchCounts") : undefined;
 
         if (q === "") {
             return all.slice().sort(function (a, b) {
-                return launcherWindow._compareApps(a, b, counts);
+                return launcherWindow._compareApps(a, b, counts, favSet);
             });
         }
 
@@ -289,7 +319,7 @@ PanelWindow {
         scored.sort(function (a, b) {
             if (a._score !== b._score)
                 return b._score - a._score;
-            return launcherWindow._compareApps(a.entry, b.entry, counts);
+            return launcherWindow._compareApps(a.entry, b.entry, counts, favSet);
         });
         return scored.map(function (s) {
             return s.entry;

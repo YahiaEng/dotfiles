@@ -578,7 +578,11 @@ BarCapsule {
     Process {
         id: upgradeProcess
         running: false
-        command: ["kitty", "-e", "paru", "-Syu"]
+        // Configured terminal (quick task 260825-wj2 Task 2) — falls back
+        // to the literal "kitty" this Process always launched, via Prefs'
+        // own hardcoded default, so an install that never opens the Apps
+        // page behaves exactly as today.
+        command: [Prefs.getValue("apps.terminal"), "-e", "paru", "-Syu"]
         onExited: (exitCode, exitStatus) => {
             if (exitCode === 0) {
                 notifyProcess.running = true;

@@ -22,6 +22,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import "pages"
+import "common"
 
 Singleton {
     id: root
@@ -68,10 +69,30 @@ Singleton {
     readonly property Component sessionComp: Component {
         SessionPage {}
     }
+    // Apps (quick task 260825-wj2 Task 2, D-2) — the first StackPage-
+    // wrapped comp: sub-page 0 is the root (AppsPage), 1 is All apps, 2 is
+    // App info. `settings-index-check`'s comp->file parser (D-4) collects
+    // every `*Page` identifier inside this block, in order, skipping the
+    // literal `StackPage` — so THIS declaration shape (one `Component { Xxx
+    // {} }` per page, nested inside `StackPage { ... }`) is itself part of
+    // the gate's contract, not just a style choice.
+    readonly property Component appsComp: Component {
+        StackPage {
+            Component {
+                AppsPage {}
+            }
+            Component {
+                AllAppsPage {}
+            }
+            Component {
+                AppInfoPage {}
+            }
+        }
+    }
 
     // Index-locked to PageRegistry.pages, in the identical order documented
     // there: [Appearance, Wallpaper, Bar, Audio, Network, Display, Input,
-    // Window manager, Notifications, Session].
+    // Window manager, Notifications, Session, Apps].
     readonly property list<Component> comps: [
         appearanceComp,
         wallpaperComp,
@@ -82,7 +103,8 @@ Singleton {
         inputComp,
         windowManagerComp,
         notificationsComp,
-        sessionComp
+        sessionComp,
+        appsComp
     ]
 
     // Index-locked to `comps` above (and therefore to `PageRegistry.pages`
@@ -100,7 +122,8 @@ Singleton {
         "input",
         "window-manager",
         "notifications",
-        "session"
+        "session",
+        "apps"
     ]
 
     Component.onCompleted: {

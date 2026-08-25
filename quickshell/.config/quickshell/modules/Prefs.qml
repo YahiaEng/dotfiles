@@ -186,7 +186,19 @@ Singleton {
         // the LIVE value immediately before the shell zeroes it, which is
         // what keeps this cooperating with the Window Manager page's own
         // border-size slider instead of overwriting whatever that set.
-        "edgeBar.restoreBorderSize"
+        "edgeBar.restoreBorderSize",
+        // Quick task 260825-wj2 Task 2 — Apps page. Favourite/hidden are
+        // plain per-id string arrays (D-6, no regex authoring path — this
+        // store is written only by this settings UI). apps.terminal/
+        // apps.audio are the two measured default-app consumers this tree
+        // actually has (SystemCapsule.qml's update action, SessionPage.qml's
+        // idle-overrides editor, MenuTree.qml's Setup ▸ Audio entry);
+        // Media playback/File manager stay InfoRows (D-6) and never get a
+        // Prefs key.
+        "launcher.favouriteApps",
+        "launcher.hiddenApps",
+        "apps.terminal",
+        "apps.audio"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -241,7 +253,14 @@ Singleton {
         "edgeBar.animatedBulge": true,
         // Hyprland's own compositor default for this host, and the literal
         // hyprland.lua falls back to (`overrides.general.border_size or 3`).
-        "edgeBar.restoreBorderSize": 3
+        "edgeBar.restoreBorderSize": 3,
+        // Quick task 260825-wj2 Task 2 — an install that never opens the
+        // Apps page behaves exactly as today: empty favourite/hidden lists,
+        // and the two literals every measured consumer already hardcoded.
+        "launcher.favouriteApps": ([]),
+        "launcher.hiddenApps": ([]),
+        "apps.terminal": "kitty",
+        "apps.audio": "pavucontrol"
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

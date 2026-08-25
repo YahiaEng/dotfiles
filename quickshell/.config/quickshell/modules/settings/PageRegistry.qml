@@ -102,6 +102,16 @@ Singleton {
             description: "Idle, lock, gaming mode, recording, power menu",
             category: "shell",
             slug: "session"
+        },
+        // Apps (quick task 260825-wj2 Task 2) — appended at index 10, no
+        // renumbering of the ten pages above. StackPage-wrapped (D-2): two
+        // sub-pages, All apps and App info.
+        {
+            label: "Apps",
+            icon: "apps",
+            description: "Default applications, favourites and hidden",
+            category: "shell",
+            slug: "apps"
         }
     ]
 

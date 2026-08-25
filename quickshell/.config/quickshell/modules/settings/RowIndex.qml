@@ -196,6 +196,26 @@ Singleton {
         { pageIdx: 9, section: "Power menu", label: "Warn when busy", keywords: "power shutdown reboot logout warn busy package manager" },
         { pageIdx: 9, section: "Power menu", label: "Default focused action", keywords: "power shutdown reboot logout default focus" },
         { pageIdx: 9, section: "Services", label: "Shell service", keywords: "service daemon autostart quickshell status" },
-        { pageIdx: 9, section: "Services", label: "Bar watchdog", keywords: "service daemon autostart watchdog bar status" }
+        { pageIdx: 9, section: "Services", label: "Bar watchdog", keywords: "service daemon autostart watchdog bar status" },
+
+        // ── pageIdx 10 — Apps (quick task 260825-wj2 Task 2, D-2/D-5) ────
+        { pageIdx: 10, section: "Default applications", label: "Terminal", keywords: "apps default terminal kitty command" },
+        { pageIdx: 10, section: "Default applications", label: "Audio", keywords: "apps default audio mixer pavucontrol command" },
+        { pageIdx: 10, section: "Default applications", label: "Media playback", keywords: "apps default media player playback" },
+        { pageIdx: 10, section: "Default applications", label: "File manager", keywords: "apps default file manager explorer xdg-open" },
+        { pageIdx: 10, section: "Library", label: "All apps", keywords: "apps library browse favourite hidden list" },
+        // Sub-page 1 — All apps (D-5): the "App" label is STATIC (see
+        // AllAppsPage.qml's own header) — this is the row's jump key, not
+        // any one app's name.
+        { pageIdx: 10, subPageIdx: 1, section: "Installed apps", label: "App", keywords: "apps all installed favourite hidden browse" },
+        { pageIdx: 10, subPageIdx: 1, section: "Installed apps", label: "No apps found", keywords: "apps all installed empty" },
+        // Sub-page 2 — App info: selection-dependent, so search actually
+        // lands on All apps (subPageIdx 1) where a user picks one first —
+        // `jumpSubPageIdx: 1` names that, while `subPageIdx: 2` stays the
+        // level these rows truly live on (what CHECK A/B grep against).
+        { pageIdx: 10, subPageIdx: 2, section: "Launcher", label: "Favourite", keywords: "apps info favourite pin launcher", jumpSubPageIdx: 1 },
+        { pageIdx: 10, subPageIdx: 2, section: "Launcher", label: "Hidden", keywords: "apps info hidden hide launcher", jumpSubPageIdx: 1 },
+        { pageIdx: 10, subPageIdx: 2, section: "Details", label: "App ID", keywords: "apps info id desktop entry", jumpSubPageIdx: 1 },
+        { pageIdx: 10, subPageIdx: 2, section: "Details", label: "Command", keywords: "apps info command exec", jumpSubPageIdx: 1 }
     ]
 }
