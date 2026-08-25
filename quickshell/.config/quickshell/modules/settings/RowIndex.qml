@@ -253,7 +253,17 @@ Singleton {
         { pageIdx: 14, section: "Updates", label: "Update system", keywords: "updates upgrade paru terminal system" },
 
         // ── pageIdx 15 — About (quick task 260825-wj2 Task 3) ────────────
-        { pageIdx: 15, section: "System", label: "System information", keywords: "about system fastfetch os host kernel uptime packages cpu gpu memory" },
+        // Nine literal system fields (quick-260826-1n9 Task 4, D-3) —
+        // replaces the single "System information" Repeater entry.
+        { pageIdx: 15, section: "System", label: "OS", keywords: "about system os operating system distro" },
+        { pageIdx: 15, section: "System", label: "Host", keywords: "about system host machine model" },
+        { pageIdx: 15, section: "System", label: "Kernel", keywords: "about system kernel linux version release" },
+        { pageIdx: 15, section: "System", label: "Uptime", keywords: "about system uptime running time" },
+        { pageIdx: 15, section: "System", label: "Packages", keywords: "about system packages installed pacman count" },
+        { pageIdx: 15, section: "System", label: "Shell version", keywords: "about system shell version bash zsh fish" },
+        { pageIdx: 15, section: "System", label: "CPU", keywords: "about system cpu processor" },
+        { pageIdx: 15, section: "System", label: "GPU", keywords: "about system gpu graphics card nvidia" },
+        { pageIdx: 15, section: "System", label: "Memory", keywords: "about system memory ram used total" },
         { pageIdx: 15, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
         { pageIdx: 15, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
     ]
