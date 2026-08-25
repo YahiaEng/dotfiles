@@ -750,6 +750,33 @@ ACCEPTED_ADDITIONS = {
     # baseline (captured 2026-08-08); it is new config, not drifted config.
     ("", 64, "comma", False):
         "Quick task 260820-sqd settings window entry point (keybinds.lua)",
+    # 2026-08-25, operator request: the workspace overview moved from
+    # SUPER+O to SUPER+Tab, declared at keybinds.lua:262 as
+    # `hl.bind(mainMod .. " + Tab", hl.dsp.global("quickshell:overview"))`.
+    # `Tab` measured free before the swap (no bind in this tree used it and
+    # `hyprctl binds` reported no live SUPER+Tab). UNLIKE every entry above
+    # this one, this addition DID retire a baseline bind — see the matching
+    # ("", 64, "O", False) entry in ACCEPTED_REMOVALS, which is the other
+    # half of the same move and must be kept in step with it.
+    ("", 64, "Tab", False):
+        "2026-08-25 overview rebound O -> Tab (keybinds.lua:262)",
+}
+
+# The mirror of ACCEPTED_ADDITIONS for baseline binds that were DELIBERATELY
+# retired. It exists because a rebind is two events — an addition and a
+# removal — and before 2026-08-25 this checker could only ever forgive the
+# addition half, so any intentional rebind failed the gate no matter how it
+# was documented. Same discipline as ACCEPTED_ADDITIONS, deliberately: an
+# entry is a precise 4-field identity, never a wildcard; it names WHY the
+# bind went away and WHERE its replacement lives; and it forgives exactly
+# one identity, so a second, unrelated bind going missing still fails loudly.
+# This is NOT a licence to re-baseline: .hypr-baseline/MANIFEST.md's 14-10
+# amendment records that a re-snapshot would overwrite the two `bindm`
+# mouse-field records 13.1-04 Task 3 explicitly forbade loosening.
+ACCEPTED_REMOVALS = {
+    ("", 64, "O", False):
+        "2026-08-25 overview rebound O -> Tab; O deliberately released "
+        "and left unbound (see the matching ACCEPTED_ADDITIONS entry)",
 }
 
 for ident in live_by_id.keys() - base_by_id.keys():
@@ -761,6 +788,12 @@ for ident in live_by_id.keys() - base_by_id.keys():
         continue
     diffs.append(f"bind ADDED (not in baseline): {_describe(live_by_id[ident])}")
 for ident in base_by_id.keys() - live_by_id.keys():
+    if ident in ACCEPTED_REMOVALS:
+        notes.append(
+            f"bind removed since baseline, accepted: "
+            f"{_describe(base_by_id[ident])} — {ACCEPTED_REMOVALS[ident]}"
+        )
+        continue
     diffs.append(f"bind REMOVED (in baseline, not live): {_describe(base_by_id[ident])}")
 
 for ident in sorted(base_by_id.keys() & live_by_id.keys(), key=lambda t: tuple(str(x) for x in t)):
@@ -1067,7 +1100,18 @@ def _expected_leaf_fields(leaf_name):
     curve = entry.get('curve')
     return {
         'bezier': ('motion-' + curve) if curve else None,
-        'style': entry.get('style'),
+        # A leaf entry that declares NO `style` key is not an incomplete
+        # entry — it is a deliberate "pass no style, take Hyprland's own
+        # default", which register_hypr_leaf implements by omitting
+        # args.style when entry.style is nil. Hyprland then reports that
+        # leaf's style as the EMPTY STRING, so '' is the correct expected
+        # value here. Reading it as None instead made such a leaf
+        # unforgivable by construction (the caller bails on
+        # `exp.get(k) is None`), which is exactly what the 'zen' style hit
+        # in 2026-08-25: it is the first shipped style to leave a leaf
+        # unstyled. `entry` is already known non-empty above, so an absent
+        # key really does mean "omitted on purpose", never "no such leaf".
+        'style': entry['style'] if 'style' in entry else '',
     }
 
 
