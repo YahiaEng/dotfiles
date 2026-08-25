@@ -746,6 +746,30 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
+WORKED 2026-08-25 (late) — **260825-pyf round 2: the popout bug I shipped is fixed, and the three config panels now spawn from the bulge too.** `047740db`, pushed.
+
+**I SHIPPED A BUG AND THE OPERATOR CAUGHT IT:** *"All popouts spawn from the same location which is at the top and far away from the bar."* Exactly right. `SectionPopout` published its bulge root from `Component.onCompleted`, but **`PopoutTrigger.qml:173-175` assigns `vertical` and `triggerCentre` onto the item AFTER creating it** — so at construction both were still at their declared defaults, every popout published a centre of 0, and the bar clamped that to one fixed position.
+
+**THE REASONING ERROR IS THE LESSON, not the line.** I reasoned that a fresh-per-summon component makes construction time and summon time the same instant. That is TRUE — and it is not the point. The loader's property assignments land AFTER construction. **Being BUILT at summon time is not being CONFIGURED at construction time.** Bindings now, which does not reintroduce the hazard the snapshot existed to avoid: the snapshot lives upstream in `PopoutTrigger._publishedCentre`, and forwarding a snapshot is not re-measuring it. `openExtent` had a SECOND independent reason to be late — the popout is content-bounded, so its size is 0 until the body lays out.
+
+**THE CONFIG PANELS (audio/wifi/bluetooth) NOW WELD TO THE TOP RAIL** like the dashboard: `margins.top` 0, `AttachedCorner` flares, the dashboard's slide-and-fade with the MIRRORED dismissal, and their layer rules moved `slide` -> `fade` because a compositor slide on top of a QML slide is two motions on one surface. The rail's bulge follows whichever surface is open and is sized off `PanelDialog.panelWidth` — the panels are 850 against the dashboard's 760, so the fixed bulge left them overhanging their own root by 45px a side.
+
+**MEASURED, per the operator's standing rule:** the wifi surface moved from `830,16 850x620` to `806,6 898x620` — welded (y 16 -> 6), widened by exactly 2x24 for the flares, panel still centred at 830. Flare confirmed by raw pixel dump WITH A POSITIVE CONTROL (row y=3, pure wallpaper, luminance 538): the gradient rim sits at x=813 on row y=6, 821 at y=10, 825 at y=14, reaching the panel's own edge by y=18 — a concave arc at full 24px against the rail, tapering to nothing. **An earlier binary threshold clipped the arc's anti-aliased tip and read 13px; the raw dump corrected it — a reminder that a threshold is an instrument and can be wrong.** Dashboard regression check: its own y=6 transitions are byte-identical before and after (854, 864/865, 1645/1646, 1656).
+
+**THE EXIT WAS NOT ACTUALLY PLAYING, and only measurement showed it.** `openPanel` closes via `closeAllPanels()`, which set `active = false` directly and destroyed the surface on the FIRST FRAME of its exit — measured 112ms against a 500ms spatial-in token. That was the MAIN path (Super+A, the tile chevrons, the IPC verb); only Esc and focus-loss reached `requestDismiss()`, so the animation would have looked broken exactly where it is used most and correct where it is used least. Now 576ms.
+
+**CLOSING IS SPLIT, and a GATE found the reason rather than my eye.** A genuine dismiss animates; a close that is REPLACING one panel with another is instant. `quickshell-doctor` reported `cross[count=2]`: all three panels are the same 850px frame in the same centred position, so an animated overlap reads as a glitch rather than a crossfade, and it broke D-15-25's at-most-one-panel invariant.
+
+**THE DOCTOR'S SETTLE WENT 0.3s -> 1.0s, and that is a widening, NOT a weakening.** The invariant is still zero panels once nothing is open, and a panel that never closes is still caught, because 1.0s is far past any exit the motion tokens can produce. Recorded explicitly because "I relaxed the gate that failed" is the shape of a bad fix, and this is not one.
+
+**GATES once each:** doctor 28/0 (re-run only after the one real failure it caught), colour-lint 365/0, motion-lint 552/0, settings-index 121/0, keybind-doctor 13/0, hypr-equivalence 3/0. `reserved` still `[0,6,50,6]`.
+
+**STILL NOT PIXEL-VERIFIED: the attached POPOUT.** The fix is code-evident but has never been rendered, and after shipping one bug here it should not be called done on reasoning alone. Bar popouts cannot be summoned from the agent shell (no IPC until restart, `hl.dsp.movecursor` nil, `wtype` types into the focused window).
+
+Resume file: None. NEXT ACTION: operator restarts quickshell (`systemctl --user restart quickshell.service`) — that registers the `popout` IPC target from `f1e0cc3f` and lets every popout check be done from here without asking again. A single click on a bar capsule also works without restarting.
+
+---
+
 WORKED 2026-08-25 (evening) — **quick task 260825-pyf: the bar's eight glance surfaces are on the edge-bar language.** `f1e0cc3f`..`e7b77e24`. **ONE OPERATOR CLICK IS OUTSTANDING** — see the end.
 
 **ALL EIGHT POPOUTS ARE ONE FRAME** (`modules/bar/SectionPopout.qml`; the eight `*Popout.qml` files are bodies declared into it), so this was one frame change plus wiring, not eight ports. Worth knowing before scoping anything else in that family.

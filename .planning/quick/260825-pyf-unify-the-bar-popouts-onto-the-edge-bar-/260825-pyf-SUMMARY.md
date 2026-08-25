@@ -130,3 +130,88 @@ Counts rose with the new files; none fell.
 - The `popout` IPC target is inert until the next shell restart.
 - Horizontal bar: never attached (the weld requires vertical), so popouts there
   keep today's posture with the corrected inset. Not separately exercised.
+
+
+---
+
+# Round 2 — operator feedback (2026-08-25 evening)
+
+Reported: *"All popouts spawn from the same location which is at the top and far
+away from the bar."* Correct, and it was my bug.
+
+## The cause, and the reasoning error behind it
+
+`SectionPopout` published its bulge root from `Component.onCompleted`. But
+`PopoutTrigger.qml:173-175` assigns `vertical`, `pinned` and `triggerCentre`
+onto the item **after** creating it. At construction all three were still at
+their declared defaults, so every popout published a centre of **0**; the bar
+clamped that into the slab's straight section, which is one fixed position
+regardless of which capsule was clicked.
+
+The reasoning that produced it: *a fresh-per-summon component makes construction
+time and summon time the same instant.* That is true, and it is not the point.
+The loader's property assignments land **after** construction — being BUILT at
+summon time is not being CONFIGURED at construction time.
+
+Now `Binding`s, so a later assignment simply flows through. This does not
+reintroduce the hazard the snapshot existed to avoid: the snapshot lives
+upstream in `PopoutTrigger._publishedCentre`, and forwarding a snapshot is not
+re-measuring it. `openExtent` had a second, independent reason to be late — the
+popout is content-bounded, so its size is 0 until the body lays out.
+
+## Second request: the config panels
+
+Audio, wifi and bluetooth now spawn from the bulge exactly as the dashboard
+does. Verified by measurement, per the operator's standing rule:
+
+- **Surface moved from `830,16 850x620` to `806,6 898x620`** — welded to the
+  rail (y 16 → 6), widened by exactly 2×24 for the flares, panel still centred
+  at 830.
+- **Flare, raw pixel dump with a positive control** (row y=3 = pure wallpaper,
+  luminance 538). The gradient rim sits at x=813 on row y=6, 821 at y=10, 825 at
+  y=14, and reaches the panel's own edge by y=18 — a concave arc at full 24px
+  width against the rail, tapering to nothing. *An earlier binary threshold
+  clipped the arc's anti-aliased tip and read 13px; the raw dump corrected it.*
+- **The top rail's bulge follows the open surface**, sized off PanelDialog's own
+  `panelWidth` — the panels are 850 against the dashboard's 760, so a fixed
+  bulge left them overhanging their own root by 45px a side.
+- **Dashboard regression check:** its own y=6 transitions are byte-identical
+  before and after (854, 864/865, 1645/1646, 1656).
+
+## The exit was not actually playing — found only by measuring
+
+`openPanel` closes via `closeAllPanels()`, which set `active = false` directly
+and destroyed the surface on the first frame of its exit. **Measured 112ms
+against a 500ms spatial-in token.**
+
+That was the *main* path: Super+A, the tile chevrons and the IPC verb all route
+through it, while only Esc and focus-loss reached `requestDismiss()`. The
+animation would have looked broken exactly where it is used most and correct
+where it is used least. After the fix: **576ms**.
+
+## Closing is split, and a gate is why
+
+A genuine dismiss animates; a close that is **replacing** one panel with another
+is instant. `quickshell-doctor` caught the reason rather than my eye:
+`cross[count=2]`. All three panels are the same 850px frame in the same centred
+position, so an animated overlap reads as a glitch, not a crossfade — and it
+broke D-15-25's at-most-one-panel invariant.
+
+The doctor's post-dismiss settle went 0.3s → 1.0s. That **widens the settle, it
+does not weaken the assertion**: the invariant is still zero panels once nothing
+is open, and a panel that never closes is still caught, because 1.0s is far past
+any exit the motion tokens can produce.
+
+## Gates — once each
+
+doctor 28/0 (re-run after the one real failure it caught), colour-lint 365/0,
+motion-lint 552/0, settings-index 121/0, keybind-doctor 13/0,
+hypr-equivalence 3/0. `reserved` still `[0,6,50,6]`.
+
+## Still outstanding
+
+The **attached popout has still never been rendered**. The fix above is
+code-evident, not pixel-verified, and after shipping one bug here I do not want
+to call it done on reasoning alone. It needs either an operator click or — much
+better — a shell restart, which registers the `popout` IPC target added earlier
+and lets every future popout check be done from here without asking.
