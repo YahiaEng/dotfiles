@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "EDGE BAR STYLE PICKER: Tasks 1-7 of 8 DONE, committed and pushed. T1 edgeBar.style key + migration (8e4417c9); T2 edgebarpath.js + vertical (bf4bdbfa); T3 Continuous, REVERSES D-2 (7498035b) + four-fault fix (9fbd4cea), OPERATOR-APPROVED; T4 Halo (e533d9dd); T5 Brackets (0178c4e9); T6 Segmented (c80e9b41); T7 settings picker (ae9ec82a). ONLY TASK 8 REMAINS — a BLOCKING operator checkpoint: the visual/hover judgements this host cannot make. Halo, Brackets and Segmented have NEVER been seen by the operator. Two constants flagged for tuning at T8: edgeBarBracketArmHoverExtra (0.4) and edgeBarHaloThickness (2). Plan + SUMMARY at .planning/quick/260824-ns3-implement-the-edge-bar-style-picker-per-/; shapes source of truth is .planning/notes/edge-rail-studies.html (vendored)."
-last_updated: "2026-08-25T03:25:00.000Z"
+stopped_at: "EDGE BAR STYLE PICKER: Tasks 1-7 done; ROUND 12 of operator feedback applied and pushed (0b8db18e..4a9490b4). Operator verdict: Continuous PASS, Segmented PASS. Fixed: rails clipped Hyprland windows (REVERSES DC-2 — the study never modelled gaps_out); Halo bulge 12px -> 8px via its own edgeBarHaloBulgeSwellExtra; Segmented lost the animate-bulge row entirely; and NEW — every style except off now makes Hyprland windows rimless via hypr-overrides.sh look --border-size, cooperating with the Window Manager page slider through the new edgeBar.restoreBorderSize pref. TASK 8 STILL OPEN: operator has not re-judged Brackets or Halo since round 12, and the rimless change is explicitly on trial ('I will see it for myself and rollback if I do not like it'). All six gates green at 4a9490b4."
+last_updated: "2026-08-25T04:40:00.000Z"
 last_activity: 2026-08-25
 last_activity_desc: "quick task 260824-ns3 Tasks 4-7 executed and pushed (e533d9dd..ae9ec82a) — Halo, Brackets, Segmented and the settings picker completion. All six gates green, path golden 59/59 -> 123/123. Only the blocking operator checkpoint (Task 8) remains. PRIOR: quick task 260823-9ak rounds 9-11 shipped and operator-approved (reversed-entrance dismiss, pill-cap fix, hover target decoupled, animated bulge reversing D-3); then a seven-direction edge bar design study was published and the operator chose FOUR shapes plus off to implement as a style picker. Zero implementation code written."
-state_head: ae9ec82a
+state_head: 4a9490b4
 progress:
   total_phases: 6
   completed_phases: 6
@@ -739,6 +739,28 @@ after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
 synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
+
+WORKED 2026-08-25 (round 12) — operator reviewed Tasks 4-7 live and returned four notes plus one new design directive. All applied, committed and pushed (`0b8db18e` clipping, `e272a88e` Halo bulge, `514febd3` Segmented row, `4a9490b4` rimless). Tree clean, `origin/main` level.
+
+**STANDING OPERATOR RULE FROM THIS ROUND:** *"For all of my notes, I want you to take screenshots and measure pixels instead of blind assumptions."* Every claim below came from `grim -g` + a raw per-column/row RGB dump with a background positive control. Do not quote a Design.qml token as evidence of what shipped.
+
+**VERDICTS:** Continuous PASS. Segmented PASS. Brackets and Halo had faults, now fixed but NOT yet re-judged.
+
+**1. THE CLIPPING, AND WHY IT WAS INEVITABLE — REVERSES DC-2.** The study insets rails by `INSET=10` and puts the right rail at `RIGHT_EDGE = BAR.x - 10`. It is an SVG drawn against a bare rectangle and has NO COMPOSITOR, so it cannot model that Hyprland already insets every client by `gaps_out` — also 10 here. Measured, window box `x 10..2499`: Brackets arms `10..15` and `2494..2499`, Halo right rail `2498..2499`. All inside the window box. Fix: anchored margin 0 on all four rails, letting `gaps_out` supply the gap — which is exactly what top/bottom always did, and precisely why THEY were never reported as clipping. After: Brackets `0..5` / `2504..2509` with 4px gaps; Halo `0..1` (10px gap) / `2508..2509` (8px gap).
+
+**2. Halo bulge 12px -> 8px.** New `Design.edgeBarHaloBulgeSwellExtra: 6`; Halo no longer borrows the 6px rail's `edgeBarBulgeSwellExtra: 10`. Read through `EdgeBar._swellExtra`, never the Design token directly, or the swell's two halves disagree. Fillet invariant holds: 3+1=4 <= 6. `_surfaceDepth` still 16, so no frame resizes the surface. Measured static: centre `y 0..7`, off-centre `y 0..1`.
+
+**3. Segmented lost the animate-bulge row.** Hidden in BarPage AND forced true via `shell.qml`'s `edgeBarAnimatedBulgeEffective`, so a stored `false` cannot strand it. Verified with the pref still `false`: 10 runs of ~242px, 9 gaps of 8px. Row visibility screenshotted WITH a positive control (absent on Segmented, present on Continuous) — a bare absence check would have been blind.
+
+**4. RIMLESS WINDOWS, ON TRIAL.** Every style except off sets `border_size 0`. **`hyprctl keyword` is DEAD on this build** — "keyword can't work with non-legacy parsers. Use eval." (measured). Everything goes through `hypr-overrides.sh look --border-size`, which evals, verifies against `hyprctl -j` and PERSISTS so it survives the theme pipeline's `hyprctl reload`. It COOPERATES with `WindowManagerPage.qml`'s existing border slider: the live value is read and stashed in the new `edgeBar.restoreBorderSize` pref before zeroing, and only a NON-ZERO reading is stashed (on a restart with a rail up the live value is already 0). Round-trip verified live: 5 -> rail on -> captured 5, border 0 -> off -> restored 5. **The operator said they will roll this back if they dislike it — rollback is the Window Manager page's slider, or `hypr-overrides.sh look --border-size 3` with the bar off.**
+
+**TWO TRAPS PAID FOR IN THIS ROUND'S OWN EDITING:** a Python slice replacement silently swallowed the `margins.left`/`margins.right` bindings and the follow-up `.replace()` was a no-op that raised nothing — always re-grep the thing you meant to keep. And `Component.onCompleted` already existed on the shell root, so adding a second one would have been a duplicate signal handler; the startup call was folded into the existing block instead.
+
+**GATES at `4a9490b4`, all re-run twice:** doctor 28/0, colour-lint 362/0, motion-lint 549/0, keybind-doctor 13/0, settings-index-check 120/0, path golden 123/123. Shell left on Continuous, animatedBulge ON, border 0, `restoreBorderSize` 3, log clean below the last start marker.
+
+Resume file: None. NEXT ACTION: operator re-judges Brackets and Halo, and decides whether rimless stays.
+
+---
 
 RESUMED then WORKED 2026-08-25 — /gsd-resume-work into /gsd-quick resume. **Tasks 4-7 are DONE, committed and pushed** (`e533d9dd` Halo, `0178c4e9` Brackets, `c80e9b41` Segmented, `ae9ec82a` settings). `origin/main` level with HEAD at `ae9ec82a`. The PLAN file is TRACKED (landed in 95f37857) — the older "UNTRACKED, commit it" warning is RESOLVED, do not re-raise it.
 
