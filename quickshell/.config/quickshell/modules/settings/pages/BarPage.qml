@@ -222,33 +222,37 @@ PageBase {
             // (Segmented used to be in this list — round 12 removed the
             // choice there, see the visibility comment below.)
             subtext: "Rest the edges flat and swell the centre only while you hover it or its panel is open, instead of showing a permanent one"
-            // Hidden on Brackets and on Segmented.
+            // ── SHOWN ON EXACTLY TWO STYLES ─────────────────────────────
+            // An ALLOW-list, not a chain of exclusions. Three of the five
+            // styles hide this row for three different reasons, and reading
+            // "not brackets and not segmented and not off" tells you none
+            // of them; "continuous or halo" is the actual rule.
             //
-            // Brackets draws no bulge at all, so there is nothing here to
-            // animate and a live-looking row that does nothing is worse
-            // than an absent one.
+            //   Brackets  — draws no bulge at all, so there is nothing here
+            //               to animate.
+            //   Segmented — round 12. The row DID work, but the operator
+            //               judged the permanent-merge state and removed
+            //               the choice: the merge is the bulge ABSORBING
+            //               whole segments, and holding that union reads as
+            //               segments simply missing. shell.qml forces the
+            //               animated value so the pref cannot strand it.
+            //   off       — round 12c, and this REVERSES the reasoning that
+            //               used to sit here. That reasoning argued only
+            //               against `enabled: false` (ToggleRow has no
+            //               styled disabled state, so a disabled row reads
+            //               as broken) and then wrongly concluded the row
+            //               should stay VISIBLE. Hiding it was the third
+            //               option and the right one. The operator: "it has
+            //               an 'animate bulge' option inside the settings
+            //               menu which obviously does nothing and should
+            //               not be there." With no rail mounted there is no
+            //               bulge to animate, exactly as on Brackets.
             //
-            // Segmented is operator round 12: the row was visible and did
-            // work there, but the operator judged the permanent-merge state
-            // it produces and removed the choice ("the always show bulge
-            // option should not exist in this style"). On Segmented the
-            // merge is the bulge ABSORBING whole segments, and holding that
-            // union permanently reads as segments simply missing rather
-            // than as a landmark. shell.qml forces the animated value on
-            // this style so the pref cannot strand it in the hidden state.
-            //
-            // Deliberately NOT disabled when the edge bar is off, and not
-            // hidden there either: ToggleRow has no styled disabled state
-            // anywhere in this shell, so `enabled: false` would block input
-            // while looking identical — a row that reads as broken. With
-            // the edge bar off every strip is unmounted and this pref
-            // simply has no effect until it is switched back on.
-            //
-            // The row DECLARATION stays in the file either way, so
+            // The row DECLARATION stays in the file in every case, so
             // settings-index-check's static scan keeps counting it against
             // its RowIndex entry regardless of what is on screen.
-            visible: Prefs.getValue("edgeBar.style") !== "brackets"
-                && Prefs.getValue("edgeBar.style") !== "segmented"
+            visible: Prefs.getValue("edgeBar.style") === "continuous"
+                || Prefs.getValue("edgeBar.style") === "halo"
             checked: Prefs.getValue("edgeBar.animatedBulge")
             onToggled: (value) => Prefs.setValue("edgeBar.animatedBulge", value)
         }
