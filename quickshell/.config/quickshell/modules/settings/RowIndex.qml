@@ -247,10 +247,14 @@ Singleton {
         { pageIdx: 13, section: "Region", label: "Precipitation units", keywords: "region units precipitation rain mm inch metric imperial weather" },
 
         // ── pageIdx 14 — Updates (quick task 260825-wj2 Task 3) ──────────
-        { pageIdx: 14, section: "Updates", label: "Update status", keywords: "updates status checking uptodate pending count" },
-        { pageIdx: 14, section: "Updates", label: "Pending update", keywords: "updates pending package repo aur" },
-        { pageIdx: 14, section: "Updates", label: "System is up to date", keywords: "updates uptodate none pending" },
-        { pageIdx: 14, section: "Updates", label: "Update system", keywords: "updates upgrade paru terminal system" },
+        // Rebuilt (quick-260826-1n9 Task 5, F4) — "Pending update"/"System
+        // is up to date"/"Update system" retired along with the old
+        // per-line Repeater; the count now lives in "Update status" and
+        // the packages themselves live in the page's own package grid
+        // (deliberately NOT a row primitive — no RowIndex entries).
+        { pageIdx: 14, section: "Updates", label: "Update all", keywords: "updates upgrade paru terminal system all" },
+        { pageIdx: 14, section: "Updates", label: "Update status", keywords: "updates status checking uptodate pending count repo aur" },
+        { pageIdx: 14, section: "Updates", label: "Last checked", keywords: "updates last checked time refresh" },
 
         // ── pageIdx 15 — About (quick task 260825-wj2 Task 3) ────────────
         // Nine literal system fields (quick-260826-1n9 Task 4, D-3) —

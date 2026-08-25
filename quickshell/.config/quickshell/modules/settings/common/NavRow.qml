@@ -3,6 +3,15 @@
 // #4, Caelestia's NavRow). Same `Control`-subclass + never-anchor-
 // contentItem discipline as SelectRow.qml — see that file's header for the
 // full reasoning.
+//
+// `icon` (quick-260826-1n9 Task 5, Rule 2) — same defaulted shape
+// InfoRow.qml's own `icon` property (D-2) already established: empty
+// default, so every existing call site (10 across this module, none of
+// which set `icon` today) renders byte-identically. Added here, not
+// listed in this plan's Task 2/5 `<files>` blocks, because D-5's own
+// settled decision ("prominence is bought with the download glyph… not
+// by leaving the row system") is unfulfillable without it — a NavRow had
+// no icon slot to carry that glyph at all.
 import QtQuick
 import QtQuick.Controls
 import "../../"
@@ -13,6 +22,7 @@ Control {
 
     property string label: ""
     property string subtext: ""
+    property string icon: ""
     signal activated()
 
     // Two-pane keyboard focus — see Pages.qml's header for the full
@@ -30,9 +40,24 @@ Control {
         id: rowContent
         implicitHeight: Math.max(labelCol.implicitHeight, chevron.implicitHeight)
 
+        // Reserves no space at all when `icon` is empty (the default) —
+        // `labelCol` anchors straight to `parent.left` in that case,
+        // identical to this row's shape before this property existed.
+        Text {
+            id: iconGlyph
+            visible: root.icon.length > 0
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            font.family: Design.symbolFontFamily
+            font.pixelSize: Design.iconSizeMd
+            text: root.icon
+            color: Colours.onSurfaceVariant
+        }
+
         Column {
             id: labelCol
-            anchors.left: parent.left
+            anchors.left: root.icon.length > 0 ? iconGlyph.right : parent.left
+            anchors.leftMargin: root.icon.length > 0 ? Design.spacingSm : 0
             anchors.right: chevron.left
             anchors.rightMargin: Design.spacingMd
             anchors.verticalCenter: parent.verticalCenter
