@@ -181,6 +181,37 @@ PageBase {
             color: Colours.error
         }
 
+        // Kitty-only argv, made conditional (quick-260826-1n9 Task 6,
+        // D-7) — `--class`/`--title`/`-o background_opacity=0.85`/`-o
+        // font_size=11` are kitty spellings. Before this task the Apps
+        // picker's model was decorative (it stored a desktop-entry id no
+        // consumer could exec), so this Process always launched a REAL
+        // kitty regardless of what the picker showed; now that the
+        // picker can genuinely change the terminal, those four kitty-only
+        // pairs are appended only when the configured terminal's
+        // basename is "kitty" — otherwise the argv falls back to
+        // `<term> -e <editor> <file>`, the near-universal spelling the
+        // other two terminal-launching call sites (SystemCapsule.qml,
+        // UpdatesPage.qml) already rely on. Deliberately NOT a
+        // per-terminal flag matrix: this host has exactly one terminal
+        // family installed (measured — AppsPage.qml's own Terminal model
+        // is built from exactly two desktop entries, both kitty), so a
+        // matrix would be unverifiable code.
+        function _editorArgv() {
+            var term = Prefs.getValue("apps.terminal");
+            var editor = Quickshell.env("EDITOR") || "nvim";
+            var file = Quickshell.env("HOME") + "/.local/state/hypr/idle-overrides.conf";
+            var basename = term.split("/").pop();
+            if (basename === "kitty")
+                return ["uwsm", "app", "--", term,
+                    "--class", "idle-overrides-editor",
+                    "--title", "Idle & Lock Overrides",
+                    "-o", "background_opacity=0.85",
+                    "-o", "font_size=11",
+                    "--", editor, file];
+            return ["uwsm", "app", "--", term, "-e", editor, file];
+        }
+
         // Fixed argv launcher, `Process.startDetached()` (not
         // `running = true`) for the same reason DisplayPage.qml's
         // nwg-displays launcher uses it — `onActivated` closes this
@@ -188,15 +219,7 @@ PageBase {
         // be torn down mid-launch along with this page.
         Process {
             id: editorProc
-            // Configured terminal (quick task 260825-wj2 Task 2) — falls
-            // back to the literal "kitty" this Process always launched, via
-            // Prefs' own hardcoded default.
-            command: ["uwsm", "app", "--", Prefs.getValue("apps.terminal"),
-                "--class", "idle-overrides-editor",
-                "--title", "Idle & Lock Overrides",
-                "-o", "background_opacity=0.85",
-                "-o", "font_size=11",
-                "--", (Quickshell.env("EDITOR") || "nvim"), Quickshell.env("HOME") + "/.local/state/hypr/idle-overrides.conf"]
+            command: idleSection._editorArgv()
         }
 
         NavRow {

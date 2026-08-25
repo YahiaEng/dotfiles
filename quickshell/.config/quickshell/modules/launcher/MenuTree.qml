@@ -194,6 +194,12 @@ Singleton {
                     // `pavucontrol` this entry always launched, via
                     // Prefs' own hardcoded default, so an install
                     // that never opens that page is unaffected.
+                    // Needs no change for quick-260826-1n9 Task 6: apps.audio
+                    // is a single EXECUTABLE token by construction
+                    // (AppsPage.qml's own _exe() normaliser strips every field
+                    // code/flag down to one bare token before it is ever stored),
+                    // so this template string — run through sh -c by
+                    // MenuMode.qml:127 — can never be word-split.
                     command: `uwsm app -- ${Prefs.getValue("apps.audio")}`
                 },
                 {
