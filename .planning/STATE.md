@@ -746,6 +746,28 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
+WORKED 2026-08-25 (night) — **260825-pyf round 3. Three operator-reported faults, all mine, all now MEASURED ON SCREEN.** `b4173689`, pushed.
+
+**THE PROCESS FAILURE FIRST, because it caused the rest.** The operator's standing rule is to verify with screenshots and pixels. I measured COORDINATES and cropped a 60px corner, and never once looked at a whole panel or at a popout at all. Every fault below was visible in a single screenshot I did not take. Coordinates agreeing with a formula is not the same as the surface looking right.
+
+**FAULT 1 — flares alongside the old corners, and the attached edge still drawing its rim. THE FIX ALREADY EXISTED IN THIS TREE AND I DID NOT APPLY IT.** `Dashboard.qml`'s `dashboardBorderClip` (operator round 3 of 260823-9ak) describes this exact symptom in its own comment: *"the panel's own side border runs straight past the flare's arc as a second parallel rim line, which is what 'the concave flares exist alongside the old geometry' described."* Once a flare welds a corner, the attached edge AND the adjacent `attachedCornerRadius` of both neighbouring sides stop being outer edges of the merged silhouette, so the ring must not draw them. Applied now to BOTH `SectionPopout` and `PanelDialog`. **The asymmetry is load-bearing:** insetting the TOP moves the clip's origin down, so PanelDialog's ring needs `y: -flareRadius`; insetting only the RIGHT does not move the origin, so the popout's needs none.
+
+**FAULT 2 — the popout spawned far from the bar, TWO independent causes plus a third found by the same measurement.** (a) It targeted the BULGE's face, but the bulge is not a shelf beside the panel — it protrudes OVER it, exactly as the top rail's bulge covers the dashboard's top 14px. (b) **`margins.right` is measured from the USABLE area, not the screen edge, despite `exclusionMode: ExclusionMode.Ignore` and this frame's own comment claiming otherwise.** Measured: margins.right 72 gave a right edge of 2438; 2560−72 = 2488 but 2510−72 = 2438. That 50px IS the reported gap. (c) The usable boundary uses the TOTAL reservation (margins 6 + exclusiveZone 44 = 50), not `reservedZoneExtent` alone — that cost a further 6px. Right edge now measures **2502**, the slab's flat face, exactly.
+
+**FAULT 3 — the anchor was published only on the POINTER paths.** `publishAnchor()` was called from the hover and click handlers only, so a popout summoned any other way arrived with `_publishedCentre` still 0. Logged precisely: `triggerCentre=0 rootCentre=164`. Now published from the loader's own activation — **the one place every summon path passes through**, so it is correct by construction rather than by remembering to add a call to each new caller.
+
+**AND THE BULGE HAD NEVER PAINTED ONCE.** `Binding { target: barWindow; property: "popoutBulgeDepth" }` — a `Binding` aimed at its own file's ROOT OBJECT — silently never applied, while the three `Binding`s aimed at `PopoutController` in that same file worked fine. A direct binding expression animates through the `Behavior` identically. **The diagnostic is what found it: NO log line at all rather than a wrong value** — an absent signal, which is only readable because the log prints on change.
+
+**A FINDING I RECORDED AND HAD TO RETRACT:** I claimed Quickshell's IPC surface is fixed at process start and hot reload never registers a new `IpcHandler`, and told the operator a restart was needed. **Wrong.** The `popout` target appeared later in the same session with the shell never restarted (launch time unchanged, 2h44m). Registration LAGS the reload, and during that window a probe function on an already-registered target was missing too — which is why the positive control agreed with the wrong conclusion. A control rules out "something about my new code"; it cannot rule out a timing window, because both arms can sit inside the same one. Memory corrected.
+
+**VERIFIED ON SCREEN this time:** the wifi panel's top-left corner captured at 6x BESIDE the dashboard's own at the same zoom — same flare, no top rim, no square corner. The popout captured whole — rim on left/top/bottom, curving outward into the bar at both right corners, none on the bar-facing edge, seated on the slab. Bulge animation confirmed in the log reaching depth 14 over span 992..1268.
+
+**GATES once each:** doctor 28/0, colour-lint 365/0, motion-lint 552/0, settings-index 121/0, keybind-doctor 13/0.
+
+Resume file: None. NEXT ACTION: operator re-judges all three surfaces. Known remaining: a small artifact where the popout's flare rim meets the bar's edge, visible only at 7x, not yet chased.
+
+---
+
 WORKED 2026-08-25 (late) — **260825-pyf round 2: the popout bug I shipped is fixed, and the three config panels now spawn from the bulge too.** `047740db`, pushed.
 
 **I SHIPPED A BUG AND THE OPERATOR CAUGHT IT:** *"All popouts spawn from the same location which is at the top and far away from the bar."* Exactly right. `SectionPopout` published its bulge root from `Component.onCompleted`, but **`PopoutTrigger.qml:173-175` assigns `vertical` and `triggerCentre` onto the item AFTER creating it** — so at construction both were still at their declared defaults, every popout published a centre of 0, and the bar clamped that to one fixed position.
