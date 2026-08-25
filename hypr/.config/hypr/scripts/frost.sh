@@ -1,19 +1,27 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════════╗
 # ║                  FROST OWNER (layer-rule re-applier)      ║
-# ║  Layer rules apply at compositor STARTUP only. This build ║
-# ║  runs the Lua (non-legacy) parser, which silently DROPS   ║
-# ║  every layer rule on `hyprctl reload` — no error, no      ║
-# ║  warning, `hyprctl configerrors` clean. See the ⚠ block   ║
-# ║  in config/windowrules.lua (~line 454), verified there by ║
-# ║  screenshot A/B during plan 16-07 round 10.               ║
+# ║  Owns the frosted-glass backdrop on the quickshell layer  ║
+# ║  surfaces: the blur layer rules declared in               ║
+# ║  config/windowrules.lua, plus a user on/off preference.   ║
 # ║                                                           ║
-# ║  lib/reload.sh calls `hyprctl reload` on EVERY theme and   ║
-# ║  motion apply, so before this script existed the frosted   ║
-# ║  backdrop silently disappeared on every theme switch and   ║
-# ║  did not come back until the next Hyprland restart. That   ║
-# ║  is the bug this owns; the on/off preference rides along   ║
-# ║  because the same eval is what turns blur off too.         ║
+# ║  MEASURED 2026-08-25 on Hyprland 0.56.2, correcting an     ║
+# ║  older belief this script was first written on:            ║
+# ║    * `hyprctl reload` does NOT drop layer rules. Verified  ║
+# ║      by screenshot: a blurred dashboard stayed blurred     ║
+# ║      across a plain reload. windowrules.lua's ⚠ block      ║
+# ║      (~line 454) says EDITS do not take effect on reload,  ║
+# ║      which is a narrower claim than "rules are dropped" —  ║
+# ║      do not read it as the latter.                         ║
+# ║    * Because reload re-executes the config, it re-asserts  ║
+# ║      blur = true and would silently override a user who    ║
+# ║      has turned frost OFF. Re-asserting the preference is  ║
+# ║      the real reason lib/reload.sh calls `apply` — not     ║
+# ║      repairing a drop.                                     ║
+# ║    * `apply` DOES recover a surface stuck unblurred:       ║
+# ║      verified by forcing blur=false on the open dashboard  ║
+# ║      (text behind it became sharp) and then running it     ║
+# ║      (text became blurred again).                          ║
 # ║                                                           ║
 # ║  SINGLE SOURCE OF TRUTH: the rules are NOT duplicated      ║
 # ║  here. They are read back out of windowrules.lua in FILE   ║

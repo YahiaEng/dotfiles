@@ -68,24 +68,25 @@ theme_engine_reload() {
     # functional change required here — this line stays exactly as it
     # already was for hyprlang.
     hyprctl reload >/dev/null 2>&1 || true
-    # ⚠ LAYER RULES DO NOT SURVIVE THE LINE ABOVE. The measurement quoted in
-    # this block ("fully clears and re-executes the Lua config from scratch")
-    # holds for binds, options and animation leaves — it does NOT hold for
-    # layer rules, which this build's Lua parser applies at compositor
-    # STARTUP only and silently drops on reload, with no error and a clean
-    # `hyprctl configerrors`. See the ⚠ block in config/windowrules.lua
-    # (~line 454), verified there by screenshot A/B in plan 16-07 round 10.
+    # RE-ASSERT THE FROST PREFERENCE AFTER THE RELOAD ABOVE.
+    # Measured 2026-08-25 on Hyprland 0.56.2, by screenshot: `hyprctl
+    # reload` does NOT drop layer rules — a blurred dashboard stayed
+    # blurred across one. (windowrules.lua's ⚠ block ~line 454 says EDITS
+    # do not take effect on reload, which is a narrower claim; do not read
+    # it as "rules are dropped".)
     #
-    # Because this function runs on EVERY theme and motion apply, that meant
-    # the frosted backdrop vanished from every quickshell surface on every
-    # theme switch and stayed gone until the next Hyprland restart — and the
-    # drawers lost their slide/fade entrances with it. frost.sh replays the
-    # rules straight out of windowrules.lua, so there is no second copy to
-    # drift, and it honours the user's frost on/off preference.
+    # What the reload DOES do is re-execute the config, which re-asserts
+    # `blur = true` on every quickshell surface — silently overriding a
+    # user who has turned frost OFF in settings. Since this function runs
+    # on EVERY theme and motion apply, without the call below the frost
+    # toggle would quietly flip itself back on the next time the theme
+    # changed. frost.sh replays the rules straight out of windowrules.lua,
+    # so there is no second copy to drift, and it applies the stored
+    # preference on top.
     #
     # Best-effort and inside this function's existing headless guard: on a
     # session-less host (container/VM gate, fresh install) there is no
-    # compositor to eval against and nothing to restore.
+    # compositor to eval against.
     if [[ -x "$HOME/.config/hypr/scripts/frost.sh" ]]; then
         "$HOME/.config/hypr/scripts/frost.sh" apply >/dev/null 2>&1 || true
     fi
