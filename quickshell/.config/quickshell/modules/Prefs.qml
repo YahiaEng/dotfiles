@@ -209,7 +209,19 @@ Singleton {
         "services.updatesPollMs",
         "region.unitsTemp",
         "region.unitsWind",
-        "region.unitsPrecip"
+        "region.unitsPrecip",
+        // Quick task 260826-1n9 Task 7 — the weather location's
+        // automatic/manual toggle and its three data fields. Consumer:
+        // WeatherBackend.qml's computed `lat`/`lon`/`cityOverride`
+        // (Prefs-first, then weather.json — the same fallback shape
+        // `region.units*` above already established). `weatherLat`/
+        // `weatherLon` are written ONLY by WeatherBackend itself, from
+        // GeocodeBackend's forward-geocode `located` signal — never
+        // typed directly.
+        "region.weatherMode",
+        "region.weatherCity",
+        "region.weatherLat",
+        "region.weatherLon"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -283,7 +295,18 @@ Singleton {
         "services.updatesPollMs": 1800000,
         "region.unitsTemp": "auto",
         "region.unitsWind": "auto",
-        "region.unitsPrecip": "auto"
+        "region.unitsPrecip": "auto",
+        // Quick task 260826-1n9 Task 7 — "auto" keeps an existing
+        // hand-edited weather.json fully authoritative (D-8), exactly the
+        // same reasoning "auto" already carries for the three units keys
+        // above. weatherLat/weatherLon default to 0 — a REAL latitude/
+        // longitude, deliberately never treated as an "unresolved"
+        // sentinel anywhere validity is decided (mode + non-empty city
+        // decides that, not a comparison against 0).
+        "region.weatherMode": "auto",
+        "region.weatherCity": "",
+        "region.weatherLat": 0,
+        "region.weatherLon": 0
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

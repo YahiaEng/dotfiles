@@ -7,6 +7,14 @@
 // already sizes `contentItem` from `availableWidth`/`availableHeight` via
 // its padding once no such override exists) — only the CHILDREN inside
 // contentItem are anchored, which is ordinary and safe.
+//
+// `icon` (quick-260826-1n9 Task 7, Rule 2) — same defaulted shape
+// InfoRow.qml's own `icon` property (D-2) and NavRow.qml's own `icon`
+// property (Task 5) already established: empty default, so every
+// existing call site (39 across this module, none of which set `icon`
+// today) renders byte-identically. Added here, not listed in Task 7's own
+// `<files>` block, because that task's "Weather location mode" row needs
+// a `cloud` glyph and a SelectRow had no icon slot to carry it.
 import QtQuick
 import QtQuick.Controls
 import "../../"
@@ -17,6 +25,7 @@ Control {
 
     property string label: ""
     property string subtext: ""
+    property string icon: ""
     // Each entry: { value: "<raw>", display: "<label>" }
     property var model: []
     property string currentValue: ""
@@ -96,9 +105,24 @@ Control {
         id: rowContent
         implicitHeight: Math.max(labelCol.implicitHeight, dropdownPill.implicitHeight)
 
+        // Reserves no space when `icon` is empty (the default) — see
+        // NavRow.qml's identical shape, added the same task for the
+        // identical reason.
+        Text {
+            id: iconGlyph
+            visible: root.icon.length > 0
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            font.family: Design.symbolFontFamily
+            font.pixelSize: Design.iconSizeMd
+            text: root.icon
+            color: Colours.onSurfaceVariant
+        }
+
         Column {
             id: labelCol
-            anchors.left: parent.left
+            anchors.left: root.icon.length > 0 ? iconGlyph.right : parent.left
+            anchors.leftMargin: root.icon.length > 0 ? Design.spacingSm : 0
             anchors.right: dropdownPill.left
             anchors.rightMargin: Design.spacingMd
             anchors.verticalCenter: parent.verticalCenter

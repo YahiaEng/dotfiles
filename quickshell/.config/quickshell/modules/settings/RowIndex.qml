@@ -241,6 +241,9 @@ Singleton {
 
         // ── pageIdx 13 — Language & region (quick task 260825-wj2 Task 6) ─
         { pageIdx: 13, section: "Region", label: "UI language", keywords: "language region translation locale" },
+        // Weather location mode/city (quick-260826-1n9 Task 7, F6, D-8/D-9).
+        { pageIdx: 13, section: "Region", label: "Weather location mode", keywords: "weather location mode automatic manual region" },
+        { pageIdx: 13, section: "Region", label: "Weather city", keywords: "weather city location geocode manual region" },
         { pageIdx: 13, section: "Region", label: "Weather location", keywords: "weather source location city forecast region" },
         { pageIdx: 13, section: "Region", label: "Temperature units", keywords: "region units temperature celsius fahrenheit metric imperial weather" },
         { pageIdx: 13, section: "Region", label: "Wind speed units", keywords: "region units wind speed kmh mph metric imperial weather" },

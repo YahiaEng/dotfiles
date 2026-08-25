@@ -182,8 +182,36 @@ Scope {
         }
     }
 
-    readonly property alias lat: state.lat
-    readonly property alias lon: state.lon
+    // `lat`/`lon` — alias -> computed (quick-260826-1n9 Task 7, D-8), the
+    // identical conversion this file already performed on `unitsTemp`/
+    // `unitsWind`/`unitsPrecip` below for the identical reason: "an alias
+    // cannot carry a fallback chain". Resolution order, in ONE place: when
+    // `region.weatherMode` is "manual" and `region.weatherLat`/`Lon` are
+    // finite numbers, use those; else `state.lat`/`state.lon` (the
+    // existing hand-edit path, unchanged). Kept `var`, not `real` — a
+    // numeric declaration would silently coerce a hand-edited
+    // `weather.json` string to 0, and `coordsValid` below depends on the
+    // non-numeric case staying detectable. Everything downstream
+    // (`coordsValid`, `_cachedLat`/`_cachedLon` staleness comparisons,
+    // `buildRequestUrl`) already reads these two properties and needs no
+    // edit — the same "everything downstream just works" observation the
+    // units conversion recorded.
+    readonly property var lat: {
+        if (Prefs.getValue("region.weatherMode") === "manual") {
+            var manualLat = Prefs.getValue("region.weatherLat");
+            if (typeof manualLat === "number" && isFinite(manualLat))
+                return manualLat;
+        }
+        return state.lat;
+    }
+    readonly property var lon: {
+        if (Prefs.getValue("region.weatherMode") === "manual") {
+            var manualLon = Prefs.getValue("region.weatherLon");
+            if (typeof manualLon === "number" && isFinite(manualLon))
+                return manualLon;
+        }
+        return state.lon;
+    }
     // Plain `readonly property string`, not an alias (quick task
     // 260825-wj2 Task 6, Language & region page's three unit pickers) — an
     // alias cannot carry a fallback chain. Resolution order, in one place:
@@ -210,8 +238,20 @@ Scope {
     // everything else reads.
     readonly property alias city: state.city
     // Quick task 260818-v3m — trimmed optional override, see JsonAdapter's
-    // own comment above.
-    readonly property string cityOverride: String(state.city).trim()
+    // own comment above. Extended (quick-260826-1n9 Task 7, D-8) to prefer
+    // the MANUAL Prefs city over `state.city` when manual mode is active
+    // and a city has genuinely been typed — `cityLabel` and the
+    // geocode-suppression guard (`_resolveCityIfNeeded()` below) both
+    // follow the manual selection this way, with no second resolution
+    // chain to keep in step.
+    readonly property string cityOverride: {
+        if (Prefs.getValue("region.weatherMode") === "manual") {
+            var manualCity = String(Prefs.getValue("region.weatherCity") || "").trim();
+            if (manualCity !== "")
+                return manualCity;
+        }
+        return String(state.city).trim();
+    }
 
     // ── T-14-03 mitigation: validate before constructing anything ───────
     readonly property bool coordsValid: {
@@ -353,6 +393,53 @@ Scope {
             if (root.hasPayload)
                 root.writeCache();
         }
+        // Task 7 (D-8/D-9) — the forward-geocode result. Writes
+        // `region.weatherLat`/`region.weatherLon` through `Prefs.setValue`
+        // AS NUMBERS (never as strings from a text field — `setValue`
+        // itself refuses a write whose `typeof` differs from the
+        // default's). `manualLocationDisplayName` records what the query
+        // actually resolved to.
+        onLocated: (lat, lon, displayName) => {
+            Prefs.setValue("region.weatherLat", lat);
+            Prefs.setValue("region.weatherLon", lon);
+            root.manualLocationDisplayName = displayName;
+        }
+    }
+
+    // Set only by the `onLocated` handler above — the settings window has
+    // no direct handle to this WeatherBackend instance (it is mounted
+    // once at shell.qml root, not relayed through SettingsState the way
+    // audioBackend/wifiBackend/bluetoothBackend are), so this exists for
+    // any future in-process consumer that DOES hold a reference, and is
+    // logged below so the resolution is at least visible in
+    // ~/.cache/quickshell.log today.
+    property string manualLocationDisplayName: ""
+    onManualLocationDisplayNameChanged: {
+        if (root.manualLocationDisplayName !== "")
+            console.log("WeatherBackend: manual city resolved to \"" + root.manualLocationDisplayName + "\"");
+    }
+
+    // ── Manual-city resolver trigger (quick-260826-1n9 Task 7, D-9) ─────
+    // `manualCityTarget` binds through `Prefs.getValue()` — a FUNCTION
+    // call, not a native QML property — so it re-evaluates on every
+    // single Prefs write, not just a `region.weatherCity` one. That is
+    // harmless: a write to an unrelated key reproduces the SAME computed
+    // string, and QML's own property-change semantics (this file's
+    // standing rule, restated by SettingsState.qml's `goToPage()`) only
+    // fire `onManualCityTargetChanged` when the RESULT actually differs —
+    // so a no-op write never re-triggers a lookup.
+    readonly property string manualCityTarget: (Prefs.getValue("region.weatherMode") === "manual") ? String(Prefs.getValue("region.weatherCity") || "").trim() : ""
+
+    onManualCityTargetChanged: {
+        if (root.manualCityTarget === "")
+            return;
+        // Qt.callLater, matching `_resolveCityIfNeeded()`'s own reasoning
+        // two blocks below: bindings this handler itself depends on may
+        // not have finished settling in the same tick a Prefs write
+        // cascades through.
+        Qt.callLater(function () {
+            geocoder.resolveName(root.manualCityTarget);
+        });
     }
 
     // The single place `geocoder.resolve()` may be called from. Guards, in
