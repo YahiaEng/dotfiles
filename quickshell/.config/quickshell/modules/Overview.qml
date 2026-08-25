@@ -30,7 +30,58 @@ PanelWindow {
     // wl_surface is actually destroyed on every dismissal path (D-14), not
     // merely hidden — matching Dashboard.qml/ScreencopyProbe.qml's own
     // proven combination.
+    //
+    // EMITTED ONLY AT THE END OF THE EXIT, never by a caller (quick task
+    // 260825-v3u). This signal means "the exit has finished playing, tear
+    // me down", not "please close" — `_beginDismiss()` below is the
+    // request half. Emitting it directly is what made the overview pop:
+    // the loader destroys the surface on the frame it fires, so nothing
+    // this file animates gets a chance to run. Exactly the split quick
+    // task 260825-x9p round 3 had to make for the bar popouts, for the
+    // same reason.
     signal dismissRequested()
+
+    // ── The single dismissal funnel (quick task 260825-v3u) ──────────────
+    // Mirrors PowerMenu.qml:411-437 — the other Cascade consumer, which has
+    // had this shape since Phase 20 — rather than inventing a second one.
+    // Every dismissal route in this file goes through here, so the
+    // wait-for-the-exit guarantee lives in one place instead of five.
+    //
+    // Before this, all five routes emitted `dismissRequested()` straight at
+    // shell.qml, which answered `overviewLoader.active = false`. The
+    // entrance cascade was armed and run on `Component.onCompleted` (:95)
+    // but `Cascade.runExit()` — which has existed the whole time — was
+    // never called from this file at all, so the overview had an entrance
+    // and no exit.
+    //
+    // WHY THE WORKSPACE SWITCH IS NOT DEFERRED BEHIND THE EXIT, unlike
+    // PowerMenu's action dispatch: `activateTile`/`activateWindow` call
+    // `activate()` BEFORE this function, and that ordering is deliberate.
+    // D-16-19 states the overview's job is navigation, and navigation is
+    // the thing that must stay instant — adding a spatial-out duration of
+    // latency to every workspace switch would tax the common path to
+    // decorate the rare one. The surface is on the Overlay layer, so the
+    // tiles sweep out ABOVE the workspace that has already been switched
+    // to, which reads as the overview lifting off the new workspace.
+    // PowerMenu defers because its actions (poweroff/reboot) must never
+    // fire while a frame of the surface could still be on screen; nothing
+    // here is destructive that way.
+    property bool _dismissing: false
+    function _beginDismiss() {
+        if (overviewWindow._dismissing)
+            return;
+        overviewWindow._dismissing = true;
+
+        function afterExit() {
+            overviewWindow.entranceCascade.exitFinished.disconnect(afterExit);
+            overviewWindow.dismissRequested();
+        }
+        overviewWindow.entranceCascade.exitFinished.connect(afterExit);
+        // Motion-off and empty-bands both land in `exitFinished` synchronously
+        // (Cascade.runExit()'s own early return), so the no-motion path still
+        // tears down on the same frame it used to.
+        overviewWindow.entranceCascade.runExit();
+    }
 
     anchors {
         top: true
@@ -151,7 +202,7 @@ PanelWindow {
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
-        onClicked: overviewWindow.dismissRequested()
+        onClicked: overviewWindow._beginDismiss()
     }
 
     // Fixed tile geometry (16-UI-SPEC.md "Grid geometry") — named constants
@@ -219,7 +270,7 @@ PanelWindow {
             workspace.activate();
         else if (slotIndex !== undefined && slotIndex !== null)
             overviewWindow.dispatchWorkspaceFocus(slotIndex);
-        overviewWindow.dismissRequested();
+        overviewWindow._beginDismiss();
     }
 
     // Focuses a workspace Hyprland has no object for yet, by dispatching the
@@ -257,7 +308,7 @@ PanelWindow {
     function activateWindow(toplevel) {
         if (toplevel && toplevel.wayland)
             toplevel.wayland.activate();
-        overviewWindow.dismissRequested();
+        overviewWindow._beginDismiss();
     }
 
     // ── D-16-15/D-16-16 keyboard selection state (Phase 16 Plan 07) ──────
@@ -559,7 +610,7 @@ PanelWindow {
             overviewWindow.selectedWindow = -1;
             return;
         }
-        overviewWindow.dismissRequested();
+        overviewWindow._beginDismiss();
     }
 
     // ── The fixed 5x2 numbered grid (D-16-01) ────────────────────────────
@@ -1033,7 +1084,7 @@ PanelWindow {
         id: grab
         windows: [ overviewWindow ]
         active: true
-        onCleared: overviewWindow.dismissRequested()
+        onCleared: overviewWindow._beginDismiss()
     }
 
     // ── Content root (D-10 Esc dismiss; D-16-15/D-16-16 arrow/Enter nav) ──

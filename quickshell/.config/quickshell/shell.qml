@@ -1068,8 +1068,21 @@ ShellRoot {
     // trapped in a fullscreen app — `Super+2` already works while
     // fullscreen, so refusing `Super+O` while allowing it would block the
     // escape hatch while leaving the fire exit open.
+    //
+    // The close half goes through `_dismissLoader()` (:480) rather than
+    // writing `active = false`, so a Super+Tab press while the overview is
+    // open plays Overview's exit cascade instead of destroying the surface
+    // on frame one (quick task 260825-v3u). The open half still writes
+    // `active` directly — there is nothing to animate on the way in until
+    // the surface exists. Same known edge `_dismissLoader`'s own header
+    // already documents for the launcher and drawer: pressing the bind
+    // again DURING the exit is a no-op rather than an instant reopen,
+    // because `_beginDismiss()` guards re-entry.
     function toggleOverview() {
-        overviewLoader.active = !overviewLoader.active;
+        if (overviewLoader.active)
+            root._dismissLoader(overviewLoader);
+        else
+            overviewLoader.active = true;
     }
 
     // ── Launcher (quick task 260822-sht — the native QML launcher that
@@ -1266,7 +1279,20 @@ ShellRoot {
         function toggle(): string {
             var wasActive = overviewLoader.active;
             root.toggleOverview();
-            return (overviewLoader.active !== wasActive) ? "overview" : "";
+            // The CLOSE half is asynchronous as of quick task 260825-v3u —
+            // the loader stays `active` until Overview's exit cascade
+            // finishes, so the plain after-read this used to do would
+            // report "nothing happened" on every successful close and
+            // silently break `qs ipc call overview toggle` for scripts.
+            // What genuinely changed on this frame is that a dismiss was
+            // ASKED FOR, which `Overview._dismissing` records synchronously
+            // inside `_beginDismiss()`. The open half is still synchronous
+            // and still read straight off the loader.
+            if (wasActive) {
+                var item = overviewLoader.item;
+                return (item && item._dismissing) ? "overview" : "";
+            }
+            return overviewLoader.active ? "overview" : "";
         }
 
         function status(): string {

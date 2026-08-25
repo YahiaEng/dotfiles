@@ -88,19 +88,59 @@ Row {
             color: BarRoles.capsuleTrack
 
             Rectangle {
+                id: rowFill
                 width: rowSlider.visualPosition * parent.width
                 height: parent.height
                 radius: parent.radius
                 color: BarRoles.accent
+
+                // ── The OSD's one motion gap (quick task 260825-v3u) ──────
+                // This file carried no `Behavior on` at all, so every
+                // volume/brightness step snapped the fill and the handle to
+                // their new positions in a single frame while every other
+                // surface in the shell eased. The OSD's own *appearance* was
+                // never the gap — `Toast.qml` animates the frame this row
+                // lives in — which is exactly why a green `motion-lint`
+                // (552 passed / 0 failed) never flagged it: CHECK B looks
+                // for raw literals at animation sites, and an absent
+                // animation has no site to inspect.
+                //
+                // DISABLED WHILE THE HANDLE IS HELD, deliberately. A
+                // `Behavior` on a dragged property interpolates toward the
+                // pointer instead of tracking it, so the fill would lag the
+                // thumb for the whole gesture. Keyboard, wheel and the
+                // XF86Audio*/XF86MonBrightness* binds — every path that
+                // changes the value in a jump rather than continuously — all
+                // still ease.
+                Behavior on width {
+                    enabled: Motion.motionEnabled && !rowSlider.pressed
+                    NumberAnimation {
+                        duration: Motion.standardDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
             }
         }
         handle: Rectangle {
+            id: rowHandle
             x: rowSlider.leftPadding + rowSlider.visualPosition * (rowSlider.availableWidth - width)
             y: rowSlider.topPadding + rowSlider.availableHeight / 2 - height / 2
             width: 20
             height: 20
             radius: 10
             color: BarRoles.accent
+
+            // Same token pair and the same drag exemption as the fill above,
+            // so the two never separate mid-travel.
+            Behavior on x {
+                enabled: Motion.motionEnabled && !rowSlider.pressed
+                NumberAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
         }
     }
 
