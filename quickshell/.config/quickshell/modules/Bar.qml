@@ -517,29 +517,38 @@ PanelWindow {
     // broken fillet invariant, which raised nothing and just looked wrong.
     // A popout near the very top or bottom of the bar therefore roots at
     // the nearest legal point rather than off the end.
-    // ── INSET BY THE SHOULDER FILLET, so the bulge stays fully covered ──
-    // `buildOutline` draws each concave shoulder OUTSIDE the span it is
-    // given: from the flat run it travels to `xr + f` before filleting back
-    // to `xr`. So a bulge spanning exactly the panel's extent actually
-    // reaches `f` past the panel at both ends.
+    // ── THE BULGE IS EXACTLY ITS PANEL'S EXTENT ─────────────────────────
+    // Operator, quick task 260825-t6j: "The bulge width is wrong. It needs
+    // to be the same width of its corresponding panel." Measured at the
+    // time: panel 281 along-axis, bulge span 865..1140 = 275, i.e. 3px short
+    // at each end.
     //
-    // That mattered visibly. The panel hides the bulge everywhere it
-    // overlaps it, but in the flare band beyond the panel's edge only the
-    // flare's quarter-pipe fill is painted — and that fill hugs the weld
-    // corner, leaving the outer part of the band transparent. The bulge
-    // showed through there as a small square tab of bar-coloured pixels
-    // beside the flare's arc.
+    // Those 6px were `2 * Design.edgeBarFilletRadius`, and round 4 of
+    // 260825-pyf subtracted them for a real reason. `buildOutline` draws
+    // each concave shoulder OUTSIDE the span it is handed — from the flat
+    // run it travels to `xr + f` before filleting back to `xr` — so a span
+    // at the panel's extent overshot the panel by `f` at both ends. In that
+    // band only the flare's quarter-pipe fill is painted and it hugs the
+    // weld corner, leaving the outer part transparent, so the bulge showed
+    // through as a small square tab of bar-coloured pixels. Confirmed then
+    // by controlled comparison, not by reading: with the bulge forced to
+    // zero depth those rows read 132-139 (background) where they had read
+    // ~606 (the bar's rim blue), nothing else in the frame changing.
     //
-    // CONFIRMED BY CONTROLLED COMPARISON rather than by reading: with the
-    // bulge forced to zero depth the same rows read 132-139 (background)
-    // where they had read ~606 (the bar's rim blue). Nothing else in the
-    // frame changed.
+    // Insetting made the bulge's total FOOTPRINT match the panel
+    // (275 + 2 x 3 = 281) at the cost of its visible FACE being short. The
+    // fix is to remove the cause instead of paying for it: the popout
+    // bulge's `buildOutline` call now passes `f: 0`, so nothing is drawn
+    // outside the span at all and the face can be the panel's exact extent
+    // with no overshoot to hide. See that call site for why dropping the
+    // shoulder costs nothing here — the two `AttachedCorner` flares already
+    // weld these corners.
     //
-    // Insetting by the fillet radius puts both shoulders inside the span
-    // the panel covers, which is the condition stated rather than a padding
-    // guess: xl - f >= panelTop and xr + f <= panelBottom.
+    // So: no inset. Any future change that restores a non-zero `f` on that
+    // call MUST restore the `- Design.edgeBarFilletRadius` term with it;
+    // the two are one decision.
     readonly property real _popoutBulgeHalf: Math.max(0,
-        PopoutController.openExtent / 2 - Design.edgeBarFilletRadius)
+        PopoutController.openExtent / 2)
     readonly property real _popoutBulgeCap: barWindow._weldSlabWidth / 2
     readonly property real _popoutBulgeCentre: Math.max(
         barWindow._popoutBulgeCap + barWindow._popoutBulgeHalf,
@@ -891,7 +900,40 @@ PanelWindow {
                     t: weldSlab.width,
                     b: barWindow.popoutBulgeDepth,
                     re: weldSlab.width / 2,
-                    f: Design.edgeBarFilletRadius,
+                    // ── NO SHOULDER ON THIS BULGE (quick task 260825-t6j)
+                    // `f: 0`, not `Design.edgeBarFilletRadius`, and this is
+                    // the one call that differs — the rails and the static
+                    // centre bulge keep the token.
+                    //
+                    // The shoulder is what forced this bulge to be narrower
+                    // than the panel it roots. `buildOutline` draws each
+                    // concave shoulder OUTSIDE the span it is handed (the
+                    // flat run travels to `xr + f` before filleting back to
+                    // `xr`), so a span at the panel's extent overshot it by
+                    // `f` at both ends, and in that band the flare's fill
+                    // does not reach — the bulge showed through as a square
+                    // tab of bar-coloured pixels. Round 4 of 260825-pyf paid
+                    // for that by insetting the span, which made the total
+                    // footprint match the panel but left the VISIBLE face 6px
+                    // short. That shortfall is what the operator reported.
+                    //
+                    // With no shoulder there is nothing drawn outside the
+                    // span at all, so the face can be the panel's exact
+                    // extent AND nothing overshoots it. The concave blend is
+                    // not lost: the popout's two `AttachedCorner` flares weld
+                    // precisely these corners — that is what they are for —
+                    // and a clean butt at the panel's edge is the joint their
+                    // quarter-pipes are built to sweep into.
+                    //
+                    // CHECKED, not assumed: `_arcCentre` is pure midpoint
+                    // arithmetic with no division, so coincident endpoints
+                    // return that point and `_shoulderSweep` matches it
+                    // exactly — no NaN and no wrong flag. `A 0 0 ...` with
+                    // identical start and end is omitted per the SVG arc
+                    // spec rather than being degenerate. And Design's
+                    // `fillet + cornerRadius <= bulgeExtra` invariant still
+                    // holds trivially: 0 + 1 <= 14 at the open depth.
+                    f: 0,
                     rc: Design.edgeBarBulgeCornerRadius,
                     along: weldSlab.height,
                     alongStart: 0,

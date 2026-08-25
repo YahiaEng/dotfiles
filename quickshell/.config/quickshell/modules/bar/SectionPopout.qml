@@ -360,7 +360,30 @@ PanelWindow {
     Item {
         id: spawnClip
         anchors.fill: parent
-        opacity: popoutWindow.opened ? 1 : 0
+
+        // ── REVEALED, NOT FADED, WHILE ATTACHED (quick task 260825-t6j) ──
+        // OPERATOR: "I want the spawn and dismissal animation to feel like it
+        // is extending from the bar."
+        //
+        // The geometry was already a drawer: the closed panel sits one full
+        // `panelWidth` right of open, entirely outside a surface whose right
+        // edge is pinned to the slab's flat face (x=2502 measured), so it is
+        // wholly hidden and the surface boundary cuts it as it travels. What
+        // contradicted that was this line — the panel FADED across the whole
+        // slide, so a solid object emerging from behind a solid bar was
+        // translucent the entire way out. An edge reveal and an opacity ramp
+        // are two transitions doing the same job, and the second one is what
+        // reads as "appearing beside the bar" instead of "extending from
+        // behind it".
+        //
+        // So while attached the clip is the whole transition and opacity is
+        // simply 1. Unattached it must stay: there is no occluder at all
+        // there — the panel drops from the top of the Hyprland windows onto
+        // open desktop — so the fade is the only thing easing it in.
+        // `Dashboard.qml` fades for that same reason, sliding from off-screen
+        // with nothing behind it to be revealed from; this is not a departure
+        // from it.
+        opacity: popoutWindow._slideFromBar ? 1 : (popoutWindow.opened ? 1 : 0)
 
         Behavior on opacity {
             enabled: Motion.motionEnabled && popoutWindow._armed
