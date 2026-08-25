@@ -219,3 +219,88 @@ resized. **When changing a surface's geometry, grep the compositor config for
 that surface's class or namespace first**: a `size`/`move`/`maxsize` rule wins
 over anything the client asks for, and it fails silently — the QML binding is
 correct, evaluates correctly, and is simply ignored.
+
+---
+
+# Rounds 3 & 4 — following Caelestia properly, after getting it wrong twice
+
+Operator, after round 2 landed: *"Follow Caelestia's design. The left side of
+the settings menu is wider than ours. The right side is centered and has
+slightly bigger font."* Then, after round 3: *"Left side needs to be scaled up
+to match the new scale."*
+
+## What I had wrong, twice, on the same pane
+
+Both corrections were the same mistake in different clothes: **I substituted my
+own judgment for the reference and wrote it up as if it were measured.**
+
+1. **Round 2's nav rail.** Caelestia uses `min(600, width/3)` (Nexus.qml,
+   NexusTokens tokens.hpp:219). I shipped `min(340, width/4)`, arguing their
+   nav rows are a taller, more spacious shape so `width/3` would be "597px of
+   mostly empty rail". Seen side by side that did not survive — a rail that
+   reads as a pane rather than a strip is part of why that window feels the way
+   it does.
+2. **Round 3's type split.** I gave the content pane a larger scale and
+   deliberately held the rail at the shell-wide sizes, claiming Caelestia's nav
+   labels are a *smaller* class than its page rows. **Their source says the
+   opposite**: nav label is `body.medium` (navpane/NavLocations.qml), content
+   row label is `body.small` (common/ToggleRow.qml). The rail is the LARGER of
+   the two.
+
+Both were taste calls dressed as findings, against this project's own standing
+rule that Caelestia's convention wins unless something measured says otherwise.
+Neither time did anything measured say otherwise.
+
+## Round 3 — `cad3fd8b`
+
+- **Nav rail back to `min(600, width/3)`** — 597px here, against 340.
+- **Content column centred**, matching `pages/PanelsPage.qml`'s
+  `width: root.cappedWidth` + `anchors.horizontalCenter`. Round 2 had it hard
+  left, so on a 1792-wide window all the slack piled on one side: measured off a
+  capture, content ended at x=1144 with **644px of empty background** to its
+  right. One inset serves header and body so the title stays aligned with its
+  rows.
+- The two compound: at a 597 rail the pane is 1195, so the centred 800 column
+  sits in **~173px of air per side** instead of ~330px.
+- **Content type up one step** — rows 16->18, subtext 12->14, title 20->24, as
+  three NEW `settingsFont*` tokens. 48 references rewritten across 12 files.
+
+`Design.fontBody`/`fontLabel`/`fontHeading` were deliberately NOT touched: they
+are read by the bar capsules, dashboard, notification centre, OSD and launcher.
+Raising them would resize every surface in the shell to fix one window.
+
+## Round 4 — `85d5be76`
+
+- **Rail scaled to match**: labels 16->18, search field 16->18 in a 40->48 box,
+  search results and page captions on the same pair, new `settingsIconSize`
+  (24->28), row height 56->72.
+- **Descriptions inlined** under each nav label. `description` has been in
+  PageRegistry since this window was built but only ever surfaced as a HOVER
+  TOOLTIP — you had to already be pointing at "Audio" to learn it covers the
+  per-app mixer. The tooltip is removed rather than kept alongside.
+  **Called out as beyond "scale up"**; reverts by restoring the ThemedToolTip
+  block and dropping the second Text.
+- Both lines elide against an **explicit Column width** — a Row hands children
+  their implicit width, under which `elide` never fires and a long description
+  runs past the rail edge instead of truncating.
+
+## Final resolved geometry
+
+| screen | window | rail | content column | air/side |
+|---|---|---|---|---|
+| 2560x1440 (this host) | 1792x1008 | 597 | 800 | 173 |
+| 1920x1080 | 1344x756 | 448 | 800 | 24 |
+| 3840x2160 | 2688x1512 | 600 | 800 | 620 |
+
+## Method note worth keeping
+
+**A hot reload is not enough to see a settings-layout change.** Editing
+`PageBase.qml` and re-summoning served a STALE page component — a second probe
+capture came back byte-identical to the first and nearly sent me chasing a
+non-existent binding bug. Every render in rounds 3 and 4 was taken after
+`systemctl --user restart quickshell.service` (via the unit, detached; PPID
+confirmed 1275 = the systemd user manager, per quickshell-launch.sh's own
+18-07 header, which supersedes the older `setsid uwsm app` rule).
+
+Gates each round, run once: motion-lint 552/0, colour-lint 365/0,
+settings-index-check 126/0, qmllint 0 on every touched file.
