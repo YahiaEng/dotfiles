@@ -165,6 +165,29 @@
         "workspaces": { "curve": "spatial-move", "style": "slidefadevert" },
         "special_workspace": { "curve": "spatial-move", "style": "slidefadevert" }
       }
+    },
+    "zen": {
+      "label": "Zen",
+      "description": "Caelestia's motion \u2014 unhurried, gliding, and completely free of overshoot.",
+      "_comment_provenance": "Ported from caelestia-dots/caelestia hypr/hyprland/animations.lua (read 2026-08-25). THE FINDING THAT SHAPED THIS ENTRY: all four of Caelestia's curves are ALREADY BYTE-IDENTICAL to this repo's base easings table \u2014 its 'standard' {0.2,0},{0,1} is our standard AND our spatial-move; its 'emphasizedDecel' {0.05,0.7},{0.1,1} is our emphasized-decelerate AND our spatial-in; its 'emphasizedAccel' {0.3,0},{0.8,0.15} is our emphasized-accelerate AND our spatial-out; and its 'specialWorkSwitch' is a duplicate of emphasizedDecel. So this style overrides NO easings at all \u2014 an empty easings block here is the correct, measured result, not an oversight. What actually makes Caelestia feel like Caelestia is DURATION and LEAF SHAPE, not curvature. Being overshoot-free by construction, this is the one style besides md3/smooth that is safe on full-screen vertical motion (see bouncy's _comment_leaves for why that matters).",
+      "easings": {},
+      "_comment_durations": "Caelestia's Hyprland speeds are in deciseconds (confirmed against this host: hyprctl animations reports layersIn speed 4.50 for a 450ms leaf). Source values: windowsIn/layersIn 5 (500ms), windowsOut 3 (300ms), layersOut 4 (400ms), windowsMove 6 (600ms), workspaces 5 (500ms), fade/fadeDim/border 6 (600ms). TWO COLLAPSES ARE FORCED BY THIS SCHEMA and are deliberate, not sloppy: a leaf's duration follows its CURVE NAME, so windowsOut (300) and layersOut (400) must share one spatial-out \u2014 300 is kept, favouring the window the user is actually looking at; and windowsMove (600) and workspaces (500) must share one spatial-move \u2014 500 is kept, because 600ms of window-drag lag reads as unresponsive rather than calm. semantic.standard is 250ms and is NOT Caelestia's 600: that 600 is Hyprland's border/fade leaf, whereas semantic.standard drives QML shell transitions, which Caelestia styles from its own separate shell tokens. Mapping the compositor's border-fade onto every UI fade would be a category error.",
+      "semantic": {
+        "standard": { "duration": "medium1", "easing": "standard" },
+        "emphasized-in": { "duration": "long2", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "medium2", "easing": "emphasized-accelerate" },
+        "spatial-in": { "duration": "long2", "easing": "spatial-in" },
+        "spatial-out": { "duration": "medium2", "easing": "spatial-out" },
+        "spatial-move": { "duration": "long2", "easing": "spatial-move" }
+      },
+      "_comment_leaves": "Caelestia slides its layers rather than popping them in \u2014 that glide is the single most recognisable thing about its desktop, and it is what this repo's bar, drawers and panels ride on. workspaces moves to spatial-move because Caelestia drives it from its 'standard' curve, not its decelerate one. special_workspace keeps Caelestia's exact 'slidefadevert 15%'. windows_in/windows_out are deliberately NOT overridden: Caelestia passes no style for its window leaves, so inheriting the base table is the faithful reading \u2014 and it also keeps this style visibly distinct from smooth, which slidefades its windows.",
+      "hypr_leaves": {
+        "layers": { "curve": "spatial-move", "style": "slide" },
+        "layers_in": { "curve": "spatial-in", "style": "slide" },
+        "layers_out": { "curve": "spatial-out", "style": "slide" },
+        "workspaces": { "curve": "spatial-move", "style": "slide" },
+        "special_workspace": { "curve": "spatial-in", "style": "slidefadevert 15%" }
+      }
     }
   },
   "floor_ms": 40

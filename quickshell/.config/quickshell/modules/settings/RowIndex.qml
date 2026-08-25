@@ -136,7 +136,7 @@ Singleton {
         { pageIdx: 7, section: "Decoration", label: "Shadow", keywords: "shadow drop decoration" },
         { pageIdx: 7, section: "Workspaces", label: "Workspace back-and-forth", keywords: "workspace back and forth switch toggle" },
         { pageIdx: 7, section: "Workspaces", label: "Allow workspace cycles", keywords: "workspace cycle wrap around" },
-        { pageIdx: 7, section: "Animation", label: "Animation style", keywords: "animation style motion preset shell md3 smooth snappy bouncy wavy" },
+        { pageIdx: 7, section: "Animation", label: "Animation style", keywords: "animation style motion preset shell md3 smooth snappy bouncy wavy zen caelestia" },
         { pageIdx: 7, section: "Animation", label: "Reduce motion", keywords: "animation reduce motion accessibility off reduced full" },
 
         // ── pageIdx 8 — Notifications ─────────────────────────────────────
