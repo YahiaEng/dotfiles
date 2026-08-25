@@ -241,70 +241,129 @@ PanelWindow {
     property bool opened: false
     readonly property bool _slideFromBar: popoutWindow.attached && popoutWindow.vertical
 
-    // ── SPAWN FROM THE BAR'S RIM ────────────────────────────────────────
-    // The panel used to TRANSLATE in by its own full width. Measured at 8x
-    // slow motion, its left rim swept 2235 -> 2188 -> 2166 -> 2153: a
-    // fully-formed card flying in, with its content travelling 360px and —
-    // because the flares ride on the panel — the weld only arriving in the
-    // final frame.
+    // ── ARM BEFORE OPENING (quick task 260825-sgm) ──────────────────────
+    // `Launcher.qml`'s guard, adopted whole, because this file has now been
+    // bitten by the same trap twice and the closed state is what it bites.
     //
-    // It is REVEALED now instead. This container is pinned to the surface's
-    // right edge, which is the bar's own coloured rim, and its WIDTH grows
-    // from zero. `panel` inside is anchored to that same right edge, so it
-    // never moves: the rim appears to extrude it. The two flares sit at the
-    // panel's right end, so they are inside the reveal from the very first
-    // frame and the weld is present the whole way out.
+    // `PopoutTrigger.qml:173-175` assigns `vertical`, `pinned` and
+    // `triggerCentre` onto this item AFTER the component is constructed, and
+    // `attached` arrives by Binding. So `_slideFromBar` is FALSE at
+    // construction no matter what it will settle to. Round 3 read it at
+    // construction and every popout published centre 0, stacking all eight at
+    // the top of the bar. Round 4 read it for a closed WIDTH and the reveal
+    // ran 360 -> 0 -> 360, so the panel simply appeared. Both bugs are the
+    // same shape: a CLOSED value that depends on a loader-assigned property,
+    // evaluated at construction, which is the one moment that property is
+    // guaranteed wrong.
     //
-    // ALL SIX VISUAL CHILDREN MOVED IN TOGETHER, deliberately. They anchor
-    // to each other (`anchors.fill: panel`, the flares' `panel.top`/
-    // `panel.bottom`), and QML only permits anchoring to a sibling or the
-    // parent — leaving any of them outside while `panel` moved in would
-    // have made those anchors illegal. Moving the set preserves every one
-    // of them unchanged.
+    // The guard does not try to read those properties earlier. It waits.
+    // While `_armed` is false every Behavior in the entrance path is disabled,
+    // so the closed offsets track instantly and the panel simply waits
+    // off-view whatever they resolve to. `_armAndOpen` flips `opened` only
+    // once things have held still, and arms one tick BEFORE that flip so
+    // `Behavior.enabled` has already re-evaluated true when the change lands —
+    // doing both in one tick leaves that ordering to chance.
+    property bool _armed: false
+
+    function _armAndOpen() {
+        if (popoutWindow.opened || popoutWindow.panelHeight <= 0 || popoutWindow.panelWidth <= 0)
+            return;
+        popoutWindow._armed = true;
+        // The content stagger starts with the slide, not before it. It used
+        // to run at `Component.onCompleted`, one `Qt.callLater` ahead of the
+        // open flip, which was near enough to simultaneous to not matter.
+        // The flip now waits for the settle, so leaving the cascade behind
+        // would play the first band's fade while the panel is still off-view.
+        popoutWindow.entranceCascade.run();
+        Qt.callLater(function () {
+            popoutWindow.opened = true;
+        });
+    }
+
+    // Debounced: the popout is content-bounded, so its size arrives in stages
+    // and flipping at the first non-zero value would slide it a token few px
+    // instead of its full width. Each size change restarts the timer, so the
+    // slide starts once the size has held still for one interval.
     //
-    // `clip` is on ONLY while attached. Unattached there is no rim to grow
-    // from: the panel drops from the top of the Hyprland windows on the
-    // dashboard's vertical slide, and clipping would cut the flares that
-    // mode does not draw anyway.
+    // `_slideFromBar` restarts it TOO, and that is the half `Launcher.qml`
+    // does not need: the launcher branches its direction on a property the
+    // shell root owns, while this file's comes from the loader. Re-debouncing
+    // on it means a late `vertical` or `attached` cannot land after the arm
+    // and animate the wrong axis — the hole the size-only guard would leave.
+    Timer {
+        id: armSettleTimer
+        interval: 60
+        repeat: false
+        onTriggered: popoutWindow._armAndOpen()
+    }
+    onPanelHeightChanged: if (!popoutWindow.opened) armSettleTimer.restart()
+    onPanelWidthChanged: if (!popoutWindow.opened) armSettleTimer.restart()
+    on_SlideFromBarChanged: if (!popoutWindow.opened) armSettleTimer.restart()
+
+    // Hard stop: never leave a popout invisible if the size never settles.
+    // Routed through the same path so the arm/flip ordering holds here too.
+    Timer {
+        id: armHardStop
+        interval: 500
+        running: !popoutWindow.opened
+        repeat: false
+        onTriggered: popoutWindow._armAndOpen()
+    }
+
+    // ── SLIDE OUT OF THE BULGE (quick task 260825-sgm) ──────────────────
+    // OPERATOR: "I want them to be a close copy to the animations of the app
+    // dashboard and super+space/super-tab. Meaning the animation starts from
+    // the bulge and the dismissal is a reversal of the spawn animation."
+    //
+    // So this is the dashboard's motion again, with the axis rotated onto the
+    // edge this panel actually belongs to. `Dashboard.qml`'s panel is
+    // `y: opened ? 0 : -height` off the TOP rail; `Launcher.qml`'s is the same
+    // pair off whichever rail is present. Attached here means the RIGHT slab,
+    // so the same pair runs on `x`, and the closed offset is `+panelWidth`.
+    //
+    // WHAT THIS REPLACED, and why the replacement is not a regression to it.
+    // Round 4 of 260825-pyf made this a width REVEAL: a container pinned to
+    // the surface's right edge whose width grew from zero while the panel
+    // inside stayed put. It was built to fix a real complaint — that the
+    // weld only arrived in the final frame — but it fixed it by inventing a
+    // motion this shell uses nowhere else. The dashboard has exactly the same
+    // property (its `AttachedCorner` pair rides its panel and lands with it)
+    // and the operator likes the dashboard. Matching it is the request; the
+    // late weld is a consequence the reference already has.
+    //
+    // DISTANCE IS THE PANEL'S OWN WIDTH, NEVER THE SURFACE'S. That is
+    // `Launcher.qml`'s hard-won rule, quoted from its own comment: "never
+    // derive a layer-shell surface's entrance geometry from that surface's
+    // own height. Anchor to the edge and animate a TRANSLATION whose distance
+    // depends only on the panel's own height." Layer surfaces are configured
+    // in STAGES, so a distance read off the surface tracks a value that keeps
+    // growing and drags the panel long after it has opened. `panelWidth` is
+    // content-derived and settles once.
+    //
+    // The surface's right edge is already seated on the bulge's face by
+    // `margins.right: PopoutController.rootInset`, and a layer surface clips
+    // to its own buffer — so a panel held one full width to the right of its
+    // open position is entirely hidden behind the bar, and emerges leftward
+    // out of the bulge. The dashboard hides behind the screen edge the same
+    // way.
+    //
+    // `spawnClip` STAYS, stripped to what it is actually needed for: the
+    // OPACITY CARRIER. `popoutBackground`, `popoutBorderClip`, the two
+    // `AttachedCorner` flares and `content` are SIBLINGS of `panel` anchored
+    // to it, not children of it, so they do not inherit `panel`'s opacity —
+    // this container is their only common parent. Its `width`, its
+    // `Behavior on width` and its `clip` are gone; nothing else moved, which
+    // keeps every one of those anchors legal (they may only target a sibling
+    // or the parent, and re-parenting six children back out through the
+    // interleaved root-level `readonly property` declarations is exactly the
+    // move that was caught before it wrote in round 4).
     Item {
         id: spawnClip
-        anchors.right: parent.right
-        anchors.top: parent.top
-        anchors.bottom: parent.bottom
-        // ── THE CLOSED WIDTH IS 0 UNCONDITIONALLY ───────────────────────
-        // It used to read `(opened || !_slideFromBar) ? width : 0`, and the
-        // reveal never started from zero. `_slideFromBar` is
-        // `attached && vertical`, and `vertical` is assigned by the loader
-        // AFTER construction — so at construction it was false, this
-        // evaluated to the FULL width, and by the time `vertical` arrived
-        // and flipped it to 0 the deferred `opened` had already fired. The
-        // width animated 360 -> 0 -> 360 and the panel simply appeared.
-        // Measured: 0.9s into a deliberately 8x-slowed reveal, content
-        // still began at x=2142, the panel's full left edge.
-        //
-        // This is the SAME trap that put every popout at the top of the bar
-        // earlier in this task — a construction-time read of a property the
-        // loader has not assigned yet. Depending on it for the CLOSED state
-        // is what makes it dangerous, because the closed state is the one
-        // evaluated at construction.
-        //
-        // Unconditional 0 is safe for the unattached case too: `clip` is
-        // false there, and an unclipped Item of zero width still renders its
-        // children in full.
-        width: popoutWindow.opened ? popoutWindow.width : 0
-        clip: popoutWindow._slideFromBar
+        anchors.fill: parent
         opacity: popoutWindow.opened ? 1 : 0
 
-        Behavior on width {
-            enabled: Motion.motionEnabled
-            NumberAnimation {
-                duration: Motion.spatialInDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: popoutWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
-            }
-        }
         Behavior on opacity {
-            enabled: Motion.motionEnabled
+            enabled: Motion.motionEnabled && popoutWindow._armed
             NumberAnimation {
                 duration: Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
@@ -317,18 +376,59 @@ PanelWindow {
         width: popoutWindow.panelWidth
         height: popoutWindow.panelHeight
 
-        // PINNED to the container's right edge — the bar's rim — so the
-        // reveal above extrudes it rather than sliding it. No `x` of its
-        // own any more, and no Behavior on x: the only motion left here is
-        // the UNATTACHED drop from the top of the windows.
-        anchors.right: parent.right
-        // The flare inset is a constant offset, present in both states, so
-        // the panel never lands 24px off its own window.
+        // POSITIONED, NOT ANCHORED, and not transformed either.
+        //
+        // Not anchored: an `anchors.right` would OVERRIDE `x`, so the slide
+        // below would be inert. The surface's own `implicitWidth` IS
+        // `panelWidth`, so `x: 0` already seats the panel flush against the
+        // container's right edge — the anchor bought nothing the open value
+        // does not already give.
+        //
+        // Not transformed: the two `AttachedCorner` flares are SIBLINGS
+        // anchored to `panel.right`/`panel.top`/`panel.bottom`. Anchors track
+        // an item's real geometry and a transform does not, so moving `x`
+        // carries the flares while a `Translate` would have slid the panel
+        // out from under two flares left standing at the bulge.
+        // `Dashboard.qml`'s own panel/flare pair is built this way for this
+        // reason. (`Launcher.qml` may use a `Translate` because its
+        // background FILLS its panel — it has no sibling to strand.)
+        //
+        // Both closed offsets are stated unconditionally against
+        // `_slideFromBar`, which is safe ONLY because of the arm guard below:
+        // while disarmed these snap rather than animate, and any late arrival
+        // of `vertical`/`attached` re-debounces the open. Without that guard
+        // this would be the construction-time trap for the third time in this
+        // file — see `_armAndOpen`.
+        //
+        // x — the ATTACHED slide, out of the bulge on the right slab.
+        //     Distance is `panelWidth`: the panel's own width, never the
+        //     surface's (Launcher.qml's rule; staged configures make a
+        //     surface-derived distance drag the panel after it has opened).
+        x: popoutWindow.opened || !popoutWindow._slideFromBar
+            ? 0
+            : popoutWindow.panelWidth
+        // y — the UNATTACHED drop from the top of the Hyprland windows.
+        //     The flare inset is a constant offset, present in both states,
+        //     so the panel never lands 24px off its own window.
         y: popoutWindow.flareRadius
             + (popoutWindow.opened || popoutWindow._slideFromBar ? 0 : -popoutWindow.panelHeight)
 
+        // One pair, both axes: the spatial register in, its own mirror out.
+        // The reversal costs nothing extra here — the closed offset is the
+        // same value in both directions, so the point-reflected curve simply
+        // retraces whichever path the entrance took. The entrance overshoot
+        // surfaces as a brief recoil at the START of the dismiss; that is the
+        // reversal, not a defect (Dashboard.qml says the same of its own).
+        Behavior on x {
+            enabled: Motion.motionEnabled && popoutWindow._armed
+            NumberAnimation {
+                duration: Motion.spatialInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: popoutWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
+            }
+        }
         Behavior on y {
-            enabled: Motion.motionEnabled
+            enabled: Motion.motionEnabled && popoutWindow._armed
             NumberAnimation {
                 duration: Motion.spatialInDuration
                 easing.type: Easing.BezierSpline
@@ -336,6 +436,7 @@ PanelWindow {
             }
         }
     }
+
 
     // ── Chrome, in PanelDialog's own declaration order so the two files
     //    stay diffable: background, rim, focus grab, cascade, content. ───
@@ -861,19 +962,28 @@ PanelWindow {
     Component.onCompleted: {
         popoutWindow.entranceCascade.bands = [popoutHeader, bodyColumn, popoutFoot];
         popoutWindow.entranceCascade.armed = true;
-        popoutWindow.entranceCascade.run();
+        // `run()` is NOT called here any more (quick task 260825-sgm) — see
+        // `_armAndOpen`, which fires it in the same tick as the open flip.
+        // The bands and the arm flag still belong here: they are inputs the
+        // cascade needs to exist before it can be run, and neither depends on
+        // anything the loader assigns later.
         // NOTE: the bulge root is NOT published here. See the Bindings
         // below — `triggerCentre` and `vertical` do not exist yet at this
         // point, and reading them here shipped a bug.
-        // Deferred by one turn so the closed state is COMMITTED before the
-        // open state is assigned — otherwise both are set within the same
-        // frame, the Behaviors see no transition, and the panel simply
-        // appears at its final position with no entrance at all. Same
-        // reason the shell defers other construction-time flips rather than
-        // assigning them inline.
-        Qt.callLater(function () {
-            popoutWindow.opened = true;
-        });
+        // The open flip is NOT made here, not even deferred by one turn
+        // (quick task 260825-sgm). A single `Qt.callLater` commits the closed
+        // state before the open one, which is necessary — without it both
+        // land in the same frame, the Behaviors see no transition and the
+        // panel appears at its final position with no entrance at all — but
+        // it is not SUFFICIENT. One turn is not long enough for the loader's
+        // `vertical`/`attached` assignments or for the content-bounded size
+        // to settle, so the closed state it commits is the wrong one.
+        //
+        // `armSettleTimer` owns the flip now, through `_armAndOpen`. Started
+        // here so a popout whose size never changes after construction still
+        // opens; every later size change and every `_slideFromBar` change
+        // restarts it, and `armHardStop` is the 500ms backstop.
+        armSettleTimer.restart();
     }
 
     // ── Publishing the bulge root — BINDINGS, NOT A CONSTRUCTION-TIME CALL
