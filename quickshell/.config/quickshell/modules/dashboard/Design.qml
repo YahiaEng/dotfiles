@@ -871,6 +871,22 @@ Singleton {
     //    PRECONDITION note). 1 = 2/2. Change one, change the other.
     readonly property int edgeBarHaloThickness: 2
     readonly property int edgeBarHaloEndRadius: 1
+    // ── edgeBarHaloBulgeSwellExtra (operator round 12) ──────────────────
+    // Halo's bulge shipped at `edgeBarBulgeSwellExtra` (10), giving a
+    // 2 -> 12 swell and a 12px static mass. The operator judged that live
+    // and asked for it thinner in this style specifically ("the bulge size
+    // should be thinner in this style"), so Halo now carries its own swell
+    // depth instead of borrowing the 6px rail's.
+    //
+    // 6 keeps the landmark at 4x the hairline (2 -> 8 total) while taking
+    // a third less depth than before. It also stays legal against the
+    // fillet invariant documented above edgeBarBulgeExtra:
+    //
+    //     edgeBarFilletRadius (3) + edgeBarBulgeCornerRadius (1) = 4 <= 6
+    //
+    // Off the 4px grid for the same reason the two tokens above it are:
+    // these are the hairline style's own measured values, not spacing.
+    readonly property int edgeBarHaloBulgeSwellExtra: 6
 
     // ── Brackets (quick task 260824-ns3, Task 5) — the corner L pieces ──
     //    ARM LENGTH IS A FRACTION, NEVER A LENGTH. The study measured its
