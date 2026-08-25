@@ -68,6 +68,27 @@ theme_engine_reload() {
     # functional change required here — this line stays exactly as it
     # already was for hyprlang.
     hyprctl reload >/dev/null 2>&1 || true
+    # ⚠ LAYER RULES DO NOT SURVIVE THE LINE ABOVE. The measurement quoted in
+    # this block ("fully clears and re-executes the Lua config from scratch")
+    # holds for binds, options and animation leaves — it does NOT hold for
+    # layer rules, which this build's Lua parser applies at compositor
+    # STARTUP only and silently drops on reload, with no error and a clean
+    # `hyprctl configerrors`. See the ⚠ block in config/windowrules.lua
+    # (~line 454), verified there by screenshot A/B in plan 16-07 round 10.
+    #
+    # Because this function runs on EVERY theme and motion apply, that meant
+    # the frosted backdrop vanished from every quickshell surface on every
+    # theme switch and stayed gone until the next Hyprland restart — and the
+    # drawers lost their slide/fade entrances with it. frost.sh replays the
+    # rules straight out of windowrules.lua, so there is no second copy to
+    # drift, and it honours the user's frost on/off preference.
+    #
+    # Best-effort and inside this function's existing headless guard: on a
+    # session-less host (container/VM gate, fresh install) there is no
+    # compositor to eval against and nothing to restore.
+    if [[ -x "$HOME/.config/hypr/scripts/frost.sh" ]]; then
+        "$HOME/.config/hypr/scripts/frost.sh" apply >/dev/null 2>&1 || true
+    fi
     # BAR-01/D-03: the retired bar's `pkill -SIGUSR2` reload-and-reset
     # signal lived here until RETIRE-02 (18-20) removed it along with the
     # surface it targeted. `reassert` below targets bar-visibility.sh

@@ -60,6 +60,7 @@ PageBase {
         borderSizeProc.running = true;
         roundingProc.running = true;
         blurEnabledProc.running = true;
+        frostProc.running = true;
         blurSizeProc.running = true;
         blurPassesProc.running = true;
         inactiveOpacityProc.running = true;
@@ -125,6 +126,11 @@ PageBase {
     property real borderSizeValue: 3
     property real roundingValue: 12
     property bool blurEnabledValue: true
+    // Frost is NOT a hyprctl option — it is the set of layer rules in
+    // windowrules.lua, which this build applies at compositor startup only.
+    // So it is read from and written through frost.sh rather than
+    // `hyprctl getoption`/hypr-overrides.sh like every other row here.
+    property bool frostValue: true
     property real blurSizeValue: 8
     property real blurPassesValue: 3
     property real inactiveOpacityValue: 0.92
@@ -194,6 +200,29 @@ PageBase {
             }
         }
         Component.onCompleted: running = true
+    }
+    Process {
+        id: frostProc
+        running: false
+        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/frost.sh", "--get"]
+        stdout: StdioCollector { id: frostCollector }
+        onExited: (code, status) => {
+            if (code === 0)
+                root.frostValue = frostCollector.text.trim() === "on";
+        }
+        Component.onCompleted: running = true
+    }
+    Process {
+        id: frostSetProc
+        running: false
+        property string arg: "on"
+        command: [Quickshell.env("HOME") + "/.config/hypr/scripts/frost.sh", arg]
+        onExited: (code, status) => {
+            // Re-read rather than trusting the write: frost.sh reports a
+            // non-zero exit when any individual eval was rejected, and the
+            // stored preference is the only thing worth believing.
+            frostProc.running = true;
+        }
     }
     Process {
         id: blurEnabledProc
@@ -360,6 +389,16 @@ PageBase {
             subtext: "Background blur behind transparent surfaces"
             checked: root.blurEnabledValue
             onToggled: (v) => root.applyLook("blur-enabled", "--blur-enabled", v ? "true" : "false")
+        }
+        ToggleRow {
+            label: "Frost shell surfaces"
+            subtext: "Frosted glass behind the bar, drawers, notifications and OSD. Off leaves them plainly transparent."
+            checked: root.frostValue
+            onToggled: (v) => {
+                root.frostValue = v;
+                frostSetProc.arg = v ? "on" : "off";
+                frostSetProc.running = true;
+            }
         }
         SliderRow {
             label: "Blur size"

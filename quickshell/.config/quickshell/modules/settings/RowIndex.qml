@@ -130,6 +130,7 @@ Singleton {
         { pageIdx: 7, section: "Borders", label: "Border colour", keywords: "border colour color outline theme" },
         { pageIdx: 7, section: "Decoration", label: "Rounding", keywords: "round corner radius decoration" },
         { pageIdx: 7, section: "Decoration", label: "Blur", keywords: "blur frost glass decoration" },
+        { pageIdx: 7, section: "Decoration", label: "Frost shell surfaces", keywords: "frost frosted glass blur bar drawer notification osd layer rule translucent transparent" },
         { pageIdx: 7, section: "Decoration", label: "Blur size", keywords: "blur size kernel radius decoration" },
         { pageIdx: 7, section: "Decoration", label: "Blur passes", keywords: "blur passes decoration" },
         { pageIdx: 7, section: "Decoration", label: "Inactive opacity", keywords: "opacity transparency fade inactive unfocused" },
