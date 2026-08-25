@@ -487,18 +487,47 @@ PanelWindow {
         }
     }
 
-    GradientBorder {
-        id: popoutRim
+    // ── Attached-edge border clip ───────────────────────────────────────
+    // `Dashboard.qml`'s `dashboardBorderClip` and `Launcher.qml`'s twin,
+    // applied here — this surface shipped without it and the operator
+    // reported the exact symptom those two were built to fix: "they have
+    // corner flares while still having the old square corners", and "the
+    // edge that is attached to the bulge, which is supposed to be gone".
+    //
+    // Once a flare is welded across a corner, the attached edge and the
+    // adjacent `attachedCornerRadius` of BOTH neighbouring sides stop
+    // being outer edges of the merged panel+flare silhouette. Draw the
+    // ring there anyway and the panel's own border runs straight past the
+    // flare's arc as a second parallel rim line — which is precisely what
+    // "flares alongside the old geometry" looks like.
+    //
+    // The right margin alone is enough here, and the asymmetry with the
+    // dashboard is worth stating: inset only the RIGHT edge and the clip's
+    // origin does not move, so the rim needs no compensating offset. The
+    // dashboard insets the TOP, which DOES move its origin down, which is
+    // why its own rim carries `y: -attachedCornerRadius` and this one
+    // carries nothing.
+    Item {
+        id: popoutBorderClip
         anchors.fill: panel
-        borderWidth: popoutWindow.borderWidth
-        // Every corner handed the SAME value the background above reads,
-        // including the attached squaring — rim and surface must never
-        // disagree about the frame's shape, and that is a stronger reason
-        // now than when all four were one constant.
-        topLeftRadius: Design.popoutCornerRadius
-        topRightRadius: popoutBackground.topRightRadius
-        bottomLeftRadius: Design.popoutCornerRadius
-        bottomRightRadius: popoutBackground.bottomRightRadius
+        anchors.rightMargin: popoutWindow.flareRadius
+        clip: true
+
+        GradientBorder {
+            id: popoutRim
+            x: 0
+            y: 0
+            width: panel.width
+            height: panel.height
+            borderWidth: popoutWindow.borderWidth
+            // Every corner handed the SAME value the background reads,
+            // including the attached squaring — rim and surface must never
+            // disagree about the frame's shape.
+            topLeftRadius: Design.popoutCornerRadius
+            topRightRadius: popoutBackground.topRightRadius
+            bottomLeftRadius: Design.popoutCornerRadius
+            bottomRightRadius: popoutBackground.bottomRightRadius
+        }
     }
 
     // ── The weld flares (quick task 260825-pyf, Task 4) ─────────────────

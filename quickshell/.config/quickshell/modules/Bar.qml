@@ -482,7 +482,16 @@ PanelWindow {
     // Animated 0 -> depth so the shelf grows under the popout rather than
     // popping. Driven off `anyOpen`, NOT off the centre/extent pair — those
     // are snapshots and must never be animated (see PopoutController).
-    property real popoutBulgeDepth: 0
+    // A DIRECT binding, not a `Binding` element targeting this same object.
+    // The first version used `Binding { target: barWindow; property:
+    // "popoutBulgeDepth"; ... }` and it silently never applied — the
+    // diagnostic below never emitted a single line, so the depth stayed 0
+    // and no bulge was ever drawn, while the three `Binding`s aimed at
+    // PopoutController in this same file worked fine. A self-targeted
+    // Binding is the one shape to avoid here; an ordinary binding
+    // expression animates through the Behavior just the same.
+    property real popoutBulgeDepth: (barWindow._continuousWeld && PopoutController.anyOpen)
+        ? barWindow._popoutBulgeDepthOpen : 0
     Behavior on popoutBulgeDepth {
         enabled: Motion.motionEnabled
         NumberAnimation {
@@ -492,11 +501,6 @@ PanelWindow {
             easing.type: Easing.BezierSpline
             easing.bezierCurve: PopoutController.anyOpen ? Motion.spatialInEasing : Motion.spatialOutEasing
         }
-    }
-    Binding {
-        target: barWindow
-        property: "popoutBulgeDepth"
-        value: (barWindow._continuousWeld && PopoutController.anyOpen) ? barWindow._popoutBulgeDepthOpen : 0
     }
 
     // The bulge's span in the SLAB's own along coordinates. `openCentre` is
@@ -530,6 +534,16 @@ PanelWindow {
     readonly property bool _popoutBulgeVisible: barWindow.popoutBulgeDepth > 0.01
         && barWindow._popoutBulgeXr > barWindow._popoutBulgeXl
 
+    // One line per bulge state change, on the shell's existing log idiom.
+    // The bulge is a shape on a layer surface, so the only ways to observe
+    // it are a screenshot or this; having both means a disagreement between
+    // them is itself informative.
+    onPopoutBulgeDepthChanged: console.log("barbulge: depth=" + barWindow.popoutBulgeDepth.toFixed(1)
+        + " visible=" + barWindow._popoutBulgeVisible
+        + " weld=" + barWindow._continuousWeld
+        + " anyOpen=" + PopoutController.anyOpen
+        + " span=" + barWindow._popoutBulgeXl.toFixed(0) + ".." + barWindow._popoutBulgeXr.toFixed(0))
+
     // ── Publish the shelf back to the popout ────────────────────────────
     // The bar owns this arithmetic and the popout reads the finished
     // numbers — see PopoutController's own comment for why a second copy in
@@ -554,7 +568,39 @@ PanelWindow {
     Binding {
         target: PopoutController
         property: "rootInset"
-        value: Design.barEdgeMargin + barWindow._weldSlabWidth + barWindow.popoutBulgeDepth
+        // ── MEASURED, and both halves of this were wrong first time ──────
+        //
+        // (1) THE PANEL TOUCHES THE SLAB'S FLAT FACE, NOT THE BULGE'S.
+        // The bulge is not a shelf the panel sits beside — it protrudes
+        // OVER the panel, exactly as the top rail's bulge does over the
+        // dashboard. Measured on the dashboard: its panel top sits at y=6,
+        // the rail's flat run is 6 deep, and the bulge reaches y=20 while
+        // open — so the bulge covers the drawer's top 14px. Adding the
+        // bulge depth here pushed the popout a further 14px off the bar
+        // and left the bulge standing in the gap between them.
+        //
+        // (2) MARGINS ARE MEASURED FROM THE USABLE AREA, NOT THE SCREEN
+        // EDGE. `SectionPopout` sets `exclusionMode: ExclusionMode.Ignore`
+        // and its own comment claims that makes its margins measure from
+        // the true screen edge. It does not, on this build: with
+        // `margins.right` at 72 the surface came back with its right edge
+        // at 2438, and 2560 - 72 = 2488 while 2510 - 72 = 2438 — the bar's
+        // own 50px reservation is subtracted first. That 50px is exactly
+        // the gap the operator reported as "far away from the bar".
+        //
+        // So this walks from the usable boundary to the slab's flat face,
+        // both taken from the bar's own live geometry rather than
+        // reassembled from tokens.
+        // The TOTAL reservation, not the exclusive zone alone. Hyprland's
+        // reservation is `margins.<edge> + exclusiveZone` — this file's own
+        // header says so and has shipped the double-count bug twice — so
+        // the usable boundary is 6 + 44 = 50 in from the right, not 44.
+        // Using `reservedZoneExtent` by itself put the popout 6px short of
+        // the slab (measured right edge 2496 against a face at 2502).
+        value: barWindow.screen
+            ? (barWindow.screen.width - (Design.barEdgeMargin + barWindow.reservedZoneExtent))
+              - (barWindow._barSurfaceX + barWindow._weldSlabX)
+            : 0
     }
     Binding {
         target: PopoutController

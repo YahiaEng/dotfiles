@@ -170,6 +170,24 @@ Item {
         onItemChanged: {
             if (!popoutLoader.item)
                 return;
+            // Publish the anchor HERE as well as on the two pointer paths
+            // (quick task 260825-pyf). `publishAnchor()` used to be called
+            // only from the hover-entered and click handlers, so a popout
+            // summoned any OTHER way — the `popout` IPC target, or anything
+            // that sets PopoutController.openSection directly — arrived with
+            // `_publishedCentre` still 0 and rooted its bulge at the top of
+            // the bar instead of beside this entry. Measured exactly that
+            // way: `triggerCentre=0 rootCentre=164` on an IPC-opened wifi
+            // popout.
+            //
+            // This is the one place EVERY summon path passes through, since
+            // the loader activates off `openSection` regardless of who set
+            // it — so publishing here makes the anchor correct by
+            // construction rather than by remembering to add a call to each
+            // new caller. The pointer paths keep their own calls: they fire
+            // BEFORE the section opens, so they still supply a fresher
+            // reading for the common case.
+            triggerRoot.publishAnchor();
             popoutLoader.item.vertical = Qt.binding(function () { return BarEntryModel.isVertical; });
             popoutLoader.item.pinned = Qt.binding(function () { return triggerRoot.pinned; });
             popoutLoader.item.triggerCentre = Qt.binding(function () { return triggerRoot._publishedCentre; });

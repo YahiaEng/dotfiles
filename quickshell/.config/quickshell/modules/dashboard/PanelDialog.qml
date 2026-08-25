@@ -290,14 +290,41 @@ PanelWindow {
     //    `panelWindow.cornerRadius` the `background` Rectangle above uses,
     //    so the rim and the surface can never disagree about the frame's
     //    shape.
-    GradientBorder {
-        id: panelRim
+    // ── Attached-edge border clip ───────────────────────────────────────
+    // `Dashboard.qml`'s `dashboardBorderClip`, verbatim in mechanism. These
+    // panels shipped without it and the operator reported the symptom that
+    // block was written to fix: "corner flares while still having the old
+    // square corners", and "the edge that is attached to the bulge, which
+    // is supposed to be gone".
+    //
+    // Once a flare is welded across a corner, the attached edge and the
+    // adjacent `attachedCornerRadius` of both neighbouring sides stop being
+    // outer edges of the merged panel+flare silhouette. Drawn anyway, the
+    // panel's own border runs straight past the flare's arc as a second
+    // parallel rim line.
+    //
+    // Insetting the TOP moves the clip's origin down, so the ring inside is
+    // shifted up by the same amount to stay registered with the panel — the
+    // two must move together or the rim shifts, exactly as Dashboard.qml
+    // and Launcher.qml both note about their own twins.
+    Item {
+        id: panelBorderClip
         anchors.fill: panel
-        borderWidth: panelWindow.borderWidth
-        topLeftRadius: 0
-        topRightRadius: 0
-        bottomLeftRadius: panelWindow.cornerRadius
-        bottomRightRadius: panelWindow.cornerRadius
+        anchors.topMargin: panelWindow.flareRadius
+        clip: true
+
+        GradientBorder {
+            id: panelRim
+            x: 0
+            y: -panelWindow.flareRadius
+            width: panel.width
+            height: panel.height
+            borderWidth: panelWindow.borderWidth
+            topLeftRadius: 0
+            topRightRadius: 0
+            bottomLeftRadius: panelWindow.cornerRadius
+            bottomRightRadius: panelWindow.cornerRadius
+        }
     }
 
     // ── The weld flares (quick task 260825-pyf) ─────────────────────────
