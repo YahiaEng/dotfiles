@@ -125,7 +125,24 @@ FloatingWindow {
         var idx = win.sState ? win.sState.currentPageIdx : 0;
         return (idx >= 0 && idx < pages.length) ? "Settings — " + pages[idx].label : "Settings";
     }
-    color: Colours.surface
+    // ── Frost (quick-260826-1n9, D-1) — the window's own `color:` was
+    //    invisible before this change: `background` below (the Rectangle
+    //    that actually covers the window) painted opaque
+    //    `Colours.surfaceVariant` over it regardless. Matches the shape
+    //    every other translucent surface in this shell uses
+    //    (PanelDialog.qml:187+270, PowerMenu.qml:982, Launcher.qml:754,
+    //    Dashboard.qml:819, SectionPopout.qml:544): `color: "transparent"`
+    //    on the toplevel, `Qt.rgba(base…, opacity)` on the interior fill.
+    //    0.78 is the `PanelDialog`/`PowerMenu`/`SectionPopout` WEIGHT
+    //    (operator-locked), not the launcher's lighter 0.38 drawer weight.
+    //    `surfaceBase`/`panelSurfaceOpacity` are declared LOCALLY, exactly
+    //    as every one of those five precedents does — `Design.
+    //    panelSurfaceOpacity` does NOT exist (PowerMenu.qml:222-227's own
+    //    recorded finding) and reaching for it resolves to undefined/NaN
+    //    opacity with no load error.
+    readonly property color surfaceBase: Colours.surfaceVariant
+    readonly property real panelSurfaceOpacity: 0.78
+    color: "transparent"
     minimumSize.width: 800
     minimumSize.height: 500
     implicitHeight: Math.max(500, Math.round(win._screenHeight * win._heightMult))
@@ -155,7 +172,19 @@ FloatingWindow {
     Rectangle {
         id: background
         anchors.fill: parent
-        color: Colours.surfaceVariant
+        // The colour ROLE stays Colours.surfaceVariant (the operator asked
+        // for frost, not a different colour) — only the alpha channel
+        // changes, via win.panelSurfaceOpacity above.
+        color: Qt.rgba(win.surfaceBase.r, win.surfaceBase.g, win.surfaceBase.b, win.panelSurfaceOpacity)
+
+        Behavior on color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.colourDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.colourEasing
+            }
+        }
     }
 
     Row {
