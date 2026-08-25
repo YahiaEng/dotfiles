@@ -30,6 +30,13 @@ singleton GradientPhase 1.0 GradientPhase.qml
 # qmldir below: modules/dashboard/Design.qml AND modules/settings/pages/*
 # AND shell.qml itself all need to resolve the SAME instance.
 singleton Prefs 1.0 Prefs.qml
+# WindowInset (quick task 260825-pyf, Task 2) — the live `general:gaps_out`
+# read, so a panel aligning to a real window's edge stops hardcoding it.
+# Registered here for the same cross-tree reason as Prefs and CavaService:
+# modules/bar/, modules/centre/, modules/launcher/ and modules/ itself all
+# need the SAME instance, and the whole point is one shared answer rather
+# than the four independent copies that had already drifted apart.
+singleton WindowInset 1.0 WindowInset.qml
 Probe 1.0 Probe.qml
 ScreencopyProbe 1.0 ScreencopyProbe.qml
 Dashboard 1.0 Dashboard.qml

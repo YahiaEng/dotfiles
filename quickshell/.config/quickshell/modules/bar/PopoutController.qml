@@ -67,6 +67,52 @@ Singleton {
     // internals to find out.
     readonly property bool anyOpen: root.openSection !== ""
 
+    // ── The open popout's root on the bar's edge (quick task 260825-pyf,
+    //    Task 1) ──────────────────────────────────────────────────────────
+    // Where `Bar.qml` must swell its edge so the open popout has something
+    // to grow out of, and how much of the edge that swell must span.
+    //
+    // BOTH ARE IN THE BAR WINDOW'S OWN ALONG-AXIS SPACE, which is what
+    // makes this the right place to put them and what stops the conversion
+    // bug this family has now shipped three times: `PopoutTrigger`'s
+    // `publishAnchor()` computes `mapToItem(null, 0, 0)`, and `mapToItem`
+    // with a null argument maps into the item's OWN WINDOW — for a bar
+    // entry, the bar's PanelWindow. So the bar reads these RAW, adding
+    // nothing. `SectionPopout` is the one that must add
+    // `Design.barSideMargin` to reach screen space, and it already does
+    // (see its `_verticalDesiredTop`, and the long note above it recording
+    // the two separate times this exact origin was double-added and the
+    // once it was wrongly removed).
+    //
+    // The rule this family settled on, stated once: whoever consumes a raw
+    // `mapToItem()` value converts it EXACTLY ONCE. The bar converts zero
+    // times because it is already in that space.
+    //
+    // A SNAPSHOT, NOT A BINDING — deliberately, and for the same reason
+    // `SectionPopout.triggerCentre` is one: scene mapping does not
+    // re-evaluate when an ancestor moves, so a live binding here would
+    // read stale on the first frame after any bar reflow and silently
+    // drift the bulge against the popout it roots. Written on open,
+    // cleared on close, never bound.
+    property real openCentre: 0
+    property real openExtent: 0
+
+    // Set by `SectionPopout` as it opens, from the anchor its trigger
+    // already published. Kept beside open()/close() rather than assigned
+    // from the popout's own scope so the "assigned in exactly two places"
+    // invariant above extends to these two properties as well.
+    //
+    // DELIBERATELY NOT CLEARED BY close() — do not "tidy" that in. The
+    // bulge retracts by animating its DEPTH to zero off `anyOpen`; if the
+    // centre were zeroed at the same moment, the retracting bulge would
+    // jump to the top of the bar and shrink there instead of closing where
+    // it opened. The values simply go stale between popouts, which is
+    // harmless because nothing reads them while `anyOpen` is false.
+    function publishRoot(centre, extent) {
+        root.openCentre = centre;
+        root.openExtent = extent;
+    }
+
     // Refuses and returns false for an id that fails validation; returns
     // true unchanged if it is already the open section; otherwise clears
     // pinnedSection FIRST — the ordered transition that makes "opening a

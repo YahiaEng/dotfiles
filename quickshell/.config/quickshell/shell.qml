@@ -1531,6 +1531,52 @@ ShellRoot {
         }
     }
 
+    // ── popout IPC (quick task 260825-pyf) ──────────────────────────────
+    // The bar's eight glance surfaces were the ONLY summonable surfaces in
+    // this shell with no IPC target — launcher, panel, overview, settings
+    // and bar all have one. They could be opened by pointer alone, and
+    // there is no input-injection tool on this host (`hl.dsp.movecursor` is
+    // nil on this build, and `wtype` types into the focused window), so a
+    // popout could not be put on screen to be measured at all.
+    //
+    // That matters more here than convenience: this project has twice
+    // shipped visibly broken surfaces through fully green automated gates
+    // (Phase 8's bar, Phase 16's thumbnails' two false passes), and the
+    // standing rule is that every visual claim comes from grim plus a raw
+    // pixel dump. A surface that cannot be summoned cannot be dumped.
+    //
+    // Deliberately a THIN wrapper over PopoutController's own guarded
+    // entry points — open() already validates the section id against its
+    // own allowlist and returns false for anything else, so no id
+    // validation is restated here and no second source of truth for the
+    // section list is created.
+    IpcHandler {
+        id: popoutIpc
+        target: "popout"
+
+        // pin(), not open(): a hover-preview dismisses itself the moment
+        // the combined hover region reports empty, and an IPC caller has
+        // no pointer in that region — an unpinned popout would close again
+        // before it could be captured.
+        function open(section: string): string {
+            return PopoutController.pin(section) ? section : "";
+        }
+        function close(): string {
+            PopoutController.close();
+            return "";
+        }
+        function toggle(section: string): string {
+            PopoutController.toggle(section);
+            return PopoutController.openSection;
+        }
+        function status(): string {
+            return PopoutController.openSection;
+        }
+        function sections(): string {
+            return PopoutController.sections.join(" ");
+        }
+    }
+
     // ── Fullscreen intent reporter (D-18-28) — replaces the retired
     //    standalone fullscreen-watcher socket2 listener script. Reports
     //    on the CHANGE of the already-derived `fullscreenBlocking` value

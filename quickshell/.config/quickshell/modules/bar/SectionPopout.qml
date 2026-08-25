@@ -195,8 +195,30 @@ PanelWindow {
     // the popout's leading edge land on the window's leading edge. It matches
     // gaps_out by value rather than by binding — if general:gaps_out changes,
     // this alignment needs revisiting (a QML surface cannot read it live).
-    readonly property int _horizontalTopMargin: Design.barSideMargin
-    readonly property int _verticalRightMargin: Design.barSideMargin
+    // ── LIVE, NOT HARDCODED (quick task 260825-pyf, Task 2) ─────────────
+    // These were `Design.barSideMargin` (10), chosen because gaps_out was
+    // 10 on the day it was measured — and the note above says so, ending
+    // "if general:gaps_out changes, this alignment needs revisiting (a QML
+    // surface cannot read it live)."
+    //
+    // It changed. gaps_out is 20 now (operator-confirmed intended,
+    // 2026-08-25) with border_size 0, and tiled clients report at=[20,26]
+    // against reserved [0,6,50,6]. So every popout was landing 10px inside
+    // the window edge it was written to line up with — a real, measurable
+    // miss, not a theoretical one.
+    //
+    // `WindowInset` reads the option live and re-reads it on every
+    // Hyprland `configreloaded`, which is exactly when it can change:
+    // `lib/reload.sh` runs `hyprctl reload` on every theme and motion
+    // apply, re-applying `~/.local/state/hypr/overrides.lua` where
+    // gaps_out actually lives on this host.
+    //
+    // Per-edge, not one number: gaps_out is a four-sided CSS gap, so the
+    // top margin asks for the top gap and the right margin asks for the
+    // right one. They are equal today; asking correctly costs nothing and
+    // stops this file being wrong again the moment they are not.
+    readonly property int _horizontalTopMargin: WindowInset.insetFor("top")
+    readonly property int _verticalRightMargin: WindowInset.insetFor("right")
 
     // triggerCentre is ALREADY a scene-absolute coordinate — PopoutTrigger.qml
     // publishes it via mapToItem(null, 0, 0) — so barSideMargin must NOT be
@@ -307,11 +329,47 @@ PanelWindow {
 
     readonly property Cascade entranceCascade: Cascade {}
 
+    // FOLDED INTO THE EXISTING HANDLER, not added as a second one (quick
+    // task 260825-pyf, Task 1). A second `Component.onCompleted` on the
+    // same object is a DUPLICATE SIGNAL HANDLER and QML rejects the file
+    // outright — the trap this shell hit twice in one session during
+    // 260824-ns3 round 12, on `shell.qml` and `Dashboard.qml` both.
     Component.onCompleted: {
         popoutWindow.entranceCascade.bands = [popoutHeader, bodyColumn, popoutFoot];
         popoutWindow.entranceCascade.armed = true;
         popoutWindow.entranceCascade.run();
+        // Root the bar's edge bulge under this popout. Published ONCE at
+        // construction, from the anchor the trigger already snapshotted —
+        // never bound, for the reason PopoutController.openCentre's own
+        // comment gives (scene mapping does not re-evaluate on ancestor
+        // moves). Exact by construction here because PopoutTrigger builds
+        // the popout fresh on every summon, so "construction time" and
+        // "summon time" are the same instant — the same property
+        // Dashboard.qml's drawer relies on for its own snapshot.
+        //
+        // `triggerCentre` is passed RAW: it is already in the bar window's
+        // own space, which is the space the bar wants. Adding
+        // barSideMargin here would re-introduce the exact double-count
+        // this file's own margin notes record twice.
+        popoutWindow.publishRoot();
     }
+
+    // Kept as a named function rather than inlined so the along-axis
+    // choice is stated once and both the extent and any future consumer
+    // read the same definition of "along".
+    function publishRoot() {
+        PopoutController.publishRoot(popoutWindow.triggerCentre,
+                                     popoutWindow.vertical ? popoutWindow.height : popoutWindow.width);
+    }
+
+    // The popout is content-bounded, so its along-axis extent is not known
+    // at construction — `implicitHeight` settles once the body's bands
+    // have laid out. Re-publish when it changes so the bulge matches the
+    // panel it roots rather than the zero-size frame that existed for one
+    // frame. The CENTRE is not re-read here: that is the snapshot, and
+    // re-reading it is what this file's margin notes warn against.
+    onHeightChanged: if (popoutWindow.vertical) popoutWindow.publishRoot()
+    onWidthChanged: if (!popoutWindow.vertical) popoutWindow.publishRoot()
 
 
     // Exit motion — faster than the entrance on purpose, the codebase's
