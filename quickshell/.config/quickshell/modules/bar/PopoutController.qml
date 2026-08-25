@@ -79,39 +79,46 @@ Singleton {
     // with a null argument maps into the item's OWN WINDOW — for a bar
     // entry, the bar's PanelWindow. So the bar reads these RAW, adding
     // nothing. `SectionPopout` is the one that must add
-    // `Design.barSideMargin` to reach screen space, and it already does
-    // (see its `_verticalDesiredTop`, and the long note above it recording
-    // the two separate times this exact origin was double-added and the
-    // once it was wrongly removed).
+    // `Design.barSideMargin` to reach screen space, and it still does in
+    // its `_horizontalDesiredLeft` — see the long note above that property
+    // recording the two separate times this exact origin was double-added
+    // and the once it was wrongly removed.
     //
     // The rule this family settled on, stated once: whoever consumes a raw
     // `mapToItem()` value converts it EXACTLY ONCE. The bar converts zero
     // times because it is already in that space.
     //
-    // A SNAPSHOT, NOT A BINDING — deliberately, and for the same reason
-    // `SectionPopout.triggerCentre` is one: scene mapping does not
-    // re-evaluate when an ancestor moves, so a live binding here would
-    // read stale on the first frame after any bar reflow and silently
-    // drift the bulge against the popout it roots. Written on open,
-    // cleared on close, never bound.
+    // THE SNAPSHOT LIVES UPSTREAM, in `PopoutTrigger._publishedCentre`,
+    // which `publishAnchor()` writes once per summon. That is the property
+    // that must not be a live binding — scene mapping does not re-evaluate
+    // when an ancestor moves. These two forward it, and forwarding a
+    // snapshot is not re-measuring it. An earlier version of this comment
+    // claimed these were themselves written once and never bound; that was
+    // the reasoning behind the construction-time publish bug described
+    // below, and it is not how they work now.
     property real openCentre: 0
     property real openExtent: 0
 
-    // Set by `SectionPopout` as it opens, from the anchor its trigger
-    // already published. Kept beside open()/close() rather than assigned
-    // from the popout's own scope so the "assigned in exactly two places"
-    // invariant above extends to these two properties as well.
+    // WRITTEN BY `SectionPopout` AS BINDINGS, not by a call. The first
+    // version of this was a `publishRoot(centre, extent)` function invoked
+    // from the popout's `Component.onCompleted`, and it shipped a bug:
+    // `PopoutTrigger.qml:173-175` assigns `vertical` and `triggerCentre`
+    // onto the item AFTER creating it, so at construction both were still
+    // at their defaults and every popout published a centre of 0. The bar
+    // clamped that to one position and all eight opened stacked near the
+    // top of the bar rather than beside their own capsule.
     //
-    // DELIBERATELY NOT CLEARED BY close() — do not "tidy" that in. The
-    // bulge retracts by animating its DEPTH to zero off `anyOpen`; if the
-    // centre were zeroed at the same moment, the retracting bulge would
-    // jump to the top of the bar and shrink there instead of closing where
-    // it opened. The values simply go stale between popouts, which is
-    // harmless because nothing reads them while `anyOpen` is false.
-    function publishRoot(centre, extent) {
-        root.openCentre = centre;
-        root.openExtent = extent;
-    }
+    // Being built fresh per summon does NOT mean being configured at
+    // construction. `openExtent` had a second, independent reason to be
+    // late: the popout is content-bounded, so its size is 0 until the body
+    // lays out.
+    //
+    // DELIBERATELY NOT CLEARED WHEN THE POPOUT GOES AWAY — do not "tidy"
+    // that in. The bulge retracts by animating its DEPTH to zero off
+    // `anyOpen`; if the centre were zeroed at the same moment, the
+    // retracting bulge would jump to the top of the bar and shrink there
+    // instead of closing where it opened. A destroyed Binding leaves the
+    // last value in place, which is exactly the wanted behaviour.
 
     // ── The other direction: what the bar's edge is actually doing ──────
     // Written by `Bar.qml`, read by `SectionPopout`. The bar owns every one

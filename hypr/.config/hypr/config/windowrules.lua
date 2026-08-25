@@ -283,17 +283,26 @@ hl.layer_rule({ match = { namespace = "quickshell-launcher" }, animation = "fade
 -- the sibling rules for quickshell-wifi-panel and quickshell-bluetooth-
 -- panel; no blur or ignore_alpha rule is added here, the family-wide
 -- ^quickshell-.* pair below already covers this namespace (D-42/D-43).
-hl.layer_rule({ match = { namespace = "quickshell-audio-panel" }, animation = "slide" })
+-- ── CHANGED slide -> fade (quick task 260825-pyf, operator request) ──────
+-- These three panels now run their entrance and exit in QML, welded to the
+-- top rail with the dashboard's own slide-and-fade and its mirrored
+-- dismissal. A compositor `slide` on top of that is TWO motions on one
+-- surface: the layer slides in while the panel inside it is also sliding,
+-- which reads as a double move and lands the flares in the wrong place
+-- mid-flight. `fade` is exactly what Dashboard.qml's own rule uses, and for
+-- the same stated reason -- "the directional motion is done here, where the
+-- edge is explicit".
+hl.layer_rule({ match = { namespace = "quickshell-audio-panel" }, animation = "fade" })
 -- 15-03's wifi panel — same D-20 exact-match discipline as the audio
 -- panel's own rule above. Style-only override: no duration, no curve,
 -- timing rides animations.lua's token-driven layersIn/layersOut leaves.
 -- No blur/ignore_alpha rule here either — the family pair below already
 -- covers it.
-hl.layer_rule({ match = { namespace = "quickshell-wifi-panel" }, animation = "slide" })
+hl.layer_rule({ match = { namespace = "quickshell-wifi-panel" }, animation = "fade" })
 -- 15-03's bluetooth panel — same discipline as the wifi rule immediately
 -- above; the third and final Phase 15 panel namespace. No blur/
 -- ignore_alpha rule here either — the family pair below already covers it.
-hl.layer_rule({ match = { namespace = "quickshell-bluetooth-panel" }, animation = "slide" })
+hl.layer_rule({ match = { namespace = "quickshell-bluetooth-panel" }, animation = "fade" })
 -- Workspace overview (Phase 16 Plan 02 tracer, D-16-24) — `fade`, not the
 -- drawer's/panels' `slide`: a surface covering the whole screen has no edge
 -- to slide in from. Exact-match only, same discipline as every rule above.

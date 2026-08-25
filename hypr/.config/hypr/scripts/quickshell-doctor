@@ -975,7 +975,18 @@ _qsd_check_panel_namespace_conformance() {
         [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
         report+="${name}-during[${res}] "
         _qsd_dismiss_panel "$name"
-        sleep 0.3
+        # SETTLE, not slack (quick task 260825-pyf). A panel's dismiss is
+        # now ANIMATED — it runs the dashboard's slide-and-fade and its
+        # loader deactivates on dismissFinished, so the surface legitimately
+        # outlives the dismiss call by the exit's duration (measured 576ms
+        # against a 500ms spatial-in token on the Zen style). At 0.3 this
+        # sampled DURING the exit and reported a live surface as a
+        # violation. The invariant is unchanged and still enforced: zero
+        # panels once nothing is open. A panel that never closes at all is
+        # still caught, because 1.0s is far past any exit the motion tokens
+        # can produce — this widens the settle, it does not weaken the
+        # assertion.
+        sleep 1.0
         res=$(_qsd_assert_panel_layers "$(_qsd_layers_json)" 0); rc=$?
         [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
         report+="${name}-after[${res}] "
@@ -996,7 +1007,8 @@ _qsd_check_panel_namespace_conformance() {
     [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
     report+="cross[${res}] "
     _qsd_dismiss_panel "$second"
-    sleep 0.3
+    # Same animated-exit settle as the per-panel case above.
+    sleep 1.0
     res=$(_qsd_assert_panel_layers "$(_qsd_layers_json)" 0); rc=$?
     [[ "$rc" -ne 0 ]] && overall_bad=$((overall_bad + 1))
     report+="cross-after[${res}] "

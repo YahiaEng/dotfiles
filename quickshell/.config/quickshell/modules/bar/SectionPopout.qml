@@ -585,20 +585,9 @@ PanelWindow {
         popoutWindow.entranceCascade.bands = [popoutHeader, bodyColumn, popoutFoot];
         popoutWindow.entranceCascade.armed = true;
         popoutWindow.entranceCascade.run();
-        // Root the bar's edge bulge under this popout. Published ONCE at
-        // construction, from the anchor the trigger already snapshotted —
-        // never bound, for the reason PopoutController.openCentre's own
-        // comment gives (scene mapping does not re-evaluate on ancestor
-        // moves). Exact by construction here because PopoutTrigger builds
-        // the popout fresh on every summon, so "construction time" and
-        // "summon time" are the same instant — the same property
-        // Dashboard.qml's drawer relies on for its own snapshot.
-        //
-        // `triggerCentre` is passed RAW: it is already in the bar window's
-        // own space, which is the space the bar wants. Adding
-        // barSideMargin here would re-introduce the exact double-count
-        // this file's own margin notes record twice.
-        popoutWindow.publishRoot();
+        // NOTE: the bulge root is NOT published here. See the Bindings
+        // below — `triggerCentre` and `vertical` do not exist yet at this
+        // point, and reading them here shipped a bug.
         // Deferred by one turn so the closed state is COMMITTED before the
         // open state is assigned — otherwise both are set within the same
         // frame, the Behaviors see no transition, and the panel simply
@@ -610,26 +599,68 @@ PanelWindow {
         });
     }
 
-    // Kept as a named function rather than inlined so the along-axis
-    // choice is stated once and both the extent and any future consumer
-    // read the same definition of "along".
-    function publishRoot() {
+    // ── Publishing the bulge root — BINDINGS, NOT A CONSTRUCTION-TIME CALL
+    //    (fixed 2026-08-25, operator-reported) ─────────────────────────
+    // This was a `publishRoot()` call in `Component.onCompleted`, and it
+    // was WRONG in a way that looked plausible and shipped:
+    //
+    //   PopoutTrigger.qml:173-175 assigns `vertical`, `pinned` and
+    //   `triggerCentre` onto the item AFTER the component has been
+    //   created. At `Component.onCompleted` all three are still at their
+    //   declared defaults — `triggerCentre` is 0 and `vertical` is false.
+    //
+    // So every popout published centre 0. The bar clamped that into the
+    // slab's straight section, which pins it to the same place regardless
+    // of which capsule was clicked, and all eight opened stacked near the
+    // top of the bar instead of beside their own icon. Reported exactly
+    // that way: "all popouts spawn from the same location which is at the
+    // top and far away from the bar."
+    //
+    // The reasoning that produced the bug was that a fresh-per-summon
+    // component makes construction time and summon time the same instant.
+    // That part is true. What it missed is that the loader's property
+    // assignments land AFTER construction — being built at summon time
+    // does not mean being CONFIGURED at construction time.
+    //
+    // Bindings instead, so a later assignment simply flows through. This
+    // does not reintroduce the live-scene-mapping hazard the snapshot
+    // existed to avoid: `triggerCentre` is bound to the trigger's own
+    // `_publishedCentre`, which is already a snapshot taken in
+    // `publishAnchor()`. The snapshot lives in PopoutTrigger, where it
+    // belongs — forwarding it is not re-measuring it.
+    Binding {
+        target: PopoutController
+        property: "openCentre"
+        // RAW: already in the bar window's own space, which is the space
+        // the bar wants. Adding barSideMargin here would re-introduce the
+        // double-count this file's margin notes record twice.
+        value: popoutWindow.triggerCentre
+    }
+    Binding {
+        target: PopoutController
+        property: "openExtent"
         // The PANEL's extent, never the window's: while attached the window
         // is `2 * flareRadius` taller, and sizing the bulge to that would
-        // make the shelf overhang the panel it roots by a flare at each
-        // end. `panelHeight`/`panelWidth` are the content-bounded pair.
-        PopoutController.publishRoot(popoutWindow.triggerCentre,
-                                     popoutWindow.vertical ? popoutWindow.panelHeight : popoutWindow.panelWidth);
+        // make the shelf overhang the panel it roots by a flare at each end.
+        // Also inherently late-settling — the popout is content-bounded, so
+        // this is 0 until the body's bands have laid out, which is a second
+        // reason a one-shot read at construction could never have worked.
+        value: popoutWindow.vertical ? popoutWindow.panelHeight : popoutWindow.panelWidth
     }
 
-    // The popout is content-bounded, so its along-axis extent is not known
-    // at construction — `implicitHeight` settles once the body's bands
-    // have laid out. Re-publish when it changes so the bulge matches the
-    // panel it roots rather than the zero-size frame that existed for one
-    // frame. The CENTRE is not re-read here: that is the snapshot, and
-    // re-reading it is what this file's margin notes warn against.
-    onPanelHeightChanged: if (popoutWindow.vertical) popoutWindow.publishRoot()
-    onPanelWidthChanged: if (!popoutWindow.vertical) popoutWindow.publishRoot()
+    // One line per summon, on the shell's existing state-change log idiom.
+    // This is the ONLY instrument that can reach an attached popout from
+    // outside the session: the surface cannot be summoned without a
+    // pointer, so a screenshot needs an operator click, but the log is
+    // readable at any time and reports the numbers a screenshot would have
+    // to be reverse-engineered into.
+    onOpenedChanged: if (popoutWindow.opened) console.log("popout: section=" + popoutWindow.sectionId
+        + " attached=" + popoutWindow.attached + " vertical=" + popoutWindow.vertical
+        + " triggerCentre=" + popoutWindow.triggerCentre
+        + " rootCentre=" + PopoutController.rootCentre.toFixed(1)
+        + " rootInset=" + PopoutController.rootInset.toFixed(1)
+        + " panel=" + popoutWindow.panelWidth.toFixed(0) + "x" + popoutWindow.panelHeight.toFixed(0)
+        + " margins=[t " + popoutWindow.margins.top.toFixed(1) + ", r " + popoutWindow.margins.right.toFixed(1) + "]")
 
 
     // The content-level `exitFade` that used to live here is GONE (quick

@@ -106,8 +106,39 @@ PanelWindow {
         }
     }
 
+    // Emitted once the exit has actually played. The three loaders in
+    // shell.qml deactivate on THIS, not on `dismissRequested`, so the
+    // surface is never destroyed with a frame of exit still on screen.
+    signal dismissFinished()
+
     function requestDismiss() {
         panelWindow.dismissRequested();
+        if (!Motion.motionEnabled) {
+            // D-21's `off` collapse: no animation, straight to the end.
+            panelWindow.dismissFinished();
+            return;
+        }
+        if (panelWindow._dismissing)
+            return;
+        // Order matters: the flag is read by both Behaviors to pick the
+        // mirrored easing at the moment the animation STARTS, so it must be
+        // set before `opened` flips or the first exit runs the entrance
+        // curve.
+        panelWindow._dismissing = true;
+        panelWindow.opened = false;
+        exitHold.start();
+    }
+
+    // A timer rather than one Behavior's `onRunningChanged`: the slide and
+    // the fade run on DIFFERENT tokens (spatial vs emphasized), so there is
+    // no single animation whose end is the exit's end. The hold is the
+    // longer of the two, read from the tokens so the motion-scale axis
+    // still governs it.
+    Timer {
+        id: exitHold
+        interval: Math.max(Motion.spatialInDuration, Motion.emphasizedInDuration)
+        repeat: false
+        onTriggered: panelWindow.dismissFinished()
     }
 
     // Esc routes through this rather than straight to requestDismiss() so a
@@ -120,9 +151,33 @@ PanelWindow {
     }
 
     // ── Layer posture (D-15-03 inherits Dashboard.qml's D-03 verbatim) ──
+    // ── ATTACHED TO THE RAIL (quick task 260825-pyf, operator request) ──
+    // These three panels spawn from the top, exactly where the dashboard
+    // does, so they now spawn from the same BULGE and in the same way: they
+    // weld to the rail rather than floating below it, they carry the same
+    // concave flares, and they slide in and out on the dashboard's own
+    // motion instead of the compositor's `slide`.
+    //
+    // Threaded from shell.qml rather than derived here — `edgeBarPanelsAttach`
+    // is the shell's single resolution point, and it is false for TWO
+    // different reasons (no rail at all, and Brackets' rail which nothing
+    // welds to). A predicate false for two reasons cannot be re-derived from
+    // one of them; that is the trap `Dashboard.qml` already had to fix once.
+    property bool attached: false
+
+    // The flares sit BESIDE the panel at its top, so the room they need is
+    // horizontal. `implicitHeight` is untouched.
+    readonly property int flareRadius: panelWindow.attached ? Design.attachedCornerRadius : 0
+
     anchors.top: true
-    margins.top: panelWindow.panelTopMargin
-    implicitWidth: panelWindow.panelWidth
+    // Welded: flush to the rail's inner edge, the dashboard's `margins.top:
+    // edgeBarPanelsAttach ? 0 : drawerTopMargin` exactly. Unwelded: the real
+    // window top, read live — the hardcoded 10 this replaced was measured
+    // when gaps_out was 10 and gaps_out is 20 now, so the panel was landing
+    // 10px above the windows it was meant to line up with (measured:
+    // quickshell-wifi-panel at y=16 against a true window top of 26).
+    margins.top: panelWindow.attached ? 0 : WindowInset.insetFor("top")
+    implicitWidth: panelWindow.panelWidth + 2 * panelWindow.flareRadius
     implicitHeight: panelWindow.panelHeight
     exclusiveZone: 0
     exclusionMode: ExclusionMode.Normal
@@ -157,10 +212,57 @@ PanelWindow {
     // consumer also reads — never restated as a second literal here.
     readonly property int borderWidth: Design.borderWidth
 
+    // ── The panel proper (quick task 260825-pyf) ────────────────────────
+    // Everything that used to fill the WINDOW now fills this, so the two
+    // AttachedCorner flares have somewhere to draw: a concave corner cannot
+    // be rendered by the background's own Rectangle and must paint outside
+    // its bounds. The window is `2 * flareRadius` wider and the panel is
+    // centred in it, so the compositor still centres the visible panel
+    // exactly where it did before.
+    //
+    // POSITIONED, NOT TRANSFORMED — the flares are siblings anchored to this
+    // item's edges, and anchors track real geometry while a transform does
+    // not. Moving `panel.y` carries them; a Translate would slide the panel
+    // out from under two flares left standing at the rail. Dashboard.qml's
+    // own panel/flare pair is built this way for this reason.
+    property bool opened: false
+    property bool _dismissing: false
+
+    Item {
+        id: panel
+        width: panelWindow.panelWidth
+        height: panelWindow.panelHeight
+        x: panelWindow.flareRadius
+        y: panelWindow.opened ? 0 : -panelWindow.panelHeight
+        opacity: panelWindow.opened ? 1 : 0
+
+        // Dashboard.qml's two lines, in shape and in tokens: slide on the
+        // spatial register, fade on emphasized, and the EXIT runs the
+        // entrance easing MIRRORED rather than the shorter out-token —
+        // operator round 9 of 260823-9ak, "the dismiss should be a reverse
+        // of the spawn".
+        Behavior on y {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.spatialInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: panelWindow._dismissing ? Motion.spatialInReverseEasing : Motion.spatialInEasing
+            }
+        }
+        Behavior on opacity {
+            enabled: Motion.motionEnabled
+            NumberAnimation {
+                duration: Motion.emphasizedInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: panelWindow._dismissing ? Motion.emphasizedInReverseEasing : Motion.emphasizedInEasing
+            }
+        }
+    }
+
     // ── Background (bottom-only rounding, D-15-03/D-03) ─────────────────
     Rectangle {
         id: background
-        anchors.fill: parent
+        anchors.fill: panel
         topLeftRadius: 0
         topRightRadius: 0
         bottomLeftRadius: panelWindow.cornerRadius
@@ -189,12 +291,53 @@ PanelWindow {
     //    so the rim and the surface can never disagree about the frame's
     //    shape.
     GradientBorder {
-        anchors.fill: parent
+        id: panelRim
+        anchors.fill: panel
         borderWidth: panelWindow.borderWidth
         topLeftRadius: 0
         topRightRadius: 0
         bottomLeftRadius: panelWindow.cornerRadius
         bottomRightRadius: panelWindow.cornerRadius
+    }
+
+    // ── The weld flares (quick task 260825-pyf) ─────────────────────────
+    // `Dashboard.qml`'s own `dashboardFlareLeft`/`Right` pair, same
+    // component and same inputs — these panels attach to the SAME top rail
+    // in the SAME direction, so unlike the bar popouts nothing is
+    // transposed here and `edge`/`side` read literally.
+    //
+    // Measured on the live dashboard before copying: its panel spans
+    // x 875..1635, and at y=6 the material reaches out to 854 and 1656 —
+    // ~21px of visible flare each side against `attachedCornerRadius` 24,
+    // the remainder being the arc's own falloff into the rail. That spread
+    // is what welds it, and it is exactly what these panels were missing.
+    AttachedCorner {
+        id: panelFlareLeft
+        visible: panelWindow.attached
+        edge: "top"
+        side: "left"
+        flareRadius: Design.attachedCornerRadius
+        anchors.right: panel.left
+        anchors.top: panel.top
+        fillColour: background.color
+        borderWidth: panelWindow.borderWidth
+        angle: panelRim.startAngle + panelRim.angle
+        gradientCentre: Qt.point(panel.width / 2 - panelFlareLeft.x, panel.height / 2 - panelFlareLeft.y)
+        gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
+    }
+    AttachedCorner {
+        id: panelFlareRight
+        visible: panelWindow.attached
+        edge: "top"
+        side: "right"
+        flareRadius: Design.attachedCornerRadius
+        anchors.left: panel.right
+        anchors.top: panel.top
+        fillColour: background.color
+        borderWidth: panelWindow.borderWidth
+        angle: panelRim.startAngle + panelRim.angle
+        gradientCentre: Qt.point(panel.width / 2 - panelFlareRight.x, panel.height / 2 - panelFlareRight.y)
+        gradientHalfDiagonal: Math.sqrt(panel.width * panel.width + panel.height * panel.height) / 2
     }
 
     // ── Dismissal (D-15-20): HyprlandFocusGrab clears the drawer's own
@@ -216,12 +359,25 @@ PanelWindow {
         panelWindow.entranceCascade.bands = [headerIdentity, advancedButton].concat(panelWindow.bodyCascadeBands);
         panelWindow.entranceCascade.armed = true;
         panelWindow.entranceCascade.run();
+        // Deferred by one turn so the closed state is COMMITTED before the
+        // open state is assigned — set in the same frame, the Behaviors see
+        // no transition and the panel just appears with no entrance.
+        //
+        // NOTE this reads NOTHING the host assigns after construction. That
+        // distinction shipped a bug earlier in this same task: SectionPopout
+        // published its trigger anchor from `Component.onCompleted`, but the
+        // loader assigns that property AFTER creating the item, so it
+        // published a zero. Being built at summon time does not mean being
+        // CONFIGURED at construction time.
+        Qt.callLater(function () {
+            panelWindow.opened = true;
+        });
     }
 
     // ── Content root (Esc dismiss) ───────────────────────────────────────
     Item {
         id: content
-        anchors.fill: parent
+        anchors.fill: panel
         focus: true
         Keys.onEscapePressed: panelWindow.handleEscape()
         Component.onCompleted: content.forceActiveFocus()

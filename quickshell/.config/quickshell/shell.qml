@@ -99,6 +99,22 @@ ShellRoot {
     property bool dashboardHoverSummoned: false
     property bool launcherHoverSummoned: false
 
+    // Which config panel, if any, is currently spawning from the top rail
+    // (quick task 260825-pyf). Resolved ONCE here beside the other edge-bar
+    // predicates, for the same reason those are: the rail reads it twice
+    // (bulge width and swell) and a second copy would be a second thing to
+    // keep in sync. Returns the panel's own item so the rail can size
+    // itself off `panelWidth` rather than off a number restated here.
+    readonly property var _openTopPanel: {
+        if (wifiPanelLoader.active && wifiPanelLoader.item)
+            return wifiPanelLoader.item;
+        if (bluetoothPanelLoader.active && bluetoothPanelLoader.item)
+            return bluetoothPanelLoader.item;
+        if (audioPanelLoader.active && audioPanelLoader.item)
+            return audioPanelLoader.item;
+        return null;
+    }
+
     readonly property bool edgeBarAnimatedBulgeEffective: root.edgeBarStyle === "segmented"
         ? true
         : root.edgeBarAnimatedBulge
@@ -761,13 +777,25 @@ ShellRoot {
             id: edgeBarTop
             edge: "top"
             style: root.edgeBarStyle
-            // Matches the dashboard, which spawns from this strip.
-            bulgeWidth: Design.edgeBarBulgeWidthTop
+            // Sized to whichever surface is actually spawning from this
+            // strip (quick task 260825-pyf, operator request). It was fixed
+            // at the dashboard's own width; the three config panels spawn
+            // from the same rail and are WIDER (850 against 760), so a
+            // fixed bulge left them overhanging their own root by 45px a
+            // side. The dashboard's width stays the resting value, which is
+            // what `edgeBarBulgeWidthTop: dashboardMinWidth` always meant.
+            //
+            // Read off the loaders' items rather than restating 850 here:
+            // `panelWidth` is PanelDialog's own readonly constant, so this
+            // cannot drift from it. Null-guarded because a LazyLoader's
+            // `item` does not exist until it has incubated.
+            bulgeWidth: root._openTopPanel ? root._openTopPanel.panelWidth : Design.edgeBarBulgeWidthTop
             animatedBulge: root.edgeBarAnimatedBulgeEffective
             // Holds the swell for as long as the surface THIS strip summons
             // is up, so the bulge does not collapse under the drawer the
-            // moment the pointer leaves the strip and enters it.
-            surfaceOpen: dashboardLoader.active
+            // moment the pointer leaves the strip and enters it. Now covers
+            // the config panels too — they spawn from this strip as well.
+            surfaceOpen: dashboardLoader.active || root._openTopPanel !== null
         }
     }
     LazyLoader {
@@ -858,7 +886,12 @@ ShellRoot {
 
         AudioPanel {
             backend: audioBackendInstance
-            onDismissRequested: audioPanelLoader.active = false
+            // Threaded, never re-derived — see PanelDialog.attached.
+            attached: root.edgeBarPanelsAttach
+            // Deactivates on dismissFINISHED, so the exit animation is
+            // allowed to play instead of the surface being destroyed on
+            // the first frame of it.
+            onDismissFinished: audioPanelLoader.active = false
         }
     }
 
@@ -937,7 +970,12 @@ ShellRoot {
 
         WifiPanel {
             backend: wifiBackendInstance
-            onDismissRequested: wifiPanelLoader.active = false
+            // Threaded, never re-derived — see PanelDialog.attached.
+            attached: root.edgeBarPanelsAttach
+            // Deactivates on dismissFINISHED, so the exit animation is
+            // allowed to play instead of the surface being destroyed on
+            // the first frame of it.
+            onDismissFinished: wifiPanelLoader.active = false
         }
     }
 
@@ -987,7 +1025,12 @@ ShellRoot {
 
         BluetoothPanel {
             backend: bluetoothBackendInstance
-            onDismissRequested: bluetoothPanelLoader.active = false
+            // Threaded, never re-derived — see PanelDialog.attached.
+            attached: root.edgeBarPanelsAttach
+            // Deactivates on dismissFINISHED, so the exit animation is
+            // allowed to play instead of the surface being destroyed on
+            // the first frame of it.
+            onDismissFinished: bluetoothPanelLoader.active = false
         }
     }
 
@@ -1385,10 +1428,50 @@ ShellRoot {
     //    DASH-08 guard lives inside `openPanel(name)` and nowhere else, so
     //    every summon path — this plan's Super+A, 15-07's tile chevron,
     //    15-08's retired-bar IPC call — shares the one guard.) ───────────
-    function closeAllPanels() {
-        audioPanelLoader.active = false;
-        wifiPanelLoader.active = false;
-        bluetoothPanelLoader.active = false;
+    // ── Closes through the panel's own ANIMATED dismiss (quick task
+    //    260825-pyf) ─────────────────────────────────────────────────────
+    // These three lines used to set `active = false` directly, which
+    // destroys the surface on the first frame of its exit. MEASURED that
+    // way: a dismiss via `qs ipc call panel toggle wifi` had the surface
+    // gone ~112ms later against a spatial-in token of 500ms — i.e. the exit
+    // never played at all on this path.
+    //
+    // It mattered because this is the MAIN path, not a corner: `openPanel`
+    // calls it both to toggle a panel shut and to clear the others before
+    // opening one, so Super+A, the tile chevrons and the IPC verb all came
+    // through here. Only Esc and focus-loss reached `requestDismiss()`, so
+    // the animation would have looked broken exactly where it is used most
+    // and correct where it is used least — the kind of split that reads as
+    // "sometimes it animates" rather than as a bug with a location.
+    //
+    // Each panel now runs its own exit and deactivates its loader on
+    // `dismissFinished`. Null-guarded: an active LazyLoader whose item has
+    // not incubated yet has nothing to ask, so it is torn down directly.
+    // `animated` defaults TRUE — a plain close plays the exit. It is passed
+    // FALSE only when another panel is about to take this one's place.
+    //
+    // WHY THE SPLIT, and it is not caution: with an animated close the
+    // outgoing surface lives for the exit's whole duration, so a
+    // panel-to-panel switch briefly has TWO of them up. That is not just
+    // untidy — all three are the same 850px frame in the same centred
+    // position, so the overlap reads as a glitch rather than as a
+    // crossfade, and it breaks D-15-25's at-most-one-panel invariant that
+    // quickshell-doctor's `panel-namespace-conformance` check enforces
+    // (which is how this was caught: `cross[count=2]`, not by looking).
+    // Replacing is therefore instant; only a genuine dismiss animates.
+    function closeAllPanels(animated) {
+        var wantAnim = (animated === undefined) ? true : !!animated;
+        var loaders = [audioPanelLoader, wifiPanelLoader, bluetoothPanelLoader];
+        for (var i = 0; i < loaders.length; i++) {
+            if (!loaders[i].active)
+                continue;
+            // Null-guarded: an active LazyLoader whose item has not
+            // incubated yet has nothing to ask, so it is torn down directly.
+            if (wantAnim && loaders[i].item)
+                loaders[i].item.requestDismiss();
+            else
+                loaders[i].active = false;
+        }
     }
 
     // Name-to-loader resolution, shared by openPanel() below and the
@@ -1424,7 +1507,8 @@ ShellRoot {
         if (root.fullscreenBlocking)
             return;
 
-        root.closeAllPanels();
+        // Instant: another panel is replacing this one — see closeAllPanels.
+        root.closeAllPanels(false);
         targetLoader.active = true;
     }
 
