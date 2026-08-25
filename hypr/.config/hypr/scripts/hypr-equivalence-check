@@ -1055,6 +1055,14 @@ LEAF_TO_HYPR_LEAVES_KEY = {
     'windowsIn': 'windows_in', 'windowsOut': 'windows_out', 'windowsMove': 'windows_move',
     'workspaces': 'workspaces', 'specialWorkspace': 'special_workspace',
     'layers': 'layers', 'layersIn': 'layers_in', 'layersOut': 'layers_out',
+    # 2026-08-25: the five fade leaves joined this table when they stopped
+    # being hardcoded in animations.lua and started reading `hypr_leaves`
+    # like the eight above. Their BASE entries reproduce the old hardcoded
+    # curve/speed pairs exactly, so this is not a behaviour change for any
+    # existing style — it only makes them reachable by a style override,
+    # which 'zen' is the first to use.
+    'fadeIn': 'fade_in', 'fadeOut': 'fade_out', 'fadeSwitch': 'fade_switch',
+    'fadeShadow': 'fade_shadow', 'fadeDim': 'fade_dim',
 }
 
 # quick-260821-swp: every OTHER leaf that carries a speed (the five fade
@@ -1086,7 +1094,12 @@ def _leaf_semantic_key(leaf_name):
     key = LEAF_TO_HYPR_LEAVES_KEY.get(leaf_name)
     if key is not None:
         entry = (EFF.get('hypr_leaves') or {}).get(key) or {}
-        return entry.get('curve')
+        # `speed_key` wins when present: it is the whole point of the field,
+        # which exists so a leaf's duration can be chosen independently of
+        # its curve name (animations.lua: (entry.speed_key or curve)). Falling
+        # back to the curve name reproduces the pre-2026-08-25 rule exactly
+        # for every leaf that does not set it.
+        return entry.get('speed_key') or entry.get('curve')
     return FADE_LEAF_TO_SEMANTIC_KEY.get(leaf_name)
 
 

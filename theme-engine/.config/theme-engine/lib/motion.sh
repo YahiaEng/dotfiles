@@ -727,15 +727,27 @@ theme_engine_render_hypr_tokens() {
         echo "    hypr_leaves = {"
         jq -r '(.hypr_leaves // {}) | keys[]' "$motion_eff" | while IFS= read -r leaf_key; do
             [[ -z "$leaf_key" ]] && continue
-            local leaf_curve leaf_style
+            local leaf_curve leaf_style leaf_speed_key
             leaf_curve="$(jq -r --arg k "$leaf_key" '.hypr_leaves[$k].curve // empty' "$motion_eff")"
             leaf_style="$(jq -r --arg k "$leaf_key" '.hypr_leaves[$k].style // empty' "$motion_eff")"
+            # OPTIONAL speed_key: the `semantic` entry whose duration drives
+            # this leaf's speed, when that must differ from the leaf's own
+            # curve name. Absent for almost every leaf, and absent means
+            # "use the curve name" — register_hypr_leaf applies that default,
+            # so omitting it here is byte-identical to the pre-2026-08-25
+            # behaviour. It exists because a leaf's curve and its duration
+            # were previously welded together, which made two leaves sharing
+            # one curve unable to hold different speeds.
+            leaf_speed_key="$(jq -r --arg k "$leaf_key" '.hypr_leaves[$k].speed_key // empty' "$motion_eff")"
             printf '        ["%s"] = {\n' "$leaf_key"
             if [[ -n "$leaf_curve" ]]; then
                 printf '            curve = %s,\n' "$(_hypr_lua_quote_string "$leaf_curve")"
             fi
             if [[ -n "$leaf_style" ]]; then
                 printf '            style = %s,\n' "$(_hypr_lua_quote_string "$leaf_style")"
+            fi
+            if [[ -n "$leaf_speed_key" ]]; then
+                printf '            speed_key = %s,\n' "$(_hypr_lua_quote_string "$leaf_speed_key")"
             fi
             echo "        },"
         done

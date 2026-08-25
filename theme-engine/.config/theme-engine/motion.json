@@ -36,7 +36,7 @@
     "spatial-out": [0.3, 0, 0.8, 0.15],
     "spatial-move": [0.2, 0, 0, 1]
   },
-  "_comment_semantic_leaf_channels": "semantic's last two entries (emphasized-decelerate / emphasized-accelerate) are LEAF-ONLY channels. They exist so a style can give a Hyprland leaf a curve+speed pair the four shared channels (standard/spatial-in/spatial-out/spatial-move) cannot express: animations.lua derives a leaf's speed from its CURVE NAME (register_hypr_leaf: speed_key = curve:gsub('-','_')), so two leaves sharing a curve are forced onto one duration, and these names break that tie without disturbing a shared channel. Inert until a hypr_leaves entry names them - no base leaf does, and Motion.qml walks a FIXED _pairNames list, so they reach neither QML nor any existing style. NOTE: every key inside 'semantic' MUST be a {duration,easing} object, never a comment string - lib/motion.sh renders it with `.semantic | to_entries[] | $D[$v.duration]`, which a string value breaks. Added 2026-08-25 for 'zen'.",
+  "_comment_semantic_leaf_channels": "semantic's four leaf-* entries are LEAF-ONLY SPEED CHANNELS. A Hyprland leaf normally takes its duration from its own curve name, which welds curve and speed together and stops two leaves sharing a curve from holding different speeds. A leaf entry's optional `speed_key` field names one of these channels instead, breaking that weld. They are named for the DURATION TOKEN they carry, never for a millisecond count, so they stay honest under the accessibility multiplier, which scales them like any other semantic entry. Their `easing` is filler and is never read: a leaf takes its bezier from its own `curve`, and only the channel's DURATION is used. Nothing in the base tables points at them and Motion.qml walks a FIXED _pairNames list, so they reach neither QML nor any existing style. NOTE: every key inside 'semantic' MUST be a {duration,easing} object, never a comment string - lib/motion.sh renders it with `.semantic | to_entries[] | $D[$v.duration]`, which a string value breaks. Added 2026-08-25 for 'zen'.",
   "semantic": {
     "standard": { "duration": "short4", "easing": "standard" },
     "emphasized-in": { "duration": "medium2", "easing": "emphasized-decelerate" },
@@ -47,8 +47,10 @@
     "spatial-in": { "duration": "medium2", "easing": "spatial-in" },
     "spatial-out": { "duration": "short3", "easing": "spatial-out" },
     "spatial-move": { "duration": "short4", "easing": "spatial-move" },
-    "emphasized-decelerate": { "duration": "medium2", "easing": "emphasized-decelerate" },
-    "emphasized-accelerate": { "duration": "short3", "easing": "emphasized-accelerate" }
+    "leaf-medium2": { "duration": "medium2", "easing": "standard" },
+    "leaf-medium4": { "duration": "medium4", "easing": "standard" },
+    "leaf-long2": { "duration": "long2", "easing": "standard" },
+    "leaf-long4": { "duration": "long4", "easing": "standard" }
   },
   "indicators": {
     "blink-slow": { "duration_ms": 1000, "easing": "css-linear" },
@@ -70,7 +72,12 @@
     "special_workspace": { "curve": "spatial-in", "style": "slidevert" },
     "layers": { "curve": "spatial-move", "style": "popin 80%" },
     "layers_in": { "curve": "spatial-in", "style": "popin 80%" },
-    "layers_out": { "curve": "spatial-out", "style": "popin 80%" }
+    "layers_out": { "curve": "spatial-out", "style": "popin 80%" },
+    "fade_in": { "curve": "standard-decelerate", "speed_key": "emphasized-in" },
+    "fade_out": { "curve": "standard-accelerate", "speed_key": "emphasized-out" },
+    "fade_switch": { "curve": "standard" },
+    "fade_shadow": { "curve": "standard" },
+    "fade_dim": { "curve": "standard" }
   },
   "_comment_styles": "Each style may override a SUBSET of easings/semantic/hypr_leaves keys (schema invariant: override keys must be a subset of the base table's keys — a style changes points behind a name, never adds a name). Overrides are shallow-merged over the base tables at render/gate time — a style-provided key replaces its base entry wholesale, a key the style does not mention keeps the base value. 'style' strings reach Hyprland's own parser directly, so each must match ^[a-z]+( [0-9]{1,3}%)?$.",
   "styles": {
@@ -171,31 +178,27 @@
     },
     "zen": {
       "label": "Zen",
-      "description": "Caelestia's motion, reproduced exactly \u2014 unhurried, gliding, no overshoot anywhere.",
-      "_comment_provenance": "EXACT PORT of caelestia-dots/caelestia hypr/hyprland/animations.lua (read 2026-08-25 via the GitHub contents API). Every one of the eight style-controlled Hyprland leaves below reproduces its Caelestia counterpart's curve AND speed exactly. Caelestia's speeds are deciseconds (confirmed on this host: hyprctl animations reports layersIn 4.50 for a 450ms leaf), so 5 = 500ms. Source values: layersIn 5/emphasizedDecel/slide, layersOut 4/emphasizedAccel/slide, windowsIn 5/emphasizedDecel/no style, windowsOut 3/emphasizedAccel/no style, windowsMove 6/standard/no style, workspaces 5/standard/no style, specialWorkspace 4/specialWorkSwitch/slidefadevert 15%.",
-      "_comment_curves": "This style overrides NO easings, and that is a measured result rather than an omission: all four of Caelestia's curves are already BYTE-IDENTICAL to this repo's base easings. Caelestia 'standard' {0.2,0},{0,1} == our standard == our spatial-move; 'emphasizedDecel' {0.05,0.7},{0.1,1} == our emphasized-decelerate == our spatial-in; 'emphasizedAccel' {0.3,0},{0.8,0.15} == our emphasized-accelerate == our spatial-out; and 'specialWorkSwitch' is a byte-for-byte duplicate of emphasizedDecel. What makes Caelestia feel like Caelestia is duration and leaf shape, not curvature.",
+      "description": "Caelestia's Hyprland animations, reproduced exactly \u2014 unhurried, gliding, no overshoot anywhere.",
+      "_comment_provenance": "EXACT PORT of caelestia-dots/caelestia hypr/hyprland/animations.lua (read 2026-08-25 via the GitHub contents API). Source, with speeds in deciseconds (confirmed on this host: hyprctl animations reports a 450ms leaf as 4.50), so 5 = 500ms: layersIn 5/emphasizedDecel/slide, layersOut 4/emphasizedAccel/slide, windowsIn 5/emphasizedDecel/no style, windowsOut 3/emphasizedAccel/no style, windowsMove 6/standard/no style, workspaces 5/standard/no style, specialWorkspace 4/specialWorkSwitch/slidefadevert 15%, fade 6/standard, fadeDim 6/standard. In Hyprland's animation tree 'fade' is the PARENT of fadeIn/fadeOut/fadeSwitch/fadeShadow/fadeDim, so Caelestia's single fade=6/standard puts all five at 600ms on the standard curve \u2014 which is why all five are spelled out below rather than left alone.",
+      "_comment_curves": "This style overrides NO easings, and that is a measured result rather than an omission: all four of Caelestia's curves are already BYTE-IDENTICAL to this repo's base easings. Caelestia 'standard' {0.2,0},{0,1} == our standard; 'emphasizedDecel' {0.05,0.7},{0.1,1} == our emphasized-decelerate; 'emphasizedAccel' {0.3,0},{0.8,0.15} == our emphasized-accelerate; and 'specialWorkSwitch' is a byte-for-byte duplicate of emphasizedDecel. What makes Caelestia feel like Caelestia is duration and leaf shape, not curvature.",
       "easings": {},
-      "_comment_channels": "WHY THE LEAVES BELOW POINT AT SIX DIFFERENT CURVE NAMES FOR ONLY THREE DISTINCT CURVES: animations.lua derives a leaf's speed from its curve name (register_hypr_leaf: speed_key = curve:gsub('-','_')), so two leaves sharing a curve name are forced onto one duration. Caelestia needs six distinct curve+speed pairs \u2014 emphasizedDecel@500, emphasizedAccel@300, emphasizedAccel@400, standard@600, standard@500, emphasizedDecel@400 \u2014 and only four shared channels existed, which is why base 'semantic' gained the two leaf-only channels emphasized-decelerate/emphasized-accelerate. Each leaf is routed to a channel whose POINTS already equal the Caelestia curve it must reproduce, so no easing override is needed: windowsIn/layersIn -> emphasized-decelerate@500, windowsOut -> spatial-out@300, layersOut -> emphasized-accelerate@400, windowsMove -> standard@600, workspaces -> spatial-move@500, specialWorkspace -> spatial-in@400.",
-      "semantic": {
-        "standard": { "duration": "long4", "easing": "standard" },
-        "spatial-in": { "duration": "medium4", "easing": "spatial-in" },
-        "spatial-out": { "duration": "medium2", "easing": "spatial-out" },
-        "spatial-move": { "duration": "long2", "easing": "spatial-move" },
-        "emphasized-decelerate": { "duration": "long2", "easing": "emphasized-decelerate" },
-        "emphasized-accelerate": { "duration": "medium4", "easing": "emphasized-accelerate" }
-      },
-      "_comment_standard_600": "standard=600ms is Caelestia's own value and is deliberately NOT decoupled. On the Hyprland side it is exactly right: it drives windowsMove (Caelestia 6) and fadeDim (Caelestia 6), and fadeSwitch/fadeShadow, which Caelestia leaves at Hyprland defaults, follow the same channel here. THE COST, stated plainly: Motion.standardDuration is this same token, so every QML surface bound to it also runs at 600ms while Zen is active. Decoupling would need a THIRD base easing carrying {0.2,0},{0,1} purely so windowsMove could hold 600 while QML kept a shorter standard \u2014 a new name in the base easings table, registered as a live Hyprland curve on every style, to serve one leaf. Judged not worth it; revisit if the shell reads sluggish under Zen.",
-      "_comment_unspecified": "emphasized-in/emphasized-out are deliberately NOT overridden. They drive Hyprland's fadeIn/fadeOut, which Caelestia does not configure at all \u2014 inheriting the base values is the faithful reading of 'unspecified', not a gap.",
-      "_comment_leaves": "windows_in/windows_out/windows_move/workspaces carry a curve but NO style key, reproducing Caelestia exactly: its window and workspace leaves pass no style, so Hyprland's own default applies. register_hypr_leaf only sets args.style when entry.style ~= nil, and a style's leaf entry REPLACES the base entry wholesale, so omitting the key here genuinely drops base's 'popin 60%'/'slide' rather than inheriting it. The parent 'layers' leaf has no Caelestia counterpart (its config declares only layersIn/layersOut/fadeLayers); it mirrors layersIn so the inheritance slot stays declared, as the animations.lua comment requires.",
+      "_comment_no_semantic": "This style overrides NO semantic entries either, and that is the DECOUPLING, deliberately chosen on 2026-08-25 after an earlier revision set semantic.standard to 600ms. That worked but was overreach: semantic.standard is also Motion.standardDuration, so every QML surface bound to it ran at 600ms, and Caelestia's animations.lua says nothing whatsoever about shell-side timing \u2014 its shell keeps its own separate tokens, which this repo has not ported. Each leaf below therefore names a leaf-only `speed_key` channel instead of borrowing a shared semantic name. THE CONSEQUENCE, worth stating outright: zen changes Hyprland's animations ONLY. Every QML surface animates exactly as it does under md3. If the shell should feel Caelestia-like too, that is a separate port of Caelestia's shell tokens, not a change to this style.",
+      "semantic": {},
+      "_comment_leaves": "windows_in/out/move, workspaces and the five fade leaves carry a curve but NO style key, reproducing Caelestia exactly: it passes no style for those leaves, so Hyprland's own default applies. register_hypr_leaf only sets args.style when entry.style ~= nil, and a style's leaf entry REPLACES the base entry wholesale, so omitting the key genuinely drops base's 'popin 60%'/'slide' rather than inheriting it. The parent 'layers' leaf has no Caelestia counterpart (its config declares layersIn/layersOut/fadeLayers only); it mirrors layersIn so the inheritance slot stays declared, as animations.lua's own comment requires.",
       "hypr_leaves": {
-        "windows_in": { "curve": "emphasized-decelerate" },
-        "windows_out": { "curve": "spatial-out" },
-        "windows_move": { "curve": "standard" },
-        "workspaces": { "curve": "spatial-move" },
-        "special_workspace": { "curve": "spatial-in", "style": "slidefadevert 15%" },
-        "layers": { "curve": "emphasized-decelerate", "style": "slide" },
-        "layers_in": { "curve": "emphasized-decelerate", "style": "slide" },
-        "layers_out": { "curve": "emphasized-accelerate", "style": "slide" }
+        "windows_in": { "curve": "emphasized-decelerate", "speed_key": "leaf-long2" },
+        "windows_out": { "curve": "emphasized-accelerate", "speed_key": "leaf-medium2" },
+        "windows_move": { "curve": "standard", "speed_key": "leaf-long4" },
+        "workspaces": { "curve": "standard", "speed_key": "leaf-long2" },
+        "special_workspace": { "curve": "emphasized-decelerate", "speed_key": "leaf-medium4", "style": "slidefadevert 15%" },
+        "layers": { "curve": "emphasized-decelerate", "speed_key": "leaf-long2", "style": "slide" },
+        "layers_in": { "curve": "emphasized-decelerate", "speed_key": "leaf-long2", "style": "slide" },
+        "layers_out": { "curve": "emphasized-accelerate", "speed_key": "leaf-medium4", "style": "slide" },
+        "fade_in": { "curve": "standard", "speed_key": "leaf-long4" },
+        "fade_out": { "curve": "standard", "speed_key": "leaf-long4" },
+        "fade_switch": { "curve": "standard", "speed_key": "leaf-long4" },
+        "fade_shadow": { "curve": "standard", "speed_key": "leaf-long4" },
+        "fade_dim": { "curve": "standard", "speed_key": "leaf-long4" }
       }
     }
   },

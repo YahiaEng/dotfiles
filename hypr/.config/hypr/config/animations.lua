@@ -117,7 +117,15 @@ local function register_hypr_leaf(leaf_name, entry_key)
     if not registered_curves[curve_name] then
         return
     end
-    local speed_key = curve:gsub("%-", "_")
+    -- A leaf's speed normally follows its CURVE NAME, which welds the two
+    -- together: two leaves on one curve cannot hold different durations.
+    -- An optional `speed_key` on the leaf entry breaks that weld by naming
+    -- the semantic entry to read instead. Absent means "use the curve
+    -- name", so every leaf that does not set it behaves exactly as before.
+    -- Added 2026-08-25 so the 'zen' style could reproduce Caelestia's
+    -- Hyprland speeds without dragging the QML tokens (Motion.qml binds
+    -- semantic.standard) along with them.
+    local speed_key = (entry.speed_key or curve):gsub("%-", "_")
     local speed = tokens.motion.speed[speed_key]
     if speed == nil then
         return
@@ -140,46 +148,19 @@ register_hypr_leaf("windowsOut", "windows_out")
 register_hypr_leaf("windowsMove", "windows_move")
 
 -- ── Fade ─────────────────────────────────────────
-if tokens.motion.speed.emphasized_in ~= nil and registered_curves["motion-standard-decelerate"] then
-    hl.animation({
-        leaf = "fadeIn",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_in,
-        bezier = "motion-standard-decelerate",
-    })
-end
-if tokens.motion.speed.emphasized_out ~= nil and registered_curves["motion-standard-accelerate"] then
-    hl.animation({
-        leaf = "fadeOut",
-        enabled = true,
-        speed = tokens.motion.speed.emphasized_out,
-        bezier = "motion-standard-accelerate",
-    })
-end
-if tokens.motion.speed.standard ~= nil and registered_curves["motion-standard"] then
-    hl.animation({
-        leaf = "fadeSwitch",
-        enabled = true,
-        speed = tokens.motion.speed.standard,
-        bezier = "motion-standard",
-    })
-end
-if tokens.motion.speed.standard ~= nil and registered_curves["motion-standard"] then
-    hl.animation({
-        leaf = "fadeShadow",
-        enabled = true,
-        speed = tokens.motion.speed.standard,
-        bezier = "motion-standard",
-    })
-end
-if tokens.motion.speed.standard ~= nil and registered_curves["motion-standard"] then
-    hl.animation({
-        leaf = "fadeDim",
-        enabled = true,
-        speed = tokens.motion.speed.standard,
-        bezier = "motion-standard",
-    })
-end
+-- 2026-08-25: these five were hardcoded here (fadeIn on emphasized_in +
+-- standard-decelerate, fadeOut on emphasized_out + standard-accelerate, the
+-- other three on standard + standard) and so were unreachable by any style.
+-- They now read motion.json's `hypr_leaves` like the eight leaves above.
+-- Their BASE entries carry exactly the curve/speed pairs spelled out in the
+-- previous sentence, using `speed_key` where the speed name differs from the
+-- curve name, so every existing style renders byte-identically; only a style
+-- that deliberately overrides one of these five sees any change.
+register_hypr_leaf("fadeIn", "fade_in")
+register_hypr_leaf("fadeOut", "fade_out")
+register_hypr_leaf("fadeSwitch", "fade_switch")
+register_hypr_leaf("fadeShadow", "fade_shadow")
+register_hypr_leaf("fadeDim", "fade_dim")
 
 -- ── Border ───────────────────────────────────────
 if tokens.motion.speed.ambient ~= nil and registered_curves["motion-linear"] then
