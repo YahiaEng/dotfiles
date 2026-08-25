@@ -351,3 +351,80 @@ Commits verified in `git log`:
 - `ae9ec82a` — FOUND
 
 All four pushed to `origin/main`.
+
+---
+
+## Post-summary: operator feedback rounds 12 and 12b (2026-08-25)
+
+Seven further commits after the four Tasks 4-7 landed. All pushed.
+
+### Round 12 — four notes, all fixed and OPERATOR-PASSED
+
+| # | Note | Commit | Outcome |
+|---|------|--------|---------|
+| 1 | Continuous | — | **PASS**, no change needed |
+| 2 | "the brackets are clipping with hyprland windows" | `0b8db18e` | Fixed — REVERSES DC-2 |
+| 3 | Segmented pass, but "the always show bulge option should not exist in this style" | `514febd3` | Row hidden + value forced |
+| 4 | "the right edge is clipping" + "the bulge size should be thinner in this style" | `0b8db18e`, `e272a88e` | Both fixed |
+| new | "make hyprland windows rimless/without the border" for every style except off | `4a9490b4` | Shipped, then **approved** |
+
+**THE CLIPPING'S ROOT CAUSE — the study has no compositor.** It insets rails by
+`INSET = 10` and puts the right rail at `RIGHT_EDGE = BAR.x - 10`. Hyprland
+insets every client by `gaps_out`, also 10 here, so the window silhouette's outer
+edge lands on EXACTLY the pixel the study's inset puts the rail on. Measured
+before, window box `x 10..2499`: Brackets arms `10..15` and `2494..2499`, Halo
+right rail `2498..2499` — all inside it. Anchoring all four flush to their own
+boundary and letting `gaps_out` supply the gap is what the top and bottom rails
+always did, which is precisely why THEY were never reported as clipping.
+
+**Why rimless stays, in the operator's own words:** *"so much better than we had
+before (it was sensory vomit with so much shifting rainbow gradients)"*. This is
+a SENSORY-LOAD argument, not a taste one — Hyprland's animated gradient border
+was a second scrolling gradient competing with the rail's. Do not reintroduce a
+window border while a rail style is active.
+
+### Round 12b — two items, both OPERATOR-APPROVED
+
+| Item | Commit | Outcome |
+|------|--------|---------|
+| "the app drawer upper corners in brackets style are cut off" | `1a4d9b9f` | **"dashboard bug fixed"** |
+| Hover-summoned drawers dismiss on mouse-leave | `809f60c0` | **"hover dismissal approved"** |
+
+### Measured `reserved` after round 12 — supersedes the table above
+
+```
+off         [0,0,50,0]      brackets    [0,0,50,0]
+continuous  [0,6,50,6]      halo        [2,2,50,2]
+segmented   [0,6,50,6]
+```
+
+Gaps between rail and window silhouette, measured as raw per-column RGB:
+Brackets left `x 6..9` (4px) and right `x 2500..2503` (4px); Halo left 10px and
+right `x 2500..2507` (8px). Halo's static bulge is now `y 0..7` (8px, was 12)
+with the off-centre hairline still `y 0..1`.
+
+### Three things later work must not relearn
+
+1. **`edgeBarPanelsAttach` is false in TWO states** — no rail at all, AND
+   rail-present-but-unattached. Branching on it alone changes the no-rail case
+   too. `Dashboard.qml` now takes `edgeBarRailPresent` as well and collapses the
+   pair into `_floatingFromRail`.
+2. **The hover-summon provenance flag is reset in ONE place** — the loader's
+   `onActiveChanged` deactivate edge — so every non-hover summon starts false by
+   construction and there is no caller list to keep in sync.
+3. **`hyprctl keyword` is dead on this build** ("can't work with non-legacy
+   parsers. Use eval."). Hyprland options go through `hypr-overrides.sh`, which
+   evals, verifies against `hyprctl -j` and persists across `hyprctl reload`.
+
+### Gates at `809f60c0` — run once each, per operator instruction
+
+`quickshell-doctor` 28/0 · `colour-lint` 362/0 · `motion-lint` 549/0 ·
+`keybind-doctor` 13/0 · `settings-index-check` 120/0 · path golden 123/123.
+
+### Still unverifiable on this host
+
+The pointer-in/pointer-out transition for hover-dismissal. `hl.dsp.movecursor`
+is nil on this build and there is no input-injection tool, so the arming
+behaviour was proven with a forced positive control (both drawers self-closed
+between t=1s and t=4s) and the keyboard exemption with the shipped code (both
+stayed open past t=8s). The feel is the operator's call, and they approved it.
