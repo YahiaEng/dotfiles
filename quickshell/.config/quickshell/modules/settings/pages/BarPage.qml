@@ -176,8 +176,28 @@ PageBase {
         icon: "border_horizontal"
 
         SelectRow {
+            id: edgeBarStyleRow
             label: "Edge bar style"
-            subtext: "Which shape, if any, the dashboard and launcher attach to and rise from"
+            // One sentence per shape, describing what you will actually
+            // SEE — not what the code does. `SelectRow` carries a single
+            // subtext, so it follows the selection rather than listing all
+            // five at once, which keeps the row one line tall.
+            subtext: {
+                switch (Prefs.getValue("edgeBar.style")) {
+                case "continuous":
+                    return "The rails run into the bar and stop, so the frame and the bar read as one shape.";
+                case "brackets":
+                    return "Four short corner pieces, nothing in between. Costs no screen space, and panels open free-floating.";
+                case "segmented":
+                    return "The top rail breaks into one piece per workspace, with the current one lit.";
+                case "halo":
+                    return "A 2px outline on all four edges, with the colour doing the work.";
+                case "off":
+                    return "No frame. The launcher drops from the top as it did before.";
+                default:
+                    return "Which shape, if any, the dashboard and launcher rise from.";
+                }
+            }
             model: [
                 { value: "continuous", display: "Continuous" },
                 { value: "brackets", display: "Brackets" },
@@ -194,13 +214,29 @@ PageBase {
         // both shapes stay reachable without a rollback.
         ToggleRow {
             label: "Animate the bulge"
-            subtext: "Rest the edges flat and swell the centre only while you hover it or its panel is open, instead of showing a permanent bulge"
-            // Deliberately NOT disabled when the edge bar is off: ToggleRow
-            // has no styled disabled state anywhere in this shell, so
-            // `enabled: false` would block input while looking identical —
-            // a row that reads as broken. With the edge bar off both strips
-            // are unmounted and this pref simply has no effect until it is
-            // switched back on.
+            // True on every style this row is visible for, which is why it
+            // says "a permanent one" rather than naming a size: on
+            // Continuous and Segmented switching this off leaves the
+            // shallow static bulge, and on Halo it leaves a much deeper
+            // motionless mass at each centre. Both are landmarks; neither
+            // is "nothing".
+            subtext: "Rest the edges flat and swell the centre only while you hover it or its panel is open, instead of showing a permanent one"
+            // Hidden on Brackets, and ONLY on Brackets: that shape draws no
+            // bulge at all, so there is nothing here to animate and a
+            // live-looking row that does nothing is worse than an absent
+            // one.
+            //
+            // Deliberately NOT disabled when the edge bar is off, and not
+            // hidden there either: ToggleRow has no styled disabled state
+            // anywhere in this shell, so `enabled: false` would block input
+            // while looking identical — a row that reads as broken. With
+            // the edge bar off every strip is unmounted and this pref
+            // simply has no effect until it is switched back on.
+            //
+            // The row DECLARATION stays in the file either way, so
+            // settings-index-check's static scan keeps counting it against
+            // its RowIndex entry regardless of what is on screen.
+            visible: Prefs.getValue("edgeBar.style") !== "brackets"
             checked: Prefs.getValue("edgeBar.animatedBulge")
             onToggled: (value) => Prefs.setValue("edgeBar.animatedBulge", value)
         }

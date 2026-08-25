@@ -43,9 +43,19 @@ Singleton {
         { pageIdx: 2, section: "Idle behaviour", label: "Idle auto-hide", keywords: "bar idle hide autohide timeout" },
         // Edge bar style picker (quick task 260823-9ak added the row,
         // quick task 260824-ns3 Task 1 closes the pre-existing
-        // settings-index-check CHECK A gap by adding both entries here).
-        { pageIdx: 2, section: "Edge bar", label: "Edge bar style", keywords: "edge bar style continuous brackets segmented halo off picker frame rail" },
-        { pageIdx: 2, section: "Edge bar", label: "Animate the bulge", keywords: "edge bar bulge animate swell hover landmark continuous brackets segmented halo" },
+        // settings-index-check CHECK A gap by adding both entries here,
+        // Task 7 widens the keywords to the shapes themselves).
+        //
+        // Both labels are BYTE-FOR-BYTE the row's own `label:` string in
+        // BarPage.qml — that string is the jump key, so any wording change
+        // there has to land here in the same commit.
+        //
+        // The "Animate the bulge" row is HIDDEN on Brackets but its
+        // declaration never leaves the page, so this entry stays valid on
+        // every style; search still finds it and jumping to it on Brackets
+        // simply lands on the section.
+        { pageIdx: 2, section: "Edge bar", label: "Edge bar style", keywords: "edge bar style continuous brackets segmented halo off picker frame rail outline corner workspace shape" },
+        { pageIdx: 2, section: "Edge bar", label: "Animate the bulge", keywords: "edge bar bulge animate swell hover landmark permanent static continuous segmented halo off" },
         { pageIdx: 2, section: "Capsules", label: "Launcher", keywords: "bar capsule launcher apps icon" },
         { pageIdx: 2, section: "Capsules", label: "CPU", keywords: "bar entry cpu readout system" },
         { pageIdx: 2, section: "Capsules", label: "RAM", keywords: "bar entry ram memory readout system" },
