@@ -156,7 +156,7 @@ PanelWindow {
     // ── Layer posture — copies Overview.qml's structural template; the
     //    only properties whose VALUE changes are exclusiveZone/implicit
     //    extent, both driven by `vertical`. ─────────────────────────────
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     focusable: false

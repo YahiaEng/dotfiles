@@ -186,24 +186,19 @@ PanelWindow {
     // back out. Ignoring other surfaces' reservations still reserves
     // nothing itself (exclusiveZone is 0 above either way).
     exclusionMode: ExclusionMode.Ignore
-    // ── BELOW THE BAR, ON PURPOSE (quick task 260825-x9p) ──────────────
-    // Top, not Overlay, and it is the whole mechanism for "spawn from
-    // behind the bar". The bar and the two rails moved UP to Overlay in the
-    // same change; this surface stays at Top, so the bar is painted OVER it
-    // and a panel parked behind the slab is hidden BY THE BAR rather than by
-    // the edge of its own surface.
+    // ── ABOVE THE BAR (operator round 2 of 260825-x9p) ─────────────────
+    // Briefly moved to Top so the bar would occlude this surface. That did
+    // hide the parked panel behind the bar — but it also put the bar's
+    // BULGE on top of the panel, and the operator reported exactly that:
+    // "the bulge is now on top of the panels". The bulge protrudes 14px past
+    // the slab's face and the panel's right edge lives there, so whichever
+    // surface is on top owns those pixels. The panel must own them.
     //
-    // It also un-inverts the weld. `Bar.qml`'s own note says the bulge
-    // "protrudes OVER the panel, exactly as the top rail's bulge does over
-    // the dashboard" — but with this surface above the bar the PANEL covered
-    // the BULGE, the exact opposite. Measured after the swap: bar-coloured
-    // pixels now occupy x 2488..2501 across the panel's rows, which is the
-    // bulge sitting on top of the panel where it was always meant to.
-    //
-    // Still above every application window (Top is above the window layer),
-    // and below the transient Overlay surfaces — dashboard, config panels,
-    // launcher — which is the ordering `EdgeBar.qml:309` describes.
-    WlrLayershell.layer: WlrLayer.Top
+    // So the stacking is back to baseline (bar and both rails at Top, this
+    // at Overlay) and the panel is hidden by its own CLIP instead — see
+    // `spawnClip` below. The clip sits on the slab's inner face, which is
+    // the same line the bar would have occluded to.
+    WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-bar-" + popoutWindow.sectionId
     // On demand only when pinned, none otherwise — differs from
     // PanelDialog's permanent OnDemand on purpose: T-18-13-01's whole
@@ -394,9 +389,24 @@ PanelWindow {
     // or the parent, and re-parenting six children back out through the
     // interleaved root-level `readonly property` declarations is exactly the
     // move that was caught before it wrote in round 4).
+    // ── THE CLIP IS THE BAR'S FACE ─────────────────────────────────────
+    // The surface now runs past the slab's inner face and out to its OUTER
+    // edge, so `anchors.fill: parent` would let the panel paint over the bar
+    // on its way out. This container is only ever the PANEL's width, pinned
+    // to the surface's left, so its right edge lands exactly on the slab's
+    // inner face — and it clips. Everything right of that line belongs to
+    // the bar and this surface never touches it.
+    //
+    // The panel is therefore hidden by this clip rather than by the bar
+    // being stacked above it, which is what round 2 had to undo: stacking
+    // the bar on top also put the bulge on top of the panel.
     Item {
         id: spawnClip
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: popoutWindow.panelWidth
+        clip: popoutWindow._slideFromBar
 
         // ── REVEALED, NOT FADED, WHILE ATTACHED (quick task 260825-t6j) ──
         // OPERATOR: "I want the spawn and dismissal animation to feel like it
@@ -464,9 +474,25 @@ PanelWindow {
         //     Distance is `panelWidth`: the panel's own width, never the
         //     surface's (Launcher.qml's rule; staged configures make a
         //     surface-derived distance drag the panel after it has opened).
+        // ── THE TRAVEL STARTS AT THE BAR'S RIGHT EDGE ──────────────────
+        // Operator: "the spawn/dismiss animation should start/end from the
+        // right edge of the bar respectively. It currently starts animating
+        // from the rightmost edge of the screen."
+        //
+        // The closed offset is the panel's own width PLUS the slab's, so the
+        // panel's left edge parks on the slab's OUTER edge — the bar's right
+        // edge — rather than one bare panel-width out, which put it past the
+        // slab entirely and read as coming from the screen edge. Both terms
+        // are real extents (the panel's, and the bar's own published slab
+        // width); neither is the surface's resolved width, which is the
+        // staged-configure trap `Launcher.qml:612` names.
+        //
+        // The first `rootSlabWidth` of that travel happens behind the clip,
+        // so the panel crosses the bar unseen and only appears once its edge
+        // reaches the slab's inner face.
         x: popoutWindow.opened || !popoutWindow._slideFromBar
             ? 0
-            : popoutWindow.panelWidth
+            : popoutWindow.panelWidth + PopoutController.rootSlabWidth
         // y — the UNATTACHED drop from the top of the Hyprland windows.
         //     The flare inset is a constant offset, present in both states,
         //     so the panel never lands 24px off its own window.
