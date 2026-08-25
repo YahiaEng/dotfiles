@@ -75,6 +75,14 @@ PACMAN_PKGS=(
     # Shell (interactive, launched via kitty.conf; login shell stays zsh — D-12)
     fish
 
+    # Searchable shell history for fish (Ctrl-R / Up). Official `extra`
+    # repo, pacman — verified with `pacman -Si atuin` (18.19.0-1) before
+    # this line was added, NOT the AUR. config.fish sources it behind a
+    # `command -q atuin` guard, so a machine that has not reached this
+    # step yet still opens a clean shell. Local-only by default: `atuin
+    # init` starts no sync and needs no account.
+    atuin
+
     # Themed terminal multiplexer (D-01/D-06, quick task 260820-0ha):
     # official `extra` repo, pacman — NOT the AUR, verified installed at
     # 0.44.3-1 on this host, with only curl/glibc/libgcc/zlib as

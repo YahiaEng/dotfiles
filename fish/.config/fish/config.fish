@@ -226,6 +226,14 @@ if status is-interactive
     fzf --fish | source
     zoxide init --cmd cd fish | source
 
+    # atuin — searchable shell history (Ctrl-R, and Up for the local
+    # history). Guarded on the binary because config.fish is stowed onto
+    # fresh machines before install.sh has run its pacman step; without
+    # the guard every shell there would open with a "command not found".
+    if command -q atuin
+        atuin init fish | source
+    end
+
     # ── Prompt: oh-my-posh, vendored local theme (D-03/D-10) ─
     # Same JSON vendored by Plan 04-03 into the zshell stow package —
     # shared, no remote URL fetched at shell start.
