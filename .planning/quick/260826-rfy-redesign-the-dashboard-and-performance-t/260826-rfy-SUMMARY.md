@@ -217,3 +217,98 @@ Appearance → Dashboard drawer switches either tab back.
 | P2 Weighted Arcs | add `startAngle`/`sweepAngle` to `Dial.qml` (it hardcodes `-90`/`360 * value`), then the layout |
 | P1 Caelestia Cards | device-name field on `SystemResources` (`gpuName` already exists, no CPU equivalent), a hand-rolled morphing badge, and **a D-41 ruling on the battery slot** |
 | D1 Bento | a rounding scale in `Design.qml`; optionally a real `surfaceContainer` role for richer separation |
+
+---
+
+# Stage 3 — operator-reported defects, fixed by measurement
+
+Operator, 2026-08-26: *"The dashboard tab has position issues with music and
+performance modules. Also, the performance rings are clipping the percentage
+inside it. Take a screenshot and measure pixels"* and *"For performance tab,
+overturn d-41 and remove battery when none is detected."*
+
+Commits `826b932f`, `0d8f3e24`, `c1e0256e`.
+
+## THE ROOT CAUSE WAS ONE RESERVED 18px, AND PIXELS CONFIRMED THE ARITHMETIC
+
+`Dial.implicitHeight = diameter + spacingXs + captionLine.height +
+detailLine.height`, and **each of those two lines reserves
+`ceil(fontLabel * 1.5) = 18px` whether or not it has any text.** So the
+resources column was `48 + 4 + 18 + 18 = 88` for the dial, plus my own 4px
+gap and 16px label = **108px published into an 88px card**.
+
+Predicted overflow `(108 - 88) / 2 = 10px` per end. **Measured on the
+capture: content began at y=395 against a card top edge of y=404 — 9px.** The
+captions landed at y≈492 against a card bottom of y=491, i.e. outside it.
+Media was the same shape: 185px of column in a 176px card, which is why the
+play button was clipped by the card's own bottom edge.
+
+## THE "CLIPPED PERCENTAGE" WAS NOT A CLIPPING BUG
+
+The percentage was **correctly centred all along** — measured ring centre
+x≈1360.6 against text centre x=1360. What was missing was the *ring*.
+`Dial`'s track is hardcoded `Colours.surfaceVariant`, and the card it sits on
+**is** `surfaceVariant`, so the track was byte-identical to its own backing
+surface and never rendered. A colour census of the dial's bounding box
+returned exactly two colours: `#44475a` (the card) and `#ff79c6` (the
+accent). With no track drawn, a 15% arc reads as a fragment floating beside
+the number rather than a ring that is 15% full.
+
+**This is the trap I had already written into this repo's own comments and
+then walked into one file later.** `PerfTelemetry.qml`'s `BarTile` avoids it
+explicitly; `DashLanes.qml`'s `MiniResource` did not. It is 14-10's invisible
+GPU ring, a third time.
+
+## FIXES SHAPED TO NOT RECUR
+
+- **`Dial` gained three opt-in knobs** — `collapseEmptyLines`,
+  `centerFontSize`, `trackColor` — **every one defaulting to today's exact
+  value**, so the five-dial layout is correct by construction without being
+  edited. The risky thing is opt-in; the untouched majority is safe.
+- **Card heights are now DERIVED from content**, not hand-picked. The first
+  version's 176 and 88 were guesses; the class of bug returns on the next
+  font change if a constant stays.
+- Centring the calendar closes a gap **my own fix opened**: deriving the
+  right lane's height made the left lane taller, stranding ~170px under the
+  last week row.
+
+## A CLAIM OF MINE THAT THE PIXELS FALSIFIED
+
+Stage 2 asserted 712 of content "lands the drawer on its 760 floor exactly".
+**It does not.** `implicitWidth` already includes the tab's own padding and
+`Dashboard.qml` adds a second `spacingLg * 2` on top, so the drawer is
+**808**. Measured: lanes at x899..1238 (340) and x1255..1610 (356) with a
+16px gap, putting the drawer edges at 851 and 1658. Both files' headers now
+state the measured number. The parity claim itself survives — both tabs
+declare the same 712, so neither animates the width.
+
+## D-41 OVERTURNED, NARROWLY
+
+Battery only, both Performance layouts. The telemetry row disappears; the
+dial row closes from five to four (`Grid` excludes invisible children, and
+`columns` follows the count so it re-centres rather than leaving a hole).
+
+**The test is an affirmative `"empty"`, never `"not populated"`** — a battery
+that exists but has not been read yet is `pending`, and hiding it on the
+first poll then springing it back is exactly the layout jump D-41 was written
+to prevent. Verified against host ground truth: `/sys/class/power_supply` is
+empty and UPower reports the display device as `power supply: no` /
+`battery-missing-symbolic`, so `batteryPresent` (which requires
+`isLaptopBattery && isPresent`) is false and `batteryState` is `"empty"`.
+
+Every other widget keeps D-41. GPU in particular still renders its empty
+state rather than vanishing.
+
+## What is verified, and what is not
+
+**Verified on screen:** the Dashboard tab, across three capture/fix rounds —
+media card contained, resources rings complete with a visible track and the
+percentage centred inside, calendar balanced. `colour-lint` 434/0,
+`motion-lint` 621/0, `settings-index-check` 180/0, `qmllint` clean, and the
+shell hot-reloaded throughout on the same pid with no errors from any touched
+file.
+
+**NOT verified on screen: the Performance tab.** No `quickshell:performance`
+global exists and there is no input-injection path here, so that tab cannot
+be opened from the agent shell. Its battery logic is verified against host
+ground truth as above, but the rendered result is operator-verified only.
