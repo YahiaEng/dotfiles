@@ -4,10 +4,10 @@ milestone: v4.0
 current_phase: 22
 status: milestone-complete
 stopped_at: "Quick task 260826-437 COMPLETE - three atomic commits. THE STATIC-LABEL BUG SHIPPED A THIRD TIME AND WAS FINALLY FIXED AT THE CAUSE: AllAppsPage titled all ~52 rows 'App' after About shipped nine 'System information' rows and Updates every row 'Pending update'. The constraint was real - Pages.qml matched the search jump on .label and CHECK B greps the label verbatim - so the fix was `indexLabel` split off `label` on all seven row primitives, defaulted to label so nothing existing moved, with RowIndex.qml byte-identical in Task 1. Orchestrator re-falsified: breaking the index key exits 1 and names the entry; restoring exits 0. Four other static-label sites (AudioPage, DisplayPage, InputPage x2) reported and deliberately not fixed, judged different in kind. TWO DEAD APPS ROWS BECAME REAL and fixed a live misconfiguration - xdg-mime query default inode/directory was returning codium.desktop, so folders opened in VSCodium. Which tool governs was settled BY READING /usr/bin/xdg-open (Hyprland matches no detectDE case, so DE=generic routes to open_generic_xdg_mime), not by guessing between gio and xdg-mime. yazi.desktop is Terminal=true and xdg-open's generic path ignores that, so it carries a '(needs a terminal)' suffix and WILL NOT open a window as-is - open item. PER-PACKAGE UPDATE with the partial-upgrade risk defused rather than labelled: no -y ever, so the transaction is bounded to the on-disk sync db, verified because checkupdates syncs into its own TMPDIR dbpath and never touches /var/lib/pacman/sync - worst case is a no-op. Two-step arm plus a searchable risk row. BASELINE CORRECTION: the executor called the 588/0 motion-lint baseline stale; it is a different SCOPE, not stale - no argument scans hypr+quickshell+GTK for 588/0, quickshell alone gives 406/0, measured back to back. Quote the scope with the number. Gates re-run unpiped: qml-import-check 0/135, settings-index 177/0, colour-lint 401/0, motion-lint 588/0 default and 406/0 scoped. xdg-mime default and paru -S were NEVER run - inspection only. NOT SEEN LIVE, restart is operator-only. quickshell-doctor STILL UNRUN and operator-only."
-last_updated: "2026-08-26T07:10:00.000Z"
+last_updated: "2026-08-26T08:00:00.000Z"
 last_activity: 2026-08-26
 last_activity_desc: "Four quick tasks shipped; Caelestia's file explorer turned out to BE Thunar, and eight real defects slipped past four green gates — every one caught by looking at the running surface."
-state_head: 72f6197d
+state_head: 2241ac92
 progress:
   total_phases: 6
   completed_phases: 6
@@ -758,6 +758,8 @@ after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
 synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
+
+RESUMED 2026-08-26 (second entry) — `/gsd-resume-work`. Tree clean at `2241ac92`, everything pushed. No HANDOFF.json, no `.continue-here`, no async jobs, no PLAN-without-SUMMARY. v4.0 milestone-complete (6/6 phases, 63/63 plans); **v5.0 still has no roadmap**. One pending todo: `retirement-check` matches its own waybar prose, so `theme-doctor` reads 1168/2 — three fix options written up, Option 1 (skip comment lines) named as the class-closing one, and any edit needs an operator-run `quickshell-doctor --self-test`. Operator-only interactive checks still outstanding: settings category drill-in, the Browse dialog's own controls, scroll-stutter on live wallpaper tiles, and 260826-437's `yazi.desktop` Terminal=true gap.
 
 SHIPPED 2026-08-26 — **four quick tasks, 17 commits, all pushed, tree clean at `72f6197d`.** 260826-6o1 (terminal apps as xdg handlers), 260826-th1 (Thunar look via the theme pipeline), 260826-pk2 (file picker + settings wallpaper grid), 260826-wl3 (launcher wallpaper carousel + keyboard nav).
 
