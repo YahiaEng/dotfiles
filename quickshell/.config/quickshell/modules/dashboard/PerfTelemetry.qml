@@ -13,14 +13,17 @@
 // series get a graph and a live endpoint, and the two slow-moving ones drop
 // to flat bars — hierarchy by rate of change, not by importance ranking.
 //
-// ── Frame width: 712, deliberately ──────────────────────────────────────
-// `Dashboard.qml` computes `drawerWidth = max(drawerMinWidth(760),
-// activeContentWidth + spacingLg*2)`. Anything at or under 712 therefore
-// lands the drawer on its 760 floor EXACTLY — the same width DashboardTab
-// uses — which is what closes the study's second finding: Performance
-// measured 1040 against Dashboard's 760, so crossing tabs animated the
-// window 280px wider and back every time. Do not "tidy" this to a
-// content-derived width; the number is load-bearing.
+// ── Frame width: 712 of content, drawer lands at 808 (MEASURED) ────────
+// `drawerWidth = max(760, activeContentWidth + spacingLg*2)`, where
+// `activeContentWidth` is this tab's `implicitWidth` — which ALREADY
+// includes this tab's own `spacingLg * 2`. The drawer adds a second 48px on
+// top, so 712 resolves to 808, not the 760 floor an earlier version of this
+// comment claimed. Confirmed on a live capture of the sibling layout.
+//
+// The load-bearing part is that `DashLanes.qml` declares the SAME 712, so
+// both tabs resolve to the same width and crossing between them no longer
+// animates the window 280px wider and back. Do not "tidy" this to a
+// content-derived width, and do not change it in one file only.
 //
 // WIDTH parity only — deliberate, not an oversight. `DashLanes.qml` has to
 // DERIVE its height from `QuickToggles.implicitHeight` (a fixed constant
@@ -30,12 +33,22 @@
 // height slightly when crossing between these two tabs. It no longer
 // animates its width at all, which was the 280px complaint.
 //
-// ── Battery ─────────────────────────────────────────────────────────────
-// Not a graph and not a tile: a rate-of-charge series would be flat-zero on
-// a desktop and the study's own plate showed it as a status line. D-41's
-// always-show rule is honoured — the slot is always rendered, it is simply
-// rendered as text. This is NOT the D-41 override that plate P1 would need;
-// nothing here is hidden when the hardware is absent.
+// ── Battery — D-41 IS OVERTURNED HERE, by operator decision 2026-08-26 ──
+// D-41 said a widget slot is always rendered at a fixed footprint so nothing
+// moves as a function of system state. For battery specifically that rule is
+// now reversed: **when no battery is detected the row is not rendered at
+// all**, rather than showing "No battery" forever on a desktop that will
+// never have one.
+//
+// Scope of the overturn, deliberately narrow: it applies to BATTERY ONLY, on
+// the Performance tab's two layouts. Every other widget still honours D-41 —
+// the GPU row, for instance, still renders its own empty state rather than
+// vanishing, because a GPU is a thing this machine could plausibly gain or
+// lose across a session, and a missing row there would read as a bug.
+//
+// The layout consequence is real and accepted: this tab is shorter on a
+// desktop than on a laptop, so `contentColumn.implicitHeight` must not count
+// a row that is not there — see its binding below.
 import QtQuick
 import "../"
 
@@ -67,7 +80,7 @@ Item {
     // D-41 register, reported from the reader's own aggregate self-report.
     property string widgetState: root.hasReader ? root.systemResources.widgetState : "empty"
 
-    // See the header — 712 puts the drawer on its 760 floor.
+    // See the header — 712 of content, drawer resolves to 808.
     readonly property int contentWidth: 712
     readonly property int graphRowHeight: 88
     readonly property int tileRowHeight: 76
@@ -77,7 +90,20 @@ Item {
 
     // D-21's cascade band list, in read order: the three graphed rows, then
     // the slow-tile row, then the battery line.
-    readonly property var cascadeBands: [cpuRow, gpuRow, netRow, slowRow, batteryLine]
+    // Battery is present in the cascade only when it is actually rendered —
+    // a hidden band would burn a stagger step on nothing.
+    readonly property var cascadeBands: root.batteryPresent
+        ? [cpuRow, gpuRow, netRow, slowRow, batteryLine]
+        : [cpuRow, gpuRow, netRow, slowRow]
+
+    // The D-41 overturn's single source of truth. "Not populated" is not the
+    // test — a battery that exists but has not been read yet is `pending`,
+    // and hiding the row on the first poll then springing it into existence
+    // would be exactly the layout jump D-41 was written to prevent. Only a
+    // reader that has affirmatively resolved to `empty` (no such device)
+    // removes the row.
+    readonly property bool batteryPresent: !root.hasReader
+        || root.systemResources.batteryState !== "empty"
 
     Item {
         id: contentColumn
@@ -85,7 +111,8 @@ Item {
         anchors.margins: root.spacingLg
 
         implicitHeight: root.graphRowHeight * 3 + root.tileRowHeight
-            + root.spacingSm * 3 + root.spacingMd + batteryLine.height
+            + root.spacingSm * 3
+            + (root.batteryPresent ? root.spacingMd + batteryLine.height : 0)
 
         // ── Three graphed rows ──────────────────────────────────────────
         GraphRow {
@@ -218,6 +245,8 @@ Item {
             anchors.topMargin: root.spacingMd
             anchors.horizontalCenter: parent.horizontalCenter
             spacing: root.spacingXs
+            // D-41 overturned for battery only — see the header.
+            visible: root.batteryPresent
 
             Text {
                 width: root.iconSizeMd
@@ -234,8 +263,10 @@ Item {
                 text: {
                     if (!root.hasReader)
                         return "Battery unavailable";
+                    // The "no battery" copy is gone with the row itself;
+                    // what remains is the pre-first-read window.
                     if (root.systemResources.batteryState !== "populated")
-                        return "No battery on this host";
+                        return "Battery reading…";
                     return root.systemResources.formatPercent(root.systemResources.batteryFraction)
                         + " · " + root.systemResources.batteryStateText;
                 }

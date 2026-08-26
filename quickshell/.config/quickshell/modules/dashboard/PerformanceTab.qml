@@ -121,6 +121,22 @@ Item {
     readonly property int dialDiameter: 176
     readonly property real dialRingThickness: 17
 
+    // ── D-41 OVERTURNED FOR BATTERY ONLY (operator, 2026-08-26) ─────────
+    // This file's own header and 14-10's arithmetic both assume five dials
+    // always render, because D-41 said a slot is shown at a fixed footprint
+    // regardless of system state. For battery that is now reversed: with no
+    // battery hardware the dial is not drawn and the row closes up to four.
+    // Every other dial still honours D-41 — GPU in particular still renders
+    // its own empty state rather than vanishing.
+    //
+    // "Not populated" is deliberately NOT the test: a battery that exists
+    // but has not been read yet is `pending`, and hiding the dial on the
+    // first poll then springing it back would be the very layout jump D-41
+    // exists to prevent. Only an affirmative `empty` (no such device)
+    // removes it.
+    readonly property bool batteryPresent: !root.hasReader
+        || root.systemResources.batteryState !== "empty"
+
     // Network rate row — width reserved by MEASUREMENT, not hope. The
     // widest realistic rate string at this formatter's own unit stepping
     // (see SystemResources.formatRate: B/s, KB/s, MB/s, GB/s, one decimal).
@@ -184,7 +200,9 @@ Item {
                 // 14-10 Task 2: one row of five, not four — see
                 // `dialDiameter`'s own header note above for the width
                 // arithmetic this converges on.
-                columns: 5
+                // Follows the dial count, so dropping battery re-centres the
+                // row instead of leaving a 176px hole on the right.
+                columns: root.batteryPresent ? 5 : 4
                 // Round 2: spacingMd rather than spacingLg between the four
                 // dials — a denser cluster (still an already-named scale
                 // value, not an invented one) offsetting the diameter
@@ -329,6 +347,8 @@ Item {
             // at the reader's `batterySource` seam (see 14-06-SUMMARY.md).
             Dial {
                 id: batteryDial
+                // D-41 overturned for battery only — see `batteryPresent`.
+                visible: root.batteryPresent
                 diameter: root.dialDiameter
                 ringThickness: root.dialRingThickness
                 label: "Battery"
