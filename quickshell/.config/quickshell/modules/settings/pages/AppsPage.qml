@@ -347,12 +347,12 @@ PageBase {
     // (`spotify.desktop` carries `Player` but its whole `MimeType=` is
     // `x-scheme-handler/spotify`, unable to open a local file). `value` is
     // `e.id + ".desktop"` (`e.id` itself carries no suffix — Launcher.qml:467
-    // appends it). `display` gets a measured, not decorative, suffix:
-    // `xdg-open`'s generic path takes the first word of the entry's `Exec`
-    // line and runs it directly, ignoring `Terminal=true` — selecting
-    // `yazi.desktop` yields no window, so the entry is labelled rather than
-    // silently dropped. Same never-empty guard `_filteredModel` already
-    // implements.
+    // appends it). `Terminal=true` entries are dropped outright: `xdg-open`'s
+    // generic path takes the first word of the entry's `Exec` line and runs
+    // it directly, ignoring `Terminal=true`, so `yazi.desktop` as a handler
+    // yields no window. The repo ships Terminal=false wrapper entries for
+    // those apps instead — see the filter below. Same never-empty guard
+    // `_filteredModel` already implements.
     // Compare desktop-entry identity WITHOUT depending on whether a given
     // source spells it with the `.desktop` suffix. The previous version
     // compared `e.id + ".desktop"` against gio's output directly, which is
@@ -398,9 +398,23 @@ PageBase {
                 continue;
             if (!predicate(root._cats(e)))
                 continue;
+            // A `Terminal=true` entry cannot be a working default handler:
+            // xdg-open's generic resolver runs the first word of `Exec`
+            // directly and never reads `Terminal`, so selecting one writes
+            // a default that opens no window. Labelling it "(needs a
+            // terminal)" — what this line used to do — still let the user
+            // pick a broken option. The repo now ships Terminal=false
+            // wrapper entries (`yazi-terminal.desktop`,
+            // `nvim-terminal.desktop`) that route through
+            // /usr/local/bin/open-in-terminal, and those pass this filter
+            // on their own because they carry the same MimeType and
+            // categories. So drop the raw console entry rather than
+            // offering a labelled trap next to its working twin.
+            if (e.runInTerminal)
+                continue;
             out.push({
                 value: id,
-                display: e.name + (e.runInTerminal ? " (needs a terminal)" : "")
+                display: e.name
             });
         }
         // Keep the CURRENT default selectable even when it does not pass
@@ -443,8 +457,9 @@ PageBase {
     // File EDITOR, not file manager. Measured on this host: `text/plain`
     // registers codium, libreoffice-writer, nvim and vim; the predicate
     // keeps the three that are editors and drops libreoffice-writer, whose
-    // categories are Office/WordProcessor. `nvim`/`vim` are Terminal=true
-    // and pick up `_mimeModel`'s "(needs a terminal)" suffix.
+    // categories are Office/WordProcessor. The raw `nvim`/`vim` entries are
+    // Terminal=true and so are dropped by `_mimeModel`; this repo's
+    // `nvim-terminal.desktop` wrapper takes nvim's place in the list.
     readonly property var _editorModel: root._mimeModel(root._editorRegistered, function (cats) {
         return cats.indexOf("TextEditor") !== -1 || cats.indexOf("IDE") !== -1 || cats.indexOf("Development") !== -1;
     }, root._editorCurrent)
