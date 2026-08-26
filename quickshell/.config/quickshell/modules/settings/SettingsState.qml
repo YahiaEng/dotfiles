@@ -48,6 +48,28 @@ QtObject {
     property var subPageIdxStack: []
     property var selectedApp: null
     property var selectedBtDevice: null
+    // Which wallpaper folder the category sub-page shows (quick task
+    // 260826-pk2). Same role as Caelestia's
+    // `nState.selectedWallpaperCategory`: a plain string set by the
+    // tile that opened the sub-page, read by WallpaperCategoryPage.
+    property string selectedWallpaperCategory: ""
+
+    // Wallpaper data published UP from WallpaperPage so its category
+    // sub-page reads one source of truth instead of running its own
+    // duplicate --list/--active/--set plumbing. Two independently-refreshed
+    // copies of the same state is exactly how the theme trackers went stale
+    // in this repo before; the sub-page owns no plumbing at all.
+    property var wallpaperEntries: []
+    property string wallpaperActiveRelpath: ""
+
+    // The sub-page cannot call WallpaperPage's applyWallpaper() directly —
+    // it is a sibling in a StackPage, not a child — so the request rides a
+    // signal the owning page connects to.
+    signal wallpaperRequested(string relpath)
+
+    function requestWallpaper(relpath) {
+        root.wallpaperRequested(relpath);
+    }
     property int pendingSubPageIdx: -1
 
     signal subPageOpened(idx: int)

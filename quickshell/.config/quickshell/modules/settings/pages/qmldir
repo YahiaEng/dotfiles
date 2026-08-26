@@ -30,3 +30,7 @@ BtDeviceInfoPage 1.0 BtDeviceInfoPage.qml
 # sub-pages.
 ServicesPage 1.0 ServicesPage.qml
 LanguageRegionPage 1.0 LanguageRegionPage.qml
+# Wallpaper category sub-page (quick task 260826-pk2) — reached from a
+# category tile on WallpaperPage; declared here in the same commit that
+# creates it, per this manifest's own standing rule.
+WallpaperCategoryPage 1.0 WallpaperCategoryPage.qml

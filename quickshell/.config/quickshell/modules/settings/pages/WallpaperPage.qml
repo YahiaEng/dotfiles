@@ -19,6 +19,7 @@ import ".."
 import "../common"
 import "../../"
 import "../../dashboard"
+import "../../filepicker"
 
 PageBase {
     id: root
@@ -39,56 +40,116 @@ PageBase {
         property string applyingRelpath: ""
         property string listError: ""
 
-        // ── Folder filter (operator fix wave finding 2) — "All" plus one
-        //    entry per folder actually present in `entries`, NEVER a
-        //    hardcoded folder list: a new theme's wallpaper folder shows
-        //    up here automatically the next time `--list` is run, exactly
-        //    the same enumerate-don't-hardcode discipline every picker
-        //    script in this repo already follows.
-        readonly property var folders: {
+        // ── Categories (quick task 260826-pk2) — replaces the old
+        //    "Filter by folder" SelectRow with Caelestia's own collapsing
+        //    model (WallpaperSelect.qml). Their rule is "is this file's
+        //    parent directory the wallpapers ROOT?": loose files get their
+        //    own tile, anything inside a subdirectory collapses to ONE tile
+        //    per subdirectory that drills into a category page. Our
+        //    per-theme folders ARE that structure already — `relpath` is
+        //    `<theme>/<name>` and wallpaper-picker.sh:506 uses the same
+        //    folder-name == theme-name identity — so this is their design
+        //    applied unchanged, not an adaptation.
+        //
+        //    A live entry is `<theme>/live/<name>`, so its category is still
+        //    the FIRST segment; `live/` is an implementation detail of the
+        //    theme folder, never a category of its own.
+        readonly property var categories: {
             var seen = ({});
-            var list = [];
+            var out = [];
             for (var i = 0; i < wallpaperSection.entries.length; i++) {
-                var f = wallpaperSection.entries[i].relpath.split("/")[0];
-                if (!seen[f]) {
-                    seen[f] = true;
-                    list.push(f);
+                var e = wallpaperSection.entries[i];
+                var parts = String(e.relpath).split("/");
+                if (parts.length < 2)
+                    continue;
+                var cat = parts[0];
+                if (!seen[cat]) {
+                    seen[cat] = { name: cat, count: 0, cover: e };
+                    out.push(seen[cat]);
                 }
+                seen[cat].count += 1;
+                // Cover is the alphabetically first entry, matching
+                // Caelestia's `localeCompare` pick — a stable cover rather
+                // than whichever file the lister happened to emit first.
+                if (String(e.relpath).localeCompare(String(seen[cat].cover.relpath)) < 0)
+                    seen[cat].cover = e;
             }
-            list.sort();
-            return list;
-        }
-        readonly property var folderOptions: {
-            var opts = [{ value: "All", display: "All" }];
-            for (var i = 0; i < wallpaperSection.folders.length; i++)
-                opts.push({ value: wallpaperSection.folders[i], display: wallpaperSection.folders[i] });
-            return opts;
-        }
-        property string filterFolder: "All"
-        // Runs once, the first time `entries` is non-empty — defaults the
-        // filter to the ACTIVE theme's own folder when one exists (the
-        // wallpaper folder names are literally the theme preset names —
-        // wallpaper-picker.sh:506 itself already does
-        // `THEME_FOLDER="$WALLPAPER_DIR/$CURRENT_THEME"`, so this is the
-        // SAME identity mapping the picker already relies on, never an
-        // invented one). Falls back to "All" when the active theme has no
-        // matching folder (materialyou/materialyou-light, or a
-        // not-yet-populated `entries`).
-        property bool filterDefaulted: false
-        function applyDefaultFilter() {
-            if (wallpaperSection.filterDefaulted || wallpaperSection.folders.length === 0)
-                return;
-            wallpaperSection.filterDefaulted = true;
-            var theme = (currentThemeFile.text() || "").trim();
-            if (theme.length > 0 && wallpaperSection.folders.indexOf(theme) !== -1)
-                wallpaperSection.filterFolder = theme;
-        }
-        readonly property var filteredEntries: {
-            if (wallpaperSection.filterFolder === "All")
-                return wallpaperSection.entries;
-            return wallpaperSection.entries.filter(function (e) {
-                return e.relpath.split("/")[0] === wallpaperSection.filterFolder;
+            out.sort(function (x, y) {
+                return x.name.localeCompare(y.name);
             });
+            return out;
+        }
+
+        // Entries sitting directly in the wallpapers root, which get their
+        // own tile rather than a category. Empty on this host today; kept
+        // because the layout must not assume every wallpaper is foldered.
+        readonly property var looseEntries: {
+            var out = [];
+            for (var i = 0; i < wallpaperSection.entries.length; i++)
+                if (String(wallpaperSection.entries[i].relpath).indexOf("/") === -1)
+                    out.push(wallpaperSection.entries[i]);
+            return out;
+        }
+
+        readonly property var tileModel: {
+            var out = [];
+            for (var i = 0; i < wallpaperSection.categories.length; i++) {
+                var c = wallpaperSection.categories[i];
+                out.push({
+                    kind: "category",
+                    name: c.name,
+                    relpath: c.cover.relpath,
+                    isLive: c.cover.isLive,
+                    count: c.count
+                });
+            }
+            for (var j = 0; j < wallpaperSection.looseEntries.length; j++) {
+                var e = wallpaperSection.looseEntries[j];
+                out.push({
+                    kind: "wallpaper",
+                    name: e.displayName,
+                    relpath: e.relpath,
+                    isLive: e.isLive,
+                    count: 0
+                });
+            }
+            return out;
+        }
+
+        // The frame the wallpaper pipeline already extracts for a live entry
+        // (theme_engine_wallpaper_frame_path). Used as the poster under a
+        // video tile so it is never a blank rectangle before playback.
+        function posterFor(relpath) {
+            return Quickshell.env("HOME") + "/.local/state/theme/wallpaper-frames/" + String(relpath).replace("/live/", "/") + ".png";
+        }
+
+        function absPathFor(relpath) {
+            return wallpaperSection.wallpaperDir + "/" + relpath;
+        }
+
+        // Publish UP to SettingsState so WallpaperCategoryPage reads this
+        // page's data rather than duplicating the plumbing. Bindings, not
+        // one-shot assignments: `entries` is replaced wholesale on every
+        // --list, and a Component.onCompleted copy would freeze at whatever
+        // was true at construction (which, for a list filled by an async
+        // Process, is the empty array).
+        Binding {
+            target: root.sState
+            property: "wallpaperEntries"
+            value: wallpaperSection.entries
+        }
+        Binding {
+            target: root.sState
+            property: "wallpaperActiveRelpath"
+            value: wallpaperSection.activeRelpath
+        }
+
+        Connections {
+            target: root.sState
+
+            function onWallpaperRequested(relpath) {
+                wallpaperSection.applyWallpaper(relpath);
+            }
         }
 
         // Same plain-text state read AppearancePage.qml's `currentThemeFile`
@@ -207,155 +268,237 @@ PageBase {
             color: Colours.error
         }
 
-        SelectRow {
-            label: "Filter by folder"
-            subtext: "Show wallpapers from one folder, or all of them."
-            model: wallpaperSection.folderOptions
-            currentValue: wallpaperSection.filterFolder
-            onSelected: (value) => wallpaperSection.filterFolder = value
-        }
-
-        // ── The grid itself — a bounded-height, independently-scrollable
-        //    GridView (never an eager Grid/Flow): with the library's
-        //    ~90 entries on this host alone, an unbounded Grid would
-        //    instantiate every delegate — including every Image's decode
-        //    — at page-incubation time. GridView virtualises against its
-        //    OWN viewport height, which is why that height must stay
-        //    bounded rather than sized to full contentHeight (a
-        //    full-content height would defeat virtualisation the same
-        //    way an eager Grid would). `clip: true` keeps off-screen
-        //    tiles from painting outside this bounded viewport. ─────────
-        GridView {
-            id: grid
+        // ── Browse / Random (Caelestia WallpaperSelect.qml's ButtonRow) ──
+        //    Browse is the "pick any wallpaper, from anywhere" override the
+        //    per-theme folders cannot express; it opens this shell's own
+        //    picker rather than a GTK portal dialog.
+        Row {
             width: parent.width
-            height: 4 * cellHeight
-            clip: true
-            cellWidth: 132
-            cellHeight: 104
-            model: wallpaperSection.filteredEntries
+            spacing: Design.spacingSm
 
-            delegate: Item {
-                id: tile
-                required property var modelData
-
-                width: grid.cellWidth - Design.spacingXs
-                height: grid.cellHeight - Design.spacingXs
-
-                readonly property bool isActive: wallpaperSection.activeRelpath === tile.modelData.relpath
-                readonly property bool isBusy: wallpaperSection.applyingRelpath === tile.modelData.relpath
+            Item {
+                width: (parent.width - Design.spacingSm) / 2
+                height: 48
 
                 Rectangle {
-                    id: tileBg
                     anchors.fill: parent
-                    radius: 10
-                    clip: true
-                    color: Colours.surfaceVariant
-                    // Active indicator — a BORDER RING, never a fill (the
-                    // exact surfaceVariant-on-surfaceVariant invisibility
-                    // class this surface has already shipped four times;
-                    // Q-1/Q-3's own discipline, applied here even though
-                    // this tile is not a QQC2 control).
-                    border.width: tile.isActive ? 3 : 1
-                    border.color: tile.isActive ? Colours.primary : Colours.outline
+                    radius: height / 2
+                    color: Colours.primary
+                    opacity: browseHover.containsMouse ? 0.9 : 1
 
-                    Behavior on border.color {
+                    Behavior on opacity {
                         enabled: Motion.motionEnabled
-                        ColorAnimation {
+                        NumberAnimation {
                             duration: Motion.colourDuration
                             easing.type: Easing.BezierSpline
                             easing.bezierCurve: Motion.colourEasing
                         }
                     }
 
-                    // Still entries — a real, bounded-decode thumbnail.
-                    // `sourceSize` caps decode cost regardless of the
-                    // source file's own resolution (this library holds
-                    // multi-megapixel images); `asynchronous: true` keeps
-                    // a slow decode off the incubation path.
-                    Image {
-                        visible: !tile.modelData.isLive
-                        anchors.fill: parent
-                        anchors.margins: 3
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        cache: true
-                        sourceSize.width: 200
-                        sourceSize.height: 160
-                        source: tile.modelData.isLive ? "" : ("file://" + wallpaperSection.wallpaperDir + "/" + tile.modelData.relpath)
-                    }
-
-                    // Live (video) entries — a FIXED placeholder, never an
-                    // attempted Image decode. Every "live/" entry gets the
-                    // SAME placeholder regardless of its own extension
-                    // (this library's live/ folder holds the identical
-                    // clip as .gif/.mp4/.webp side by side) — QtQuick's
-                    // Image cannot decode video containers at all, and a
-                    // per-extension special case (thumbnail the .gif,
-                    // placeholder the rest) would make three tiles of the
-                    // same clip look inconsistent for no real benefit.
-                    Text {
-                        visible: tile.modelData.isLive
+                    Row {
                         anchors.centerIn: parent
-                        font.family: Design.symbolFontFamily
-                        font.pixelSize: Design.iconSizeMd * 1.5
-                        text: "movie"
-                        color: Colours.onSurfaceVariant
-                    }
-
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        anchors.left: parent.left
-                        anchors.right: parent.right
-                        height: captionText.implicitHeight + 6
-                        color: Colours.surface
-                        opacity: 0.85
+                        spacing: Design.spacingSm
 
                         Text {
-                            id: captionText
-                            anchors.centerIn: parent
-                            width: parent.width - 8
-                            horizontalAlignment: Text.AlignHCenter
-                            elide: Text.ElideRight
-                            font.pixelSize: Design.settingsFontSub
-                            color: Colours.onSurface
-                            text: tile.modelData.displayName
+                            anchors.verticalCenter: parent.verticalCenter
+                            font.family: Design.symbolFontFamily
+                            font.pixelSize: 20
+                            color: Colours.onPrimary
+                            text: "photo_library"
                         }
-                    }
-
-                    Text {
-                        visible: tile.isActive && !tile.isBusy
-                        anchors.top: parent.top
-                        anchors.right: parent.right
-                        anchors.margins: 4
-                        font.family: Design.symbolFontFamily
-                        font.pixelSize: Design.iconSizeMd
-                        text: "check_circle"
-                        color: Colours.primary
-                    }
-
-                    Text {
-                        id: busyGlyph
-                        visible: tile.isBusy
-                        anchors.centerIn: parent
-                        font.family: Design.symbolFontFamily
-                        font.pixelSize: Design.iconSizeMd * 1.5
-                        text: "progress_activity"
-                        color: Colours.onSurfaceVariant
-
-                        RotationAnimation on rotation {
-                            running: tile.isBusy && Motion.motionEnabled
-                            loops: Animation.Infinite
-                            from: 0
-                            to: 360
-                            duration: Motion.ambientDuration
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Browse"
+                            color: Colours.onPrimary
+                            font.pixelSize: Design.settingsFontSub
+                            font.weight: Design.weightEmphasis
                         }
                     }
 
                     MouseArea {
+                        id: browseHover
                         anchors.fill: parent
-                        enabled: wallpaperSection.applyingRelpath.length === 0
-                        onClicked: wallpaperSection.applyWallpaper(tile.modelData.relpath)
+                        hoverEnabled: true
+                        onClicked: browsePicker.open()
                     }
+                }
+            }
+
+            Item {
+                width: (parent.width - Design.spacingSm) / 2
+                height: 48
+
+                Rectangle {
+                    anchors.fill: parent
+                    radius: height / 2
+                    color: Colours.primaryContainer
+                    opacity: randomHover.containsMouse ? 0.9 : 1
+
+                    Behavior on opacity {
+                        enabled: Motion.motionEnabled
+                        NumberAnimation {
+                            duration: Motion.colourDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.colourEasing
+                        }
+                    }
+
+                    Row {
+                        anchors.centerIn: parent
+                        spacing: Design.spacingSm
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            font.family: Design.symbolFontFamily
+                            font.pixelSize: 20
+                            color: Colours.onSurface
+                            text: "shuffle"
+                        }
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "Random"
+                            color: Colours.onSurface
+                            font.pixelSize: Design.settingsFontSub
+                            font.weight: Design.weightEmphasis
+                        }
+                    }
+
+                    MouseArea {
+                        id: randomHover
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        enabled: wallpaperSection.entries.length > 0 && wallpaperSection.applyingRelpath.length === 0
+                        onClicked: {
+                            // Random over the WHOLE library, categories
+                            // included — the button means "surprise me", not
+                            // "surprise me within this folder".
+                            var n = wallpaperSection.entries.length;
+                            if (n > 0)
+                                wallpaperSection.applyWallpaper(wallpaperSection.entries[Math.floor(Math.random() * n)].relpath);
+                        }
+                    }
+                }
+            }
+        }
+
+        FilePicker {
+            id: browsePicker
+
+            title: "Select a wallpaper"
+            filterLabel: "Image files"
+            nameFilters: ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif", "*.bmp", "*.avif"]
+            startPath: wallpaperSection.wallpaperDir
+
+            onAccepted: path => {
+                // --set takes a relpath under the wallpaper dir. A file from
+                // ANYWHERE else is out of that contract, so it is reported
+                // rather than silently passed to a script that would reject
+                // it with a bare non-zero exit.
+                var prefix = wallpaperSection.wallpaperDir + "/";
+                if (String(path).indexOf(prefix) === 0)
+                    wallpaperSection.applyWallpaper(String(path).slice(prefix.length));
+                else
+                    wallpaperSection.listError = "Only wallpapers under " + wallpaperSection.wallpaperDir + " can be set — copy it there first.";
+            }
+        }
+
+        Text {
+            width: parent.width
+            visible: wallpaperSection.tileModel.length > 0
+            topPadding: Design.spacingSm
+            text: "Local wallpapers"
+            color: Colours.onSurface
+            font.pixelSize: Design.settingsFontRow
+            font.weight: Design.weightEmphasis
+        }
+
+        // ── The tile grid ────────────────────────────────────────────────
+        //    Still a bounded, virtualising GridView for the reason the
+        //    previous implementation documented: an eager Grid instantiates
+        //    every delegate and every image decode at page-incubation time.
+        //    Four per row is Caelestia's `wallpapersPerRow` default
+        //    (nexusConfig.hpp:11).
+        GridView {
+            id: grid
+
+            width: parent.width
+            height: Math.min(3, Math.ceil(wallpaperSection.tileModel.length / 4)) * cellHeight + Design.spacingSm
+            clip: true
+
+            readonly property int columns: 4
+            readonly property int tileWidth: Math.floor((width - Design.spacingSm * (columns - 1)) / columns)
+
+            cellWidth: tileWidth + Design.spacingSm
+            cellHeight: tileWidth + Design.spacingXl
+            model: wallpaperSection.tileModel
+
+            delegate: Item {
+                id: tile
+
+                required property var modelData
+                required property int index
+
+                width: grid.tileWidth
+                height: grid.cellHeight - Design.spacingSm
+
+                // Viewport gate for live tiles — see WallpaperTile's header.
+                // GridView destroys off-screen delegates, but the band that
+                // is instantiated-but-not-visible would otherwise decode.
+                readonly property bool inViewport: {
+                    var top = grid.contentY;
+                    var bottom = top + grid.height;
+                    var y0 = tile.y;
+                    var y1 = y0 + tile.height;
+                    return y1 > top && y0 < bottom;
+                }
+
+                WallpaperTile {
+                    anchors.fill: parent
+
+                    source: wallpaperSection.absPathFor(tile.modelData.relpath)
+                    poster: wallpaperSection.posterFor(tile.modelData.relpath)
+                    caption: tile.modelData.kind === "category" ? (tile.modelData.name.charAt(0).toUpperCase() + tile.modelData.name.slice(1)) : tile.modelData.name
+                    live: tile.modelData.isLive
+                    playing: tile.inViewport
+                    stackCount: tile.modelData.count
+                    active: tile.modelData.kind === "wallpaper" && wallpaperSection.activeRelpath === tile.modelData.relpath
+
+                    onClicked: {
+                        if (tile.modelData.kind === "category") {
+                            root.sState.selectedWallpaperCategory = tile.modelData.name;
+                            root.sState.openSubPage(1);
+                        } else if (wallpaperSection.applyingRelpath.length === 0) {
+                            wallpaperSection.applyWallpaper(tile.modelData.relpath);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Empty state, same shape as Caelestia's `hide_image` panel.
+        Rectangle {
+            width: parent.width
+            visible: wallpaperSection.tileModel.length === 0 && wallpaperSection.listError.length === 0
+            height: visible ? 160 : 0
+            radius: 28
+            color: Colours.surfaceVariant
+
+            Column {
+                anchors.centerIn: parent
+                spacing: Design.spacingXs
+
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: 44
+                    color: Colours.outline
+                    text: "hide_image"
+                }
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: "No local wallpapers found"
+                    color: Colours.outline
+                    font.pixelSize: Design.settingsFontRow
                 }
             }
         }

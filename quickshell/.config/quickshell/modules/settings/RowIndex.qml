@@ -52,7 +52,6 @@ Singleton {
         { pageIdx: 0, section: "Personalization", label: "Fastfetch logo", keywords: "logo ascii fastfetch greeter sprite" },
 
         // ── pageIdx 1 — Wallpaper ─────────────────────────────────────────
-        { pageIdx: 1, section: "Wallpaper", label: "Filter by folder", keywords: "wallpaper folder filter theme grid all" },
         { pageIdx: 1, section: "Wallpaper", label: "The wallpaper drives dynamic theming", keywords: "wallpaper theme dynamic materialyou palette" },
         { pageIdx: 1, section: "Motion", label: "Wallpaper motion", keywords: "wallpaper motion video playing stopped animation" },
 

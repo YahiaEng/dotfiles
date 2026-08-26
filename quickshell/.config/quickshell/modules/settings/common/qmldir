@@ -28,3 +28,9 @@ StepperRow 1.0 StepperRow.qml
 # in a directory carrying a manifest is unresolvable forever with no
 # load error, per this file's own header.
 TextRow 1.0 TextRow.qml
+# WallpaperTile (quick task 260826-pk2) — the wallpaper thumbnail shared by
+# WallpaperPage and its category sub-page. Not a row primitive: it carries no
+# `focusable`/`rowFocused` marker and is never collected by
+# Pages.qml's _collectFocusableRows(), so it does not change any page's
+# focusable denominator or its settings-index-check row count.
+WallpaperTile 1.0 WallpaperTile.qml

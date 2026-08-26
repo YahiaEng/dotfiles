@@ -42,8 +42,20 @@ Singleton {
     readonly property Component appearanceComp: Component {
         AppearancePage {}
     }
+    // StackPage-wrapped (quick task 260826-pk2) — sub-page 0 is the root
+    // WallpaperPage, 1 is a single theme folder's grid. Same declaration
+    // shape as appsComp above, which settings-index-check's comp->file
+    // parser depends on: one `Component { Xxx {} }` per page, in order,
+    // nested inside `StackPage { ... }`.
     readonly property Component wallpaperComp: Component {
-        WallpaperPage {}
+        StackPage {
+            Component {
+                WallpaperPage {}
+            }
+            Component {
+                WallpaperCategoryPage {}
+            }
+        }
     }
     readonly property Component barComp: Component {
         BarPage {}
