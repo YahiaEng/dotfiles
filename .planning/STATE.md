@@ -7,7 +7,7 @@ stopped_at: "Quick task 260826-rfy COMPLETE — design study only, NO QML TOUCHE
 last_updated: "2026-08-26T17:05:00.000Z"
 last_activity: 2026-08-26
 last_activity_desc: "Redesign study for the Dashboard + Performance tabs — 7 directions drawn to scale; the reference we cite in-tree has moved, and three measured constraints decide what is even buildable."
-state_head: a24d366b
+state_head: 069c4fda
 progress:
   total_phases: 6
   completed_phases: 6
