@@ -6,13 +6,14 @@
 // Default-app rows follow D-6/D-7: Terminal and Audio are real SelectRows
 // (this tree's own measured consumers exist — SystemCapsule.qml's update
 // action, SessionPage.qml's idle-overrides editor, MenuTree.qml's Setup ▸
-// Audio entry), while Media playback and File manager stay honest InfoRows
-// — nothing in this shell launches a media player, and folder links already
-// go through xdg-open (`FilesMode.qml:39`), the desktop-wide default, not
-// this window's to set. `SelectRow` stands in for Caelestia's `PopupRow`
-// (D-7) — this tree already has a counted, working dropdown-pill row and
-// adding a second popup primitive would only grow settings-index-check's
-// row-primitive alternation for no reason.
+// Audio entry). Media playback and File manager (quick-260826-437 Task 2,
+// D-7/D-8) are now ALSO real SelectRows — the desktop-wide default via
+// `xdg-mime default`, not a shell-internal setting, which is exactly what
+// `xdg-open` consults and what `FilesMode.qml:39` already shells to.
+// `SelectRow` stands in for Caelestia's `PopupRow` (D-7) — this tree
+// already has a counted, working dropdown-pill row and adding a second
+// popup primitive would only grow settings-index-check's row-primitive
+// alternation for no reason.
 //
 // Category-filtered, executable-storing pickers (quick-260826-1n9 Task 6,
 // F5, D-6) — the picker used to list all 52 non-hidden apps under both
@@ -26,8 +27,26 @@
 // — mpv, qv4l2, qvidcap, spotify, vlc, pavucontrol). Both store an
 // EXECUTABLE token via `_exe()`, matching `Prefs`' own defaults
 // ("kitty"/"pavucontrol").
+//
+// Opposite value types, on purpose, in the SAME section (D-4): Terminal and
+// Audio store a bare EXECUTABLE because four consumers exec the value
+// directly in argv arrays; Media playback and File manager store a
+// DESKTOP-ENTRY ID because `xdg-mime default` accepts nothing else — never
+// apply `_exe()` to the new rows, and never make `_filteredModel()`
+// polymorphic to cover both (`_mimeModel()` below is a second, separate
+// helper).
+//
+// Current value = `xdg-mime query default`, NOT `gio mime`'s first line
+// (D-7) — measured on this host, they disagree: `xdg-mime query default
+// inode/directory` reads `codium.desktop` while `gio mime inode/directory`
+// reads `kitty-open.desktop`. `XDG_CURRENT_DESKTOP=Hyprland` has no
+// `detectDE` case in `/usr/bin/xdg-open`, so it falls to `DE=generic` ->
+// `open_generic()` -> `open_generic_xdg_mime`, which itself calls
+// `xdg-mime query default` — that is the authoritative read for what
+// actually opens a file on this host.
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import ".."
 import "../common"
 import "../../"
@@ -154,6 +173,183 @@ PageBase {
         return cats.indexOf("Audio") !== -1 || cats.indexOf("AudioVideo") !== -1 || cats.indexOf("Mixer") !== -1;
     }, Prefs.getValue("apps.audio"))
 
+    // ── Default-app pickers (D-7/D-8) ──────────────────────────────────────
+    // Declared constants, never inline literals — `_fmTypes` is the one
+    // type `xdg-open` resolves a folder to (measured: both candidate
+    // entries declare exactly `MimeType=inode/directory`, nothing else).
+    // `_mediaTypes` is the seventeen types measured on this host as
+    // registered to both mpv and vlc, eight video then nine audio.
+    readonly property var _fmTypes: ["inode/directory"]
+    readonly property var _mediaTypes: ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "video/x-msvideo", "video/mpeg", "video/x-flv", "video/ogg", "audio/mpeg", "audio/flac", "audio/ogg", "audio/x-vorbis+ogg", "audio/x-wav", "audio/mp4", "audio/aac", "audio/opus", "audio/x-m4a"]
+    // The representative type each row reads its current value and its
+    // candidate list from. `video/mp4` specifically — measured, registered
+    // to mpv and vlc ONLY, while webm/ogg/flac/vorbis+ogg also list
+    // `zen.desktop` (a browser is not a media-playback default).
+    readonly property string _fmProbeType: "inode/directory"
+    readonly property string _mediaProbeType: "video/mp4"
+
+    // Live-read state, filled by the four bounded Process children below —
+    // bounded and page-scoped (D-8), the same shape and reasoning this
+    // page's own `repoProcess`/`aurProcess` neighbours in UpdatesPage.qml
+    // already document. Any non-zero exit or unparseable output degrades
+    // to an empty list/string, never a distinct error state.
+    property string _fmCurrent: ""
+    property var _fmRegistered: []
+    property string _mediaCurrent: ""
+    property var _mediaRegistered: []
+
+    // Optimistic-override properties — set the instant a row's own
+    // `onSelected` fires, alongside the write. No Timer, no re-query, no
+    // race: the override wins until this page is next created, at which
+    // point the `xdg-mime query default` probe is truth again.
+    property string _fmChosen: ""
+    property string _mediaChosen: ""
+
+    // Parses the `Registered applications:` block out of `gio mime`'s own
+    // output — the ONLY source for "which apps declare they can open this
+    // type" (measured against `/usr/lib/qt6/qml/Quickshell/quickshell-core.qmltypes`:
+    // `DesktopEntry` exposes no MIME field at all). Anchored on BOTH exact
+    // heading lines; if either is absent, yields an empty list and lets
+    // the model's own never-empty guard fall back, rather than guessing at
+    // a format this function did not measure.
+    function _parseGioMime(text) {
+        var lines = String(text || "").split("\n");
+        var start = -1, end = -1;
+        for (var i = 0; i < lines.length; i++) {
+            if (start === -1 && lines[i].indexOf("Registered applications:") !== -1) {
+                start = i;
+                continue;
+            }
+            if (start !== -1 && lines[i].indexOf("Recommended applications:") !== -1) {
+                end = i;
+                break;
+            }
+        }
+        if (start === -1 || end === -1)
+            return [];
+        var out = [];
+        for (var j = start + 1; j < end; j++) {
+            var t = lines[j].trim();
+            if (t.length > 0 && t.endsWith(".desktop"))
+                out.push(t);
+        }
+        return out;
+    }
+
+    // A second model helper, parallel to `_filteredModel` above but never
+    // merged with it (D-4) — registration alone is not enough
+    // (`kitty-open.desktop` registers for `inode/directory` but is not a
+    // file manager) and category alone is not enough either
+    // (`spotify.desktop` carries `Player` but its whole `MimeType=` is
+    // `x-scheme-handler/spotify`, unable to open a local file). `value` is
+    // `e.id + ".desktop"` (`e.id` itself carries no suffix — Launcher.qml:467
+    // appends it). `display` gets a measured, not decorative, suffix:
+    // `xdg-open`'s generic path takes the first word of the entry's `Exec`
+    // line and runs it directly, ignoring `Terminal=true` — selecting
+    // `yazi.desktop` yields no window, so the entry is labelled rather than
+    // silently dropped. Same never-empty guard `_filteredModel` already
+    // implements.
+    function _mimeModel(registeredIds, predicate, currentId) {
+        var out = [];
+        for (var i = 0; i < root._sortedApps.length; i++) {
+            var e = root._sortedApps[i];
+            var id = e.id + ".desktop";
+            if (registeredIds.indexOf(id) === -1)
+                continue;
+            if (!predicate(root._cats(e)))
+                continue;
+            out.push({
+                value: id,
+                display: e.name + (e.runInTerminal ? " (needs a terminal)" : "")
+            });
+        }
+        var hasCurrent = false;
+        for (var j = 0; j < out.length; j++) {
+            if (out[j].value === currentId) {
+                hasCurrent = true;
+                break;
+            }
+        }
+        if (!hasCurrent && currentId.length > 0)
+            out.unshift({
+                value: currentId,
+                display: currentId
+            });
+        if (out.length === 0)
+            out.push({
+                value: currentId,
+                display: currentId.length > 0 ? currentId : "(none)"
+            });
+        return out;
+    }
+
+    readonly property var _fmModel: root._mimeModel(root._fmRegistered, function (cats) {
+        return cats.indexOf("FileManager") !== -1;
+    }, root._fmCurrent)
+
+    readonly property var _mediaModel: root._mimeModel(root._mediaRegistered, function (cats) {
+        return cats.indexOf("Player") !== -1;
+    }, root._mediaCurrent)
+
+    // Four bounded reads (D-8) — never a distinct error state, degrading
+    // to empty on any non-zero exit. `xdg-mime query default` is the
+    // CURRENT value (this file's own header states why it, not `gio`, is
+    // authoritative); `gio mime` is the CANDIDATE list.
+    Process {
+        id: _fmCurrentProcess
+        running: false
+        command: ["xdg-mime", "query", "default", root._fmProbeType]
+        stdout: StdioCollector {
+            id: _fmCurrentCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._fmCurrent = exitCode === 0 ? (_fmCurrentCollector.text || "").trim() : "";
+        }
+    }
+
+    Process {
+        id: _fmRegisteredProcess
+        running: false
+        command: ["gio", "mime", root._fmProbeType]
+        stdout: StdioCollector {
+            id: _fmRegisteredCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._fmRegistered = exitCode === 0 ? root._parseGioMime(_fmRegisteredCollector.text) : [];
+        }
+    }
+
+    Process {
+        id: _mediaCurrentProcess
+        running: false
+        command: ["xdg-mime", "query", "default", root._mediaProbeType]
+        stdout: StdioCollector {
+            id: _mediaCurrentCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._mediaCurrent = exitCode === 0 ? (_mediaCurrentCollector.text || "").trim() : "";
+        }
+    }
+
+    Process {
+        id: _mediaRegisteredProcess
+        running: false
+        command: ["gio", "mime", root._mediaProbeType]
+        stdout: StdioCollector {
+            id: _mediaRegisteredCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._mediaRegistered = exitCode === 0 ? root._parseGioMime(_mediaRegisteredCollector.text) : [];
+        }
+    }
+
+    Component.onCompleted: {
+        _fmCurrentProcess.running = true;
+        _fmRegisteredProcess.running = true;
+        _mediaCurrentProcess.running = true;
+        _mediaRegisteredProcess.running = true;
+    }
+
     SettingsSection {
         title: "Default applications"
         icon: "apps"
@@ -174,15 +370,27 @@ PageBase {
             currentValue: Prefs.getValue("apps.audio")
             onSelected: (value) => Prefs.setValue("apps.audio", value)
         }
-        InfoRow {
+        SelectRow {
             label: "Media playback"
             icon: "play_circle"
-            subtext: "Nothing in this shell launches a media player, so there is no command to set here."
+            subtext: "Rebinds all eight video and nine audio types this shell measured to one player, desktop-wide, in a single write — shown value reflects video/mp4's current default."
+            model: root._mediaModel
+            currentValue: root._mediaChosen || root._mediaCurrent
+            onSelected: (value) => {
+                root._mediaChosen = value;
+                Quickshell.execDetached(["xdg-mime", "default", value].concat(root._mediaTypes));
+            }
         }
-        InfoRow {
+        SelectRow {
             label: "File manager"
             icon: "folder"
-            subtext: "Folder links already open through xdg-open, the desktop-wide default — not set from this window."
+            subtext: "Sets inode/directory desktop-wide — xdg-open, which this shell's own file links already go through, takes effect with no other change."
+            model: root._fmModel
+            currentValue: root._fmChosen || root._fmCurrent
+            onSelected: (value) => {
+                root._fmChosen = value;
+                Quickshell.execDetached(["xdg-mime", "default", value].concat(root._fmTypes));
+            }
         }
     }
 
