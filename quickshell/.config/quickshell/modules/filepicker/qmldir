@@ -1,0 +1,16 @@
+# qmldir — explicit module manifest for quickshell/modules/filepicker/
+# (quick task 260826-pk2). Mirrors every sibling manifest's standing
+# instruction: checking this file in disables Quickshell's directory-scanner
+# synthesis for this directory, so any .qml type added here that is NOT
+# declared below becomes unresolvable with NO load error. A type MUST be
+# registered in the SAME commit that creates it.
+#
+# FilePicker is the only type a consumer should instantiate; the Fp* parts
+# are its internals and are declared so the FloatingWindow can resolve them,
+# not because anything outside this directory should use them.
+module qs.modules.filepicker
+FilePicker 1.0 FilePicker.qml
+FpSidebar 1.0 FpSidebar.qml
+FpHeaderBar 1.0 FpHeaderBar.qml
+FpFolderContents 1.0 FpFolderContents.qml
+FpFooter 1.0 FpFooter.qml
