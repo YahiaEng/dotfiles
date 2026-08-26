@@ -217,7 +217,8 @@ Singleton {
         { pageIdx: 11, section: "Default applications", label: "Terminal", keywords: "apps default terminal kitty command" },
         { pageIdx: 11, section: "Default applications", label: "Audio", keywords: "apps default audio mixer pavucontrol command" },
         { pageIdx: 11, section: "Default applications", label: "Media playback", keywords: "apps default media player playback" },
-        { pageIdx: 11, section: "Default applications", label: "File manager", keywords: "apps default file manager explorer xdg-open" },
+        { pageIdx: 11, section: "Default applications", label: "File manager", keywords: "apps default file manager explorer folder browser thunar yazi xdg-open" },
+        { pageIdx: 11, section: "Default applications", label: "File editor", keywords: "apps default file editor text source code neovim nvim vim codium" },
         { pageIdx: 11, section: "Library", label: "All apps", keywords: "apps library browse favourite hidden list" },
         // Sub-page 1 — All apps (D-5): the "App" label is STATIC (see
         // AllAppsPage.qml's own header) — this is the row's jump key, not

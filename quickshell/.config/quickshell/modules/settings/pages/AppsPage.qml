@@ -44,6 +44,33 @@
 // `open_generic()` -> `open_generic_xdg_mime`, which itself calls
 // `xdg-mime query default` — that is the authoritative read for what
 // actually opens a file on this host.
+//
+// -- Follow-up (operator-reported, same day) ------------------------------
+// Three defects in the first cut of these rows: one cause, two naming.
+//
+// 1. `_mimeModel` compared `e.id + ".desktop"` against gio's registered
+//    ids. Correct ONLY if `DesktopEntry.id` never carries the suffix
+//    itself -- unverifiable statically here (no `qml6` probe is safe on
+//    this host) and silently fatal if wrong: every comparison misses, the
+//    filtered list empties, and the not-in-list fallback then shows the
+//    current default ALONE. It reads as a content bug ("why is VLC
+//    missing", "why is codium a file manager") when in fact nothing ever
+//    matched. `_idKey()` now strips the suffix on BOTH sides, so the
+//    comparison is right either way rather than betting on one shape.
+// 2. The fallback entry was unlabelled, so "your current setting,
+//    unrecognised" was indistinguishable from a genuine candidate -- which
+//    is precisely how `codium.desktop` appeared under "File manager" while
+//    being neither registered for `inode/directory` (measured: only
+//    kitty-open, thunar and yazi are) nor carrying a FileManager category
+//    (it is Utility;Development;IDE). It carries a suffix now.
+// 3. "File manager" named the wrong concept for what the row governs.
+//    Split in two: "File explorer" keeps `inode/directory` + the
+//    FileManager category (measured: thunar, yazi), and a new "File
+//    editor" row takes the plain-text family + TextEditor/IDE/Development
+//    (measured: codium, nvim, vim -- libreoffice-writer registers for
+//    text/plain but is Office/WordProcessor and is correctly dropped).
+//    The explorer row keeps `indexLabel: "File manager"` so RowIndex and
+//    settings-index-check CHECK B stay stable across the rename.
 import QtQuick
 import Quickshell
 import Quickshell.Io
@@ -181,12 +208,18 @@ PageBase {
     // registered to both mpv and vlc, eight video then nine audio.
     readonly property var _fmTypes: ["inode/directory"]
     readonly property var _mediaTypes: ["video/mp4", "video/x-matroska", "video/webm", "video/quicktime", "video/x-msvideo", "video/mpeg", "video/x-flv", "video/ogg", "audio/mpeg", "audio/flac", "audio/ogg", "audio/x-vorbis+ogg", "audio/x-wav", "audio/mp4", "audio/aac", "audio/opus", "audio/x-m4a"]
+    // `_editorTypes` — the plain-text family a "file editor" default
+    // actually governs. Kept deliberately narrow: setting an editor as the
+    // handler for every text/* subtype would capture things like
+    // `text/html`, which belongs to a browser.
+    readonly property var _editorTypes: ["text/plain", "text/x-csrc", "text/x-chdr", "text/x-c++src", "text/x-python", "text/x-shellscript", "text/markdown", "application/json", "application/x-yaml", "text/x-log"]
     // The representative type each row reads its current value and its
     // candidate list from. `video/mp4` specifically — measured, registered
     // to mpv and vlc ONLY, while webm/ogg/flac/vorbis+ogg also list
     // `zen.desktop` (a browser is not a media-playback default).
     readonly property string _fmProbeType: "inode/directory"
     readonly property string _mediaProbeType: "video/mp4"
+    readonly property string _editorProbeType: "text/plain"
 
     // Live-read state, filled by the four bounded Process children below —
     // bounded and page-scoped (D-8), the same shape and reasoning this
@@ -197,6 +230,8 @@ PageBase {
     property var _fmRegistered: []
     property string _mediaCurrent: ""
     property var _mediaRegistered: []
+    property string _editorCurrent: ""
+    property var _editorRegistered: []
 
     // Optimistic-override properties — set the instant a row's own
     // `onSelected` fires, alongside the write. No Timer, no re-query, no
@@ -204,6 +239,7 @@ PageBase {
     // point the `xdg-mime query default` probe is truth again.
     property string _fmChosen: ""
     property string _mediaChosen: ""
+    property string _editorChosen: ""
 
     // Parses the `Registered applications:` block out of `gio mime`'s own
     // output — the ONLY source for "which apps declare they can open this
@@ -249,12 +285,32 @@ PageBase {
     // `yazi.desktop` yields no window, so the entry is labelled rather than
     // silently dropped. Same never-empty guard `_filteredModel` already
     // implements.
+    // Compare desktop-entry identity WITHOUT depending on whether a given
+    // source spells it with the `.desktop` suffix. The previous version
+    // compared `e.id + ".desktop"` against gio's output directly, which is
+    // correct only if `DesktopEntry.id` never carries the suffix itself —
+    // an assumption this file cannot verify statically (runtime QML probes
+    // are barred on this host) and which, if wrong, makes EVERY comparison
+    // miss. That failure is silent and misreads as a content bug: the
+    // filtered list comes out empty, `_mimeModel`'s not-in-list fallback
+    // then shows the current default alone, and the row looks like it is
+    // "missing VLC" or "offering codium as a file manager" when in fact it
+    // never matched anything at all. Normalising both sides removes the
+    // assumption instead of betting on it.
+    function _idKey(s) {
+        var t = String(s || "").trim();
+        return t.endsWith(".desktop") ? t.slice(0, -8) : t;
+    }
+
     function _mimeModel(registeredIds, predicate, currentId) {
+        var registeredKeys = [];
+        for (var r = 0; r < registeredIds.length; r++)
+            registeredKeys.push(root._idKey(registeredIds[r]));
         var out = [];
         for (var i = 0; i < root._sortedApps.length; i++) {
             var e = root._sortedApps[i];
-            var id = e.id + ".desktop";
-            if (registeredIds.indexOf(id) === -1)
+            var id = root._idKey(e.id) + ".desktop";
+            if (registeredKeys.indexOf(root._idKey(e.id)) === -1)
                 continue;
             if (!predicate(root._cats(e)))
                 continue;
@@ -263,9 +319,18 @@ PageBase {
                 display: e.name + (e.runInTerminal ? " (needs a terminal)" : "")
             });
         }
+        // Keep the CURRENT default selectable even when it does not pass
+        // this row's predicate — otherwise the dropdown would silently
+        // show a different app than the one actually in effect. But LABEL
+        // it, because an unlabelled fallback entry is indistinguishable
+        // from a genuine candidate: that is exactly how `codium.desktop`
+        // came to look like a legitimate "File manager" option when it is
+        // neither registered for `inode/directory` nor carrying any
+        // FileManager category — it was only ever "your current setting,
+        // unrecognised", with nothing on screen saying so.
         var hasCurrent = false;
         for (var j = 0; j < out.length; j++) {
-            if (out[j].value === currentId) {
+            if (root._idKey(out[j].value) === root._idKey(currentId)) {
                 hasCurrent = true;
                 break;
             }
@@ -273,12 +338,12 @@ PageBase {
         if (!hasCurrent && currentId.length > 0)
             out.unshift({
                 value: currentId,
-                display: currentId
+                display: currentId + " (current, not a recognised choice)"
             });
         if (out.length === 0)
             out.push({
                 value: currentId,
-                display: currentId.length > 0 ? currentId : "(none)"
+                display: currentId.length > 0 ? currentId + " (current, not a recognised choice)" : "(none found)"
             });
         return out;
     }
@@ -290,6 +355,15 @@ PageBase {
     readonly property var _mediaModel: root._mimeModel(root._mediaRegistered, function (cats) {
         return cats.indexOf("Player") !== -1;
     }, root._mediaCurrent)
+
+    // File EDITOR, not file manager. Measured on this host: `text/plain`
+    // registers codium, libreoffice-writer, nvim and vim; the predicate
+    // keeps the three that are editors and drops libreoffice-writer, whose
+    // categories are Office/WordProcessor. `nvim`/`vim` are Terminal=true
+    // and pick up `_mimeModel`'s "(needs a terminal)" suffix.
+    readonly property var _editorModel: root._mimeModel(root._editorRegistered, function (cats) {
+        return cats.indexOf("TextEditor") !== -1 || cats.indexOf("IDE") !== -1 || cats.indexOf("Development") !== -1;
+    }, root._editorCurrent)
 
     // Four bounded reads (D-8) — never a distinct error state, degrading
     // to empty on any non-zero exit. `xdg-mime query default` is the
@@ -332,6 +406,30 @@ PageBase {
     }
 
     Process {
+        id: _editorCurrentProcess
+        running: false
+        command: ["xdg-mime", "query", "default", root._editorProbeType]
+        stdout: StdioCollector {
+            id: _editorCurrentCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._editorCurrent = exitCode === 0 ? (_editorCurrentCollector.text || "").trim() : "";
+        }
+    }
+
+    Process {
+        id: _editorRegisteredProcess
+        running: false
+        command: ["gio", "mime", root._editorProbeType]
+        stdout: StdioCollector {
+            id: _editorRegisteredCollector
+        }
+        onExited: (exitCode, exitStatus) => {
+            root._editorRegistered = exitCode === 0 ? root._parseGioMime(_editorRegisteredCollector.text) : [];
+        }
+    }
+
+    Process {
         id: _mediaRegisteredProcess
         running: false
         command: ["gio", "mime", root._mediaProbeType]
@@ -348,6 +446,8 @@ PageBase {
         _fmRegisteredProcess.running = true;
         _mediaCurrentProcess.running = true;
         _mediaRegisteredProcess.running = true;
+        _editorCurrentProcess.running = true;
+        _editorRegisteredProcess.running = true;
     }
 
     SettingsSection {
@@ -382,14 +482,26 @@ PageBase {
             }
         }
         SelectRow {
-            label: "File manager"
+            label: "File explorer"
+            indexLabel: "File manager"
             icon: "folder"
-            subtext: "Sets inode/directory desktop-wide — xdg-open, which this shell's own file links already go through, takes effect with no other change."
+            subtext: "Opens folders — sets inode/directory desktop-wide, which xdg-open and this shell's own file links already go through."
             model: root._fmModel
             currentValue: root._fmChosen || root._fmCurrent
             onSelected: (value) => {
                 root._fmChosen = value;
                 Quickshell.execDetached(["xdg-mime", "default", value].concat(root._fmTypes));
+            }
+        }
+        SelectRow {
+            label: "File editor"
+            icon: "edit_note"
+            subtext: "Opens text and source files — sets the plain-text family desktop-wide. Deliberately excludes text/html, which belongs to a browser."
+            model: root._editorModel
+            currentValue: root._editorChosen || root._editorCurrent
+            onSelected: (value) => {
+                root._editorChosen = value;
+                Quickshell.execDetached(["xdg-mime", "default", value].concat(root._editorTypes));
             }
         }
     }
