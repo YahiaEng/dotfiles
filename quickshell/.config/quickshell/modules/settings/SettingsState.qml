@@ -65,6 +65,14 @@ QtObject {
     // The sub-page cannot call WallpaperPage's applyWallpaper() directly —
     // it is a sibling in a StackPage, not a child — so the request rides a
     // signal the owning page connects to.
+    // Emitted by a page whose focusable rows appear AFTER the page is
+    // built — a Repeater over data an async Process fills in. Pages.qml
+    // collects the focus set once at page-swap time, so without this a
+    // late-arriving grid is permanently unreachable by keyboard (measured:
+    // the wallpaper page reported 2 focusables, its InfoRow and toggle,
+    // with every tile missing).
+    signal focusRowsInvalidated()
+
     signal wallpaperRequested(string relpath)
 
     function requestWallpaper(relpath) {

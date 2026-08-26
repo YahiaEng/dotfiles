@@ -1,11 +1,19 @@
-// modules/settings/pages/WallpaperPage.qml — page index 1 of the ten-page
-// layout (quick-260821-6z1 Task 14, D-08/PD-06). The Wallpaper picker row
-// is an inline thumbnail GridView — the operator's own Task 14 decision,
-// selected knowing the sized cost (a new grid component, bounded image
-// loading/caching, an active-selection indicator, and a validated
-// non-interactive setter on wallpaper-picker.sh, the largest and most
-// intricate of the four picker scripts). Task 11's Motion section and
-// theme-scope InfoRow are unchanged.
+// modules/settings/pages/WallpaperPage.qml — page index 1 (originally
+// quick-260821-6z1 Task 14, D-08/PD-06).
+//
+// THE BROWSE-EVERYTHING SURFACE. Rebuilt on Caelestia's WallpaperSelect
+// structure in 260826-pk2: theme folders collapse to one tile each and drill
+// into WallpaperCategoryPage, and Browse opens the shell's own FilePicker
+// for an image from anywhere. The FAST picker is a different surface —
+// the launcher carousel (modules/launcher/WallpaperMode.qml, 260826-wl3),
+// which is what Super+W and Style > Wallpaper open.
+//
+// The tile grid is an EAGER Grid, not the virtualising GridView this page
+// originally used. That reversal is deliberate and is explained at the grid
+// itself: the collapsing category model made the set small and bounded, and
+// eager children are what make the tiles keyboard-reachable.
+//
+// Task 11's Motion section and the theme-scope InfoRow are unchanged.
 //
 // wallpaper-picker.sh gained --list/--active/--set for this task,
 // extracted from its own existing "confirm selection" tail
@@ -151,6 +159,12 @@ PageBase {
                 wallpaperSection.applyWallpaper(relpath);
             }
         }
+
+        // The tiles are Repeater delegates over data an async --list fills
+        // in, so they do not exist when Pages.qml collects the focus set at
+        // page-swap time. Tell it to re-collect once they do, or the grid is
+        // permanently unreachable by keyboard.
+        onTileModelChanged: root.sState.focusRowsInvalidated()
 
         // Same plain-text state read AppearancePage.qml's `currentThemeFile`
         // already uses (MEMORY stale-theme-tracker-trap: read
@@ -407,61 +421,53 @@ PageBase {
         }
 
         // ── The tile grid ────────────────────────────────────────────────
-        //    Still a bounded, virtualising GridView for the reason the
-        //    previous implementation documented: an eager Grid instantiates
-        //    every delegate and every image decode at page-incubation time.
-        //    Four per row is Caelestia's `wallpapersPerRow` default
-        //    (nexusConfig.hpp:11).
-        GridView {
+        //    An EAGER Grid, deliberately, reversing this page's earlier
+        //    GridView. The old comment's reason for virtualising was ~90
+        //    wallpaper entries; the collapsing category model replaced that
+        //    with one tile per theme folder (16 here) plus any loose files,
+        //    so the eager cost is bounded and small. In exchange the tiles
+        //    are real, permanent children, which is what makes them
+        //    keyboard-reachable: Pages.qml collects focusable stops by
+        //    walking `children`, and a virtualising view creates delegates
+        //    lazily, so the focus set would change size as the user scrolls.
+        Grid {
             id: grid
 
             width: parent.width
-            height: Math.min(3, Math.ceil(wallpaperSection.tileModel.length / 4)) * cellHeight + Design.spacingSm
-            clip: true
+            columns: 4
+            spacing: Design.spacingSm
 
-            // The cell IS width/columns; the inter-tile gap comes from the
-            // delegate sitting inset inside its cell. Adding the gap to
-            // cellWidth instead makes N cells wider than the view and
-            // GridView silently drops to N-1 columns — measured: this
-            // rendered 3 across while asking for 4.
-            readonly property int columns: 4
-            readonly property int cellSide: Math.floor(width / columns)
-            readonly property int tileWidth: cellSide - Design.spacingSm
+            readonly property int tileWidth: Math.floor((width - spacing * (columns - 1)) / columns)
 
-            cellWidth: cellSide
-            cellHeight: tileWidth + Design.spacingXl + Design.spacingSm
-            model: wallpaperSection.tileModel
+            Repeater {
+                model: wallpaperSection.tileModel
 
-            delegate: Item {
-                id: tile
+                delegate: WallpaperTile {
+                    id: tile
 
-                required property var modelData
-                required property int index
+                    required property var modelData
+                    required property int index
 
-                width: grid.tileWidth
-                height: grid.cellHeight - Design.spacingSm
-
-                // Viewport gate for live tiles — see WallpaperTile's header.
-                // GridView destroys off-screen delegates, but the band that
-                // is instantiated-but-not-visible would otherwise decode.
-                readonly property bool inViewport: {
-                    var top = grid.contentY;
-                    var bottom = top + grid.height;
-                    var y0 = tile.y;
-                    var y1 = y0 + tile.height;
-                    return y1 > top && y0 < bottom;
-                }
-
-                WallpaperTile {
-                    anchors.fill: parent
+                    width: grid.tileWidth
 
                     source: wallpaperSection.absPathFor(tile.modelData.relpath)
                     poster: wallpaperSection.posterFor(tile.modelData.relpath)
                     caption: tile.modelData.kind === "category" ? (tile.modelData.name.charAt(0).toUpperCase() + tile.modelData.name.slice(1)) : tile.modelData.name
                     live: tile.modelData.isLive
-                    playing: tile.inViewport
                     stackCount: tile.modelData.count
                     active: tile.modelData.kind === "wallpaper" && wallpaperSection.activeRelpath === tile.modelData.relpath
+
+                    // Live playback gate, now that there is no GridView
+                    // viewport to test against: ask the page's own Flickable
+                    // whether this tile is on screen. Same intent as before —
+                    // only visible tiles decode video.
+                    playing: {
+                        const f = root.flickable;
+                        if (!f)
+                            return false;
+                        const pos = tile.mapToItem(f.contentItem, 0, 0);
+                        return pos.y + tile.height > f.contentY && pos.y < f.contentY + f.height;
+                    }
 
                     onClicked: {
                         if (tile.modelData.kind === "category") {

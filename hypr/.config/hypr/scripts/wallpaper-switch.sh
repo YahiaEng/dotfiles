@@ -8,9 +8,16 @@
 # Every surface that offers "change the wallpaper" goes through this one
 # script — Super+W (keybinds.lua) and the launcher's Style ▸ Wallpaper entry
 # (MenuTree.qml) — so retargeting the picker is a change HERE, not a change
-# at each call site. Quick task 260826-pk2 repointed it from the fzf TUI to
-# Settings ▸ Wallpaper, which now carries the category grid, live-animating
-# tiles and the Browse button.
+# at each call site.
+#
+# It opens the launcher's wallpaper CAROUSEL (quick task 260826-wl3): a strip
+# from the bar's bottom bulge that scrolls left/right and updates the desktop
+# live as the selection moves. That is the fast path — pick and go.
+#
+# The Settings ▸ Wallpaper GRID (260826-pk2) is the other surface and is
+# deliberately NOT what this opens: it is the browse-everything view, with
+# per-theme categories and Browse-from-anywhere. Reach it from Settings, or
+# with `qs ipc call settings openPage wallpaper`.
 #
 # THE FALLBACK IS NOT DECORATION. The QML picker only exists while
 # quickshell is running, and this repo has a standing failure mode where the
@@ -23,7 +30,7 @@
 
 set -uo pipefail
 
-if command -v qs >/dev/null 2>&1 && qs ipc call settings openPage wallpaper >/dev/null 2>&1; then
+if command -v qs >/dev/null 2>&1 && qs ipc call launcher open wallpaper >/dev/null 2>&1; then
     exit 0
 fi
 

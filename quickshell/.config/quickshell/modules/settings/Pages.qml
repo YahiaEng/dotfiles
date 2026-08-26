@@ -221,6 +221,17 @@ Item {
     // whichever kind of navigation got it there. Declared ABOVE `_swapTo`
     // below (MEMORY qml-declare-before-construction-time-use), which is
     // itself called from Component.onCompleted.
+    // Late-arriving rows (see SettingsState.focusRowsInvalidated).
+    // Qt.callLater so the re-collect runs after the Repeater has actually
+    // instantiated its delegates, not in the same frame as the model write.
+    Connections {
+        target: root.sState
+
+        function onFocusRowsInvalidated() {
+            Qt.callLater(root._recollectRows);
+        }
+    }
+
     function _recollectRows() {
         // A new page (or a newly-pushed sub-page) has an entirely
         // different (possibly differently shaped) row list — re-collect

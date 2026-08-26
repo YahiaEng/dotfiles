@@ -43,7 +43,25 @@ Item {
     property int stackCount: 0
     property bool active: false
 
+    // ── Keyboard reachability (quick task 260826-wl3) ────────────────────
+    // The same duck-typed contract every row primitive implements, so
+    // Pages.qml's `_collectFocusableRows()` picks tiles up and
+    // `activateContentRow()` can fire them: `focusable` marks the stop,
+    // `rowFocused` is written externally by the focus walker, and
+    // `activated` is the member it duck-types on (declared as a signal,
+    // exactly as NavRow does — `typeof` a QML signal is "function").
+    //
+    // This is why the owning grids are eager `Grid`s and not virtualising
+    // `GridView`s: a GridView creates delegates lazily, so the collected
+    // focus set would silently change size as the user scrolls and every
+    // index after the change would point at a different tile.
+    readonly property bool focusable: true
+    property bool rowFocused: false
+
+    signal activated
     signal clicked
+
+    onActivated: root.clicked()
 
     readonly property string _suffix: {
         const s = String(root.source);
@@ -199,7 +217,10 @@ Item {
                 anchors.fill: parent
                 radius: parent.radius
                 color: "transparent"
-                border.width: root.active ? 3 : 0
+                // Active (this IS the wallpaper) reads as a solid ring;
+                // keyboard focus as a thinner one, so a focused tile that
+                // is also active still shows it is active.
+                border.width: root.active ? 3 : (root.rowFocused ? 2 : 0)
                 border.color: Colours.primary
 
                 Behavior on border.width {

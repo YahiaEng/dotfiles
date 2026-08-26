@@ -68,3 +68,7 @@ ConfirmMode 1.0 ConfirmMode.qml
 EmojiMode 1.0 EmojiMode.qml
 ClipboardMode 1.0 ClipboardMode.qml
 KeybindsMode 1.0 KeybindsMode.qml
+# WallpaperMode (quick task 260826-wl3) — the horizontal wallpaper carousel
+# with live preview, reached via `qs ipc call launcher open wallpaper`.
+# Declared in the same commit that creates it, per this manifest's own rule.
+WallpaperMode 1.0 WallpaperMode.qml

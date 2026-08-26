@@ -52,6 +52,10 @@ PageBase {
 
     readonly property string wallpaperDir: Quickshell.env("HOME") + "/Pictures/Wallpapers"
 
+    // Same late-delegate problem as the root page, though this page's data
+    // arrives via sState rather than its own Process.
+    onCategoryEntriesChanged: root.sState.focusRowsInvalidated()
+
     function posterFor(relpath) {
         return Quickshell.env("HOME") + "/.local/state/theme/wallpaper-frames/" + String(relpath).replace("/live/", "/") + ".png";
     }
@@ -60,51 +64,41 @@ PageBase {
         title: root.title
         icon: "wallpaper"
 
-        GridView {
+        // Eager Grid for the same reason as the root page's — a single
+        // theme folder is a bounded set (18 at most here) and real children
+        // are what make the tiles keyboard-reachable.
+        Grid {
             id: grid
 
             width: parent.width
-            height: Math.max(1, Math.ceil(root.categoryEntries.length / 4)) * cellHeight + Design.spacingSm
-            clip: true
+            columns: 4
+            spacing: Design.spacingSm
 
-            // The cell IS width/columns; the inter-tile gap comes from the
-            // delegate sitting inset inside its cell. Adding the gap to
-            // cellWidth instead makes N cells wider than the view and
-            // GridView silently drops to N-1 columns — measured: this
-            // rendered 3 across while asking for 4.
-            readonly property int columns: 4
-            readonly property int cellSide: Math.floor(width / columns)
-            readonly property int tileWidth: cellSide - Design.spacingSm
+            readonly property int tileWidth: Math.floor((width - spacing * (columns - 1)) / columns)
 
-            cellWidth: cellSide
-            cellHeight: tileWidth + Design.spacingXl + Design.spacingSm
-            model: root.categoryEntries
+            Repeater {
+                model: root.categoryEntries
 
-            delegate: Item {
-                id: tile
+                delegate: WallpaperTile {
+                    id: tile
 
-                required property var modelData
+                    required property var modelData
 
-                width: grid.tileWidth
-                height: grid.cellHeight - Design.spacingSm
-
-                readonly property bool inViewport: {
-                    const top = grid.contentY;
-                    const bottom = top + grid.height;
-                    const y0 = tile.y;
-                    const y1 = y0 + tile.height;
-                    return y1 > top && y0 < bottom;
-                }
-
-                WallpaperTile {
-                    anchors.fill: parent
+                    width: grid.tileWidth
 
                     source: root.wallpaperDir + "/" + tile.modelData.relpath
                     poster: root.posterFor(tile.modelData.relpath)
                     caption: tile.modelData.displayName
                     live: tile.modelData.isLive
-                    playing: tile.inViewport
                     active: root.sState.wallpaperActiveRelpath === tile.modelData.relpath
+
+                    playing: {
+                        const f = root.flickable;
+                        if (!f)
+                            return false;
+                        const pos = tile.mapToItem(f.contentItem, 0, 0);
+                        return pos.y + tile.height > f.contentY && pos.y < f.contentY + f.height;
+                    }
 
                     onClicked: root.sState.requestWallpaper(tile.modelData.relpath)
                 }

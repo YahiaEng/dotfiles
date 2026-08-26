@@ -1137,6 +1137,14 @@ PanelWindow {
                     // already established for a mode value written as a
                     // literal in MenuTree.qml. Task 4 does not touch
                     // LauncherState.qml.
+                    // "wallpaper" (quick task 260826-wl3) — same
+                    // literal-mode precedent as "updates"/"systeminfo"
+                    // below: reachable only via `qs ipc call launcher open
+                    // wallpaper` (which Super+W and Style > Wallpaper both
+                    // go through) and never via a typed route prefix, so it
+                    // stays out of LauncherState's prefix table too.
+                    case "wallpaper":
+                        return wallpaperComponent;
                     case "updates":
                         return updatesComponent;
                     case "systeminfo":
@@ -1322,6 +1330,21 @@ PanelWindow {
             //    "pick" — the user reads the list and closes the launcher
             //    themselves (Escape/click-outside), same as leaving apps
             //    mode open after a search that didn't launch anything. ────
+            // ── Style > Wallpaper (quick task 260826-wl3) — the
+            //    horizontal carousel with live preview. `dismissCallback`
+            //    is resolved in THIS document's scope, where
+            //    `launcherWindow` is visible, then handed over as a plain
+            //    function-valued property, exactly as menuComponent does.
+            //    `query` is bound so the search field filters the strip.
+            Component {
+                id: wallpaperComponent
+
+                WallpaperMode {
+                    dismissCallback: launcherWindow._beginDismiss
+                    query: LauncherState.query
+                }
+            }
+
             Component {
                 id: updatesComponent
 
