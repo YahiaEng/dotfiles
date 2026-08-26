@@ -389,7 +389,10 @@ PageBase {
             id: _fmRegisteredCollector
         }
         onExited: (exitCode, exitStatus) => {
-            root._fmRegistered = exitCode === 0 ? root._parseGioMime(_fmRegisteredCollector.text) : [];
+            var _raw = _fmRegisteredCollector.text;
+            var _parsed = exitCode === 0 ? root._parseGioMime(_raw) : [];
+            console.log("APPSDIAG _fmRegistered exit=" + exitCode + " rawLen=" + String(_raw || "").length + " parsed=" + JSON.stringify(_parsed) + " raw=" + JSON.stringify(String(_raw || "").slice(0, 200)));
+            root._fmRegistered = _parsed;
         }
     }
 
@@ -425,7 +428,10 @@ PageBase {
             id: _editorRegisteredCollector
         }
         onExited: (exitCode, exitStatus) => {
-            root._editorRegistered = exitCode === 0 ? root._parseGioMime(_editorRegisteredCollector.text) : [];
+            var _raw = _editorRegisteredCollector.text;
+            var _parsed = exitCode === 0 ? root._parseGioMime(_raw) : [];
+            console.log("APPSDIAG _editorRegistered exit=" + exitCode + " rawLen=" + String(_raw || "").length + " parsed=" + JSON.stringify(_parsed) + " raw=" + JSON.stringify(String(_raw || "").slice(0, 200)));
+            root._editorRegistered = _parsed;
         }
     }
 
@@ -437,7 +443,10 @@ PageBase {
             id: _mediaRegisteredCollector
         }
         onExited: (exitCode, exitStatus) => {
-            root._mediaRegistered = exitCode === 0 ? root._parseGioMime(_mediaRegisteredCollector.text) : [];
+            var _raw = _mediaRegisteredCollector.text;
+            var _parsed = exitCode === 0 ? root._parseGioMime(_raw) : [];
+            console.log("APPSDIAG _mediaRegistered exit=" + exitCode + " rawLen=" + String(_raw || "").length + " parsed=" + JSON.stringify(_parsed) + " raw=" + JSON.stringify(String(_raw || "").slice(0, 200)));
+            root._mediaRegistered = _parsed;
         }
     }
 
@@ -448,6 +457,11 @@ PageBase {
         _mediaRegisteredProcess.running = true;
         _editorCurrentProcess.running = true;
         _editorRegisteredProcess.running = true;
+        var _ids = [];
+        for (var _i = 0; _i < Math.min(6, root._sortedApps.length); _i++)
+            _ids.push(String(root._sortedApps[_i].id) + "|" + String(root._sortedApps[_i].name));
+        console.log("APPSDIAG sortedApps n=" + root._sortedApps.length + " sample=" + JSON.stringify(_ids));
+        console.log("APPSDIAG models fm=" + root._fmModel.length + " media=" + root._mediaModel.length + " editor=" + root._editorModel.length);
     }
 
     SettingsSection {
