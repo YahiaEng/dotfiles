@@ -1,0 +1,48 @@
+#!/usr/bin/env sh
+# Launch a console application inside the user's configured terminal.
+#
+# Why this exists: xdg-open's generic resolver takes the FIRST WORD of a
+# .desktop Exec line and runs it directly — it never reads Terminal=true.
+# (Hyprland matches no detectDE case in /usr/bin/xdg-open, so DE=generic
+# routes to open_generic_xdg_mime -> search_desktop_file, which does
+# `command="$(get_key Exec | first_word)"` then `env "$command" "$@"`.)
+# So a console app like yazi or nvim, set as an xdg default handler, opens
+# no window at all. The wrapper entries in ~/.local/share/applications point
+# their Exec here and declare Terminal=false, so the same resolver does the
+# right thing.
+#
+# The terminal is read live on every launch instead of being baked in, so
+# changing Settings -> Apps -> Terminal takes effect immediately with no
+# regeneration step and nothing to go stale.
+#
+# Usage: open-in-terminal <program> [args...]
+
+set -eu
+
+if [ "$#" -eq 0 ]; then
+    echo "usage: open-in-terminal <program> [args...]" >&2
+    exit 2
+fi
+
+prefs="${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/prefs.json"
+term=""
+
+# `.apps.terminal // empty` yields nothing for a missing key, a null `apps`
+# (the shape on an install that has never opened the Apps page) and a null
+# value alike; a malformed file makes jq exit non-zero and is swallowed the
+# same way. Every one of those paths falls through to the default below.
+if [ -r "$prefs" ] && command -v jq >/dev/null 2>&1; then
+    term="$(jq -r '.apps.terminal // empty' "$prefs" 2>/dev/null || true)"
+fi
+
+# Same literal Prefs.qml declares as the `apps.terminal` default, and the
+# one every other consumer hardcoded before that key existed.
+[ -n "$term" ] || term="kitty"
+
+# A terminal that is configured but no longer installed would otherwise fail
+# silently at exec time, which looks identical to the bug this script fixes.
+command -v "$term" >/dev/null 2>&1 || term="kitty"
+
+# `-e` is this repo's established terminal-invocation convention, already
+# hardcoded at SystemCapsule.qml:588 and UpdatesPage.qml:167,302.
+exec "$term" -e "$@"

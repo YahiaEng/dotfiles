@@ -902,6 +902,15 @@ section_hardware() {
     sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-kernel-module-verify.hook" \
         /etc/pacman.d/hooks/99-kernel-module-verify.hook
 
+    # Console-app launcher for the xdg wrapper entries. It goes to
+    # /usr/local/bin rather than a $HOME path because a .desktop `Exec=` line
+    # cannot contain `~` or `$HOME`, and hardcoding /home/<user> would make
+    # the entries break for any other username. xdg-open resolves the first
+    # Exec word with `command -v`, so an absolute system path always works.
+    echo "Installing the terminal-app launcher (open-in-terminal)..."
+    sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/open-in-terminal" \
+        /usr/local/bin/open-in-terminal
+
     # `enable` without --now: the reaper deletes module trees for kernels
     # that are not running, which is a boot-time job, not a mid-install one.
     # Guarded + non-fatal, matching the ollama precedent above, so a
