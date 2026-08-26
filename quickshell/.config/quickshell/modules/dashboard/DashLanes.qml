@@ -13,13 +13,19 @@
 // simply never grew into it. Two lanes consume the whole 712 of usable
 // content width without asking the drawer to be any wider.
 //
-// ── Width 712, deliberately, and shared with PerfTelemetry ─────────────
-// `drawerWidth = max(760, activeContentWidth + spacingLg*2)`, so 712 lands
-// exactly on the 760 floor. `PerfTelemetry.qml` declares the same 712 for
-// the same reason: with both selected, crossing between Dashboard and
-// Performance no longer animates the window 280px wider and back, which was
-// the study's second measured finding. Changing one without the other
-// reopens it.
+// ── Width: 712 of content, and the drawer lands at 808 (MEASURED) ──────
+// `drawerWidth = max(760, activeContentWidth + spacingLg*2)`, where
+// `activeContentWidth` is this tab's `implicitWidth` — which ALREADY
+// includes this tab's own `panelPadding * 2`. So the drawer adds a second
+// 48px of chrome on top: 712 + 48 + 48 = 808, not the 760 floor an earlier
+// version of this comment claimed. Verified on a live capture: the two lanes
+// measure x899..1238 (340) and x1255..1610 (356) with a 16px gap, i.e. 712
+// of content, putting the drawer edges at 851 and 1658.
+//
+// What matters is that `PerfTelemetry.qml` declares the SAME 712, so both
+// tabs resolve to the same 808 and crossing between them no longer animates
+// the window 280px wider and back — the study's second measured finding.
+// Changing one without the other reopens it.
 //
 // ── What is NOT duplicated from DashboardTab.qml ────────────────────────
 // The calendar's date arithmetic (locale-driven first-day-of-week, the fixed
@@ -96,15 +102,20 @@ Item {
     readonly property string symbolFontFamily: Design.symbolFontFamily
     readonly property int cardRadius: Design.popoutCornerRadius
 
-    // See the header — 712 puts the drawer on its 760 floor.
+    // See the header — 712 of content, drawer resolves to 808.
     readonly property int contentWidth: 712
     readonly property int leftLaneWidth: 340
     readonly property int rightLaneWidth: root.contentWidth - root.leftLaneWidth - root.spacingMd
 
     readonly property int clockHeight: 72
     readonly property int weatherCardHeight: 84
-    readonly property int mediaCardHeight: 176
-    readonly property int resourcesCardHeight: 88
+    // Media and resources heights are DERIVED from what they contain, never
+    // hand-picked. The first version fixed 176 and 88; measured live, the
+    // media column needed 185 (its play button was clipped by the card's own
+    // bottom edge) and the resources column needed 108. A magic number here
+    // is a defect waiting for the next font or spacing change.
+    readonly property int mediaCardHeight: mediaColumn.implicitHeight + root.spacingMd * 2
+    readonly property int resourcesCardHeight: resourcesRow.implicitHeight + root.spacingMd * 2
     readonly property int calendarCellSize: 40
     readonly property int calendarCellGap: 4
 
@@ -240,9 +251,19 @@ Item {
                 readonly property real cellWidth:
                     (calendarCard.width - root.spacingMd * 2 - root.calendarCellGap * 6) / 7
 
+                // Vertically CENTRED, not filled. The card's height comes
+                // from the left lane matching the right one, and the right
+                // lane is now the taller of the two — so a top-anchored
+                // grid leaves ~170px of dead space under the last week row
+                // (measured on the capture that verified the card fixes).
+                // Centring spends that slack evenly instead of piling it at
+                // the bottom.
                 Column {
-                    anchors.fill: parent
-                    anchors.margins: root.spacingMd
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.leftMargin: root.spacingMd
+                    anchors.rightMargin: root.spacingMd
                     spacing: root.spacingSm
 
                     Item {
@@ -425,6 +446,7 @@ Item {
                 readonly property int artSize: 84
 
                 Column {
+                    id: mediaColumn
                     anchors.centerIn: parent
                     width: parent.width - root.spacingMd * 2
                     spacing: root.spacingSm
@@ -565,6 +587,7 @@ Item {
                 color: Colours.surfaceVariant
 
                 Row {
+                    id: resourcesRow
                     anchors.centerIn: parent
                     spacing: root.spacingLg
 
@@ -646,33 +669,37 @@ Item {
     }
 
     // ── One small resource ring ────────────────────────────────────────
-    component MiniResource: Column {
+    // The caption is `Dial`'s OWN caption line, not a second Text stacked
+    // under it. The first version stacked one, which cost 16px on top of the
+    // 18px caption line Dial reserves whether or not it has text — the
+    // column then published 108px into an 88px card and overflowed it by
+    // 9px at each end (measured on a live capture, not estimated).
+    //
+    // `collapseEmptyLines` drops Dial's detail line, which this call site
+    // never fills, and `centerFontSize` scales the centre figure to the ring
+    // it actually has to fit inside: the default 20px overran the 36px inner
+    // circle and drew across its own arc.
+    component MiniResource: Dial {
         id: mr
-        required property string label
-        required property color accent
-        required property real fraction
         required property bool populated
 
-        spacing: root.spacingXs
+        diameter: root.iconSizeMd + root.spacingLg
+        ringThickness: root.spacingXs + 2
+        collapseEmptyLines: true
+        centerFontSize: root.fontLabel
+        // This dial sits ON a `surfaceVariant` card, so Dial's default track
+        // (also surfaceVariant) is invisible — measured, not assumed. Alpha
+        // over onSurface, matching what `PerfTelemetry.qml`'s BarTile does
+        // for the same reason.
+        trackColor: Qt.rgba(Colours.onSurface.r, Colours.onSurface.g, Colours.onSurface.b, 0.14)
+        widgetState: mr.populated ? "populated" : "pending"
+        value: mr.populated ? mr.fraction : 0
+        valueText: mr.populated && root.hasReader
+            ? root.systemResources.formatPercent(mr.fraction) : ""
+        detailText: ""
 
-        Dial {
-            diameter: root.iconSizeMd + root.spacingLg
-            ringThickness: root.spacingXs + 2
-            accentColor: mr.accent
-            widgetState: mr.populated ? "populated" : "pending"
-            value: mr.populated ? mr.fraction : 0
-            valueText: mr.populated && root.hasReader
-                ? root.systemResources.formatPercent(mr.fraction) : ""
-            label: ""
-            detailText: ""
-        }
-
-        Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: mr.label
-            font.pixelSize: root.fontLabel
-            font.weight: root.weightBody
-            color: Colours.onSurfaceVariant
-        }
+        property real fraction: 0
+        property color accent: Colours.primary
+        accentColor: mr.accent
     }
 }
