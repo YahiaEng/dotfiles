@@ -138,3 +138,71 @@ re-pointed `found: 0` is a real zero and not another vacuous one.
   command closes it: `sudo pacman -S --needed qt6-imageformats`. Until then the
   single `.webp` in the library (`catppuccin/live/tracer-probe.webp`) still shows
   its poster frame. Nothing else in the repo depends on it.
+
+---
+
+# Addendum — install.sh package-coverage audit (2026-08-26, commit `3bf182f6`)
+
+Operator installed `qt6-imageformats` and asked whether install.sh declares
+everything else it needs. It did not.
+
+## Confirmed on the host first
+
+`qt6-imageformats 6.11.2-1` installed, `libqwebp.so` present, and Qt now agrees:
+`supportedImageFormats()` contains `webp`, and the library's one webp file reads as
+`canRead: True, 1920x1080, 150 frames` — an *animated* webp, so it will animate
+rather than sit on a poster frame. Quickshell must be restarted once to load the
+new plugin (Qt image plugins are resolved at process start).
+
+## The audit, and its deliberate second half
+
+**Pass 1 — commands.** Extracted every external command the repo invokes across
+scripts, Hyprland configs, QML, systemd units and .desktop files; resolved each
+through `command -v` + `pacman -Qoq` (94 commands → 60 owning packages) and diffed
+against the 130 declared. 21 were not directly declared; classifying each with
+`pactree -r` against the declared set left **two**, and neither is a gap: `paru`
+(install.sh bootstraps it by cloning and running makepkg) and `sudo` (a
+prerequisite for running install.sh at all). **Pass 1 found nothing.**
+
+**Pass 2 — the no-binary classes.** Pass 1 cannot see a package that ships no
+executable, which is precisely the class `qt6-imageformats` belongs to. Audited
+separately: QML imports, font families named in configs, icon/cursor/GTK themes
+from live gsettings, and portals.
+
+## The finding
+
+`qt6-multimedia` — **not declared, and not transitively covered.**
+`WallpaperTile.qml` imports `QtMultimedia` and drives `MediaPlayer` + `VideoOutput`
+for mp4/mkv/webm/mov live wallpapers, and the library ships one
+(`catppuccin/live/tracer-probe.mp4`). `pactree -r -u qt6-multimedia` intersected
+with the declared set is **empty** — it exists on this host only because
+`ktextwidgets` and `qt6-speech` happen to pull it. A fresh install would have
+produced a shell whose video wallpapers were dead on arrival, failing silently at
+the QML import exactly as the missing webp plugin did.
+
+`qt6-multimedia-ffmpeg` is declared alongside it deliberately: `qt6-multimedia`
+depends on the **virtual** `qt6-multimedia-backend`, which has two providers here
+(ffmpeg and gstreamer). install.sh runs `--noconfirm`, so an implicit choice is an
+arbitrary one.
+
+`qt6-declarative` was checked identically and **is** genuinely covered — `quickshell`
+requires it, as that entry's existing comment claimed.
+
+## Everything else checked clean
+
+| Class | Result |
+|---|---|
+| fonts (`FiraCode Nerd Font`, `Material Symbols Rounded`) | `ttf-firacode-nerd`, `ttf-material-symbols-variable-git` — both declared |
+| GTK theme (`adw-gtk3-dark`) | `adw-gtk-theme` declared under its real name — the old `adw-gtk3` ghost is long fixed |
+| icon theme (`Papirus-Dark`) | `papirus-icon-theme` declared |
+| cursor (`BreezeX-RosePine-Linux`) | `rose-pine-cursor` + `rose-pine-hyprcursor` declared |
+| portals | `xdg-desktop-portal-{hyprland,gtk}` declared |
+| `ffmpeg`, `matugen-bin`, `quickshell` | declared |
+| both new names exist in the repos | `pacman -Si` confirms — the check that would have caught `adw-gtk3` |
+
+## The transferable lesson
+
+A package audit built on "what commands does this repo run" cannot see plugins,
+fonts, themes or codecs. Both real findings in this task — webp and QtMultimedia —
+were in that blind class, and both failed silently rather than loudly. Audit the
+no-binary classes separately, or don't claim coverage.
