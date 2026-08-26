@@ -2,7 +2,7 @@
 quick_id: 260826-wl3
 date: 2026-08-26
 status: complete
-commits: [33293992]
+commits: [33293992, b5471223]
 tags: [quickshell, qml, launcher, pathview, wallpaper, keyboard-nav]
 ---
 
@@ -88,14 +88,34 @@ Gates: `qml-import-check` 0/143, `settings-index-check` 178/0,
 `colour-lint` 425/0, `motion-lint` 612/0. Log clean below the restart marker
 with both surfaces open. Wallpaper restored to its pre-testing value.
 
-## Operator checks
+## Operator verification — results
 
-No pointer injection exists here, so these need a human:
+| Check | Result |
+|---|---|
+| Left/Right moves selection, desktop follows | ✅ passed |
+| Escape restores the previous wallpaper | ✅ passed |
+| Tiles take focus in Settings ▸ Wallpaper | ✅ passed |
+| Search filters the strip | ❌ **filtered apps instead** — fixed in `b5471223` |
+| Live wallpapers visible in the picker | ❌ **not visible** — fixed in `b5471223` |
 
-1. Super+W → the carousel. Left/Right should move the selection and the
-   desktop should follow, with the previous wallpaper restored on Escape.
-2. Enter or click commits and closes the launcher.
-3. Typing in the search field should filter the strip.
-4. Settings ▸ Wallpaper: keyboard into the content pane and confirm the
-   tiles now take focus (thin ring) and Enter opens a category / applies a
-   wallpaper.
+## Follow-up round (`b5471223`)
+
+**Search switched to the app list mid-type.** `LauncherState._routeQuery()`
+re-routes on every keystroke and exempted exactly one mode with a one-off
+`if (mode === modeMenu)`. Every other mode reached by IPC or the menu — i.e.
+every mode that filters *itself* rather than being entered by a typed prefix
+— got bounced to apps on the first character. Generalised that into a
+`_stickyModes` set (menu, wallpaper, updates, systeminfo) rather than adding
+a second `if` beside the first. The placeholder is mode-aware now too.
+
+**Live wallpapers had two causes.** The first *was* the search bug: with 88
+wallpapers in a 3-wide strip and no working filter, the three live entries
+sat ~40 keypresses away with no way to jump to them. The second is that the
+carousel only ever drew a still — it now animates, gated to the **centred**
+tile, so exactly one video decodes however long the strip is (a tighter
+bound than the settings grid's viewport test). Neighbours keep their poster.
+
+Verified on screen: typing "live" filters to exactly the three live entries,
+and the centred tile shows a different frame from its poster-holding
+neighbours. Escape closed the launcher and the restore put `dracula/arch.png`
+back.
