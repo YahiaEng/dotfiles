@@ -1,0 +1,1386 @@
+<title>Drawer Tab Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Source+Serif+4:opsz,wght@8..60,400..600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────────
+   Page chrome tokens. Light is the bare :root; dark redefines
+   ONLY tokens, in both the un-stamped (prefers-color-scheme)
+   and explicitly-stamped states.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --ground:   #F2F0F4;
+  --raised:   #FBFAFC;
+  --ink:      #1D1B22;
+  --ink-soft: #4A4553;
+  --muted:    #6B6675;
+  --rule:     #DEDAE3;
+  --rule-firm:#C7C1D0;
+  --accent:   #7C4DD1;
+  --accent-soft: #EFE7FB;
+  --flag:     #A8323F;
+  --flag-soft:#FBEAEC;
+  --ok:       #2F6D42;
+  --ok-soft:  #E6F1E9;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:   #17161B;
+    --raised:   #1F1E25;
+    --ink:      #EDEAF2;
+    --ink-soft: #C3BDCE;
+    --muted:    #948EA1;
+    --rule:     #2C2A33;
+    --rule-firm:#3D3A47;
+    --accent:   #C4A2FB;
+    --accent-soft: #2A2338;
+    --flag:     #F09098;
+    --flag-soft:#372226;
+    --ok:       #86C79A;
+    --ok-soft:  #1D2A21;
+  }
+}
+:root[data-theme="dark"] {
+  --ground:   #17161B;
+  --raised:   #1F1E25;
+  --ink:      #EDEAF2;
+  --ink-soft: #C3BDCE;
+  --muted:    #948EA1;
+  --rule:     #2C2A33;
+  --rule-firm:#3D3A47;
+  --accent:   #C4A2FB;
+  --accent-soft: #2A2338;
+  --flag:     #F09098;
+  --flag-soft:#372226;
+  --ok:       #86C79A;
+  --ok-soft:  #1D2A21;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Specimen palette — the LIVE dracula theme, read verbatim from
+   ~/.local/state/theme/palette.json on 2026-08-26. Theme-fixed
+   on purpose: these are photographs of a dark shell, not chrome.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --s-surface:  #282a36;
+  --s-cont:     #44475a;
+  --s-on:       #f8f8f2;
+  --s-onvar:    #bfbfbf;
+  --s-primary:  #ff79c6;
+  --s-secondary:#bd93f9;
+  --s-tertiary: #8be9fd;
+  --s-outline:  #6272a4;
+  --s-error:    #ff5555;
+  --k: 0.60;              /* ONE shared artboard scale, all plates */
+}
+@media (max-width: 1180px) { :root { --k: 0.46; } }
+@media (max-width: 820px)  { :root { --k: 0.34; } }
+@media (max-width: 600px)  { :root { --k: 0.26; } }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Source Serif 4", Georgia, "Times New Roman", serif;
+  font-size: 17px;
+  line-height: 1.6;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1160px; margin: 0 auto; padding: 0 32px 120px; }
+
+h1, h2, h3, .display {
+  font-family: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+  text-wrap: balance;
+  margin: 0;
+}
+
+.mono, code, .spec dt, .dim, .plate-id, .tag {
+  font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Masthead ─────────────────────────────────────────────── */
+.masthead {
+  border-bottom: 2px solid var(--ink);
+  padding: 72px 0 26px;
+  margin-bottom: 44px;
+}
+.eyebrow {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 20px;
+}
+h1 {
+  font-size: clamp(40px, 7vw, 76px);
+  font-weight: 800;
+  font-stretch: 88%;
+  letter-spacing: -0.025em;
+  line-height: 0.95;
+}
+.standfirst {
+  max-width: 62ch;
+  font-size: 20px;
+  color: var(--ink-soft);
+  margin: 22px 0 0;
+}
+.meta-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 28px;
+  margin-top: 26px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.meta-strip b { color: var(--ink-soft); font-weight: 500; }
+
+/* ── Sections ─────────────────────────────────────────────── */
+section { margin-top: 76px; }
+.sec-head { border-top: 1px solid var(--rule-firm); padding-top: 18px; margin-bottom: 12px; }
+.sec-head h2 {
+  font-size: clamp(26px, 3.4vw, 38px);
+  font-weight: 700;
+  font-stretch: 88%;
+  letter-spacing: -0.018em;
+}
+.sec-head .lede { max-width: 66ch; color: var(--ink-soft); margin: 12px 0 0; }
+
+/* ── Findings ─────────────────────────────────────────────── */
+.findings { display: grid; gap: 14px; margin-top: 28px; }
+.finding {
+  display: grid;
+  grid-template-columns: 152px 1fr;
+  gap: 22px;
+  align-items: start;
+  background: var(--raised);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 16px 20px;
+}
+.finding .num {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+.finding .num small { display: block; font-size: 11px; font-weight: 400; color: var(--muted); letter-spacing: 0.04em; }
+.finding p { margin: 0; font-size: 15.5px; color: var(--ink-soft); }
+.finding p + p { margin-top: 7px; }
+@media (max-width: 700px) { .finding { grid-template-columns: 1fr; gap: 8px; } }
+
+/* ── Plates ───────────────────────────────────────────────── */
+.plate {
+  margin-top: 52px;
+  border-top: 1px solid var(--rule);
+  padding-top: 26px;
+}
+.plate-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 4px; }
+.plate-id {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--ground);
+  background: var(--ink);
+  padding: 4px 9px;
+  border-radius: 2px;
+}
+.plate-id.is-current { background: var(--muted); }
+.plate-head h3 { font-size: 27px; font-weight: 700; font-stretch: 90%; letter-spacing: -0.015em; }
+.plate-sub { color: var(--muted); font-size: 15px; font-style: italic; }
+.plate-body { display: grid; grid-template-columns: auto minmax(280px, 1fr); gap: 38px; align-items: start; margin-top: 24px; }
+@media (max-width: 1000px) { .plate-body { grid-template-columns: 1fr; gap: 26px; } }
+
+.stage-wrap { display: flex; flex-direction: column; gap: 10px; }
+.stage {
+  width: calc(var(--w) * var(--k) * 1px);
+  height: calc(var(--h) * var(--k) * 1px);
+  position: relative;
+  overflow: hidden;
+  border-radius: 4px;
+}
+.board { transform: scale(var(--k)); transform-origin: top left; position: absolute; top: 0; left: 0; }
+.scale-note { font-family: "JetBrains Mono", monospace; font-size: 11.5px; color: var(--muted); letter-spacing: 0.03em; }
+
+/* spec column */
+.spec dt {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 16px;
+}
+.spec dt:first-of-type { margin-top: 0; }
+.spec dd { margin: 5px 0 0; font-size: 15.5px; color: var(--ink-soft); }
+.spec dd code { font-size: 13px; background: var(--accent-soft); color: var(--ink); padding: 1px 5px; border-radius: 2px; }
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  margin: 0 6px 6px 0;
+}
+.tag.cost  { background: var(--flag-soft); color: var(--flag); border: 1px solid color-mix(in srgb, var(--flag) 30%, transparent); }
+.tag.free  { background: var(--ok-soft);   color: var(--ok);   border: 1px solid color-mix(in srgb, var(--ok) 30%, transparent); }
+.tag.note  { background: var(--accent-soft); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+
+.blocker {
+  margin-top: 14px;
+  border-left: 3px solid var(--flag);
+  background: var(--flag-soft);
+  padding: 11px 15px;
+  border-radius: 0 3px 3px 0;
+  font-size: 14.5px;
+  color: var(--ink-soft);
+}
+.blocker b { color: var(--flag); font-family: "JetBrains Mono", monospace; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 3px; }
+
+/* ── Comparison table ─────────────────────────────────────── */
+.table-scroll { overflow-x: auto; margin-top: 28px; border: 1px solid var(--rule); border-radius: 4px; }
+table { border-collapse: collapse; width: 100%; min-width: 720px; font-size: 14.5px; }
+th, td { text-align: left; padding: 11px 15px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+thead th {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: var(--raised);
+  border-bottom: 1px solid var(--rule-firm);
+  white-space: nowrap;
+}
+tbody tr:last-child td { border-bottom: none; }
+td.opt { font-family: "JetBrains Mono", monospace; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.lift { font-family: "JetBrains Mono", monospace; font-size: 12.5px; }
+
+/* ── Closing ──────────────────────────────────────────────── */
+.pick {
+  margin-top: 40px;
+  background: var(--raised);
+  border: 1px solid var(--rule-firm);
+  border-radius: 4px;
+  padding: 28px 30px;
+}
+.pick h3 { font-size: 23px; font-weight: 700; font-stretch: 90%; }
+.pick p { color: var(--ink-soft); max-width: 64ch; }
+.pick ol { margin: 16px 0 0; padding-left: 20px; color: var(--ink-soft); }
+.pick li { margin-bottom: 9px; }
+.pick li b { color: var(--ink); }
+
+/* ═════════════════════════════════════════════════════════════
+   ARTBOARD PRIMITIVES — every value below is a REAL px value at
+   1:1; the whole board is scaled once by --k, so these numbers
+   are the spec numbers.
+   ═════════════════════════════════════════════════════════════ */
+.drawer {
+  background: var(--s-surface);
+  border-radius: 28px;
+  overflow: hidden;
+  font-family: "JetBrains Mono", monospace;
+  color: var(--s-on);
+  box-shadow: 0 18px 50px rgba(0,0,0,.34);
+  display: flex;
+  flex-direction: column;
+}
+.tabbar { height: 64px; display: flex; align-items: stretch; padding: 0 24px; flex: 0 0 64px; }
+.tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  font-size: 13px;
+  color: var(--s-onvar);
+  position: relative;
+}
+.tab .glyph { width: 20px; height: 20px; border-radius: 5px; background: currentColor; opacity: .55; }
+.tab.on { color: var(--s-primary); }
+.tab.on .glyph { opacity: 1; }
+.tab.on::after {
+  content: "";
+  position: absolute; bottom: 0; left: 26%; right: 26%;
+  height: 3px; border-radius: 2px; background: var(--s-primary);
+}
+.pane { flex: 1; padding: 24px; display: flex; }
+
+/* dead-space hatching for the CURRENT dashboard plate */
+.dead {
+  background-image: repeating-linear-gradient(45deg,
+    rgba(255,85,85,.16) 0 6px, transparent 6px 13px);
+  border: 1px dashed rgba(255,85,85,.5);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+}
+.dead span { font-size: 11px; color: #ff9d9d; letter-spacing: .05em; transform: rotate(-90deg); white-space: nowrap; }
+
+/* cards */
+.c {
+  background: var(--s-cont);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+.c-title { font-size: 15px; color: var(--s-on); display: flex; align-items: center; gap: 8px; }
+.c-title i { width: 18px; height: 18px; border-radius: 5px; background: currentColor; display: block; }
+.c-sub { font-size: 11.5px; color: var(--s-onvar); margin-top: 3px; }
+.c-big { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+
+/* full ring (our current Dial) */
+.ring { border-radius: 50%; display: grid; place-items: center; position: relative; }
+.ring::after {
+  content: ""; position: absolute; inset: var(--t);
+  border-radius: 50%; background: var(--bg, var(--s-surface));
+}
+.ring > * { position: relative; z-index: 1; }
+.ring-v { font-size: var(--vs, 26px); font-weight: 700; letter-spacing: -.02em; }
+.ring-l { font-size: 11px; color: var(--s-onvar); }
+
+/* linear bar */
+.bar { height: 8px; border-radius: 4px; background: rgba(255,255,255,.13); overflow: hidden; }
+.bar > i { display: block; height: 100%; border-radius: 4px; }
+
+/* pill row */
+.kv { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--s-onvar); }
+.kv .g { width: 15px; height: 15px; border-radius: 4px; background: currentColor; flex: 0 0 15px; }
+.kv .sp { flex: 1; }
+.kv b { font-weight: 500; }
+
+/* calendar */
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-grid div { height: 26px; display: grid; place-items: center; font-size: 12px; color: var(--s-on); border-radius: 7px; }
+.cal-grid .wd { color: var(--s-outline); font-size: 10.5px; height: 18px; }
+.cal-grid .dim { color: var(--s-outline); }
+.cal-grid .today { background: var(--s-primary); color: var(--s-surface); font-weight: 700; }
+
+/* toggles */
+.toggles { display: flex; gap: 10px; }
+.tg { flex: 1; height: 44px; border-radius: 14px; background: var(--s-cont); display: grid; place-items: center; }
+.tg.on { background: var(--s-primary); }
+.tg i { width: 18px; height: 18px; border-radius: 5px; background: var(--s-onvar); display: block; }
+.tg.on i { background: var(--s-surface); }
+
+.stack { display: flex; flex-direction: column; }
+.row { display: flex; }
+.grow { flex: 1; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Quick task 260826-rfy · Arch + Hyprland dotfiles</p>
+    <h1>Drawer Tab<br>Studies</h1>
+    <p class="standfirst">Seven directions for the two weakest panes of the Super+D drawer — Dashboard and Performance — drawn to scale in your live Dracula palette, each carrying what it would actually cost in QML.</p>
+    <div class="meta-strip">
+      <span><b>Reference</b> caelestia-dots/shell @ a788c432</span>
+      <span><b>Theme drawn</b> dracula</span>
+      <span><b>Scale</b> 0.60, shared by every plate</span>
+      <span><b>Code changed</b> none — this ends at a decision</span>
+    </div>
+  </header>
+
+  <!-- ══════════ THE PROBLEM ══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>What's actually wrong</h2>
+      <p class="lede">Four measurements, taken off the source rather than off a screenshot. They're why these two tabs are the ones worth redrawing, and they constrain every direction below.</p>
+    </div>
+
+    <div class="findings">
+      <div class="finding">
+        <div class="num">400<small>in a 760 frame</small></div>
+        <div>
+          <p>The Dashboard tab's content column is <code class="mono">contentWidth: 400</code> (<span class="mono">DashboardTab.qml:288</span>) but the drawer floor is <code class="mono">dashboardMinWidth: 760</code> (<span class="mono">Design.qml:820</span>). <b>180px of dead margin sits on each side</b>, every time you open it. Plate D-0 draws the gap.</p>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="num">1040<small>vs 760</small></div>
+        <div>
+          <p>Performance renders at 1040 wide; Dashboard at 760. <code class="mono">drawerWidth</code> is bound to whichever tab is active (<span class="mono">Dashboard.qml:443</span>), so the whole window animates 280px wider and back <b>every time you cross between the two tabs</b>.</p>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="num">1<small>container tint</small></div>
+        <div>
+          <p><span class="mono">Colours.qml</span> exposes 19 roles, no helper functions, and <b>no <code>surfaceContainer</code></b>. On dracula, <code class="mono">surfaceVariant</code>, <code class="mono">primaryContainer</code> and <code class="mono">secondaryContainer</code> are all byte-identical <code class="mono">#44475a</code> — one tint above surface, not a ramp.</p>
+          <p>This is the same trap 14-10 already hit, when a GPU ring drawn in <code class="mono">primaryContainer</code> turned out to be invisible against its own track. Any direction built from stacked cards has to solve it.</p>
+        </div>
+      </div>
+      <div class="finding">
+        <div class="num">0<small>rounding scale</small></div>
+        <div>
+          <p><span class="mono">Design.qml</span> has per-surface radii scattered through it — <code class="mono">popoutCornerRadius: 20</code>, <code class="mono">attachedCornerRadius: 24</code>, the drawer's own 28 — but no shared rounding scale. Caelestia's bento leans on exactly that (four different radii across six cells), so a bento direction means adding one.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ PERFORMANCE ══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Performance</h2>
+      <p class="lede">Worth knowing before you read these: the reference moved. Our tab was built against a Caelestia that showed a compact gauge cluster — <span class="mono">PerformanceTab.qml</span> cites it by name in its own round-2 comment. At the pinned SHA <b>that composition no longer exists upstream</b>. Their Performance tab is cards now, with no dial row anywhere in it.</p>
+    </div>
+
+    <!-- P-0 CURRENT -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id is-current">P-0</span>
+        <h3>What ships today</h3>
+        <span class="plate-sub">five 176px dials in one row, plus a rate pair</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:1040; --h:420;">
+            <div class="board" style="width:1040px; height:420px;">
+              <div class="drawer" style="width:1040px; height:420px;">
+                <div class="tabbar">
+                  <div class="tab"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab on"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="flex-direction:column; align-items:center; gap:24px;">
+                  <div class="row" style="gap:16px;">
+                    <div class="stack" style="align-items:center; gap:6px; width:176px;">
+                      <div class="ring" style="width:176px;height:176px;--t:17px;background:conic-gradient(var(--s-outline) 0 31%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v">31%</span><span class="ring-l">GPU</span></div>
+                      </div>
+                      <div style="font-size:11px;color:var(--s-onvar);">3.1 / 12 GB</div>
+                    </div>
+                    <div class="stack" style="align-items:center; gap:6px; width:176px;">
+                      <div class="ring" style="width:176px;height:176px;--t:17px;background:conic-gradient(var(--s-primary) 0 18%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v">18%</span><span class="ring-l">CPU</span></div>
+                      </div>
+                      <div style="font-size:11px;color:var(--s-onvar);">4.2 GHz · 47°C</div>
+                    </div>
+                    <div class="stack" style="align-items:center; gap:6px; width:176px;">
+                      <div class="ring" style="width:176px;height:176px;--t:17px;background:conic-gradient(var(--s-secondary) 0 44%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v">44%</span><span class="ring-l">Memory</span></div>
+                      </div>
+                      <div style="font-size:11px;color:var(--s-onvar);">13.9 / 32 GB</div>
+                    </div>
+                    <div class="stack" style="align-items:center; gap:6px; width:176px;">
+                      <div class="ring" style="width:176px;height:176px;--t:17px;background:conic-gradient(var(--s-tertiary) 0 62%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v">62%</span><span class="ring-l">Storage</span></div>
+                      </div>
+                      <div style="font-size:11px;color:var(--s-onvar);">577 / 931 GB</div>
+                    </div>
+                    <div class="stack" style="align-items:center; gap:6px; width:176px;">
+                      <div class="ring" style="width:176px;height:176px;--t:17px;background:conic-gradient(rgba(255,255,255,.09) 0 100%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v" style="--vs:19px;color:var(--s-outline);">No battery</span></div>
+                      </div>
+                      <div style="font-size:11px;color:var(--s-onvar);">&nbsp;</div>
+                    </div>
+                  </div>
+                  <div class="row" style="width:944px;">
+                    <div class="stack" style="flex:1; align-items:center; gap:4px;">
+                      <div class="kv" style="color:var(--s-tertiary);"><span class="g"></span><b style="color:var(--s-on);font-size:16px;">1.2 MB/s</b></div>
+                      <div style="font-size:12px;color:var(--s-onvar);">Download</div>
+                    </div>
+                    <div class="stack" style="flex:1; align-items:center; gap:4px;">
+                      <div class="kv" style="color:var(--s-secondary);"><span class="g"></span><b style="color:var(--s-on);font-size:16px;">88.4 KB/s</b></div>
+                      <div style="font-size:12px;color:var(--s-onvar);">Upload</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">1040 × 420 · drawn at 0.60</p>
+        </div>
+        <dl class="spec">
+          <dt>Reads as</dt>
+          <dd>Five identical objects at identical weight. Nothing is more important than anything else, so your eye has no entry point — and one of the five is permanently the words “No battery”.</dd>
+          <dt>Wastes</dt>
+          <dd>Every dial spends 176px to show one number. The rate pair below is the only honest thing on the tab and gets the least room.</dd>
+          <dt>Missing</dt>
+          <dd>Time. Every reading is instantaneous; nothing shows whether 44% is climbing or settling.</dd>
+        </dl>
+      </div>
+    </article>
+
+    <!-- P1 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id">P1</span>
+        <h3>Caelestia Cards</h3>
+        <span class="plate-sub">the faithful port — hero pair, utility row, battery tank</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:1040; --h:484;">
+            <div class="board" style="width:1040px; height:484px;">
+              <div class="drawer" style="width:1040px; height:484px;">
+                <div class="tabbar">
+                  <div class="tab"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab on"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="gap:16px;">
+                  <div class="stack grow" style="gap:16px;">
+                    <!-- hero row -->
+                    <div class="row" style="gap:16px; height:176px;">
+                      <div class="c" style="flex:1; border-radius:26px;">
+                        <div class="row" style="gap:12px; align-items:flex-start;">
+                          <div class="ring" style="width:46px;height:46px;--t:5px;--bg:var(--s-cont);background:conic-gradient(var(--s-primary) 0 18%, rgba(255,255,255,.12) 0);">
+                            <span style="width:17px;height:17px;border-radius:5px;background:var(--s-primary);display:block;"></span>
+                          </div>
+                          <div class="stack">
+                            <span style="font-size:16px;color:var(--s-primary);">CPU</span>
+                            <span class="c-sub">AMD Ryzen 9 7950X</span>
+                          </div>
+                        </div>
+                        <div class="grow"></div>
+                        <div class="row" style="align-items:flex-end; gap:12px;">
+                          <div class="stack" style="flex:1; gap:6px;">
+                            <div class="kv" style="color:var(--s-primary);"><span class="g"></span><b style="color:var(--s-on);font-size:14px;">47°C</b></div>
+                            <div class="bar" style="width:150px;"><i style="width:47%;background:var(--s-primary);"></i></div>
+                          </div>
+                          <div style="width:92px;height:92px;position:relative;flex:0 0 92px;">
+                            <div style="position:absolute;inset:0;background:var(--s-cont);filter:brightness(1.35);border-radius:38% 62% 55% 45% / 48% 42% 58% 52%;"></div>
+                            <div style="position:absolute;inset:0;display:grid;place-items:center;font-size:25px;font-weight:700;color:var(--s-primary);letter-spacing:-.02em;">18%</div>
+                            <div style="position:absolute;top:-15px;width:100%;text-align:center;font-size:10.5px;color:var(--s-onvar);">Usage</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="c" style="flex:1; border-radius:26px;">
+                        <div class="row" style="gap:12px; align-items:flex-start;">
+                          <div class="ring" style="width:46px;height:46px;--t:5px;--bg:var(--s-cont);background:conic-gradient(var(--s-secondary) 0 31%, rgba(255,255,255,.12) 0);">
+                            <span style="width:17px;height:17px;border-radius:5px;background:var(--s-secondary);display:block;"></span>
+                          </div>
+                          <div class="stack">
+                            <span style="font-size:16px;color:var(--s-secondary);">GPU</span>
+                            <span class="c-sub">NVIDIA RTX 4070</span>
+                          </div>
+                        </div>
+                        <div class="grow"></div>
+                        <div class="row" style="align-items:flex-end; gap:12px;">
+                          <div class="stack" style="flex:1; gap:6px;">
+                            <div class="kv" style="color:var(--s-secondary);"><span class="g"></span><b style="color:var(--s-on);font-size:14px;">54°C</b></div>
+                            <div class="bar" style="width:150px;"><i style="width:54%;background:var(--s-secondary);"></i></div>
+                          </div>
+                          <div style="width:92px;height:92px;position:relative;flex:0 0 92px;">
+                            <div style="position:absolute;inset:0;background:var(--s-cont);filter:brightness(1.35);border-radius:44% 56% 48% 52% / 55% 45% 55% 45%;"></div>
+                            <div style="position:absolute;inset:0;display:grid;place-items:center;font-size:25px;font-weight:700;color:var(--s-secondary);letter-spacing:-.02em;">31%</div>
+                            <div style="position:absolute;top:-15px;width:100%;text-align:center;font-size:10.5px;color:var(--s-onvar);">Usage</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- utility row -->
+                    <div class="row grow" style="gap:16px;">
+                      <div class="c" style="flex:1; border-radius:34px; align-items:center; justify-content:center; gap:10px;">
+                        <svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true">
+                          <path d="M 20.3 83.7 A 44 44 0 1 1 83.7 83.7" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9" stroke-linecap="round"></path>
+                          <path d="M 20.3 83.7 A 44 44 0 1 1 83.7 83.7" fill="none" stroke="#8be9fd" stroke-width="9" stroke-linecap="round" stroke-dasharray="207.3" stroke-dashoffset="78.8"></path>
+                        </svg>
+                        <div style="position:absolute;top:38px;left:0;right:0;text-align:center;">
+                          <div style="width:18px;height:18px;border-radius:5px;background:var(--s-tertiary);margin:0 auto 4px;"></div>
+                          <div style="font-size:24px;font-weight:700;color:var(--s-tertiary);letter-spacing:-.02em;">62%</div>
+                          <div style="font-size:10.5px;color:var(--s-onvar);">Used</div>
+                        </div>
+                        <div style="font-size:14px;">Storage</div>
+                        <div style="font-size:12px;color:var(--s-tertiary);">577 / 931 GB</div>
+                      </div>
+                      <div class="c" style="flex:1.25; border-radius:26px;">
+                        <div class="c-title" style="color:var(--s-primary);"><i></i><span style="color:var(--s-on);">Network</span></div>
+                        <div class="grow" style="margin:10px 0 8px;">
+                          <svg width="100%" height="62" viewBox="0 0 240 62" preserveAspectRatio="none" aria-hidden="true">
+                            <polygon points="0,52 20,44 40,47 60,30 80,36 100,18 120,26 140,12 160,22 180,9 200,20 220,14 240,24 240,62 0,62" fill="#8be9fd" opacity=".2"></polygon>
+                            <polyline points="0,52 20,44 40,47 60,30 80,36 100,18 120,26 140,12 160,22 180,9 200,20 220,14 240,24" fill="none" stroke="#8be9fd" stroke-width="2"></polyline>
+                            <polygon points="0,58 20,55 40,57 60,50 80,54 100,47 120,52 140,45 160,50 180,43 200,49 220,46 240,51 240,62 0,62" fill="#bd93f9" opacity=".15"></polygon>
+                            <polyline points="0,58 20,55 40,57 60,50 80,54 100,47 120,52 140,45 160,50 180,43 200,49 220,46 240,51" fill="none" stroke="#bd93f9" stroke-width="2"></polyline>
+                          </svg>
+                        </div>
+                        <div class="kv" style="color:var(--s-tertiary);"><span class="g"></span><span style="color:var(--s-onvar);">Download</span><span class="sp"></span><b style="color:var(--s-tertiary);">1.2 MB/s</b></div>
+                        <div class="kv" style="color:var(--s-secondary);margin-top:5px;"><span class="g"></span><span style="color:var(--s-onvar);">Upload</span><span class="sp"></span><b style="color:var(--s-secondary);">88.4 KB/s</b></div>
+                        <div class="kv" style="margin-top:5px;"><span class="g"></span><span>Total</span><span class="sp"></span><b>↓4.1G ↑612M</b></div>
+                      </div>
+                      <div class="c" style="flex:1; border-radius:14px; align-items:center; justify-content:center; gap:8px;">
+                        <div class="c-title" style="color:var(--s-secondary);"><i></i><span style="color:var(--s-on);">Memory</span></div>
+                        <svg width="104" height="104" viewBox="0 0 104 104" aria-hidden="true" style="margin-top:2px;">
+                          <path d="M 20.3 83.7 A 44 44 0 1 1 83.7 83.7" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="9" stroke-linecap="round"></path>
+                          <path d="M 20.3 83.7 A 44 44 0 1 1 83.7 83.7" fill="none" stroke="#bd93f9" stroke-width="9" stroke-linecap="round" stroke-dasharray="207.3" stroke-dashoffset="116.1"></path>
+                        </svg>
+                        <div style="position:absolute;top:74px;left:0;right:0;text-align:center;">
+                          <div style="font-size:24px;font-weight:700;color:var(--s-secondary);letter-spacing:-.02em;">44%</div>
+                          <div style="font-size:10.5px;color:var(--s-onvar);">Used</div>
+                        </div>
+                        <div style="font-size:12px;">13.9 / 32 GB</div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- battery tank -->
+                  <div style="width:104px; border-radius:18px; background:var(--s-cont); position:relative; overflow:hidden; flex:0 0 104px;">
+                    <div style="position:absolute;left:0;right:0;bottom:0;height:0;background:var(--s-secondary);"></div>
+                    <div class="stack" style="position:absolute;inset:12px;">
+                      <div style="width:22px;height:22px;border-radius:6px;background:var(--s-primary);"></div>
+                      <div style="font-size:13px;margin-top:4px;">Battery</div>
+                      <div class="grow"></div>
+                      <div style="font-size:11px;color:var(--s-outline);text-align:right;">no device</div>
+                      <div style="font-size:26px;font-weight:700;color:var(--s-outline);text-align:right;letter-spacing:-.02em;">—</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">1040 × 484 · drawn at 0.60</p>
+        </div>
+        <dl class="spec">
+          <dt>Structure</dt>
+          <dd>A hero pair carries CPU and GPU at full weight; Storage / Network / Memory drop to a utility row; battery becomes a vertical tank down the right edge.</dd>
+          <dt>What it fixes</dt>
+          <dd>Gives the tab an entry point, and finally puts the network readout somewhere proportionate — it gets a card and a history graph instead of a footnote.</dd>
+          <dt>Cost</dt>
+          <dd>
+            <span class="tag cost">MaterialShape → hand-rolled</span>
+            <span class="tag cost">SparklineItem → Canvas</span>
+            <span class="tag cost">needs a container tint</span>
+            <span class="tag cost">SystemResources: device names</span>
+            <span class="tag note">ring buffer for history</span>
+          </dd>
+          <dt>Note</dt>
+          <dd>The morphing usage badge is their signature move — the blob changes shape with load (<code>Cookie4Sided</code> → <code>Sunny</code> → <code>SoftBurst</code>). Drawn above as a border-radius approximation, which is roughly what we'd get without their C++ plugin.</dd>
+        </dl>
+        <div class="blocker">
+          <b>Conflict worth deciding before this one</b>
+          Caelestia gates the battery tank on <span class="mono">UPower.displayDevice.isLaptopBattery</span> — on this desktop it simply <em>would not render</em>, and the layout closes up around it. Our D-41 rule says the opposite: always show the slot at a fixed footprint, which is why P-0 has a permanent “No battery” dial. Porting this faithfully means overturning D-41, or drawing a 104px column of nothing forever.
+        </div>
+      </div>
+    </article>
+
+    <!-- P2 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id">P2</span>
+        <h3>Weighted Arcs</h3>
+        <span class="plate-sub">keeps our dial vocabulary, drops the flat five-across</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:760; --h:484;">
+            <div class="board" style="width:760px; height:484px;">
+              <div class="drawer" style="width:760px; height:484px;">
+                <div class="tabbar">
+                  <div class="tab"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab on"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="flex-direction:column; gap:16px;">
+                  <div class="row" style="gap:16px; height:186px;">
+                    <div class="c" style="flex:1; border-radius:24px; align-items:center; justify-content:center;">
+                      <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+                        <path d="M 24.6 107.4 A 58 58 0 1 1 107.4 107.4" fill="none" stroke="rgba(255,255,255,.11)" stroke-width="13" stroke-linecap="round"></path>
+                        <path d="M 24.6 107.4 A 58 58 0 1 1 107.4 107.4" fill="none" stroke="#ff79c6" stroke-width="13" stroke-linecap="round" stroke-dasharray="273.3" stroke-dashoffset="224.1"></path>
+                      </svg>
+                      <div style="position:absolute;top:56px;left:0;right:0;text-align:center;">
+                        <div style="font-size:36px;font-weight:700;color:var(--s-primary);letter-spacing:-.03em;">18%</div>
+                        <div style="font-size:12px;color:var(--s-onvar);">CPU · 47°C</div>
+                      </div>
+                      <div style="position:absolute;bottom:16px;left:16px;right:16px;font-size:11.5px;color:var(--s-onvar);text-align:center;">4.2 GHz · Ryzen 9 7950X</div>
+                    </div>
+                    <div class="c" style="flex:1; border-radius:24px; align-items:center; justify-content:center;">
+                      <svg width="132" height="132" viewBox="0 0 132 132" aria-hidden="true">
+                        <path d="M 24.6 107.4 A 58 58 0 1 1 107.4 107.4" fill="none" stroke="rgba(255,255,255,.11)" stroke-width="13" stroke-linecap="round"></path>
+                        <path d="M 24.6 107.4 A 58 58 0 1 1 107.4 107.4" fill="none" stroke="#bd93f9" stroke-width="13" stroke-linecap="round" stroke-dasharray="273.3" stroke-dashoffset="188.6"></path>
+                      </svg>
+                      <div style="position:absolute;top:56px;left:0;right:0;text-align:center;">
+                        <div style="font-size:36px;font-weight:700;color:var(--s-secondary);letter-spacing:-.03em;">31%</div>
+                        <div style="font-size:12px;color:var(--s-onvar);">GPU · 54°C</div>
+                      </div>
+                      <div style="position:absolute;bottom:16px;left:16px;right:16px;font-size:11.5px;color:var(--s-onvar);text-align:center;">3.1 / 12 GB · RTX 4070</div>
+                    </div>
+                  </div>
+                  <div class="row grow" style="gap:16px;">
+                    <div class="c" style="flex:1; border-radius:18px; gap:10px;">
+                      <div class="c-title" style="color:var(--s-secondary);"><i></i><span style="color:var(--s-on);font-size:14px;">Memory</span></div>
+                      <div class="grow"></div>
+                      <div class="c-big" style="color:var(--s-secondary);font-size:27px;">44%</div>
+                      <div class="bar" style="margin-top:8px;"><i style="width:44%;background:var(--s-secondary);"></i></div>
+                      <div style="font-size:11.5px;color:var(--s-onvar);margin-top:7px;">13.9 / 32 GB</div>
+                    </div>
+                    <div class="c" style="flex:1; border-radius:18px; gap:10px;">
+                      <div class="c-title" style="color:var(--s-tertiary);"><i></i><span style="color:var(--s-on);font-size:14px;">Storage</span></div>
+                      <div class="grow"></div>
+                      <div class="c-big" style="color:var(--s-tertiary);font-size:27px;">62%</div>
+                      <div class="bar" style="margin-top:8px;"><i style="width:62%;background:var(--s-tertiary);"></i></div>
+                      <div style="font-size:11.5px;color:var(--s-onvar);margin-top:7px;">577 / 931 GB</div>
+                    </div>
+                    <div class="c" style="flex:1.15; border-radius:18px; gap:8px;">
+                      <div class="c-title" style="color:var(--s-primary);"><i></i><span style="color:var(--s-on);font-size:14px;">Network</span></div>
+                      <div class="grow"></div>
+                      <div class="kv" style="color:var(--s-tertiary);"><span class="g"></span><span class="sp"></span><b style="color:var(--s-on);font-size:15px;">1.2 MB/s</b></div>
+                      <div class="kv" style="color:var(--s-secondary);margin-top:6px;"><span class="g"></span><span class="sp"></span><b style="color:var(--s-on);font-size:15px;">88.4 KB/s</b></div>
+                      <div style="font-size:11.5px;color:var(--s-onvar);margin-top:7px;">no battery on this host</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">760 × 484 · drawn at 0.60 — note it now matches Dashboard's width</p>
+        </div>
+        <dl class="spec">
+          <dt>Structure</dt>
+          <dd>The two things that actually vary second-to-second get 270° arcs at double the visual weight. The three that change slowly become flat bar-and-number tiles. Battery stops being a dial and becomes a line of text where it belongs.</dd>
+          <dt>What it fixes</dt>
+          <dd>Kills the 280px frame jump — this fits in 760, the same width as Dashboard, so crossing tabs stops resizing the window.</dd>
+          <dt>Cost</dt>
+          <dd>
+            <span class="tag free">reuses Dial.qml's arc maths</span>
+            <span class="tag free">no new plugin</span>
+            <span class="tag cost">needs a container tint</span>
+          </dd>
+          <dt>Against it</dt>
+          <dd>It's the conservative option. You keep the ring vocabulary you already tuned at a render gate, and you don't get history — the time axis is still missing.</dd>
+        </dl>
+      </div>
+    </article>
+
+    <!-- P3 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id">P3</span>
+        <h3>Telemetry Strip</h3>
+        <span class="plate-sub">history over gauges — the one direction that adds an axis</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:760; --h:484;">
+            <div class="board" style="width:760px; height:484px;">
+              <div class="drawer" style="width:760px; height:484px;">
+                <div class="tabbar">
+                  <div class="tab"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab on"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="flex-direction:column; gap:12px;">
+                  <div class="c" style="border-radius:20px; height:88px; padding:14px 18px;">
+                    <div class="row" style="align-items:center; gap:14px;">
+                      <div class="c-title" style="color:var(--s-primary);width:112px;"><i></i><span style="color:var(--s-on);font-size:14px;">CPU</span></div>
+                      <div class="grow" style="height:52px;">
+                        <svg width="100%" height="52" viewBox="0 0 460 52" preserveAspectRatio="none" aria-hidden="true">
+                          <polygon points="0,40 46,36 92,42 138,26 184,33 230,20 276,29 322,16 368,25 414,11 460,19 460,52 0,52" fill="#ff79c6" opacity=".18"></polygon>
+                          <polyline points="0,40 46,36 92,42 138,26 184,33 230,20 276,29 322,16 368,25 414,11 460,19" fill="none" stroke="#ff79c6" stroke-width="2.5"></polyline>
+                          <circle cx="460" cy="19" r="4" fill="#ff79c6"></circle>
+                        </svg>
+                      </div>
+                      <div class="stack" style="width:96px;align-items:flex-end;">
+                        <span style="font-size:25px;font-weight:700;color:var(--s-primary);letter-spacing:-.02em;">18%</span>
+                        <span style="font-size:11px;color:var(--s-onvar);">47°C · 4.2 GHz</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="c" style="border-radius:20px; height:88px; padding:14px 18px;">
+                    <div class="row" style="align-items:center; gap:14px;">
+                      <div class="c-title" style="color:var(--s-secondary);width:112px;"><i></i><span style="color:var(--s-on);font-size:14px;">GPU</span></div>
+                      <div class="grow" style="height:52px;">
+                        <svg width="100%" height="52" viewBox="0 0 460 52" preserveAspectRatio="none" aria-hidden="true">
+                          <polygon points="0,44 46,41 92,30 138,34 184,18 230,24 276,14 322,22 368,10 414,17 460,13 460,52 0,52" fill="#bd93f9" opacity=".18"></polygon>
+                          <polyline points="0,44 46,41 92,30 138,34 184,18 230,24 276,14 322,22 368,10 414,17 460,13" fill="none" stroke="#bd93f9" stroke-width="2.5"></polyline>
+                          <circle cx="460" cy="13" r="4" fill="#bd93f9"></circle>
+                        </svg>
+                      </div>
+                      <div class="stack" style="width:96px;align-items:flex-end;">
+                        <span style="font-size:25px;font-weight:700;color:var(--s-secondary);letter-spacing:-.02em;">31%</span>
+                        <span style="font-size:11px;color:var(--s-onvar);">54°C · 12 GB</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="c" style="border-radius:20px; height:88px; padding:14px 18px;">
+                    <div class="row" style="align-items:center; gap:14px;">
+                      <div class="c-title" style="color:var(--s-tertiary);width:112px;"><i></i><span style="color:var(--s-on);font-size:14px;">Network</span></div>
+                      <div class="grow" style="height:52px;">
+                        <svg width="100%" height="52" viewBox="0 0 460 52" preserveAspectRatio="none" aria-hidden="true">
+                          <polygon points="0,42 46,30 92,36 138,14 184,26 230,9 276,21 322,12 368,28 414,16 460,22 460,52 0,52" fill="#8be9fd" opacity=".2"></polygon>
+                          <polyline points="0,42 46,30 92,36 138,14 184,26 230,9 276,21 322,12 368,28 414,16 460,22" fill="none" stroke="#8be9fd" stroke-width="2.5"></polyline>
+                          <polyline points="0,48 46,45 92,47 138,41 184,44 230,38 276,43 322,39 368,45 414,40 460,43" fill="none" stroke="#bd93f9" stroke-width="2"></polyline>
+                          <circle cx="460" cy="22" r="4" fill="#8be9fd"></circle>
+                        </svg>
+                      </div>
+                      <div class="stack" style="width:96px;align-items:flex-end;">
+                        <span style="font-size:17px;font-weight:700;color:var(--s-tertiary);">1.2 MB/s</span>
+                        <span style="font-size:13px;color:var(--s-secondary);">88.4 KB/s</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row grow" style="gap:12px;">
+                    <div class="c" style="flex:1; border-radius:20px; padding:14px 18px; justify-content:center;">
+                      <div class="row" style="align-items:baseline; gap:8px;">
+                        <span style="font-size:22px;font-weight:700;color:var(--s-secondary);">44%</span>
+                        <span style="font-size:12.5px;color:var(--s-onvar);">Memory · 13.9 / 32 GB</span>
+                      </div>
+                      <div class="bar" style="margin-top:9px;"><i style="width:44%;background:var(--s-secondary);"></i></div>
+                    </div>
+                    <div class="c" style="flex:1; border-radius:20px; padding:14px 18px; justify-content:center;">
+                      <div class="row" style="align-items:baseline; gap:8px;">
+                        <span style="font-size:22px;font-weight:700;color:var(--s-tertiary);">62%</span>
+                        <span style="font-size:12.5px;color:var(--s-onvar);">Storage · 577 / 931 GB</span>
+                      </div>
+                      <div class="bar" style="margin-top:9px;"><i style="width:62%;background:var(--s-tertiary);"></i></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">760 × 484 · drawn at 0.60</p>
+        </div>
+        <dl class="spec">
+          <dt>Structure</dt>
+          <dd>Three graphed rows for the fast-moving readings, two flat bars for the slow ones. The current value sits at the right of each row, on the graph's own live end.</dd>
+          <dt>What it fixes</dt>
+          <dd>The one thing no other direction here does: it answers <em>“is this climbing?”</em>. That's the question you actually open a performance tab to ask, and today the tab can't answer it.</dd>
+          <dt>Cost</dt>
+          <dd>
+            <span class="tag cost">SystemResources needs ring buffers</span>
+            <span class="tag cost">Canvas or Shape polyline</span>
+            <span class="tag note">repaint every poll — measure the cost</span>
+            <span class="tag free">fits 760</span>
+          </dd>
+          <dt>Against it</dt>
+          <dd>It's the furthest from both the current tab and the reference — you'd be leaving the Caelestia lineage on this pane. It also puts a repainting graph in the shell process; OVER-04's CPU headroom was 2.4×, so it's affordable, but it should be measured rather than assumed.</dd>
+        </dl>
+      </div>
+    </article>
+
+    <!-- P4 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id">P4</span>
+        <h3>Tighten What's There</h3>
+        <span class="plate-sub">the cheap option, included so the others have a floor</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:760; --h:420;">
+            <div class="board" style="width:760px; height:420px;">
+              <div class="drawer" style="width:760px; height:420px;">
+                <div class="tabbar">
+                  <div class="tab"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab on"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="flex-direction:column; align-items:center; gap:20px;">
+                  <div class="row" style="gap:16px;">
+                    <div class="stack" style="align-items:center; gap:5px; width:128px;">
+                      <div class="ring" style="width:128px;height:128px;--t:13px;background:conic-gradient(var(--s-primary) 0 18%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v" style="--vs:22px;">18%</span><span class="ring-l">CPU</span></div>
+                      </div>
+                      <div style="font-size:10.5px;color:var(--s-onvar);">4.2 GHz · 47°C</div>
+                    </div>
+                    <div class="stack" style="align-items:center; gap:5px; width:128px;">
+                      <div class="ring" style="width:128px;height:128px;--t:13px;background:conic-gradient(var(--s-secondary) 0 31%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v" style="--vs:22px;">31%</span><span class="ring-l">GPU</span></div>
+                      </div>
+                      <div style="font-size:10.5px;color:var(--s-onvar);">3.1 / 12 GB</div>
+                    </div>
+                    <div class="stack" style="align-items:center; gap:5px; width:128px;">
+                      <div class="ring" style="width:128px;height:128px;--t:13px;background:conic-gradient(#8be9fd 0 44%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v" style="--vs:22px;">44%</span><span class="ring-l">Memory</span></div>
+                      </div>
+                      <div style="font-size:10.5px;color:var(--s-onvar);">13.9 / 32 GB</div>
+                    </div>
+                    <div class="stack" style="align-items:center; gap:5px; width:128px;">
+                      <div class="ring" style="width:128px;height:128px;--t:13px;background:conic-gradient(var(--s-outline) 0 62%, rgba(255,255,255,.09) 0);">
+                        <div class="stack" style="align-items:center;"><span class="ring-v" style="--vs:22px;">62%</span><span class="ring-l">Storage</span></div>
+                      </div>
+                      <div style="font-size:10.5px;color:var(--s-onvar);">577 / 931 GB</div>
+                    </div>
+                  </div>
+                  <div class="c" style="width:544px; border-radius:18px; padding:14px 18px;">
+                    <div class="row" style="align-items:center;">
+                      <div class="kv" style="color:var(--s-tertiary);flex:1;"><span class="g"></span><span style="color:var(--s-onvar);">Down</span><span class="sp"></span><b style="color:var(--s-on);font-size:15px;">1.2 MB/s</b></div>
+                      <div style="width:1px;height:22px;background:rgba(255,255,255,.12);margin:0 18px;"></div>
+                      <div class="kv" style="color:var(--s-secondary);flex:1;"><span class="g"></span><span style="color:var(--s-onvar);">Up</span><span class="sp"></span><b style="color:var(--s-on);font-size:15px;">88.4 KB/s</b></div>
+                    </div>
+                  </div>
+                  <div style="font-size:11.5px;color:var(--s-outline);">No battery on this host · dial retired from the row</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">760 × 420 · drawn at 0.60</p>
+        </div>
+        <dl class="spec">
+          <dt>Change</dt>
+          <dd>Drop the permanently-empty battery dial to a status line, shrink 176 → 128, and let the tab settle at 760 so it stops resizing the drawer. The rate pair gets a card instead of floating.</dd>
+          <dt>Cost</dt>
+          <dd>
+            <span class="tag free">a handful of constants</span>
+            <span class="tag free">no new roles, no plugin</span>
+            <span class="tag cost">overturns D-41's always-show rule</span>
+          </dd>
+          <dt>Honest read</dt>
+          <dd>This buys back the frame jump and the dead dial for almost nothing — but the tab still shows five instantaneous numbers with no hierarchy. If what bothers you is how it <em>looks</em> rather than how it <em>sizes</em>, this won't fix it.</dd>
+        </dl>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══════════ DASHBOARD ══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Dashboard</h2>
+      <p class="lede">This tab has the bigger problem of the two. It's a 400px column stranded in a 760px frame, so it reads as a phone widget that wandered into a desktop — and all three directions below are, at heart, different answers to “what goes in the 360px you're already paying for”.</p>
+    </div>
+
+    <!-- D-0 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id is-current">D-0</span>
+        <h3>What ships today</h3>
+        <span class="plate-sub">one 400px column, centred, with 180px dead on each side</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:760; --h:560;">
+            <div class="board" style="width:760px; height:560px;">
+              <div class="drawer" style="width:760px; height:560px;">
+                <div class="tabbar">
+                  <div class="tab on"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="gap:0;">
+                  <div class="dead" style="width:156px;"><span>180px dead</span></div>
+                  <div class="stack" style="width:400px; gap:16px; margin:0 24px;">
+                    <div class="row" style="align-items:baseline; gap:12px; height:64px;">
+                      <span style="font-size:44px;font-weight:700;letter-spacing:-.03em;">19:41</span>
+                      <span style="font-size:14px;color:var(--s-onvar);">Wed 26 Aug</span>
+                    </div>
+                    <div class="c" style="border-radius:18px; padding:12px;">
+                      <div class="row" style="align-items:center; margin-bottom:8px;">
+                        <span style="font-size:13px;">August 2026</span><span class="sp grow"></span>
+                        <span style="width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                      </div>
+                      <div class="cal-grid">
+                        <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+                        <div class="dim">27</div><div class="dim">28</div><div class="dim">29</div><div class="dim">30</div><div class="dim">31</div><div>1</div><div>2</div>
+                        <div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div>
+                        <div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div>
+                        <div>17</div><div>18</div><div>19</div><div>20</div><div>21</div><div>22</div><div>23</div>
+                        <div>24</div><div>25</div><div class="today">26</div><div>27</div><div>28</div><div>29</div><div>30</div>
+                      </div>
+                    </div>
+                    <div class="c" style="border-radius:18px; padding:8px; flex-direction:row; align-items:center; gap:12px;">
+                      <div style="width:56px;height:56px;border-radius:50%;background:var(--s-outline);flex:0 0 56px;"></div>
+                      <div class="stack grow" style="min-width:0;">
+                        <span style="font-size:13px;">Golden Hour</span>
+                        <span style="font-size:11px;color:var(--s-onvar);">JVKE</span>
+                      </div>
+                      <div class="row" style="gap:6px; align-items:center;">
+                        <span style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                        <span style="width:38px;height:38px;border-radius:50%;background:var(--s-primary);"></span>
+                        <span style="width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                      </div>
+                    </div>
+                    <div class="c" style="border-radius:18px; padding:12px; flex-direction:row; justify-content:space-around;">
+                      <div class="ring" style="width:44px;height:44px;--t:5px;--bg:var(--s-cont);background:conic-gradient(var(--s-primary) 0 18%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">18</span></div>
+                      <div class="ring" style="width:44px;height:44px;--t:5px;--bg:var(--s-cont);background:conic-gradient(var(--s-secondary) 0 44%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">44</span></div>
+                      <div class="ring" style="width:44px;height:44px;--t:5px;--bg:var(--s-cont);background:conic-gradient(var(--s-tertiary) 0 62%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">62</span></div>
+                      <div class="ring" style="width:44px;height:44px;--t:5px;--bg:var(--s-cont);background:conic-gradient(rgba(255,255,255,.12) 0 100%, rgba(255,255,255,.12) 0);"><span style="font-size:10px;color:var(--s-outline);">—</span></div>
+                    </div>
+                    <div class="grow"></div>
+                    <div class="toggles">
+                      <div class="tg on"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div>
+                    </div>
+                  </div>
+                  <div class="dead" style="width:156px;"><span>180px dead</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">760 × 560 · drawn at 0.60 · hatching marks unused frame</p>
+        </div>
+        <dl class="spec">
+          <dt>Reads as</dt>
+          <dd>A phone widget in a desktop window. Everything is stacked in one narrow lane while nearly half the frame does nothing.</dd>
+          <dt>Why the column is 400</dt>
+          <dd><code>contentWidth</code> is a hard-coded constant, and the frame floor exists to fit the 4-tab header — so the frame is correctly wide and the content simply never grew into it.</dd>
+          <dt>Consequence</dt>
+          <dd>The calendar is cramped to 26px cells and the media strip truncates titles, both while 360px sits empty beside them.</dd>
+        </dl>
+      </div>
+    </article>
+
+    <!-- D1 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id">D1</span>
+        <h3>Caelestia Bento</h3>
+        <span class="plate-sub">six columns, two rows, four different corner radii</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:1040; --h:520;">
+            <div class="board" style="width:1040px; height:520px;">
+              <div class="drawer" style="width:1040px; height:520px;">
+                <div class="tabbar">
+                  <div class="tab on"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="gap:16px;">
+                  <div class="stack grow" style="gap:16px;">
+                    <!-- row 0 -->
+                    <div class="row" style="gap:16px; height:150px;">
+                      <div class="c" style="width:250px; border-radius:42px; flex-direction:row; align-items:center; gap:16px; flex:0 0 250px;">
+                        <div style="width:66px;height:66px;border-radius:20px;background:var(--s-secondary);flex:0 0 66px;"></div>
+                        <div class="stack">
+                          <span style="font-size:32px;font-weight:700;color:var(--s-primary);letter-spacing:-.02em;">24°</span>
+                          <span style="font-size:12px;color:var(--s-onvar);">Partly cloudy</span>
+                        </div>
+                      </div>
+                      <div class="c grow" style="border-radius:28px; flex-direction:row; align-items:center; gap:18px;">
+                        <div style="width:92px;height:92px;border-radius:50%;background:var(--s-outline);flex:0 0 92px;"></div>
+                        <div class="stack">
+                          <span style="font-size:22px;">aorus</span>
+                          <span style="font-size:12px;color:var(--s-onvar);margin-top:2px;">up 4h 12m · Arch Linux</span>
+                          <span style="font-size:12px;color:var(--s-onvar);">Hyprland · dracula</span>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- row 1 -->
+                    <div class="row grow" style="gap:16px;">
+                      <div class="c" style="width:104px; border-radius:18px; align-items:center; justify-content:center; flex:0 0 104px; gap:0;">
+                        <span style="font-size:38px;font-weight:700;color:var(--s-secondary);letter-spacing:-.03em;line-height:1;">19</span>
+                        <span style="font-size:20px;color:var(--s-primary);line-height:1.1;">•••</span>
+                        <span style="font-size:38px;font-weight:700;color:var(--s-secondary);letter-spacing:-.03em;line-height:1;">41</span>
+                      </div>
+                      <div class="c grow" style="border-radius:28px; padding:14px 16px;">
+                        <div class="row" style="align-items:center; margin-bottom:8px;">
+                          <span style="font-size:13px;">August 2026</span><span class="grow"></span>
+                          <span style="font-size:11px;color:var(--s-onvar);">scroll to change month</span>
+                        </div>
+                        <div class="cal-grid" style="gap:4px;">
+                          <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+                          <div class="dim">27</div><div class="dim">28</div><div class="dim">29</div><div class="dim">30</div><div class="dim">31</div><div>1</div><div>2</div>
+                          <div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div>
+                          <div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div>
+                          <div>17</div><div>18</div><div>19</div><div>20</div><div>21</div><div>22</div><div>23</div>
+                          <div>24</div><div>25</div><div class="today">26</div><div>27</div><div>28</div><div>29</div><div>30</div>
+                        </div>
+                      </div>
+                      <div class="c" style="width:82px; border-radius:18px; align-items:center; justify-content:space-between; flex:0 0 82px; padding:14px 0;">
+                        <div class="ring" style="width:50px;height:50px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-primary) 0 18%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">18</span></div>
+                        <div class="ring" style="width:50px;height:50px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-secondary) 0 44%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">44</span></div>
+                        <div class="ring" style="width:50px;height:50px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-tertiary) 0 62%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">62</span></div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- media, spans both rows -->
+                  <div class="c" style="width:236px; border-radius:56px; flex:0 0 236px; align-items:center; gap:14px; padding:20px;">
+                    <div style="width:170px;height:170px;border-radius:50%;background:var(--s-outline);"></div>
+                    <div class="stack" style="align-items:center; text-align:center;">
+                      <span style="font-size:15px;">Golden Hour</span>
+                      <span style="font-size:12px;color:var(--s-onvar);margin-top:2px;">JVKE</span>
+                    </div>
+                    <div class="bar" style="width:170px;"><i style="width:38%;background:var(--s-primary);"></i></div>
+                    <div class="row" style="gap:12px; align-items:center; margin-top:2px;">
+                      <span style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                      <span style="width:48px;height:48px;border-radius:50%;background:var(--s-primary);"></span>
+                      <span style="width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                    </div>
+                    <div class="grow"></div>
+                    <div class="toggles" style="width:100%; gap:8px;">
+                      <div class="tg on" style="height:38px;border-radius:12px;"><i></i></div>
+                      <div class="tg" style="height:38px;border-radius:12px;"><i></i></div>
+                      <div class="tg" style="height:38px;border-radius:12px;"><i></i></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">1040 × 520 · drawn at 0.60 · radii 18 / 28 / 42 / 56</p>
+        </div>
+        <dl class="spec">
+          <dt>Structure</dt>
+          <dd>Their exact grid: weather and identity across the top, stacked clock / calendar / resource rail beneath, media spanning both rows down the right. Toggles fold into the media column's foot.</dd>
+          <dt>The trick</dt>
+          <dd>Every cell is the <em>same</em> fill and differs only by corner radius — 18 for the narrow rails, 28 for calendar and identity, 42 for weather, 56 for media. That's what stops six identical rectangles reading as a spreadsheet.</dd>
+          <dt>Cost</dt>
+          <dd>
+            <span class="tag cost">add a rounding scale to Design.qml</span>
+            <span class="tag cost">needs a container tint</span>
+            <span class="tag cost">new: uptime, distro, avatar</span>
+            <span class="tag note">stacked 19/•••/41 clock</span>
+          </dd>
+          <dt>Also</dt>
+          <dd>It settles at 1040 — which fixes the frame jump only if Performance also lands at 1040 (P1 does; P2/P3/P4 don't). <b>These two tabs have to be chosen together.</b></dd>
+        </dl>
+        <div class="blocker">
+          <b>The tint problem bites hardest here</b>
+          Six cells all painted <span class="mono">#44475a</span> on a <span class="mono">#282a36</span> ground is one flat slab of colour broken only by 16px gaps. Caelestia gets separation from <span class="mono">m3surfaceContainer</span> sitting between surface and surfaceVariant — a role we don't generate. Either the theme pipeline learns to emit one, or this direction leans entirely on radius and gap to do work that colour normally does.
+        </div>
+      </div>
+    </article>
+
+    <!-- D2 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id">D2</span>
+        <h3>Two Lanes</h3>
+        <span class="plate-sub">split the column, keep the identity, stay at 760</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:760; --h:520;">
+            <div class="board" style="width:760px; height:520px;">
+              <div class="drawer" style="width:760px; height:520px;">
+                <div class="tabbar">
+                  <div class="tab on"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="gap:16px;">
+                  <!-- left lane -->
+                  <div class="stack" style="width:340px; gap:16px; flex:0 0 340px;">
+                    <div class="stack" style="gap:2px;">
+                      <span style="font-size:56px;font-weight:700;letter-spacing:-.035em;line-height:1;">19:41</span>
+                      <span style="font-size:14px;color:var(--s-onvar);">Wednesday, 26 August</span>
+                    </div>
+                    <div class="c grow" style="border-radius:22px; padding:14px 16px;">
+                      <div class="row" style="align-items:center; margin-bottom:10px;">
+                        <span style="font-size:13px;">August 2026</span><span class="grow"></span>
+                        <span style="width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                      </div>
+                      <div class="cal-grid" style="gap:4px;">
+                        <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+                        <div class="dim">27</div><div class="dim">28</div><div class="dim">29</div><div class="dim">30</div><div class="dim">31</div><div>1</div><div>2</div>
+                        <div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div>
+                        <div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div>
+                        <div>17</div><div>18</div><div>19</div><div>20</div><div>21</div><div>22</div><div>23</div>
+                        <div>24</div><div>25</div><div class="today">26</div><div>27</div><div>28</div><div>29</div><div>30</div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- right lane -->
+                  <div class="stack grow" style="gap:16px;">
+                    <div class="c" style="border-radius:22px; flex-direction:row; align-items:center; gap:14px; padding:14px;">
+                      <div style="width:52px;height:52px;border-radius:16px;background:var(--s-secondary);flex:0 0 52px;"></div>
+                      <div class="stack grow">
+                        <span style="font-size:26px;font-weight:700;color:var(--s-primary);letter-spacing:-.02em;">24°</span>
+                        <span style="font-size:12px;color:var(--s-onvar);">Partly cloudy · Cairo</span>
+                      </div>
+                    </div>
+                    <div class="c" style="border-radius:22px; padding:14px; align-items:center; gap:12px;">
+                      <div style="width:112px;height:112px;border-radius:50%;background:var(--s-outline);"></div>
+                      <div class="stack" style="align-items:center;">
+                        <span style="font-size:14px;">Golden Hour</span>
+                        <span style="font-size:11.5px;color:var(--s-onvar);margin-top:2px;">JVKE</span>
+                      </div>
+                      <div class="bar" style="width:100%;"><i style="width:38%;background:var(--s-primary);"></i></div>
+                      <div class="row" style="gap:12px; align-items:center;">
+                        <span style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                        <span style="width:42px;height:42px;border-radius:50%;background:var(--s-primary);"></span>
+                        <span style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                      </div>
+                    </div>
+                    <div class="c" style="border-radius:22px; padding:14px; flex-direction:row; justify-content:space-around;">
+                      <div class="stack" style="align-items:center; gap:5px;">
+                        <div class="ring" style="width:52px;height:52px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-primary) 0 18%, rgba(255,255,255,.12) 0);"><span style="font-size:12px;">18</span></div>
+                        <span style="font-size:10.5px;color:var(--s-onvar);">CPU</span>
+                      </div>
+                      <div class="stack" style="align-items:center; gap:5px;">
+                        <div class="ring" style="width:52px;height:52px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-secondary) 0 44%, rgba(255,255,255,.12) 0);"><span style="font-size:12px;">44</span></div>
+                        <span style="font-size:10.5px;color:var(--s-onvar);">RAM</span>
+                      </div>
+                      <div class="stack" style="align-items:center; gap:5px;">
+                        <div class="ring" style="width:52px;height:52px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-tertiary) 0 62%, rgba(255,255,255,.12) 0);"><span style="font-size:12px;">62</span></div>
+                        <span style="font-size:10.5px;color:var(--s-onvar);">Disk</span>
+                      </div>
+                    </div>
+                    <div class="grow"></div>
+                    <div class="toggles">
+                      <div class="tg on"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">760 × 520 · drawn at 0.60</p>
+        </div>
+        <dl class="spec">
+          <dt>Structure</dt>
+          <dd>Time on the left at the size it deserves, with the calendar under it; everything glanceable — weather, media, resources, toggles — down the right lane.</dd>
+          <dt>What it fixes</dt>
+          <dd>Consumes the whole 760 without needing a wider drawer, and the clock finally gets to be the hero it already claims to be at 44px in a 400px lane.</dd>
+          <dt>Cost</dt>
+          <dd>
+            <span class="tag free">reuses every existing component</span>
+            <span class="tag free">no new palette role required</span>
+            <span class="tag free">no rounding scale needed</span>
+            <span class="tag note">weather panel is new here</span>
+          </dd>
+          <dt>Pairs with</dt>
+          <dd>P2, P3 or P4 — all four of those sit at 760, so picking within this set makes the drawer stop resizing between tabs entirely.</dd>
+        </dl>
+      </div>
+    </article>
+
+    <!-- D3 -->
+    <article class="plate">
+      <div class="plate-head">
+        <span class="plate-id">D3</span>
+        <h3>Wide Column</h3>
+        <span class="plate-sub">same order, same parts — just stop being 400px</span>
+      </div>
+      <div class="plate-body">
+        <div class="stage-wrap">
+          <div class="stage" style="--w:760; --h:520;">
+            <div class="board" style="width:760px; height:520px;">
+              <div class="drawer" style="width:760px; height:520px;">
+                <div class="tabbar">
+                  <div class="tab on"><span class="glyph"></span>Dashboard</div>
+                  <div class="tab"><span class="glyph"></span>Media</div>
+                  <div class="tab"><span class="glyph"></span>Performance</div>
+                  <div class="tab"><span class="glyph"></span>Weather</div>
+                </div>
+                <div class="pane" style="flex-direction:column; gap:16px;">
+                  <div class="row" style="align-items:flex-end; gap:16px;">
+                    <div class="stack">
+                      <span style="font-size:52px;font-weight:700;letter-spacing:-.035em;line-height:1;">19:41</span>
+                      <span style="font-size:13.5px;color:var(--s-onvar);margin-top:4px;">Wednesday, 26 August</span>
+                    </div>
+                    <div class="grow"></div>
+                    <div class="row" style="align-items:center; gap:12px;">
+                      <div class="stack" style="align-items:flex-end;">
+                        <span style="font-size:26px;font-weight:700;color:var(--s-primary);letter-spacing:-.02em;">24°</span>
+                        <span style="font-size:12px;color:var(--s-onvar);">Partly cloudy</span>
+                      </div>
+                      <div style="width:48px;height:48px;border-radius:15px;background:var(--s-secondary);"></div>
+                    </div>
+                  </div>
+                  <div class="c" style="border-radius:22px; padding:14px 18px;">
+                    <div class="row" style="align-items:center; margin-bottom:10px;">
+                      <span style="font-size:13px;">August 2026</span><span class="grow"></span>
+                      <span style="font-size:11px;color:var(--s-onvar);">scroll to change month</span>
+                    </div>
+                    <div class="cal-grid" style="gap:5px;">
+                      <div class="wd">M</div><div class="wd">T</div><div class="wd">W</div><div class="wd">T</div><div class="wd">F</div><div class="wd">S</div><div class="wd">S</div>
+                      <div class="dim">27</div><div class="dim">28</div><div class="dim">29</div><div class="dim">30</div><div class="dim">31</div><div>1</div><div>2</div>
+                      <div>3</div><div>4</div><div>5</div><div>6</div><div>7</div><div>8</div><div>9</div>
+                      <div>10</div><div>11</div><div>12</div><div>13</div><div>14</div><div>15</div><div>16</div>
+                      <div>17</div><div>18</div><div>19</div><div>20</div><div>21</div><div>22</div><div>23</div>
+                      <div>24</div><div>25</div><div class="today">26</div><div>27</div><div>28</div><div>29</div><div>30</div>
+                    </div>
+                  </div>
+                  <div class="row" style="gap:16px;">
+                    <div class="c grow" style="border-radius:22px; padding:10px; flex-direction:row; align-items:center; gap:14px;">
+                      <div style="width:64px;height:64px;border-radius:50%;background:var(--s-outline);flex:0 0 64px;"></div>
+                      <div class="stack grow" style="min-width:0;">
+                        <span style="font-size:14px;">Golden Hour</span>
+                        <span style="font-size:11.5px;color:var(--s-onvar);margin-top:2px;">JVKE</span>
+                        <div class="bar" style="margin-top:8px;"><i style="width:38%;background:var(--s-primary);"></i></div>
+                      </div>
+                      <div class="row" style="gap:8px; align-items:center;">
+                        <span style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                        <span style="width:42px;height:42px;border-radius:50%;background:var(--s-primary);"></span>
+                        <span style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);"></span>
+                      </div>
+                    </div>
+                    <div class="c" style="width:212px; border-radius:22px; padding:12px; flex-direction:row; justify-content:space-around; flex:0 0 212px;">
+                      <div class="stack" style="align-items:center; gap:5px;">
+                        <div class="ring" style="width:48px;height:48px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-primary) 0 18%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">18</span></div>
+                        <span style="font-size:10px;color:var(--s-onvar);">CPU</span>
+                      </div>
+                      <div class="stack" style="align-items:center; gap:5px;">
+                        <div class="ring" style="width:48px;height:48px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-secondary) 0 44%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">44</span></div>
+                        <span style="font-size:10px;color:var(--s-onvar);">RAM</span>
+                      </div>
+                      <div class="stack" style="align-items:center; gap:5px;">
+                        <div class="ring" style="width:48px;height:48px;--t:6px;--bg:var(--s-cont);background:conic-gradient(var(--s-tertiary) 0 62%, rgba(255,255,255,.12) 0);"><span style="font-size:11px;">62</span></div>
+                        <span style="font-size:10px;color:var(--s-onvar);">Disk</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="grow"></div>
+                  <div class="toggles">
+                    <div class="tg on"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div><div class="tg"><i></i></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="scale-note">760 × 520 · drawn at 0.60</p>
+        </div>
+        <dl class="spec">
+          <dt>Change</dt>
+          <dd>Make <code>contentWidth</code> track the frame instead of sitting at 400. The vertical order you already approved at a render gate survives intact; the parts just breathe, and media + resources pair up on one line since neither needs full width.</dd>
+          <dt>Cost</dt>
+          <dd>
+            <span class="tag free">one binding + re-proportioning</span>
+            <span class="tag free">nothing new in the palette</span>
+            <span class="tag free">no new backends</span>
+          </dd>
+          <dt>Honest read</dt>
+          <dd>Smallest change on this page, and it removes the actual defect — the dead margin. What it doesn't do is give the tab a point of view; it's still a list, just a well-fitted one.</dd>
+        </dl>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══════════ COMPARISON ══════════ -->
+  <section>
+    <div class="sec-head">
+      <h2>Side by side</h2>
+      <p class="lede">“New backend work” is the column that decides schedule — everything else is layout, which this codebase does quickly.</p>
+    </div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Plate</th><th>Frame</th><th>New backend work</th><th>New palette / tokens</th><th>Fixes the jump?</th><th>Adds a time axis?</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="opt">P1</td><td class="lift">1040</td><td>device names, net history buffer</td><td>container tint</td><td>only with D1</td><td>yes, network only</td></tr>
+          <tr><td class="opt">P2</td><td class="lift">760</td><td>none</td><td>container tint</td><td>yes, with D2/D3</td><td>no</td></tr>
+          <tr><td class="opt">P3</td><td class="lift">760</td><td>ring buffers for 3 series</td><td>none</td><td>yes, with D2/D3</td><td>yes, everywhere</td></tr>
+          <tr><td class="opt">P4</td><td class="lift">760</td><td>none</td><td>none</td><td>yes, with D2/D3</td><td>no</td></tr>
+          <tr><td class="opt">D1</td><td class="lift">1040</td><td>uptime, distro, avatar</td><td>container tint + rounding scale</td><td>only with P1</td><td>—</td></tr>
+          <tr><td class="opt">D2</td><td class="lift">760</td><td>none</td><td>none</td><td>yes, with P2/P3/P4</td><td>—</td></tr>
+          <tr><td class="opt">D3</td><td class="lift">760</td><td>none</td><td>none</td><td>yes, with P2/P3/P4</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pick">
+      <h3>Picking</h3>
+      <p>Pick one from each set — and pick them <em>together</em>, because the pairing is what decides whether the drawer keeps resizing when you cross tabs.</p>
+      <ol>
+        <li><b>If you want the reference:</b> P1 + D1. Both land at 1040, the drawer stops jumping, and the shell looks like Caelestia's. It's also the most work, and it needs the container-tint question answered first.</li>
+        <li><b>If you want the biggest gain per unit of work:</b> P2 + D2. Everything at 760, no new backend, no new palette role, and both tabs get a real hierarchy.</li>
+        <li><b>If what you actually want is to know what your machine is doing:</b> P3 + D2. The telemetry strip is the only direction here that answers a question the current tab can't.</li>
+        <li><b>If you just want the defects gone:</b> P4 + D3. Cheapest possible pass — dead margin gone, frame jump gone, dead battery dial gone, nothing redesigned.</li>
+      </ol>
+      <p style="margin-top:18px;">Mixing across widths is allowed — it just means keeping the resize animation, which is a legitimate choice if you like it.</p>
+    </div>
+  </section>
+
+</div>
