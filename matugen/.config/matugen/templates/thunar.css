@@ -1,0 +1,242 @@
+/* ─────────────────────────────────────────────────────────────────────
+   Thunar theme — matugen template.
+
+   Rendered to ~/.local/state/theme/thunar.css on every theme switch and
+   pulled in by the stowed gtk-3.0/gtk.css, so Thunar re-themes with the
+   rest of the desktop from the same wallpaper-derived palette.
+
+   Ported from caelestia-dots/cli @ eff0c7e
+   (src/caelestia/data/templates/thunar.css) — vendored verbatim at
+   .planning/notes/caelestia-gtk/thunar.css.tmpl, with its provenance and
+   the variable mapping in that directory's PROVENANCE.md. Only the
+   template variables were rewritten, from their `$role` form to matugen's
+   `colors.<role>.default.hex` form; every selector, radius, padding and
+   alpha below is theirs, unchanged.
+
+   Do NOT write a literal doubled-brace expression in a comment here —
+   matugen parses comments like any other text, so documenting the syntax
+   inline is a render-time parse error, not a comment.
+
+   ONE DELIBERATE DIVERGENCE: Caelestia uses `surfaceContainerLow` for the
+   raised panels (file view, status bar, unchecked path buttons). That role
+   does NOT exist on the static-preset branch — measured: none of this
+   repo's 20 palette JSONs define it, and matugen fails the render outright
+   with "Value does not exist in the context" rather than degrading. Only
+   the image/materialyou branch has it. `surface_variant` is the nearest
+   role present in all 20 palettes AND on the image branch, and it is
+   already what this repo's own gtk-colors.css uses for card/sidebar
+   backgrounds — so the substitution follows existing convention here
+   rather than inventing one. Any role added to this file must be checked
+   against the static palettes, not just against a wallpaper render.
+
+   WHY GTK3 ONLY: Thunar is a GTK3 application. Caelestia writes this file
+   into both gtk-3.0/ and gtk-4.0/; the GTK4 copy can never match anything
+   and is not reproduced here.
+
+   `.thunar` is the style class Thunar sets on its own widgets — if a
+   future Thunar drops it, every rule below silently stops applying and
+   the window falls back to plain adw-gtk3-dark. That is the failure mode
+   to check first if this ever looks unstyled.
+   ───────────────────────────────────────────────────────────────────── */
+
+
+/* =============================================================================
+   Global Resets
+   ============================================================================= */
+
+.thunar * {
+    outline: none;
+    border: none;
+}
+
+/* =============================================================================
+   Window & Background
+   ============================================================================= */
+
+.thunar.background {
+    background: {{colors.surface.default.hex}};
+}
+
+.thunar .titlebar {
+    background: inherit;
+}
+
+.thunar .titlebutton.close {
+    margin: 0 15px 0 0;
+}
+
+/* =============================================================================
+   Layout Containers
+   ============================================================================= */
+
+/* Paned separator between sidebar and main view */
+.thunar paned > separator {
+    min-width: 4px;
+    margin-right: -7px;
+    margin-left: -7px;
+    background: none;
+    background-image: none;
+    box-shadow: none;
+}
+
+
+/* Main file view frame */
+.thunar .frame.standard-view {
+    padding: 10px;
+    margin: 10px 15px 0 0;
+    border-radius: 15px;
+    background-color: {{colors.surface_variant.default.hex}};
+    animation: fading 400ms ease forwards;
+    opacity: 0;
+    animation-delay: 250ms;
+}
+
+.thunar .frame.standard-view .view:not(.rubberband),
+.thunar .frame.standard-view .view *:not(.rubberband) {
+    background-color: transparent;
+}
+
+.thunar .frame.standard-view .view *:selected {
+    color: {{colors.primary.default.hex}};
+}
+
+.thunar .rubberband {
+    background-color: alpha({{colors.primary.default.hex}}, 0.15);
+    border: 1px solid alpha({{colors.primary.default.hex}}, 0.15);
+}
+
+
+/*  Tabs */
+.thunar header.top {
+    background: none;
+    padding: 0 10px 0 0;
+    margin: 3px 0 -3px -2px;
+}
+
+.thunar header.top tabs .reorderable-page {
+    margin: 0;
+    transition: all ease 300ms;
+}
+.thunar header.top tabs .reorderable-page + .reorderable-page {
+    margin: 0 0 0 10px;
+}
+
+.thunar header.top tabs .reorderable-page:hover {
+    background-color: alpha({{colors.primary.default.hex}}, 0.08);
+
+}
+.thunar header.top tabs .reorderable-page:checked {
+    color: {{colors.primary.default.hex}};
+    background-color: alpha({{colors.primary.default.hex}}, 0.15);
+
+}
+
+/* =============================================================================
+   Sidebar Navigation
+   ============================================================================= */
+
+.thunar .sidebar {
+    padding: 0 20px;
+    background: none;
+    animation: fading 600ms ease forwards;
+    animation-delay: 100ms;
+    opacity: 0;
+}
+
+.thunar .sidebar .view {
+    padding: 8px 4px;
+    border-radius: 10px;
+    background: none;
+    transition: all ease 300ms;
+}
+
+.thunar .sidebar .view:hover {
+    background: alpha({{colors.on_surface.default.hex}}, 0.1);
+}
+
+.thunar .sidebar .view:selected {
+    background: alpha({{colors.primary.default.hex}}, 0.15);
+    color: {{colors.primary.default.hex}};
+}
+
+/* =============================================================================
+   Path Bar & Location Buttons
+   ============================================================================= */
+
+.thunar .path-bar-button {
+    margin: 0;
+    padding: 8px 5px;
+    transition: all ease 0.4s;
+}
+
+.thunar .location-button.toggle:checked,
+.thunar .path-bar-button.toggle:checked {
+    padding: 8px 25px;
+    background: alpha({{colors.primary.default.hex}}, 0.15);
+    color: {{colors.primary.default.hex}};
+    box-shadow: none;
+}
+
+.thunar .location-button.path-bar-button:not(:checked) {
+    background-color: {{colors.surface_variant.default.hex}};
+}
+
+.thunar .location-button.path-bar-button:not(:checked):hover {
+    background: alpha({{colors.primary.default.hex}}, 0.08);
+    color: alpha({{colors.primary.default.hex}}, 0.8);
+}
+
+.thunar .location-button.toggle+.location-button.toggle:checked {
+    margin-left: 0px;
+    padding: 0 25px;
+}
+
+.thunar .titlebar {
+    padding: 15px 0 5px 0;
+}
+
+/* =============================================================================
+   Buttons
+   ============================================================================= */
+
+.thunar button.toggle:checked {
+    color: {{colors.primary.default.hex}};
+}
+
+.thunar .image-button {
+    padding: 8px;
+    margin: 0 0 0 8px;
+    transition: all ease 0.4s;
+}
+
+/* =============================================================================
+   Status Bar
+   ============================================================================= */
+
+.thunar statusbar {
+    background-color: {{colors.surface_variant.default.hex}};
+    border-radius: 15px;
+    padding: 10px 10px;
+    margin: 15px 5px 15px -10px;
+    color: {{colors.on_surface.default.hex}};
+}
+
+
+/* =============================================================================
+   Image preview
+   ============================================================================= */
+
+.thunar box.vertical .image {
+    margin: 15px;
+}
+
+
+/* =============================================================================
+   Animation
+   ============================================================================= */
+
+@keyframes fading {
+    to {
+        opacity: 1;
+    }
+}

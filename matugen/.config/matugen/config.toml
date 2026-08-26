@@ -55,6 +55,14 @@ output_path = "~/.local/state/theme/gtk-3.0-colors.css"
 input_path = "~/.config/matugen/templates/gtk-colors.css"
 output_path = "~/.local/state/theme/gtk-4.0-colors.css"
 
+# ── Thunar stylesheet ──────────────────────────────
+# GTK3 only — Thunar is a GTK3 app, so there is deliberately no gtk-4.0
+# counterpart. Imported by the stowed gtk-3.0/gtk.css, which is what makes
+# the file manager follow the wallpaper palette like everything else.
+[templates.thunar]
+input_path = "~/.config/matugen/templates/thunar.css"
+output_path = "~/.local/state/theme/thunar.css"
+
 # ── fzf color fragment (THM-04/D-15, wallpaper-picker.sh) ──
 [templates.fzf]
 input_path = "~/.config/matugen/templates/fzf-colors.conf"

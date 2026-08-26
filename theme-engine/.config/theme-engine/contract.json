@@ -13,6 +13,10 @@
       "format": "gtk-css"
     },
     {
+      "name": "thunar.css",
+      "format": "css-literal"
+    },
+    {
       "name": "yazi.toml",
       "format": "toml"
     },

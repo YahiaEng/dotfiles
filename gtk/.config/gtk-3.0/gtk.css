@@ -4,4 +4,11 @@
    ~/.config/gtk-3.0/gtk.css -> ../../.local/state/theme/gtk-3.0-colors.css */
 @import url('../../.local/state/theme/gtk-3.0-colors.css');
 
+/* Thunar stylesheet, same relative-path rule as the colors import above.
+   Ported from caelestia-dots/cli (see the template's own header and
+   .planning/notes/caelestia-gtk/PROVENANCE.md). It is scoped entirely to
+   `.thunar`, so it cannot affect any other GTK3 app — every rule in it
+   begins with that class. */
+@import url('../../.local/state/theme/thunar.css');
+
 /* Custom GTK3 overrides — add your own rules below */
