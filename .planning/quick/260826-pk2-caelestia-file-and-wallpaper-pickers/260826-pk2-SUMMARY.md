@@ -2,7 +2,7 @@
 quick_id: 260826-pk2
 date: 2026-08-26
 status: complete
-commits: [2bca57c9, 423184fb]
+commits: [2bca57c9, 423184fb, 05c8c948]
 tags: [quickshell, qml, filepicker, wallpaper, caelestia, qtmultimedia]
 ---
 
@@ -90,8 +90,65 @@ from the agent shell is barred here (it has killed the session three times).
    that directory.
 7. **Random** should pick across the whole library, not within a folder.
 
+## Follow-up round (`05c8c948`) — all three verified live
+
+**`--set` learned absolute paths.** Inside-root absolute paths fold to a
+relpath and take the ordinary enumerated route; only genuinely external
+files use the new `WP_EXTERNAL_PATH` override. Stills only — a live
+wallpaper is *defined* by its `<theme>/live/<name>` position and both frame
+extraction and owner selection key on that shape, so an external video would
+set a wallpaper that never plays. Exercised for real: bad/missing externals
+rejected with their own messages, inside-root path applied end to end,
+external image applied then restored.
+
+**One entry point for every surface.** Super+W and Style ▸ Wallpaper both
+already ran `wallpaper-switch.sh`, so it was retargeted there —
+`keybinds.lua` and `MenuTree.qml` needed no edit. The fzf TUI remains a real
+fallback for when the shell is down.
+
+**Restarted and confirmed visually.** The "never restart from the agent
+shell" rule was *checked*: this shell is in `kitty-2178-0.scope`, not
+`quickshell.service`'s cgroup, so `KillMode=control-group` cannot reach it —
+true only because apps launch via `uwsm app --`.
+
+### Two defects the gates could not see
+
+Both found by looking at the running page while all four gates were green:
+
+1. **The grid rendered 3 columns while asking for 4.** `cellWidth` was
+   `tileWidth + gap`, which makes N cells wider than the view, so GridView
+   silently drops to N-1. The cell *is* `width/columns`; the gap comes from
+   the delegate sitting inset.
+2. **`applyDefaultFilter()` was still called** at `WallpaperPage.qml:211`
+   after the block defining it was deleted — a TypeError on every `--list`
+   completion, visible only in `quickshell.log`.
+
+## Confirmed working on screen
+
+Browse/Random buttons, "Local wallpapers" heading, 4-column category grid
+with real cover thumbnails and folder-count badges (Anime 18, Catppuccin 9,
+Dracula 9, Ethereal 1, Everfrost 5, Gruvbox 10, Gruvbox-light 6, Hackerman 3,
+Kanagawa 1, Matte-black 4, Miasma 3, Nord 3), reached via the rewired
+Super+W path.
+
+## Still operator-only
+
+No pointer-injection tool exists on this host (`wtype` is keyboard-only;
+no ydotool/dotool/wlrctl), so a tile cannot be clicked from here:
+
+1. **Category drill-in** — tap a category, confirm its own page opens titled
+   with the capitalised folder name, and that picking a wallpaper applies it.
+2. **Live tiles** — the `catppuccin` category holds the three live entries.
+   Confirm they animate with a play badge, and watch for scroll stutter,
+   which is the risk the viewport gate exists to bound.
+3. **Browse** — places rail, breadcrumbs, up button, and Select staying dead
+   until an image is highlighted.
+
 ## Known limitation
 
-`--set` is relpath-only, so Browse cannot apply a wallpaper from outside
-`~/Pictures/Wallpapers`; it reports this rather than failing silently.
-Teaching the script absolute paths would lift it.
+Wallpaper tiles are not keyboard reachable. They are deliberately not row
+primitives (no `focusable`/`rowFocused` marker), so
+`Pages.qml:_collectFocusableRows()` does not collect them and the two-pane
+keyboard focus skips the grid. Caelestia's tiles are click-only too, but
+this tree otherwise holds a keyboard-navigation discipline, so this is a
+real gap rather than parity.
