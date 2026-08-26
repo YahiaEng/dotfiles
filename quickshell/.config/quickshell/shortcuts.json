@@ -26,8 +26,8 @@
   {
     "appid": "quickshell",
     "name": "overview",
-    "chord": { "mods": "SUPER", "key": "O" },
-    "description": "Summon the workspace overview (OVER-01)"
+    "chord": { "mods": "SUPER", "key": "Tab" },
+    "description": "Summon the workspace overview (OVER-01). Chord corrected O -> Tab on 2026-08-26 (quick task 260826-qr1): keybinds.lua moved this bind to Super+Tab and this entry was not followed, so keybind-doctor's chord-collision check — which walks THESE chords looking for declared binds that claim them — was hunting a chord nothing binds any more and reported `found: 0` vacuously. It was blind to the real overview chord for as long as the two disagreed."
   },
   {
     "appid": "quickshell",

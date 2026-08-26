@@ -87,11 +87,21 @@
 #   --self-test            Replay every committed fixture under
 #                         tests/quickshell-fixtures/ through the seam its
 #                         target check reads, in isolation, and assert the
-#                         recorded verdict. Runs NO live check and performs
-#                         NO mutation of any kind (no summon, no volume
-#                         write, no radio mutation, no headless output) —
-#                         this path returns before any mutating group is
-#                         ever reached. Own tally, own exit code.
+#                         recorded verdict. Performs NO mutation of any kind
+#                         (no summon, no volume write, no radio mutation, no
+#                         headless output) — this path returns before any
+#                         mutating group is ever reached. Own tally, own
+#                         exit code.
+#                         ASSERTS on no live state. One seam is not fully
+#                         hermetic and says so: the four keybind assertions
+#                         shell out to keybind-doctor, which reads live
+#                         `hyprctl binds` for its own twelve other checks.
+#                         Their verdicts are discarded — _qsd_kbd_collision_rc
+#                         extracts only the static chord-collision line, the
+#                         one thing a fixture can actually answer. Before
+#                         260826-qr1 these asserted on keybind-doctor's whole
+#                         exit code, so live session state could and did fail
+#                         them under a chord-collision label.
 #
 #   Note: within the headless-output group, the per-screen surface
 #   creation check is a documented SKIP under D-13/D-14 (12-CONTEXT.md,
@@ -2465,6 +2475,50 @@ _qsd_self_test_assert_layers() {
     return 1
 }
 
+# ── The self-test's keybind seam (quick task 260826-qr1).
+#
+#    keybind-doctor runs THIRTEEN checks. A fixture .lua can legitimately
+#    answer exactly ONE of them: the static chord-collision check. The rest
+#    read the LIVE session — `declared-vs-registered` compares the fixture's
+#    own binds against `hyprctl binds`, which can only ever describe the
+#    real, shipped keybinds.lua, never a fixture.
+#
+#    These four assertions used to test keybind-doctor's WHOLE EXIT CODE
+#    while printing as a chord-collision verdict. That made them both
+#    non-hermetic (despite this function's header claiming it runs no live
+#    check) and mislabelled — and on 2026-08-26 it produced a real false
+#    report: the overview bind had moved to Super+Tab (keybinds.lua:265)
+#    while the fixture still declared Super+O, so `declared-vs-registered`
+#    failed, the whole exit code went non-zero, and the line printed as
+#    "chord-collision check clean (exit 1)" when the collision check had in
+#    fact PASSED with `found: 0`. It cost a reader the wrong diagnosis.
+#
+#    Extract the one line the fixture actually drives. Returns:
+#      0 — the collision check reported PASS
+#      1 — the collision check reported FAIL
+#      2 — the collision check never ran (keybind-doctor died early, or its
+#          output shape changed). Distinct on purpose: a "never ran" must
+#          never satisfy a poisoned assertion's expectation of a failure.
+_qsd_kbd_collision_rc() {
+    local fixture="$1" out line
+    out=$("$KEYBIND_DOCTOR" "$FIXTURES_DIR/$fixture" "$SHORTCUTS_MANIFEST" 2>/dev/null)
+    # Deliberately no pipeline here. `... | grep -q` exits 141 (SIGPIPE) when
+    # it matches early and stops reading, and under `set -o pipefail` (line
+    # 128) that 141 becomes the pipeline's status — flipping a gate's verdict
+    # according to how long the output happens to be.
+    while IFS= read -r line; do
+        case "$line" in
+            *"quickshell chord collision:"*)
+                case "$line" in
+                    *"[PASS]"*) return 0 ;;
+                    *"[FAIL]"*) return 1 ;;
+                esac
+                ;;
+        esac
+    done <<<"$out"
+    return 2
+}
+
 run_self_test() {
     echo "quickshell-doctor --self-test — replaying the committed quickshell-fixtures"
     echo ""
@@ -2521,12 +2575,12 @@ run_self_test() {
     _qsd_st "compliant-shortcuts.json -> panel-shortcut-single-registration PASSES (audio-panel appears once, manifest half)" "$([[ "$mc" == "1" ]] && echo 0 || echo 1)"
     mc=$(jq -r '[.[] | select(.name=="audio-panel")] | length' "$FIXTURES_DIR/poisoned-duplicate-shortcuts.json" 2>/dev/null)
     _qsd_st "poisoned-duplicate-shortcuts.json -> panel-shortcut-single-registration FAILS (audio-panel declared twice)" "$([[ "$mc" != "1" ]] && echo 0 || echo 1)"
-    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/compliant-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    _qsd_kbd_collision_rc "compliant-keybinds.lua"
     rc=$?
-    _qsd_st "compliant-keybinds.lua -> keybind-doctor's static chord-collision check clean (exit ${rc})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
-    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/poisoned-collision-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    _qsd_st "compliant-keybinds.lua -> keybind-doctor's static chord-collision check reports NO collision (that check's own verdict line, NOT keybind-doctor's whole exit code — its other twelve checks read the live session; rc=${rc})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    _qsd_kbd_collision_rc "poisoned-collision-keybinds.lua"
     rc=$?
-    _qsd_st "poisoned-collision-keybinds.lua -> keybind-doctor's static chord-collision check FAILS (a second bind claims the audio-panel chord, exit ${rc})" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+    _qsd_st "poisoned-collision-keybinds.lua -> keybind-doctor's static chord-collision check FLAGS a collision (a second bind claims the audio-panel chord; rc=${rc}, and rc must be exactly 1 — a 2 means the check never ran)" "$([[ "$rc" -eq 1 ]] && echo 0 || echo 1)"
 
     # panel-notifications-single-owner (3 fixtures)
     local rows count owner
@@ -2608,12 +2662,12 @@ run_self_test() {
     _qsd_st "compliant-overview-shortcuts.json -> overview-shortcut-single-registration PASSES (overview appears once, manifest half)" "$([[ "$mc" == "1" ]] && echo 0 || echo 1)"
     mc=$(jq -r '[.[] | select(.name=="overview")] | length' "$FIXTURES_DIR/poisoned-duplicate-overview-shortcuts.json" 2>/dev/null)
     _qsd_st "poisoned-duplicate-overview-shortcuts.json -> overview-shortcut-single-registration FAILS (overview declared twice)" "$([[ "$mc" != "1" ]] && echo 0 || echo 1)"
-    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/compliant-overview-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    _qsd_kbd_collision_rc "compliant-overview-keybinds.lua"
     rc=$?
-    _qsd_st "compliant-overview-keybinds.lua -> keybind-doctor's static chord-collision check clean (exit ${rc})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
-    "$KEYBIND_DOCTOR" "$FIXTURES_DIR/poisoned-collision-overview-keybinds.lua" "$SHORTCUTS_MANIFEST" >/dev/null 2>&1
+    _qsd_st "compliant-overview-keybinds.lua -> keybind-doctor's static chord-collision check reports NO collision (that check's own verdict line, NOT keybind-doctor's whole exit code; rc=${rc})" "$([[ "$rc" -eq 0 ]] && echo 0 || echo 1)"
+    _qsd_kbd_collision_rc "poisoned-collision-overview-keybinds.lua"
     rc=$?
-    _qsd_st "poisoned-collision-overview-keybinds.lua -> keybind-doctor's static chord-collision check FAILS (a second bind claims the Super+O chord, exit ${rc})" "$([[ "$rc" -ne 0 ]] && echo 0 || echo 1)"
+    _qsd_st "poisoned-collision-overview-keybinds.lua -> keybind-doctor's static chord-collision check FLAGS a collision (a second bind claims the Super+Tab overview chord; rc=${rc}, and rc must be exactly 1 — a 2 means the check never ran)" "$([[ "$rc" -eq 1 ]] && echo 0 || echo 1)"
 
     # check 3: reserved-array-manifest-coverage (2 fixtures — reuses the
     # existing compliant-shortcuts.json as its clean counterpart).
