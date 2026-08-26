@@ -63,6 +63,19 @@
 # a byte-order (LC_ALL=C-equivalent) sort — two runs over an unchanged tree
 # are byte-identical.
 #
+# ONE class departs from that, and only one: `cross-package-refs` skips
+# lines whose ENTIRE content is a comment (quick task 260826-npc). It is
+# the class that reads every other package's whole tree, so it is the class
+# that ends up matching the prose explaining a retirement rather than a
+# surviving reference to it — including, in the `walker` case, the ordinary
+# English word inside "the focus walker". Whole-line only: a trailing
+# comment after code is still scanned, so the filter can never suppress a
+# line that carries code. Every other class still matches comments on
+# purpose — a commented-out `exec-once = waybar` is a leftover, not prose.
+# `comment_line_filter()` carries the full rationale; its boundaries are
+# tested by `tests/test-retirement-comment-filter.sh`, which the fixture
+# self-test does not cover.
+#
 # The script writes to stdout and stderr only. It acquires no lock, creates
 # no temp file, and mutates nothing it scans — concurrent or interrupted
 # runs leave no partial state.
@@ -261,7 +274,79 @@ def iter_files(base):
             yield full
 
 
-def grep_hits(paths, exclude_paths=None, extra_regex=None):
+# ── Whole-line comment detection (opt-in, cross-package-refs only) ──────
+#
+# A grep-based gate that reads comments eventually greps its own explanation
+# of the thing it is checking for. This one did: after `waybar` was retired,
+# the two comments that record WHY the tray capsule had to be reinstated
+# (`bar/TrayCapsule.qml:2`, `bar/qmldir:51`) became "surviving references",
+# and `theme-doctor` went red on its own history. The `walker` case is the
+# one that settles the design, though — the match there was the English word
+# in "the focus walker" (`settings/common/WallpaperTile.qml:50`). No rule
+# about how to word a comment survives that; the class has to stop reading
+# prose. Same failure class motion-lint and colour-lint already close with
+# their strippers (`motion-lint:148-203`, `colour-lint:179-197`).
+#
+# Deliberately NARROWER than those two. They strip comments inline, because
+# they hunt for values (durations, hexes) that can legitimately sit mid-line.
+# This class hunts for a NAME, and a name that appears in real code always
+# has code on its line with it. So only a line whose ENTIRE content is a
+# comment is skipped; a trailing comment after code is still scanned. That
+# distinction is what makes this safe under a blocking-tier gate — the
+# predicate can never suppress a line that carries code.
+#
+# Scoped to `cross-package-refs` by an opt-in argument, and it has exactly
+# one caller. The other fifteen classes must keep matching comments: a
+# commented-out `exec-once = waybar` in `autostart.lua` is a leftover that
+# `autostart` is supposed to fail on, not prose about one.
+#
+# `#` and `--` require a following space/tab/EOL. Without that, `#waybar {`
+# (a real CSS id selector, a real surviving reference) would read as a
+# comment, and so would a `--waybar-something` long option. Comment syntax
+# in the config formats this repo ships always puts a space there; code that
+# starts with those characters does not.
+#
+# `;` (ini) and `%`/`!` are NOT recognised, deliberately: nothing in this
+# tree uses them and each one added is another way for a real reference to
+# be waved through. Add one only alongside a fixture that proves it.
+_LINE_COMMENT_RE = re.compile(r'^[ \t]*(//|#(?=[ \t]|$)|--(?=[ \t]|$)|--\[\[)')
+
+
+def comment_line_filter():
+    """Stateful per-file predicate: line -> True if the line is wholly a comment.
+
+    Stateful because `/* ... */` and `<!-- ... -->` span lines, and a line in
+    the middle of an open span carries no code. Build a fresh one per file --
+    an unterminated span must never leak into the next file's scan.
+    """
+    state = {'block': None}  # None, or the closer string of the open span
+
+    def is_comment(line):
+        closer = state['block']
+        if closer is not None:
+            idx = line.find(closer)
+            if idx == -1:
+                return True                      # wholly inside the span
+            state['block'] = None
+            rest = line[idx + len(closer):]
+            # Code after the span's close means the line is not wholly a
+            # comment -- fall through and scan it.
+            return not rest.strip()
+        stripped = line.lstrip(' \t')
+        for opener, close in (('/*', '*/'), ('<!--', '-->')):
+            if stripped.startswith(opener):
+                idx = line.find(close, line.find(opener) + len(opener))
+                if idx == -1:
+                    state['block'] = close
+                    return True
+                return not line[idx + len(close):].strip()
+        return bool(_LINE_COMMENT_RE.match(line))
+
+    return is_comment
+
+
+def grep_hits(paths, exclude_paths=None, extra_regex=None,
+              skip_comment_lines=False):
     exclude_paths = exclude_paths or set()
     hits = []
     seen = set()
@@ -276,8 +361,18 @@ def grep_hits(paths, exclude_paths=None, extra_regex=None):
             continue
         try:
             with open(p, encoding='utf-8', errors='ignore') as f:
+                # Fresh predicate per file, and consulted on EVERY line even
+                # when `extra_regex` skips one -- an open `/*` on a line the
+                # extra_regex rejects still opens the span for the lines
+                # after it. Reading line numbers straight off enumerate()
+                # keeps every `file:line` citation exact; nothing is
+                # rewritten or dropped, only skipped.
+                is_comment = comment_line_filter() if skip_comment_lines else None
                 for i, line in enumerate(f, start=1):
+                    skip = is_comment(line) if is_comment is not None else False
                     if extra_regex is not None and not extra_regex.search(line):
+                        continue
+                    if skip:
                         continue
                     if TOKEN_RE.search(line):
                         hits.append(f'{p}:{i}')
@@ -457,7 +552,12 @@ def scan_cross_package_refs():
             if any(rf == ed or rf.startswith(ed + os.sep) for ed in excl_dirs):
                 continue
             paths.append(f)
-    return result(hits=grep_hits(paths))
+    # The ONE caller that skips whole-line comments -- see comment_line_filter()
+    # above for why this class and no other. This class scans every other
+    # package's whole tree, which is where the prose about a retirement gets
+    # written, and it is the only class whose target is a bare name rather
+    # than a directive, a path or a value.
+    return result(hits=grep_hits(paths, skip_comment_lines=True))
 
 
 # ── Class 10 — install-stow-lists ───────────────────────────────────────
