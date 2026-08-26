@@ -1282,6 +1282,19 @@ Resume file: None
 
 ## Operator Next Steps
 
+- **HOST-ONLY STATE ADDED 2026-08-26, not reproducible from the repo — decide whether to make
+  it permanent.** `dunst` was holding `org.freedesktop.Notifications`, so the Quickshell
+  notification server could not register and notifications were dead. Cause chain: the
+  260825-wj2 missing-import bug killed quickshell at boot, something sent a notification while
+  it was down, D-Bus activated `dunst.service` (a `static`, D-Bus-activated unit), and dunst
+  kept the name even after quickshell was fixed. Fixed live by `systemctl --user stop dunst`
+  (quickshell re-registered on its own, no restart needed) then
+  `systemctl --user mask dunst.service` to stop D-Bus re-activating it on the next outage.
+  **The mask is host-only state and violates the repo's reproducibility rule.** `dunst` is
+  explicitly installed, required by nothing, and referenced nowhere in this repo — so the
+  durable fix is almost certainly `pacman -Rns dunst`, which is the operator's call to make,
+  not an agent's. Undo the mask with `systemctl --user unmask dunst.service`.
+
 - ~~**NEXT UP — four Caelestia settings-page groups**~~ — **DONE 2026-08-26**, quick task
   260825-wj2 (`d3e1e290..9a5b1bee`). Shipped as a quick task on explicit operator override of
   the todo's own sizing note. Todo moved to `.planning/todos/completed/`.
