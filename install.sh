@@ -226,6 +226,21 @@ PACMAN_PKGS=(
     qt5-wayland
     qt6-wayland
 
+    # Qt image format plugins — REQUIRED for .webp wallpapers to render in
+    # the Quickshell shell. Without it qt6-base ships only gif/ico/jpeg/svg
+    # and a .webp still cannot draw at all, while a .webp live wallpaper
+    # shows its extracted poster frame for ever.
+    #
+    # Do NOT trust this package's description to decide whether it belongs
+    # here: it advertises only "TIFF, MNG, TGA, WBMP" and omits three of the
+    # seven plugins it actually ships. Verified 2026-08-26 by listing the
+    # real package contents (6.11.2-1) rather than reading the blurb —
+    # usr/lib/qt6/plugins/imageformats/ contains libqicns, libqjp2, libqmng,
+    # libqtga, libqtiff, libqwbmp AND libqwebp. `Depends On: libwebp`
+    # corroborates. The stale description is why this was left out for so
+    # long, filed as an unconfirmed candidate.
+    qt6-imageformats
+
     # Quickshell (QS-01: official extra repo, not AUR — the only new line;
     # pacman's own resolver pulls the whole Qt6 declarative/SVG stack and
     # its stack-trace runtime dependency automatically, verified against

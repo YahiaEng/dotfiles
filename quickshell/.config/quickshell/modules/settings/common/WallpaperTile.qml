@@ -14,22 +14,29 @@
 //     (verified present: /usr/lib/qt6/qml/QtMultimedia exposes
 //     QQuickMediaPlayer and QQuickVideoOutput)
 //
-// WEBP DOES NOT DECODE ON THIS HOST, and that is a host gap, not a bug in
-// this file. Measured 2026-08-26 with QImageReader through PySide6:
-// `supportedImageFormats()` returns bmp/cur/gif/ico/jfif/jpeg/jpg/pbm/pgm/
-// png/ppm/svg/svgz/xbm/xpm — no webp — and
+// WEBP DOES NOT DECODE ON A HOST MISSING qt6-imageformats, and that is a
+// host gap, not a bug in this file. Measured 2026-08-26 with QImageReader
+// through PySide6: `supportedImageFormats()` returns bmp/cur/gif/ico/jfif/
+// jpeg/jpg/pbm/pgm/png/ppm/svg/svgz/xbm/xpm — no webp — and
 // `QImageReader("tracer-probe.webp").canRead()` is false with "Unsupported
-// image format". /usr/lib/qt6/plugins/imageformats/ holds only gif, ico,
+// image format". /usr/lib/qt6/plugins/imageformats/ held only gif, ico,
 // jpeg and svg. So a `.webp` live wallpaper silently shows its extracted
 // poster frame for ever and never animates, and a `.webp` STILL wallpaper
 // cannot render in this shell at all. The library currently holds exactly
-// one webp (`catppuccin/live/tracer-probe.webp`), which is why this has
-// gone unnoticed. Do not "fix" it here — the missing piece is a Qt image
-// format plugin on the host. Note that Arch's `qt6-imageformats` advertises
-// only TIFF/MNG/TGA/WBMP in its description, so it is a CANDIDATE and not a
-// confirmed fix; verify it actually ships a webp plugin before installing
-// it as one. The gif path is unaffected and measured good (1920x1080, 150
-// frames, every frame full-size).
+// one webp (`catppuccin/live/tracer-probe.webp`), which is why this went
+// unnoticed. Do not "fix" it here — the missing piece is a Qt image format
+// plugin on the host.
+//
+// THE PLUGIN IS NAMED AND CONFIRMED (quick task 260826-qr1). It is Arch's
+// `qt6-imageformats`, now in install.sh's PACMAN_PKGS. This was previously
+// filed as an unconfirmed CANDIDATE because the package description
+// advertises only "TIFF, MNG, TGA, WBMP" — that description is simply
+// incomplete. Listing the real 6.11.2-1 package contents shows seven
+// plugins, libqwebp.so among them, and `Depends On: libwebp` corroborates.
+// Read the contents, never the blurb. A host installed before that line
+// existed still needs `sudo pacman -S --needed qt6-imageformats` once; a
+// fresh install.sh run covers it. The gif path was never affected and is
+// measured good (1920x1080, 150 frames, every frame full-size).
 //
 // THE COST, AND THE GUARD. Several decoding videos in a scrolling grid is a
 // real risk on this NVIDIA host, so playback is gated on `playing`, which
