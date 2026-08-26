@@ -277,8 +277,35 @@ _confirm_and_apply() {
 #    trusted as free text: these names come from the filesystem, not
 #    from this repo's own text.
 _list_wallpapers() {
-    find "$WALLPAPER_DIR" -maxdepth 2 -type f \( "${IMG_MATCH[@]}" \) -printf '%P\n' 2>/dev/null | sort
-    find "$WALLPAPER_DIR" -mindepth 3 -maxdepth 3 -type f -path '*/live/*' -printf '%P\n' 2>/dev/null | sort
+    # TWO PASSES, ONE SORT. The passes stay separate because their criteria
+    # genuinely differ — D-01/D-03 define "live" by FOLDER, not extension, so
+    # the live pass runs unfiltered and must never inherit IMG_MATCH. What
+    # gets merged is only the ORDER.
+    #
+    # It used to be two independently-sorted streams concatenated, which put
+    # every live entry after every still no matter which theme it belonged to
+    # — measured: `catppuccin/live/tracer-probe.*` came out at 86-88 of 88
+    # while `catppuccin/1..5` sat at 19-24. Operator report, 2026-08-26: "The
+    # live wallpapers inside carousel, for example Catppuccin/live, do not
+    # show next to the regular Catppuccin wallpapers. They show at the very
+    # end of the carousel list." Sorting the merged stream groups them with
+    # their theme (`catppuccin/live/...` falls between `5-alien-planet.jpg`
+    # and `shaded-landscape.jpg`).
+    #
+    # THIS DOES NOT OVERTURN D-17. That decision — live entries grouped at the
+    # end, discoverable — was made for the fzf TUI, which is a flat text list
+    # where a trailing group plus the `▶` LIVE_MARKER is how a live entry
+    # announces itself. The TUI's own enumeration (ENUM_SCRIPT, further down)
+    # is deliberately left exactly as it was. The carousel and the settings
+    # grid draw a play badge on every live tile, so an end-group buys them no
+    # discoverability and costs the theme adjacency the operator asked for.
+    #
+    # Same bare `sort` as before, so the stills keep their existing relative
+    # order under the current collation; only the live entries move.
+    {
+        find "$WALLPAPER_DIR" -maxdepth 2 -type f \( "${IMG_MATCH[@]}" \) -printf '%P\n' 2>/dev/null
+        find "$WALLPAPER_DIR" -mindepth 3 -maxdepth 3 -type f -path '*/live/*' -printf '%P\n' 2>/dev/null
+    } | sort
 }
 
 # ── _active_relpath (Task 14) — the SAME active-detection algorithm the
