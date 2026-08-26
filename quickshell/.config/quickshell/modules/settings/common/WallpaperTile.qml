@@ -14,6 +14,23 @@
 //     (verified present: /usr/lib/qt6/qml/QtMultimedia exposes
 //     QQuickMediaPlayer and QQuickVideoOutput)
 //
+// WEBP DOES NOT DECODE ON THIS HOST, and that is a host gap, not a bug in
+// this file. Measured 2026-08-26 with QImageReader through PySide6:
+// `supportedImageFormats()` returns bmp/cur/gif/ico/jfif/jpeg/jpg/pbm/pgm/
+// png/ppm/svg/svgz/xbm/xpm — no webp — and
+// `QImageReader("tracer-probe.webp").canRead()` is false with "Unsupported
+// image format". /usr/lib/qt6/plugins/imageformats/ holds only gif, ico,
+// jpeg and svg. So a `.webp` live wallpaper silently shows its extracted
+// poster frame for ever and never animates, and a `.webp` STILL wallpaper
+// cannot render in this shell at all. The library currently holds exactly
+// one webp (`catppuccin/live/tracer-probe.webp`), which is why this has
+// gone unnoticed. Do not "fix" it here — the missing piece is a Qt image
+// format plugin on the host. Note that Arch's `qt6-imageformats` advertises
+// only TIFF/MNG/TGA/WBMP in its description, so it is a CANDIDATE and not a
+// confirmed fix; verify it actually ships a webp plugin before installing
+// it as one. The gif path is unaffected and measured good (1920x1080, 150
+// frames, every frame full-size).
+//
 // THE COST, AND THE GUARD. Several decoding videos in a scrolling grid is a
 // real risk on this NVIDIA host, so playback is gated on `playing`, which
 // the owning page sets only for tiles inside the viewport. GridView already
@@ -120,14 +137,47 @@ Item {
                 }
             }
 
+            // ── Cover-size + centre, rather than trusting the toolkit's crop
+            //    (operator live pass, quick task 260826-oyu, defect 3).
+            //
+            //    "The animated thumbnail does not show the entire live
+            //    wallpaper, only a left side portion of it." Captured the
+            //    running carousel to confirm it, and that surface is its own
+            //    control: its frame is EXACTLY 16:9 (WallpaperMode.qml:220)
+            //    and all three live sources measure 1920x1080 (ffprobe: SAR
+            //    1:1, DAR 16:9), so `PreserveAspectCrop` there should be a
+            //    no-op. The poster `Image` neighbours rendered the full
+            //    frame; the tile actually playing was zoomed with its right
+            //    edge cut. Identical geometry, identical fillMode value —
+            //    the ELEMENT TYPE was the only variable.
+            //
+            //    The symptom is left-anchored overflow: content sized larger
+            //    than the frame and pinned at x=0. So stop asking the element
+            //    to crop, and state the geometry instead — a box sized to
+            //    COVER the frame, centred in it, with the image fitted inside
+            //    that box. When the aspect is right this is pixel-identical
+            //    to a correct PreserveAspectCrop; when it is wrong the
+            //    overflow is split evenly instead of all falling off one
+            //    side, so the worst case is a centred crop rather than a
+            //    corner of the image.
+            //
+            //    `sourceSize` is measured-reliable for the gif on this host
+            //    (QImageReader: 1920x1080, and all 150 frames full-size, no
+            //    partial-rect frames). The 16:9 fallback covers a source Qt
+            //    cannot read at all — which is not hypothetical here, see the
+            //    webp note in this file's header.
             AnimatedImage {
                 id: animated
 
-                anchors.fill: parent
+                readonly property real srcAspect: (sourceSize.width > 0 && sourceSize.height > 0) ? (sourceSize.width / sourceSize.height) : (16 / 9)
+
+                anchors.centerIn: parent
+                width: Math.max(parent.width, parent.height * srcAspect)
+                height: Math.max(parent.height, parent.width / srcAspect)
                 visible: root._isAnimatedImage
                 asynchronous: true
                 cache: false
-                fillMode: Image.PreserveAspectCrop
+                fillMode: Image.PreserveAspectFit
                 // Paused rather than unloaded when off-viewport: keeping the
                 // source lets it resume instantly, and a paused AnimatedImage
                 // costs no decode.
@@ -148,12 +198,20 @@ Item {
                     play()
             }
 
+            // Same treatment as `animated` above, and for the same reason —
+            // see its header. `sourceRect` is VideoOutput's own view of the
+            // decoded frame, so it is the aspect authority here; it is an
+            // empty rect until the first frame lands, which the guard covers.
             VideoOutput {
                 id: sink
 
-                anchors.fill: parent
+                readonly property real srcAspect: (sourceRect.width > 0 && sourceRect.height > 0) ? (sourceRect.width / sourceRect.height) : (16 / 9)
+
+                anchors.centerIn: parent
+                width: Math.max(parent.width, parent.height * srcAspect)
+                height: Math.max(parent.height, parent.width / srcAspect)
                 visible: root._isVideo
-                fillMode: VideoOutput.PreserveAspectCrop
+                fillMode: VideoOutput.PreserveAspectFit
             }
 
             // Live badge, so a still and a live tile are distinguishable

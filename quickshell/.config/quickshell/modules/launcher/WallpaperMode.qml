@@ -350,12 +350,25 @@ Item {
                     // decodes at a time no matter how long the strip is,
                     // which is a tighter bound than the settings grid's
                     // viewport test. Neighbours keep their poster frame.
+                    // Cover-size + centre rather than trusting the toolkit's
+                    // crop — quick task 260826-oyu defect 3, whose full
+                    // rationale lives on the twin in
+                    // settings/common/WallpaperTile.qml. This surface is
+                    // where the defect was captured: the frame here is
+                    // exactly 16:9 (see `thumbHeight` above) and every live
+                    // source is 1920x1080, so a correct crop is a no-op, yet
+                    // the playing tile was zoomed with its right edge cut
+                    // while its poster neighbours were whole.
                     AnimatedImage {
-                        anchors.fill: parent
+                        readonly property real srcAspect: (sourceSize.width > 0 && sourceSize.height > 0) ? (sourceSize.width / sourceSize.height) : (16 / 9)
+
+                        anchors.centerIn: parent
+                        width: Math.max(parent.width, parent.height * srcAspect)
+                        height: Math.max(parent.height, parent.width / srcAspect)
                         visible: tile.modelData.isLive && !tile._isVideo
                         asynchronous: true
                         cache: false
-                        fillMode: Image.PreserveAspectCrop
+                        fillMode: Image.PreserveAspectFit
                         playing: visible && tile.current
                         source: visible ? ("file://" + tile.modelData.path) : ""
                     }
@@ -372,9 +385,13 @@ Item {
                     VideoOutput {
                         id: sink
 
-                        anchors.fill: parent
+                        readonly property real srcAspect: (sourceRect.width > 0 && sourceRect.height > 0) ? (sourceRect.width / sourceRect.height) : (16 / 9)
+
+                        anchors.centerIn: parent
+                        width: Math.max(parent.width, parent.height * srcAspect)
+                        height: Math.max(parent.height, parent.width / srcAspect)
                         visible: tile._isVideo && video.position > 0
-                        fillMode: VideoOutput.PreserveAspectCrop
+                        fillMode: VideoOutput.PreserveAspectFit
                     }
 
                     Rectangle {
