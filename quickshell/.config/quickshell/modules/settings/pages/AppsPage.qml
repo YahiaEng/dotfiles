@@ -428,6 +428,14 @@ PageBase {
             var _parsed = exitCode === 0 ? root._parseGioMime(_raw) : [];
             console.log("APPSDIAG _fmRegistered exit=" + exitCode + " rawLen=" + String(_raw || "").length + " parsed=" + JSON.stringify(_parsed) + " raw=" + JSON.stringify(String(_raw || "").slice(0, 200)));
             root._fmRegistered = _parsed;
+            for (var _d = 0; _d < root._sortedApps.length; _d++) {
+                var _e = root._sortedApps[_d];
+                if (String(_e.id).indexOf("thunar") !== -1 || String(_e.id).indexOf("vlc") !== -1) {
+                    var _c = _e.categories;
+                    console.log("APPSDIAG entry id=" + JSON.stringify(String(_e.id)) + " isArray=" + Array.isArray(_c) + " typeof=" + (typeof _c) + " rawStr=" + JSON.stringify(String(_c)) + " catsParsed=" + JSON.stringify(root._cats(_e)));
+                }
+            }
+            console.log("APPSDIAG postGio fm=" + root._fmModel.length + " media=" + root._mediaModel.length + " editor=" + root._editorModel.length + " sorted=" + root._sortedApps.length);
         }
     }
 
