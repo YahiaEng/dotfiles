@@ -48,7 +48,37 @@ Item {
     // it) — the same order the rows actually render in, top to bottom.
     function _collectFocusableRows(item) {
         var result = [];
-        if (!item || !item.children)
+        if (!item)
+            return result;
+
+        // ── A StackView answers for itself (operator live pass, quick task
+        //    260826-oyu round 2 — defect 1 was still failing after the focus
+        //    fix below).
+        //
+        //    The `visible === false` guard further down was inferring "not
+        //    the current stack element" from visibility, and that inference
+        //    is FALSE for the entire length of a push/pop transition:
+        //    StackPage pushes with `StackView.PushTransition`, and QQC2
+        //    keeps BOTH the outgoing and incoming items visible while it
+        //    animates. The re-collect runs on the next tick — squarely
+        //    inside that window — so the walk picked up the parent page's
+        //    rows too, and in declaration order they came FIRST. Focus was
+        //    carried through the push correctly and then landed on row 0 of
+        //    the page underneath.
+        //
+        //    `currentItem` is not an inference: StackView sets it
+        //    synchronously in `push()`, before any animation starts, so
+        //    asking the stack directly is correct at every instant of the
+        //    transition and the timing question disappears rather than being
+        //    tuned around.
+        //
+        //    Duck-typed on BOTH `depth` and `currentItem` so it identifies a
+        //    StackView specifically — GridView/PathView also carry
+        //    `currentItem`, and this walk runs over pages that contain them.
+        if (item.depth !== undefined && item.currentItem !== undefined)
+            return item.currentItem ? root._collectFocusableRows(item.currentItem) : result;
+
+        if (!item.children)
             return result;
         for (var i = 0; i < item.children.length; i++) {
             var child = item.children[i];
@@ -228,7 +258,12 @@ Item {
         target: root.sState
 
         function onFocusRowsInvalidated() {
-            Qt.callLater(root._recollectRows);
+            // KEEP, not reset — this signal means "my rows changed", not "the
+            // user changed page". It is also where a `_pendingFocusRow`
+            // stashed during a push finally lands.
+            Qt.callLater(function () {
+                root._recollectRows(root._keepFocus);
+            });
         }
     }
 
@@ -238,6 +273,18 @@ Item {
     // level was opened" — a mouse click into a sub-page must not plant a
     // focus ring the user never asked for.
     property var _rowIdxStack: []
+
+    // Sentinel for `_recollectRows`: "the row set changed underneath the SAME
+    // page — keep whichever pane holds focus." Distinct from -1 (reset to the
+    // rail) and from any real row index.
+    readonly property int _keepFocus: -2
+
+    // A focus target asked for before its rows existed. `focusRowsInvalidated`
+    // is how a page announces that async rows have landed (the wallpaper pages
+    // emit it when their model fills), and this is what makes a request
+    // survive until then instead of being silently dropped — the same
+    // late-arriving-rows problem that made settings tiles unreachable before.
+    property int _pendingFocusRow: -1
 
     // `focusRowIdx` — where pane focus should land once the new row set is
     // collected. -1 (the default) resets to the rail, which is right for a
@@ -265,10 +312,36 @@ Item {
         // is the same trap one level up: a branch that yields undefined on
         // a real property).
         var want = (focusRowIdx === undefined || focusRowIdx === null) ? -1 : focusRowIdx;
-        if (want >= 0 && want < root._focusableRows.length) {
-            root.contentFocused = true;
-            root.contentRowIdx = want;
+        var n = root._focusableRows.length;
+
+        if (want === root._keepFocus) {
+            // Same page, new row set. A pending request wins; otherwise hold
+            // the pane that already had focus and just clamp its index. This
+            // path used to reset to the rail, which meant a page whose rows
+            // arrive asynchronously yanked focus out from under the user the
+            // moment its model filled.
+            if (root._pendingFocusRow >= 0 && n > 0) {
+                root.contentFocused = true;
+                root.contentRowIdx = Math.min(root._pendingFocusRow, n - 1);
+                root._pendingFocusRow = -1;
+            } else if (root.contentFocused) {
+                root.contentFocused = n > 0;
+                root.contentRowIdx = n > 0 ? Math.max(0, Math.min(root.contentRowIdx, n - 1)) : -1;
+            }
+        } else if (want >= 0) {
+            if (n > 0) {
+                root.contentFocused = true;
+                root.contentRowIdx = Math.min(want, n - 1);
+                root._pendingFocusRow = -1;
+            } else {
+                // Asked to focus a row on a page that has not built any yet.
+                // Stash rather than silently falling back to the rail.
+                root._pendingFocusRow = want;
+                root.contentFocused = false;
+                root.contentRowIdx = -1;
+            }
         } else {
+            root._pendingFocusRow = -1;
             root.contentFocused = false;
             root.contentRowIdx = -1;
         }
