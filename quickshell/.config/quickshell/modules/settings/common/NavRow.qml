@@ -21,6 +21,11 @@ Control {
     id: root
 
     property string label: ""
+    // indexLabel (quick-260826-437 D-1) — the string RowIndex keys on and
+    // settings-index-check greps for; defaults to `label` so every existing
+    // row keeps its exact current jump key. Override only when the displayed
+    // `label` is dynamic (e.g. a Repeater over live data).
+    property string indexLabel: root.label
     property string subtext: ""
     property string icon: ""
     signal activated()

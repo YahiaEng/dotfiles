@@ -199,6 +199,21 @@ Item {
         }
     }
 
+    // _rowKey (quick-260826-437 D-1, Step 2) — the search-jump match key,
+    // split off the displayed `label` so a repeater-backed row (e.g.
+    // AllAppsPage's per-app title) can vary its label without breaking the
+    // jump. Declared ABOVE `_recollectRows()` below (MEMORY
+    // qml-declare-before-construction-time-use — `_recollectRows` is
+    // reached from `Component.onCompleted` via `_swapTo`). Prefers
+    // `indexLabel` when the row declares a non-empty one; falls back to
+    // `label` otherwise — `_collectFocusableRows()` pushes anything
+    // declaring `focusable === true`, a duck-type contract, not a base
+    // class, so a future row type that forgets `indexLabel` degrades to
+    // today's behaviour instead of matching `undefined`.
+    function _rowKey(row) {
+        return (row.indexLabel !== undefined && row.indexLabel.length > 0) ? row.indexLabel : row.label;
+    }
+
     // Extracted from `_swapTo`'s own tail (quick task 260825-wj2 Task 1) so
     // it can ALSO run off a sub-page push/pop, not just a whole-page swap —
     // a StackView push changes the focusable-row set exactly the way a
@@ -232,7 +247,7 @@ Item {
             var targetLabel = root.sState.pendingRowLabel;
             var foundIdx = -1;
             for (var j = 0; j < root._focusableRows.length; j++) {
-                if (root._focusableRows[j].label === targetLabel) {
+                if (root._rowKey(root._focusableRows[j]) === targetLabel) {
                     foundIdx = j;
                     break;
                 }

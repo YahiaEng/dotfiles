@@ -42,8 +42,15 @@
 #           match one of the two shapes verbatim.
 # CHECK B — every RowIndex entry's `label` string appears verbatim
 #           (fixed-string match, via `grep -F`, never a regex) in its
-#           (pageIdx, subPageIdx)-mapped page file — catches a rename
-#           landed in one place and not the other. Extracts
+#           (pageIdx, subPageIdx)-mapped page file, as EITHER `label: "…"`
+#           OR `indexLabel: "…"` (quick-260826-437 D-1/D-3) — a
+#           repeater-backed row can declare a static `indexLabel` while its
+#           displayed `label` varies at runtime, so the index key is what
+#           this check must find, not necessarily the literal `label:`
+#           text. Comment-stripped via a herestring (`stripped=$(strip_comments
+#           "$f")` then `grep -qF … <<<"$stripped"`), never a pipe — `X | grep
+#           -q` can exit 141 under `pipefail` and silently flip the verdict.
+#           Catches a rename landed in one place and not the other. Extracts
 #           `pageIdx: N(, subPageIdx: S)?, section: "…", label: "…"`, so a
 #           sub-page row's optional `subPageIdx` field routes it to its
 #           OWN file rather than the root page's.
@@ -234,7 +241,16 @@ while IFS= read -r line; do
         check "CHECK B: $loc_desc label \"$label\" — mapped file does not exist" 1
         continue
     fi
-    if grep -qF "label: \"$label\"" "$f"; then
+    stripped=$(strip_comments "$f")
+    # Two separate `grep -qF … <<<"$stripped"` calls, never chained with a
+    # shell `||` on one line — a literal `||` itself contains the
+    # `|`-then-`grep -q` character sequence this file's own no-pipe
+    # discipline greps for elsewhere, which would false-positive the check
+    # on this line. `found` accumulates instead.
+    found=0
+    grep -qF "label: \"$label\"" <<<"$stripped" && found=1
+    grep -qF "indexLabel: \"$label\"" <<<"$stripped" && found=1
+    if [[ "$found" -eq 1 ]]; then
         check "CHECK B: $loc_desc label \"$label\" found verbatim in $(basename "$f")" 0
     else
         check "CHECK B: $loc_desc label \"$label\" NOT found in $(basename "$f")" 1
