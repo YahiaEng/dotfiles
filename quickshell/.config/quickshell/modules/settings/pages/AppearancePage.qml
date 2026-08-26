@@ -309,4 +309,43 @@ PageBase {
             onSelected: (value) => personalizationSection.applyFastfetchLogo(value)
         }
     }
+
+    // ── Drawer layouts (quick task 260826-rfy) ─────────────────────────
+    // Which layout each of the Super+D drawer's two composed tabs draws.
+    // The options and the design rationale behind them are the plates in
+    // `.planning/notes/dashboard-perf-studies.html`; the vendored reference
+    // they were drawn against is `.planning/notes/caelestia-dashboard/`.
+    //
+    // Both keys are read by `Dashboard.qml`'s tab Loaders, and a QML Loader
+    // re-instantiates on `sourceComponent` change — so a pick here takes
+    // effect the next time the pane is shown, with no shell restart.
+    SettingsSection {
+        id: drawerLayoutSection
+        title: "Dashboard drawer"
+        icon: "dashboard"
+
+        readonly property var dashLayoutOptions: [
+            { display: "Two lanes", value: "lanes" },
+            { display: "Single column", value: "column" }
+        ]
+        readonly property var performanceLayoutOptions: [
+            { display: "Telemetry strip", value: "telemetry" },
+            { display: "Dials", value: "dials" }
+        ]
+
+        SelectRow {
+            label: "Dashboard layout"
+            subtext: "Two lanes fills the frame; single column is the original"
+            model: drawerLayoutSection.dashLayoutOptions
+            currentValue: Prefs.getValue("dashboard.layout.dash")
+            onSelected: (value) => Prefs.setValue("dashboard.layout.dash", value)
+        }
+        SelectRow {
+            label: "Performance layout"
+            subtext: "Telemetry graphs recent history; dials show instant values"
+            model: drawerLayoutSection.performanceLayoutOptions
+            currentValue: Prefs.getValue("dashboard.layout.performance")
+            onSelected: (value) => Prefs.setValue("dashboard.layout.performance", value)
+        }
+    }
 }

@@ -50,6 +50,9 @@ Singleton {
         { pageIdx: 0, section: "Personalization", label: "Icon theme", keywords: "icon theme symbols" },
         { pageIdx: 0, section: "Personalization", label: "Font", keywords: "font typeface text" },
         { pageIdx: 0, section: "Personalization", label: "Fastfetch logo", keywords: "logo ascii fastfetch greeter sprite" },
+        // Quick task 260826-rfy — the Super+D drawer's per-tab layout picks.
+        { pageIdx: 0, section: "Dashboard drawer", label: "Dashboard layout", keywords: "dashboard drawer layout lanes column super+d dash" },
+        { pageIdx: 0, section: "Dashboard drawer", label: "Performance layout", keywords: "performance layout telemetry graph sparkline dials drawer" },
 
         // ── pageIdx 1 — Wallpaper ─────────────────────────────────────────
         { pageIdx: 1, section: "Wallpaper", label: "The wallpaper drives dynamic theming", keywords: "wallpaper theme dynamic materialyou palette" },
