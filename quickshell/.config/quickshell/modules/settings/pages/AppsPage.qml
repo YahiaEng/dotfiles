@@ -370,6 +370,22 @@ PageBase {
         return t.endsWith(".desktop") ? t.slice(0, -8) : t;
     }
 
+    // The fallback entry names the app the way every other entry does —
+    // its display Name when the id resolves to an installed entry, the bare
+    // id otherwise — instead of printing a raw "codium.desktop". The
+    // trailing "(current)" is deliberately terse: the row's own subtext
+    // already explains what the setting governs, so the pill does not need
+    // to re-explain why the value is unusual, and a long parenthetical was
+    // the widest string in the whole window.
+    function _prettyId(id) {
+        var key = root._idKey(id);
+        for (var i = 0; i < root._sortedApps.length; i++) {
+            if (root._idKey(root._sortedApps[i].id) === key)
+                return root._sortedApps[i].name;
+        }
+        return id;
+    }
+
     function _mimeModel(registeredIds, predicate, currentId) {
         var registeredKeys = [];
         for (var r = 0; r < registeredIds.length; r++)
@@ -406,12 +422,12 @@ PageBase {
         if (!hasCurrent && currentId.length > 0)
             out.unshift({
                 value: currentId,
-                display: currentId + " (current, not a recognised choice)"
+                display: root._prettyId(currentId) + " (current)"
             });
         if (out.length === 0)
             out.push({
                 value: currentId,
-                display: currentId.length > 0 ? currentId + " (current, not a recognised choice)" : "(none found)"
+                display: currentId.length > 0 ? root._prettyId(currentId) + " (current)" : "(none found)"
             });
         return out;
     }

@@ -160,7 +160,10 @@ Control {
             id: dropdownPill
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            implicitWidth: Math.max(120, pillContent.implicitWidth + Design.spacingLg * 2)
+            // Fixed, not content-derived (Design.settingsPillWidth) — see
+            // that token's own note. Content-sizing made the pill jump as
+            // the selection changed and made sibling rows disagree.
+            implicitWidth: Design.settingsPillWidth
             implicitHeight: 36
             radius: height / 2
             color: Colours.surfaceVariant
@@ -204,9 +207,15 @@ Control {
                     }
                 }
 
+                // Elides INTO the fixed pill rather than widening it. The
+                // full string stays readable in `optionsMenu` below, which
+                // sizes to its own longest entry.
                 Text {
                     id: valueText
                     anchors.verticalCenter: parent.verticalCenter
+                    width: dropdownPill.width - Design.spacingLg * 2 - (root.busy ? Design.iconSizeMd + Design.spacingXs : 0)
+                    horizontalAlignment: Text.AlignHCenter
+                    elide: Text.ElideRight
                     text: root.busy ? "Applying…" : root.currentDisplay
                     font.pixelSize: Design.settingsFontRow
                     color: Colours.onSurfaceVariant

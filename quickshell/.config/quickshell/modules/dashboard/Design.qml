@@ -144,6 +144,17 @@ Singleton {
     // operator asked for the nav rail to match.
     readonly property int settingsIconSize: 28
 
+    // Fixed width for the settings window's dropdown pill. It used to size
+    // to its own content (`Math.max(120, content + padding)`, unbounded),
+    // so a row holding "kitty" and a row holding a long desktop-entry id
+    // rendered visibly different pills, and a pill CHANGED SIZE when its
+    // selection changed — the column of controls jumped as you used it.
+    // A single width makes them a stable, aligned column, which is what
+    // every settings UI of this shape does; the value text elides into it
+    // and the dropdown menu (wider, and sized to its own longest entry)
+    // is where a truncated name is still readable in full.
+    readonly property int settingsPillWidth: 280
+
     readonly property int weightDisplay: Font.Medium
     readonly property int weightEmphasis: Font.DemiBold
     // Athena sets `font-weight: bold` on #clock and #custom-updates — CSS bold
