@@ -4,6 +4,7 @@ date: 2026-08-26
 status: complete
 commits:
   - 672f5b5b  fix(settings): keep pane focus when drilling into a sub-page
+  - 7a03a34d  fix(settings): ask the StackView which page is current, not `visible`
   - b85d990e  fix(settings): let the Browse picker join the window's focus grab
   - bf1dbe98  fix(wallpaper): centre and cover-size live tiles
   - 5d1e7c1a  fix(wallpaper): group live entries with their theme in --list
@@ -18,10 +19,10 @@ Three came from the handoff checklist, a fourth from the operator mid-task.
 
 | # | Defect | Cause | Verified |
 |---|---|---|---|
-| 1 | Drilling into a sub-page drops keyboard focus to the rail | `Pages.qml:_recollectRows()` reset `contentFocused` unconditionally | operator re-test |
-| 2 | Browse dialog takes no input; clicks hit the window behind | `HyprlandFocusGrab` listed only the settings window | operator re-test |
-| 3 | Playing live tile zoomed, right edge cut | element-type-specific; fixed by explicit cover-size + centring | partly — see below |
-| 4 | Live wallpapers at the end of the carousel, not with their theme | two independently-sorted `find`s concatenated | **measured** |
+| 1 | Drilling into a sub-page drops keyboard focus to the rail | TWO causes, one under the other — see below | ✅ operator pass (round 2) |
+| 2 | Browse dialog takes no input; clicks hit the window behind | `HyprlandFocusGrab` listed only the settings window | ✅ operator pass |
+| 3 | Playing live tile zoomed, right edge cut | element-type-specific; fixed by explicit cover-size + centring | ✅ operator pass |
+| 4 | Live wallpapers at the end of the carousel, not with their theme | two independently-sorted `find`s concatenated | ✅ measured + operator pass |
 
 ## The one that needed real measurement
 
@@ -75,11 +76,45 @@ Membership proven unchanged — same 88 entries, order-insensitive diff clean �
 `qml-import-check` 0 unresolved / 143 files · `colour-lint` 425/0 ·
 `motion-lint` 612/0 · `settings-index-check` 178/0 · `theme-doctor` 1218/0.
 
+## Defect 1 took two rounds, and the second cause is the durable one
+
+**Round 1 (`672f5b5b`) was a real fix and not enough.** `_recollectRows()` ended
+with an unconditional `contentFocused = false`, so a sub-page push re-collected
+the new rows and then threw focus straight back to the rail. Fixed by carrying
+pane focus through push/pop. The operator re-tested: **still failing.**
+
+**Round 2 (`7a03a34d`) found the cause one level down, and it is the interesting
+one.** `_collectFocusableRows` inferred "not the current stack element" from
+`visible === false`. That inference is **false for the entire length of a push
+transition**: `StackPage` pushes with `StackView.PushTransition`, and QQC2 keeps
+BOTH the outgoing and incoming items visible while it animates. The re-collect
+runs on the next tick — squarely inside that window — so the walk also picked up
+the parent page's rows, and in declaration order **those came first**. Focus was
+being carried through correctly and then landing on row 0 of the page underneath.
+
+The fix asks the StackView rather than inferring: `currentItem` is set
+**synchronously inside `push()`**, before any animation starts, so it is correct
+at every instant of the transition. The timing question disappears instead of
+being tuned around with a longer delay — which would have "worked" on this
+machine and broken on a slower one.
+
+Two holes of the same class were closed with it: `focusRowsInvalidated` now
+KEEPS pane focus (it means "my rows changed", not "the user changed page" — as
+written it yanked focus away the moment an async model filled), and a focus
+request for a page with no rows yet is stashed and applied when they arrive.
+
+**The lesson worth keeping:** round 1's symptom and round 2's symptom are
+indistinguishable from the keyboard — both read as "Up/Down does the wrong
+thing". A fix that addresses a real cause can leave the report unchanged.
+
 ## Honest limits
 
-Defects 1 and 2 ship **unverified**. A settings row's focus is a virtual
-selection, not a QML focus chain, and no pointer injection exists on this host —
-neither is reachable by any tool here. Defect 3 was not re-captured after the
-fix: I stopped driving the live surface at the operator's request mid-task.
+Nothing here was verified by a gate or by this agent — every one of the four was
+confirmed by the operator at the keyboard. A settings row's focus is a virtual
+selection rather than a QML focus chain, no pointer injection exists on this
+host, and defect 3 was never re-captured after its fix (screen-driving was
+stopped at the operator's request mid-task). Defect 4 is the only one with an
+independent measurement here: same 88 entries, order-insensitive diff clean.
 
-All three want an operator look.
+All four were re-tested by the operator: **defects 2, 3 and 4 passed first time;
+defect 1 passed on round 2.**
