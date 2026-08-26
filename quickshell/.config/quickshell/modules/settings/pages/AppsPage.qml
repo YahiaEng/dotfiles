@@ -88,21 +88,56 @@ PageBase {
     // exactly as the reference's own popup does (D-7) — not a duplicate
     // filter/sort, the SAME favourites array `AppInfoPage.qml`'s toggles
     // write, read here only for display order.
-    readonly property var _sortedApps: {
-        var all = DesktopEntries.applications.values.filter(function (e) {
-            return !e.noDisplay;
-        });
-        var favs = Prefs.getValue("launcher.favouriteApps");
+    // NOT a declarative binding, and that is the whole fix. Measured with
+    // APPSDIAG instrumentation on 2026-08-26: this page's `_sortedApps`
+    // evaluated to `n=0` — `DesktopEntries.applications.values` was still
+    // EMPTY when this page was constructed, and the binding never
+    // re-evaluated afterwards, so every default-app picker intersected its
+    // (correct) gio list against an empty app universe and fell through to
+    // the "current, not a recognised choice" fallback. The three gio reads
+    // were always fine: fm parsed 3 entries, media 2, editor 4.
+    //
+    // `AllAppsPage.qml:48` carries a structurally IDENTICAL binding and
+    // works, which is what made this look like a content bug rather than a
+    // timing one — it is a SUB-page, constructed on drill-in, by which
+    // point DesktopEntries has populated. This page is the StackPage root
+    // and is built earlier. `DesktopEntries.applications` is declared
+    // `isPropertyConstant: true` in quickshell-core.qmltypes, so a page
+    // that reads it too early has no reliable way back.
+    //
+    // Rebuilt explicitly on both edges instead: once at completion (covers
+    // being constructed AFTER the model is already full, where no further
+    // signal ever arrives) and again on every `valuesChanged` (covers
+    // being constructed BEFORE it fills).
+    property var _sortedApps: []
+
+    function _rebuildApps() {
+        var vals = DesktopEntries.applications ? DesktopEntries.applications.values : [];
+        var all = [];
+        for (var k = 0; k < vals.length; k++) {
+            if (!vals[k].noDisplay)
+                all.push(vals[k]);
+        }
+        var favs = Prefs.getValue("launcher.favouriteApps") || [];
         var favSet = {};
         for (var i = 0; i < favs.length; i++)
             favSet[favs[i]] = true;
-        return all.slice().sort(function (a, b) {
+        all.sort(function (a, b) {
             var fa = favSet[a.id] ? 1 : 0;
             var fb = favSet[b.id] ? 1 : 0;
             if (fa !== fb)
                 return fb - fa;
             return a.name.localeCompare(b.name);
         });
+        root._sortedApps = all;
+        console.log("APPSDIAG rebuild n=" + all.length + " fm=" + root._fmModel.length + " media=" + root._mediaModel.length + " editor=" + root._editorModel.length);
+    }
+
+    Connections {
+        target: DesktopEntries.applications
+        function onValuesChanged() {
+            root._rebuildApps();
+        }
     }
     // ── Category / executable normalisers ────────────────────────────────
     // Both defensive by MEASUREMENT, not assumption:
@@ -457,6 +492,7 @@ PageBase {
         _mediaRegisteredProcess.running = true;
         _editorCurrentProcess.running = true;
         _editorRegisteredProcess.running = true;
+        root._rebuildApps();
         var _ids = [];
         for (var _i = 0; _i < Math.min(6, root._sortedApps.length); _i++)
             _ids.push(String(root._sortedApps[_i].id) + "|" + String(root._sortedApps[_i].name));
