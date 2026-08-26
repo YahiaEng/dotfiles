@@ -130,7 +130,6 @@ PageBase {
             return a.name.localeCompare(b.name);
         });
         root._sortedApps = all;
-        console.log("APPSDIAG rebuild n=" + all.length + " fm=" + root._fmModel.length + " media=" + root._mediaModel.length + " editor=" + root._editorModel.length);
     }
 
     Connections {
@@ -150,9 +149,43 @@ PageBase {
     // (no `qml6` probe is safe on this host — it crashes the compositor),
     // so both functions below still accept EITHER shape: correct either
     // way, and free once written.
+    // MEASURED 2026-08-26, and this one line was breaking ALL FIVE
+    // default-app rows: `DesktopEntry.categories` is declared
+    // `type: "QString", isList: true` in quickshell-core.qmltypes, and at
+    // the JS boundary it arrives as a QML LIST REFERENCE -- `typeof` is
+    // "object" and `Array.isArray()` is FALSE, so the Array branch never
+    // taken. It IS array-like (indexable, with `.length`), but the old
+    // fallback stringified it instead, and a stringified QML list joins
+    // with COMMAS, not the `;` a desktop-entry file uses:
+    //
+    //   id="thunar"  isArray=false  typeof=object
+    //   String(raw) == "System,Core,GTK,FileTools,FileManager"
+    //   split(";")  == ["System,Core,GTK,FileTools,FileManager"]   <- ONE element
+    //
+    // so `cats.indexOf("FileManager")` was -1 for every app, every
+    // predicate returned false, every model came back empty, and every row
+    // rendered `_mimeModel`/`_filteredModel`'s not-in-list fallback. That
+    // is why Terminal read "kitty" and Audio "pavucontrol" -- those are the
+    // Prefs DEFAULTS the fallback emits, not a working picker.
+    //
+    // Handle the array-like shape directly, and split on BOTH separators
+    // in the string case so neither joining convention can break it again.
+    function _asList(raw) {
+        if (raw === undefined || raw === null)
+            return [];
+        if (Array.isArray(raw))
+            return raw;
+        if (typeof raw === "object" && typeof raw.length === "number") {
+            var l = [];
+            for (var k = 0; k < raw.length; k++)
+                l.push(raw[k]);
+            return l;
+        }
+        return String(raw).split(/[;,]/);
+    }
+
     function _cats(e) {
-        var raw = e.categories;
-        var arr = Array.isArray(raw) ? raw : String(raw || "").split(";");
+        var arr = root._asList(e.categories);
         var out = [];
         for (var i = 0; i < arr.length; i++) {
             var c = String(arr[i]).trim();
@@ -170,8 +203,8 @@ PageBase {
     // --started-from-file %U` and `kitty-open` is `Exec=kitty +open %U` —
     // both must reduce to a single bare token an argv array can exec.
     function _exe(e) {
-        var cmd = e.command;
-        if (Array.isArray(cmd) && cmd.length > 0 && String(cmd[0]).length > 0)
+        var cmd = root._asList(e.command);
+        if (cmd.length > 0 && String(cmd[0]).length > 0)
             return String(cmd[0]);
         var raw = String(e.execString || e.command || "");
         var tokens = raw.split(/\s+/).filter(function (t) {
@@ -424,18 +457,7 @@ PageBase {
             id: _fmRegisteredCollector
         }
         onExited: (exitCode, exitStatus) => {
-            var _raw = _fmRegisteredCollector.text;
-            var _parsed = exitCode === 0 ? root._parseGioMime(_raw) : [];
-            console.log("APPSDIAG _fmRegistered exit=" + exitCode + " rawLen=" + String(_raw || "").length + " parsed=" + JSON.stringify(_parsed) + " raw=" + JSON.stringify(String(_raw || "").slice(0, 200)));
-            root._fmRegistered = _parsed;
-            for (var _d = 0; _d < root._sortedApps.length; _d++) {
-                var _e = root._sortedApps[_d];
-                if (String(_e.id).indexOf("thunar") !== -1 || String(_e.id).indexOf("vlc") !== -1) {
-                    var _c = _e.categories;
-                    console.log("APPSDIAG entry id=" + JSON.stringify(String(_e.id)) + " isArray=" + Array.isArray(_c) + " typeof=" + (typeof _c) + " rawStr=" + JSON.stringify(String(_c)) + " catsParsed=" + JSON.stringify(root._cats(_e)));
-                }
-            }
-            console.log("APPSDIAG postGio fm=" + root._fmModel.length + " media=" + root._mediaModel.length + " editor=" + root._editorModel.length + " sorted=" + root._sortedApps.length);
+            root._fmRegistered = exitCode === 0 ? root._parseGioMime(_fmRegisteredCollector.text) : [];
         }
     }
 
@@ -471,10 +493,7 @@ PageBase {
             id: _editorRegisteredCollector
         }
         onExited: (exitCode, exitStatus) => {
-            var _raw = _editorRegisteredCollector.text;
-            var _parsed = exitCode === 0 ? root._parseGioMime(_raw) : [];
-            console.log("APPSDIAG _editorRegistered exit=" + exitCode + " rawLen=" + String(_raw || "").length + " parsed=" + JSON.stringify(_parsed) + " raw=" + JSON.stringify(String(_raw || "").slice(0, 200)));
-            root._editorRegistered = _parsed;
+            root._editorRegistered = exitCode === 0 ? root._parseGioMime(_editorRegisteredCollector.text) : [];
         }
     }
 
@@ -486,10 +505,7 @@ PageBase {
             id: _mediaRegisteredCollector
         }
         onExited: (exitCode, exitStatus) => {
-            var _raw = _mediaRegisteredCollector.text;
-            var _parsed = exitCode === 0 ? root._parseGioMime(_raw) : [];
-            console.log("APPSDIAG _mediaRegistered exit=" + exitCode + " rawLen=" + String(_raw || "").length + " parsed=" + JSON.stringify(_parsed) + " raw=" + JSON.stringify(String(_raw || "").slice(0, 200)));
-            root._mediaRegistered = _parsed;
+            root._mediaRegistered = exitCode === 0 ? root._parseGioMime(_mediaRegisteredCollector.text) : [];
         }
     }
 
@@ -501,11 +517,6 @@ PageBase {
         _editorCurrentProcess.running = true;
         _editorRegisteredProcess.running = true;
         root._rebuildApps();
-        var _ids = [];
-        for (var _i = 0; _i < Math.min(6, root._sortedApps.length); _i++)
-            _ids.push(String(root._sortedApps[_i].id) + "|" + String(root._sortedApps[_i].name));
-        console.log("APPSDIAG sortedApps n=" + root._sortedApps.length + " sample=" + JSON.stringify(_ids));
-        console.log("APPSDIAG models fm=" + root._fmModel.length + " media=" + root._mediaModel.length + " editor=" + root._editorModel.length);
     }
 
     SettingsSection {
