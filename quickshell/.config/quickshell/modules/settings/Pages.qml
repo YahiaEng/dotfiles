@@ -232,14 +232,46 @@ Item {
         }
     }
 
-    function _recollectRows() {
+    // Where a sub-page push came FROM, so closing it can put the ring back.
+    // One entry per open sub-page level, pushed in `onSubPageOpened` before
+    // the deferred re-collect runs. -1 means "the rail held focus when this
+    // level was opened" — a mouse click into a sub-page must not plant a
+    // focus ring the user never asked for.
+    property var _rowIdxStack: []
+
+    // `focusRowIdx` — where pane focus should land once the new row set is
+    // collected. -1 (the default) resets to the rail, which is right for a
+    // RAIL-DRIVEN page swap: you were in the rail, you changed page, focus
+    // belongs in the rail.
+    //
+    // It is wrong for a SUB-PAGE PUSH, and that was defect 1 of the operator's
+    // live pass on 2026-08-26: "Apps > Right arrow > All Apps > up/down arrow
+    // will now move between the tabs instead of moving between the All Apps
+    // section." A push is initiated FROM the content pane by activating a row,
+    // so the user is already in the content pane; throwing focus back to the
+    // rail meant Settings.qml:250-262 took its `else` branch and Up/Down paged
+    // the rail instead of walking the sub-page. The row collection itself was
+    // never the bug — this reset immediately after it was.
+    function _recollectRows(focusRowIdx) {
         // A new page (or a newly-pushed sub-page) has an entirely
         // different (possibly differently shaped) row list — re-collect
-        // and reset pane focus to the rail every time, never carry a
-        // stale row index across pages/sub-pages.
+        // every time, and never carry a stale row index across pages.
         root._focusableRows = root._collectFocusableRows(root.currentItem);
-        root.contentFocused = false;
-        root.contentRowIdx = -1;
+
+        // `undefined` when called from a signal handler that passes no
+        // argument (Qt.callLater does exactly that), so normalise rather
+        // than testing truthiness — 0 is a REAL row index and must not
+        // read as "no focus" (MEMORY qml-undefined-branch-destroys-binding
+        // is the same trap one level up: a branch that yields undefined on
+        // a real property).
+        var want = (focusRowIdx === undefined || focusRowIdx === null) ? -1 : focusRowIdx;
+        if (want >= 0 && want < root._focusableRows.length) {
+            root.contentFocused = true;
+            root.contentRowIdx = want;
+        } else {
+            root.contentFocused = false;
+            root.contentRowIdx = -1;
+        }
 
         // ── Search-result jump target (quick-260821-6z1 Task 3, D-06/R-4)
         //    — SettingsState.selectSearchResult() sets `pendingRowLabel`
@@ -510,11 +542,25 @@ Item {
         // (MEMORY child-binding-lags-parent-signal — the same reason
         // `_swapTo` is already sequenced through a `ScriptAction` rather
         // than a bare handler).
+        //
+        // Defect 1 fix (operator live pass, quick task 260826-oyu) — carry
+        // pane focus THROUGH a push/pop instead of dropping it to the rail.
+        // The remembered index is captured synchronously here, before the
+        // deferred `_recollectRows` resets anything; only a keyboard-driven
+        // push (`contentFocused`) is remembered, so a mouse click into a
+        // sub-page still leaves the ring off.
         function onSubPageOpened(idx) {
-            Qt.callLater(root._recollectRows);
+            root._rowIdxStack.push(root.contentFocused ? root.contentRowIdx : -1);
+            var want = root.contentFocused ? 0 : -1;
+            Qt.callLater(function () {
+                root._recollectRows(want);
+            });
         }
         function onSubPageClosed() {
-            Qt.callLater(root._recollectRows);
+            var back = root._rowIdxStack.length > 0 ? root._rowIdxStack.pop() : -1;
+            Qt.callLater(function () {
+                root._recollectRows(back);
+            });
         }
     }
 
