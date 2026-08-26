@@ -17,6 +17,23 @@ import QtQuick
 QtObject {
     id: root
 
+    // Extra toplevels that must share the settings window's Hyprland focus
+    // grab while they are open (quick task 260826-oyu, defect 2).
+    //
+    // The grab in Settings.qml captures input EXCLUSIVELY to the surfaces it
+    // lists. A second toplevel opened by a page — today the Browse file
+    // picker — is not one of them, so the compositor kept routing pointer and
+    // scroll to the settings window underneath: the operator could not click
+    // or scroll inside the dialog, and a click on it read as a click OUTSIDE
+    // the grab and dismissed the whole window.
+    //
+    // Lives here rather than on the picker so the generic `FilePicker` stays
+    // uncoupled from Settings — any page that opens its own toplevel
+    // registers it the same way. ALWAYS REASSIGN, never push/splice: this is
+    // a `property var` holding a plain JS array, and an in-place mutation
+    // emits no change signal, so the grab's binding would never re-evaluate.
+    property var extraGrabWindows: []
+
     property int currentPageIdx: 0
 
     // Task 13 (D-01 bundle 4) — relayed from Settings.qml at construction

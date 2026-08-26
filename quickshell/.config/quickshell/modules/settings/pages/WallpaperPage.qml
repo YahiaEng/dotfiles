@@ -408,6 +408,20 @@ PageBase {
             // an in-library pick keeps its theme recording and live handling
             // — no need to pre-classify the path here.
             onAccepted: path => wallpaperSection.applyWallpaper(String(path))
+
+            // Defect 2 fix (operator live pass, quick task 260826-oyu) — the
+            // picker is a second toplevel, and the settings window's Hyprland
+            // focus grab holds input exclusively to the surfaces it lists.
+            // Join the grab while open, leave it on close. Reassignment, not
+            // an in-place push: `extraGrabWindows` is a plain JS array behind
+            // a `property var`, and mutating it emits no change signal.
+            //
+            // Keyed on the LazyLoader's `item` rather than on `active`: the
+            // window only exists once the loader has actually built it, and
+            // registering a null would put a null in the grab's list.
+            onItemChanged: {
+                root.sState.extraGrabWindows = browsePicker.item ? [browsePicker.item] : [];
+            }
         }
 
         Text {

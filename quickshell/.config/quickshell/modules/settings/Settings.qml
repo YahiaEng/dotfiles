@@ -309,7 +309,13 @@ FloatingWindow {
     // mouse click, which no tool on this host can synthesize.
     HyprlandFocusGrab {
         id: grab
-        windows: [win]
+        // Plus any toplevel a page has opened and registered — the Browse
+        // file picker is the first (quick task 260826-oyu, defect 2). Without
+        // it the grab holds input exclusively to `win` and the picker is dead
+        // to the pointer, with its clicks landing on the window behind.
+        // `windows` is a writable QObjectList and a FloatingWindow is already
+        // valid in it — `win` itself is one.
+        windows: [win].concat(win.sState.extraGrabWindows)
         active: true
         onCleared: win.closeRequested()
     }
