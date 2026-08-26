@@ -96,6 +96,21 @@ Item {
     // value arc (+ centre text + caption icon) carries the accent, exactly
     // the "muted track, coloured progress" split the reference shell uses.
     property color accentColor: Colours.primary
+
+    // The unfilled arc. Defaults to `Colours.surfaceVariant`, i.e. exactly
+    // today's value, so no existing call site changes.
+    //
+    // It MUST be overridden by any caller that puts a dial on a surface
+    // already painted `surfaceVariant` — a card, for instance. The track is
+    // then byte-identical to its own backing surface and the ring simply
+    // does not render: only the value arc shows, and a 15% reading reads as
+    // a floating fragment rather than a ring that is 15% full. Measured on a
+    // live capture during 260826-rfy, where the dashboard's resources card
+    // showed exactly two colours in the dial's whole bounding box — the card
+    // and the accent, with no track anywhere. This is the same class as
+    // 14-10's invisible GPU ring, which is why the fix is a property rather
+    // than a new palette role.
+    property color trackColor: Colours.surfaceVariant
     // Material Symbols ligature identifying the metric type (e.g. "memory",
     // "storage") — shown beside the caption at every D-41 state, since it
     // names WHAT the dial measures, not whether data arrived yet. Empty
@@ -117,6 +132,36 @@ Item {
     // `implicitHeight` the way a `Control` would, so both are bound
     // explicitly — without this a parent `Grid` would size every dial at
     // its default 0x0.
+    // ── Compact mode (quick task 260826-rfy, opt-in) ────────────────────
+    // Both knobs below DEFAULT TO TODAY'S BEHAVIOUR, so every pre-existing
+    // call site is unaffected by construction — the five-dial Performance
+    // layout renders byte-identically without being edited. Only a caller
+    // that asks gets the new behaviour.
+    //
+    // Why they exist: `detailLine` reserves `ceil(fontLabel * 1.5)` = 18px
+    // whether or not it has text, and `centerText` is hard-pinned to
+    // `fontHeading` (20px) regardless of `diameter`. At the 176px dials this
+    // component was designed for, both are right. At the 48px dial the
+    // dashboard's resources strip wants, they are catastrophic — MEASURED
+    // on a live capture: the dial published an 88px implicitHeight into an
+    // 88px card, its column overflowed the card by 9px above and dropped its
+    // caption below the card's bottom edge, and a 20px "100%" overran the
+    // 36px inner circle and drew across its own arc.
+    //
+    // `collapseEmptyLines` drops the caption and/or detail line to zero
+    // height when that line has nothing to show, instead of reserving space.
+    // The anti-reflow reason the reserve exists (nothing shifts when real
+    // data lands) still holds for the default path; a caller that passes a
+    // permanently-empty detailText was never going to reflow anyway.
+    property bool collapseEmptyLines: false
+    // Negative means "inherit `fontHeading`", i.e. exactly today's value.
+    property int centerFontSize: -1
+
+    readonly property int _centerFontSize: root.centerFontSize > 0 ? root.centerFontSize : root._fontHeading
+    readonly property bool _captionHasText: root.widgetState === "empty"
+        ? root.emptyText !== "" : (root.label !== "" || root.icon !== "")
+    readonly property bool _detailHasText: root.widgetState === "populated" && root.detailText !== ""
+
     implicitWidth: root.diameter
     implicitHeight: root.diameter + root._spacingXs + captionLine.height + detailLine.height
     width: implicitWidth
@@ -141,7 +186,7 @@ Item {
         ShapePath {
             id: trackArc
             strokeWidth: root.ringThickness
-            strokeColor: Colours.surfaceVariant
+            strokeColor: root.trackColor
             fillColor: "transparent"
             capStyle: ShapePath.RoundCap
 
@@ -210,7 +255,7 @@ Item {
         text: root.widgetState === "populated" ? root.valueText
             : root.widgetState === "pending" ? "—" : root.emptySymbol
         font.family: root.widgetState === "empty" ? root._symbolFontFamily : root._defaultFontFamily
-        font.pixelSize: root._fontHeading
+        font.pixelSize: root._centerFontSize
         font.weight: root._weightEmphasis
         // Populated: the ring's own accent colour, not a neutral — this is
         // round 2's "more life" feedback landing on the centre figure too,
@@ -238,7 +283,11 @@ Item {
         anchors.top: dialShape.bottom
         anchors.topMargin: root._spacingXs
         anchors.horizontalCenter: parent.horizontalCenter
-        height: Math.ceil(root._fontLabel * 1.5)
+        // Collapses only when opted in AND there is genuinely nothing to
+        // show — see `collapseEmptyLines` on the root.
+        height: (root.collapseEmptyLines && !root._captionHasText)
+            ? 0 : Math.ceil(root._fontLabel * 1.5)
+        visible: height > 0
         spacing: root._spacingXs / 2
 
         Text {
@@ -268,7 +317,9 @@ Item {
         id: detailLine
         anchors.top: captionLine.bottom
         anchors.horizontalCenter: parent.horizontalCenter
-        height: Math.ceil(font.pixelSize * 1.5)
+        height: (root.collapseEmptyLines && !root._detailHasText)
+            ? 0 : Math.ceil(font.pixelSize * 1.5)
+        visible: height > 0
         verticalAlignment: Text.AlignVCenter
         // Only populated ever shows a detail line — pending/empty leave it
         // blank but still occupying its reserved height.
