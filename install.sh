@@ -241,6 +241,30 @@ PACMAN_PKGS=(
     # long, filed as an unconfirmed candidate.
     qt6-imageformats
 
+    # QtMultimedia — REQUIRED for VIDEO live wallpapers (mp4/mkv/webm/mov).
+    # WallpaperTile.qml imports QtMultimedia and drives MediaPlayer +
+    # VideoOutput; without these the import fails and every video wallpaper
+    # is dead, the same silent shape the missing webp plugin had.
+    #
+    # Found 2026-08-26 by the same audit that confirmed qt6-imageformats,
+    # and it hid for the same reason: neither package ships a BINARY, so
+    # nothing that enumerates invoked commands can ever see them. On this
+    # host qt6-multimedia was present only because ktextwidgets/qt6-speech
+    # happened to pull it — `pactree -r` shows NO declared package requires
+    # it. A fresh install would have had none of it. (qt6-declarative, by
+    # contrast, IS genuinely covered: quickshell depends on it, exactly as
+    # the quickshell entry below claims.)
+    #
+    # The backend is named explicitly on purpose. qt6-multimedia depends on
+    # the VIRTUAL `qt6-multimedia-backend`, which has two providers here
+    # (qt6-multimedia-ffmpeg and qt6-multimedia-gstreamer), and this script
+    # installs with --noconfirm — so leaving the choice implicit means an
+    # ambiguous provider resolution rather than a deliberate one. ffmpeg is
+    # the provider proven working on this host and is already a dependency
+    # of the wallpaper pipeline's own poster-frame extraction.
+    qt6-multimedia
+    qt6-multimedia-ffmpeg
+
     # Quickshell (QS-01: official extra repo, not AUR — the only new line;
     # pacman's own resolver pulls the whole Qt6 declarative/SVG stack and
     # its stack-trace runtime dependency automatically, verified against
