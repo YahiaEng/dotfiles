@@ -74,8 +74,22 @@ Singleton {
     // guard exists to prevent. Also skips the empty-query "return to
     // apps" default: clearing the search field to re-browse a submenu's
     // full row list must not exit menu mode either.
+    // Modes that OWN their query text and must never be re-routed. A mode
+    // reached by IPC or by the menu (rather than by typing a prefix) uses
+    // the search field to filter ITSELF, so bouncing it back to apps on the
+    // first keystroke breaks it — measured: typing in the wallpaper
+    // carousel switched the panel to the app list mid-search. `menu` was
+    // already exempt as a one-off `if`; this generalises that instead of
+    // adding a second special case beside it.
+    readonly property var _stickyModes: ({
+            "menu": true,
+            "wallpaper": true,
+            "updates": true,
+            "systeminfo": true
+        })
+
     function _routeQuery() {
-        if (root.mode === root.modeMenu)
+        if (root._stickyModes[root.mode] === true)
             return;
         const q = root.query;
         if (q.length === 0) {

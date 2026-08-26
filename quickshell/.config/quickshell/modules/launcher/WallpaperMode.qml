@@ -30,6 +30,7 @@
 // opened — otherwise a browse-and-escape silently leaves the desktop on the
 // last previewed image.
 import QtQuick
+import QtMultimedia
 import Quickshell
 import Quickshell.Io
 import ".."
@@ -272,6 +273,24 @@ Item {
 
             readonly property bool current: PathView.isCurrentItem
 
+            readonly property bool _isVideo: {
+                if (!tile.modelData.isLive)
+                    return false;
+                const p = String(tile.modelData.path);
+                const dot = p.lastIndexOf(".");
+                const ext = dot < 0 ? "" : p.slice(dot + 1).toLowerCase();
+                return ["mp4", "mkv", "webm", "mov", "m4v", "avi"].indexOf(ext) !== -1;
+            }
+
+            onCurrentChanged: {
+                if (!tile._isVideo)
+                    return;
+                if (tile.current)
+                    video.play();
+                else
+                    video.pause();
+            }
+
             width: view.itemWidth
             height: view.implicitHeight
             z: PathView.itemZ ?? 0
@@ -322,6 +341,40 @@ Item {
                         // already extracted (measured: the mp4 tile rendered
                         // as an empty rectangle before this).
                         source: "file://" + (tile.modelData.isLive ? root.posterFor(tile.modelData.relpath) : tile.modelData.path)
+                    }
+
+                    // ── Live entries animate, but only the CENTRED one ───
+                    // The operator's standing choice is that a live wallpaper
+                    // should read as live, not as a still. In a carousel the
+                    // natural gate is the current item: exactly one video
+                    // decodes at a time no matter how long the strip is,
+                    // which is a tighter bound than the settings grid's
+                    // viewport test. Neighbours keep their poster frame.
+                    AnimatedImage {
+                        anchors.fill: parent
+                        visible: tile.modelData.isLive && !tile._isVideo
+                        asynchronous: true
+                        cache: false
+                        fillMode: Image.PreserveAspectCrop
+                        playing: visible && tile.current
+                        source: visible ? ("file://" + tile.modelData.path) : ""
+                    }
+
+                    MediaPlayer {
+                        id: video
+
+                        source: tile._isVideo ? ("file://" + tile.modelData.path) : ""
+                        loops: MediaPlayer.Infinite
+                        audioOutput: null
+                        videoOutput: sink
+                    }
+
+                    VideoOutput {
+                        id: sink
+
+                        anchors.fill: parent
+                        visible: tile._isVideo && video.position > 0
+                        fillMode: VideoOutput.PreserveAspectCrop
                     }
 
                     Rectangle {

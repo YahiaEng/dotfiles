@@ -901,7 +901,10 @@ PanelWindow {
                     anchors.right: sortToggle.left
                     anchors.rightMargin: Design.spacingSm
                     anchors.verticalCenter: parent.verticalCenter
-                    placeholderText: "Search apps…"
+                    // Mode-aware: a sticky mode filters ITSELF, so promising
+                    // "apps" while the panel shows a wallpaper strip is a lie
+                    // about what typing will do.
+                    placeholderText: LauncherState.mode === "wallpaper" ? "Search wallpapers…" : "Search apps…"
                     color: Colours.onSurface
                     font.pixelSize: 18
                     selectByMouse: true
