@@ -566,6 +566,19 @@ PanelWindow {
     readonly property int tabIndexPerformance: 2
     readonly property int tabIndexWeather: 3
     // MD3 primary-tab height for an icon-plus-label tab.
+    // ── Per-tab layout selection (quick task 260826-rfy) ────────────────
+    // The Dashboard and Performance panes each have more than one layout;
+    // these two read the operator's pick. Resolved HERE, at the Loaders,
+    // rather than inside the tab files, so a layout file knows nothing about
+    // being one of several and can be added or dropped without editing its
+    // siblings.
+    //
+    // An unrecognised value falls through to the `default:` branch below
+    // rather than leaving `sourceComponent` undefined — a hand-edited
+    // prefs.json therefore cannot blank a pane.
+    readonly property string dashLayout: Prefs.getValue("dashboard.layout.dash")
+    readonly property string performanceLayout: Prefs.getValue("dashboard.layout.performance")
+
     readonly property int tabBarHeight: 64
     // MD3 primary-tab active-indicator thickness.
     readonly property int tabIndicatorHeight: 3
@@ -1249,33 +1262,60 @@ PanelWindow {
                 id: dashboardTabLoader
                 active: pager.currentIndex === dashboardWindow.tabIndexDashboard
                 asynchronous: false
-                sourceComponent: Component {
-                    DashboardTab {
-                        mediaBackend: dashboardWindow.mediaBackend
-                        systemResources: dashboardWindow.systemResources
-                        // 15-07 — fully qualified `dashboardWindow.` on every
-                        // right-hand side: DashboardTab declares identically
-                        // named properties, and a bare RHS here would resolve
-                        // to that tab's own not-yet-assigned property under
-                        // QML's innermost-scope-wins lookup (the live-
-                        // reproduced shadowing bug this file's own header
-                        // above records for systemResources).
-                        audioBackend: dashboardWindow.audioBackend
-                        wifiBackend: dashboardWindow.wifiBackend
-                        bluetoothBackend: dashboardWindow.bluetoothBackend
-                        mediaTabIndex: dashboardWindow.tabIndexMedia
-                        performanceTabIndex: dashboardWindow.tabIndexPerformance
-                        // D-39/D-40's compact-widget → its-full-tab deep-link
-                        // convention, answered here once so 14-08 only has
-                        // to emit.
-                        onTabRequested: (index) => pager.setCurrentIndex(index)
-                        // 15-07 — the exact analog for the tile chevron's
-                        // relay: a tab-level signal answered once at the
-                        // drawer level, forwarded unchanged.
-                        onPanelRequested: (name) => dashboardWindow.panelRequested(name)
-                    }
-                }
+                // 260826-rfy: "lanes" (D2) is the default; "column" is the
+                // pre-260826-rfy single-column layout, kept selectable so
+                // there is always a known-good pane to return to.
+                sourceComponent: dashboardWindow.dashLayout === "column"
+                    ? dashColumnComponent
+                    : dashLanesComponent
                 onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
+            }
+
+            // 15-07 — fully qualified `dashboardWindow.` on every right-hand
+            // side in both components below: the tab types declare
+            // identically named properties, and a bare RHS would resolve to
+            // the tab's own not-yet-assigned property under QML's
+            // innermost-scope-wins lookup (the live-reproduced shadowing bug
+            // this file's own header records for systemResources).
+            Component {
+                id: dashColumnComponent
+
+                DashboardTab {
+                    mediaBackend: dashboardWindow.mediaBackend
+                    systemResources: dashboardWindow.systemResources
+                    audioBackend: dashboardWindow.audioBackend
+                    wifiBackend: dashboardWindow.wifiBackend
+                    bluetoothBackend: dashboardWindow.bluetoothBackend
+                    mediaTabIndex: dashboardWindow.tabIndexMedia
+                    performanceTabIndex: dashboardWindow.tabIndexPerformance
+                    // D-39/D-40's compact-widget → its-full-tab deep-link
+                    // convention, answered here once so the tab only emits.
+                    onTabRequested: (index) => pager.setCurrentIndex(index)
+                    // 15-07 — the exact analog for the tile chevron's relay:
+                    // a tab-level signal answered once at the drawer level,
+                    // forwarded unchanged.
+                    onPanelRequested: (name) => dashboardWindow.panelRequested(name)
+                }
+            }
+
+            Component {
+                id: dashLanesComponent
+
+                DashLanes {
+                    mediaBackend: dashboardWindow.mediaBackend
+                    systemResources: dashboardWindow.systemResources
+                    // The one property the column layout does not take: D2
+                    // puts a weather card in its right lane, so this layout
+                    // reads the same backend the Weather tab does.
+                    weatherBackend: dashboardWindow.weatherBackend
+                    audioBackend: dashboardWindow.audioBackend
+                    wifiBackend: dashboardWindow.wifiBackend
+                    bluetoothBackend: dashboardWindow.bluetoothBackend
+                    mediaTabIndex: dashboardWindow.tabIndexMedia
+                    performanceTabIndex: dashboardWindow.tabIndexPerformance
+                    onTabRequested: (index) => pager.setCurrentIndex(index)
+                    onPanelRequested: (name) => dashboardWindow.panelRequested(name)
+                }
             }
 
             Loader {
@@ -1294,12 +1334,28 @@ PanelWindow {
                 id: performanceTabLoader
                 active: pager.currentIndex === dashboardWindow.tabIndexPerformance
                 asynchronous: false
-                sourceComponent: Component {
-                    PerformanceTab {
-                        systemResources: dashboardWindow.systemResources
-                    }
-                }
+                // 260826-rfy: "telemetry" (P3) is the default; "dials" is
+                // the pre-260826-rfy five-dial row, kept selectable.
+                sourceComponent: dashboardWindow.performanceLayout === "dials"
+                    ? perfDialsComponent
+                    : perfTelemetryComponent
                 onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
+            }
+
+            Component {
+                id: perfDialsComponent
+
+                PerformanceTab {
+                    systemResources: dashboardWindow.systemResources
+                }
+            }
+
+            Component {
+                id: perfTelemetryComponent
+
+                PerfTelemetry {
+                    systemResources: dashboardWindow.systemResources
+                }
             }
 
             Loader {
