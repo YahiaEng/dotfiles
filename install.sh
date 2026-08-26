@@ -378,11 +378,17 @@ AUR_PKGS=(
 
     # Icon themes (D-16 — human package-legitimacy checkpoint approved).
     # tela-icon-theme and colloid-icon-theme-git moved to AUR_PKGS_HOST
-    # below (22-09 perf) — papirus-folders stays here: it is small and
-    # pairs with papirus-icon-theme, which remains a core pacman package
-    # (install.sh:193), so icon theming still has a real theme present in
-    # --core-only scope.
-    papirus-folders
+    # below (22-09 perf).
+    #
+    # papirus-folders was REMOVED here and is deliberately not a dependency
+    # any more. It rewrites folder symlinks inside /usr/share/icons, so it
+    # re-execs itself under sudo unless the theme lives in $HOME — meaning
+    # either a root call on every theme switch or a 19MB copy of
+    # Papirus-Dark in $HOME that goes stale on package update. Both are
+    # host-only state this repo forbids. theme_engine_papirus_folder_overlay
+    # in lib/gtk.sh now does the same job with a user-level shadow theme
+    # made of symlinks into the system icons — no root, no package, nothing
+    # to refresh. papirus-icon-theme (pacman, above) is still required.
 
     # Game center (D-33 — human package-legitimacy checkpoint approved
     # 2026-07-13). protonup-qt is AUR-only — this corrects CONTEXT.md

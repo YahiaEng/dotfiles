@@ -326,6 +326,16 @@ mkdir -p "$HOME/.cache"
 # this section still need it.
 mkdir -p "$HOME/.local/state/theme"
 
+# Seed-only-when-absent, same discipline as the gaming-mode seed above:
+# without this the icon-theme axis defaults to "Adwaita", which
+# theme_engine_apply_icon_theme early-returns on — so a fresh install would
+# get no icon theming and no accent-tracked folders at all, and this host
+# would only work because the file had been written by hand (host-only
+# state, which this repo forbids). Papirus-Dark is the value the folder
+# overlay in lib/gtk.sh tracks; re-running stow.sh must never clobber a
+# theme the operator has since chosen in the picker.
+[[ -f "$HOME/.local/state/theme/icon-theme" ]] || echo "Papirus-Dark" > "$HOME/.local/state/theme/icon-theme"
+
 # D-06/D-07 (rebased for the style/accessibility axis split by
 # quick-260821-swp): seed via theme_engine_migrate_motion_state so a fresh
 # install and an upgrading one (a legacy motion-scale value present) take

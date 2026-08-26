@@ -328,10 +328,10 @@ theme_engine_apply_icon_theme() {
         Papirus|Papirus-Dark|Papirus-Light)
             # Name itself never changes — folders are recolored in place.
             gsettings set org.gnome.desktop.interface icon-theme "$icon_theme" 2>/dev/null || true
-            if [[ -n "$hex" ]] && command -v papirus-folders >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1; then
+            if [[ -n "$hex" ]] && command -v python3 >/dev/null 2>&1; then
                 local color
                 color="$(theme_engine_nearest_papirus_color "$hex")"
-                [[ -n "$color" ]] && papirus-folders -C "$color" -t "$icon_theme" 2>/dev/null || true
+                theme_engine_papirus_folder_overlay "$icon_theme" "$color"
             fi
             ;;
         Tela*|Colloid*)
@@ -359,6 +359,74 @@ theme_engine_apply_icon_theme() {
     return 0
 }
 
+# theme_engine_papirus_folder_overlay <theme> <named-color>
+# Recolors Papirus folder icons WITHOUT root and WITHOUT the papirus-folders
+# package, by shadowing them from a user-level icon directory.
+#
+# Why not papirus-folders (the D-17 original): it rewrites the folder
+# symlinks inside /usr/share/icons, so it needs root. Its own
+# verify_privileges() re-execs under sudo unless the theme dir lives in
+# $HOME — which would mean either a passwordless-sudo call on every theme
+# switch or a 19MB copy of Papirus-Dark in $HOME that goes stale on package
+# update. Both are host-only state this repo forbids.
+#
+# What this does instead, measured rather than assumed: the XDG icon spec
+# searches ~/.local/share/icons BEFORE /usr/share/icons, and same-named
+# theme directories MERGE across base dirs. So a user-side directory using
+# the SAME theme name, containing only folder symlinks, overrides the
+# system icons while every other icon still resolves from the system copy.
+# Verified with Gtk.IconTheme: lookup_icon("folder", 64) resolved to the
+# user-side file. The theme NAME never changes, so the settings.ini value
+# generate.sh writes and the picker's own state stay correct and untouched.
+#
+# Nothing is copied — the links point at the system SVGs, so a Papirus
+# package update is picked up for free and there is nothing to refresh.
+#
+# Best-effort, like every other function on this path: returns 0 on any
+# failure so it can never abort theme-apply.
+theme_engine_papirus_folder_overlay() {
+    local theme="$1" color="$2"
+    local sysroot="/usr/share/icons/$theme"
+    local userroot="${XDG_DATA_HOME:-$HOME/.local/share}/icons/$theme"
+
+    [[ -n "$theme" && -d "$sysroot" ]] || return 0
+
+    # Always clear first, so a colour change leaves no stale links behind and
+    # an unresolvable colour falls back to the stock system icons instead of
+    # freezing on the previous accent.
+    rm -rf -- "$userroot" 2>/dev/null || true
+    [[ -n "$color" ]] || return 0
+
+    local places size dst f base suffix n=0
+    for places in "$sysroot"/*/places; do
+        [[ -d "$places" ]] || continue
+        size="$(basename "$(dirname "$places")")"
+        dst="$userroot/$size/places"
+        mkdir -p -- "$dst" 2>/dev/null || continue
+
+        for f in "$places"/folder-"$color"*.svg; do
+            [[ -e "$f" ]] || continue
+            base="${f##*/}"
+            suffix="${base#folder-"$color"}"
+
+            # GUARD, and not a theoretical one: a prefix glob for `blue` also
+            # matches `folder-bluegrey-docker.svg`, whose suffix would be
+            # "grey-docker.svg" and would produce a bogus `foldergrey-*.svg`
+            # link. A real colour match leaves either ".svg" or "-<type>.svg".
+            [[ "$suffix" == ".svg" || "$suffix" == -* ]] || continue
+
+            ln -sfn -- "$(readlink -f -- "$f")" "$dst/folder$suffix" 2>/dev/null && n=$((n + 1))
+        done
+
+        # Drop the size bucket again if it ended up empty, so the overlay
+        # never leaves hollow directories that shadow nothing.
+        rmdir -p --ignore-fail-on-non-empty -- "$dst" 2>/dev/null || true
+    done
+
+    [[ "$n" -gt 0 ]] || rm -rf -- "$userroot" 2>/dev/null || true
+    return 0
+}
+
 # theme_engine_nearest_papirus_color <hex> — maps an arbitrary palette hex
 # to the nearest member of papirus-folders' fixed named-color enum (D-17;
 # RESEARCH.md Standard Stack, verified against
@@ -383,13 +451,17 @@ if s < 0.12:
 elif deg < 10 or deg >= 350:
     print("red")
 elif deg < 22:
-    print("carmine-red")
+    # `carmine`, not `carmine-red`: the enum name is carmine. Verified
+    # against the installed theme, not the upstream README.
+    print("carmine")
 elif deg < 34:
     print("deeporange")
 elif deg < 44:
     print("orange")
 elif deg < 52:
-    print("bright-orange")
+    # No `bright-orange` in Papirus; this 44-52deg wedge sits between
+    # orange and paleorange, so it folds into orange.
+    print("orange")
 elif deg < 60:
     print("paleorange")
 elif deg < 68:
@@ -399,7 +471,9 @@ elif deg < 78:
 elif deg < 100:
     print("yellow")
 elif deg < 130:
-    print("oxidgreen")
+    # No `oxidgreen` in Papirus; 100-130deg is yellow-green, nearest
+    # real name is green.
+    print("green")
 elif deg < 155:
     print("green")
 elif deg < 175:
