@@ -50,7 +50,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │   ├── hyprlock.conf
 │   └── scripts/
 │       ├── bar-orientation.sh          # Bar orientation switcher (invoked by the launcher's picker)
-│       ├── wallpaper-switch.sh         # fzf wallpaper picker + matugen
+│       ├── wallpaper-switch.sh         # opens Settings ▸ Wallpaper (fzf TUI fallback)
 │       ├── quickshell-launch.sh        # Guarded launcher for the QML shell root
 │       ├── theme-init.sh               # Restores theme on login
 │       └── screenshot.sh               # grim + slurp screenshots

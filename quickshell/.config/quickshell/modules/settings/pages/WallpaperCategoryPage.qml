@@ -67,11 +67,17 @@ PageBase {
             height: Math.max(1, Math.ceil(root.categoryEntries.length / 4)) * cellHeight + Design.spacingSm
             clip: true
 
+            // The cell IS width/columns; the inter-tile gap comes from the
+            // delegate sitting inset inside its cell. Adding the gap to
+            // cellWidth instead makes N cells wider than the view and
+            // GridView silently drops to N-1 columns — measured: this
+            // rendered 3 across while asking for 4.
             readonly property int columns: 4
-            readonly property int tileWidth: Math.floor((width - Design.spacingSm * (columns - 1)) / columns)
+            readonly property int cellSide: Math.floor(width / columns)
+            readonly property int tileWidth: cellSide - Design.spacingSm
 
-            cellWidth: tileWidth + Design.spacingSm
-            cellHeight: tileWidth + Design.spacingXl
+            cellWidth: cellSide
+            cellHeight: tileWidth + Design.spacingXl + Design.spacingSm
             model: root.categoryEntries
 
             delegate: Item {

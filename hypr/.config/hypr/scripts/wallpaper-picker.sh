@@ -119,7 +119,11 @@ _confirm_and_apply() {
     SELECTED="$(wp_strip_markers "$SELECTED")"
 
     # ── Confirm selection ────────────────────────────────
-    FULL_PATH="$WALLPAPER_DIR/$SELECTED"
+    # WP_EXTERNAL_PATH (quick task 260826-pk2) — set ONLY by `--set` when it
+    # was handed an absolute path outside the Wallpapers root, so the shell's
+    # Browse button can apply an image from anywhere. Empty for every other
+    # caller, which keeps the joined-relpath form below byte-identical.
+    FULL_PATH="${WP_EXTERNAL_PATH:-$WALLPAPER_DIR/$SELECTED}"
     if [[ ! -f "$FULL_PATH" ]]; then
         # Defense in depth (T-05-09) — entries come exclusively from the
         # enumeration script's find output above, never free text, but the
@@ -135,7 +139,13 @@ _confirm_and_apply() {
     SEL_THEME="${SELECTED%%/*}"
     SEL_REMAINDER="${SELECTED#*/}"
     SEL_IS_LIVE=0
-    if [[ "$SELECTED" == */* ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
+    # An external pick is never live: `--set` only accepts still-image
+    # extensions for an absolute path (see its own guard), and the live shape
+    # test below is defined in terms of a `<theme>/live/<name>` relpath that
+    # an arbitrary absolute path cannot satisfy. Without this guard an
+    # absolute path would enter the test purely because it contains slashes.
+    if [[ -z "${WP_EXTERNAL_PATH:-}" ]] && [[ "$SELECTED" == */* ]] \
+        && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \
         && theme_engine_wallpaper_is_live_ref "$SEL_REMAINDER"; then
         SEL_IS_LIVE=1
     fi
@@ -319,7 +329,43 @@ case "${1:-}" in
         ;;
     --set)
         REL="${2:-}"
-        [[ -n "$REL" ]] || { echo "wallpaper-picker.sh --set: relative path required" >&2; exit 1; }
+        [[ -n "$REL" ]] || { echo "wallpaper-picker.sh --set: a relative or absolute path is required" >&2; exit 1; }
+
+        # ── Absolute paths (quick task 260826-pk2) ───────────────────────
+        # The shell's Browse button can hand back a file from anywhere. An
+        # absolute path INSIDE the Wallpapers root is folded back to its
+        # relpath so it takes the ordinary enumerated route below — same
+        # theme recording, same live handling, no second code path. Only a
+        # genuinely external file becomes an external pick.
+        WP_EXTERNAL_PATH=""
+        if [[ "$REL" == /* ]]; then
+            _abs="$(readlink -f -- "$REL" 2>/dev/null || echo "$REL")"
+            _root="$(readlink -f -- "$WALLPAPER_DIR" 2>/dev/null || echo "$WALLPAPER_DIR")"
+            if [[ "$_abs" == "$_root"/* ]]; then
+                REL="${_abs#"$_root"/}"
+            else
+                [[ -f "$_abs" && -r "$_abs" ]] \
+                    || { echo "wallpaper-picker.sh --set: '$REL' is not a readable file" >&2; exit 1; }
+                # Stills only. A live wallpaper is defined by its
+                # `<theme>/live/<name>` position, which an arbitrary path
+                # cannot have, and the frame-extraction and owner-selection
+                # paths are both keyed on that shape — so accepting an
+                # external video here would set a wallpaper that silently
+                # never plays.
+                case "${_abs,,}" in
+                    *.jpg|*.jpeg|*.png|*.webp|*.bmp|*.avif|*.tif|*.tiff)
+                        ;;
+                    *)
+                        echo "wallpaper-picker.sh --set: '$REL' is not a still image — live wallpapers must live in <theme>/live/ inside $WALLPAPER_DIR" >&2
+                        exit 1
+                        ;;
+                esac
+                WP_EXTERNAL_PATH="$_abs"
+                _confirm_and_apply "$_abs"
+                exit 0
+            fi
+        fi
+
         VALID=0
         while IFS= read -r _entry; do
             [[ "$_entry" == "$REL" ]] && { VALID=1; break; }

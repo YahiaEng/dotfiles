@@ -208,7 +208,6 @@ PageBase {
                         isLive: relpath.indexOf("/live/") !== -1
                     };
                 });
-                wallpaperSection.applyDefaultFilter();
             }
             Component.onCompleted: {
                 listWatchdog.restart();
@@ -389,17 +388,12 @@ PageBase {
             nameFilters: ["*.jpg", "*.jpeg", "*.png", "*.webp", "*.gif", "*.bmp", "*.avif"]
             startPath: wallpaperSection.wallpaperDir
 
-            onAccepted: path => {
-                // --set takes a relpath under the wallpaper dir. A file from
-                // ANYWHERE else is out of that contract, so it is reported
-                // rather than silently passed to a script that would reject
-                // it with a bare non-zero exit.
-                var prefix = wallpaperSection.wallpaperDir + "/";
-                if (String(path).indexOf(prefix) === 0)
-                    wallpaperSection.applyWallpaper(String(path).slice(prefix.length));
-                else
-                    wallpaperSection.listError = "Only wallpapers under " + wallpaperSection.wallpaperDir + " can be set — copy it there first.";
-            }
+            // --set learned absolute paths in this same task, so Browse can
+            // apply an image from anywhere. The script folds a path that is
+            // actually inside the wallpapers root back to its relpath, so
+            // an in-library pick keeps its theme recording and live handling
+            // — no need to pre-classify the path here.
+            onAccepted: path => wallpaperSection.applyWallpaper(String(path))
         }
 
         Text {
@@ -425,11 +419,17 @@ PageBase {
             height: Math.min(3, Math.ceil(wallpaperSection.tileModel.length / 4)) * cellHeight + Design.spacingSm
             clip: true
 
+            // The cell IS width/columns; the inter-tile gap comes from the
+            // delegate sitting inset inside its cell. Adding the gap to
+            // cellWidth instead makes N cells wider than the view and
+            // GridView silently drops to N-1 columns — measured: this
+            // rendered 3 across while asking for 4.
             readonly property int columns: 4
-            readonly property int tileWidth: Math.floor((width - Design.spacingSm * (columns - 1)) / columns)
+            readonly property int cellSide: Math.floor(width / columns)
+            readonly property int tileWidth: cellSide - Design.spacingSm
 
-            cellWidth: tileWidth + Design.spacingSm
-            cellHeight: tileWidth + Design.spacingXl
+            cellWidth: cellSide
+            cellHeight: tileWidth + Design.spacingXl + Design.spacingSm
             model: wallpaperSection.tileModel
 
             delegate: Item {
