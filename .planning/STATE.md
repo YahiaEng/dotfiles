@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "Quick task 260826-437 COMPLETE - three atomic commits. THE STATIC-LABEL BUG SHIPPED A THIRD TIME AND WAS FINALLY FIXED AT THE CAUSE: AllAppsPage titled all ~52 rows 'App' after About shipped nine 'System information' rows and Updates every row 'Pending update'. The constraint was real - Pages.qml matched the search jump on .label and CHECK B greps the label verbatim - so the fix was `indexLabel` split off `label` on all seven row primitives, defaulted to label so nothing existing moved, with RowIndex.qml byte-identical in Task 1. Orchestrator re-falsified: breaking the index key exits 1 and names the entry; restoring exits 0. Four other static-label sites (AudioPage, DisplayPage, InputPage x2) reported and deliberately not fixed, judged different in kind. TWO DEAD APPS ROWS BECAME REAL and fixed a live misconfiguration - xdg-mime query default inode/directory was returning codium.desktop, so folders opened in VSCodium. Which tool governs was settled BY READING /usr/bin/xdg-open (Hyprland matches no detectDE case, so DE=generic routes to open_generic_xdg_mime), not by guessing between gio and xdg-mime. yazi.desktop is Terminal=true and xdg-open's generic path ignores that, so it carries a '(needs a terminal)' suffix and WILL NOT open a window as-is - open item. PER-PACKAGE UPDATE with the partial-upgrade risk defused rather than labelled: no -y ever, so the transaction is bounded to the on-disk sync db, verified because checkupdates syncs into its own TMPDIR dbpath and never touches /var/lib/pacman/sync - worst case is a no-op. Two-step arm plus a searchable risk row. BASELINE CORRECTION: the executor called the 588/0 motion-lint baseline stale; it is a different SCOPE, not stale - no argument scans hypr+quickshell+GTK for 588/0, quickshell alone gives 406/0, measured back to back. Quote the scope with the number. Gates re-run unpiped: qml-import-check 0/135, settings-index 177/0, colour-lint 401/0, motion-lint 588/0 default and 406/0 scoped. xdg-mime default and paru -S were NEVER run - inspection only. NOT SEEN LIVE, restart is operator-only. quickshell-doctor STILL UNRUN and operator-only."
-last_updated: "2026-08-26T14:20:00.000Z"
+stopped_at: "Quick task 260826-npc COMPLETE - three commits, pushed, tree clean. theme-doctor RETURNS A CLEAN RUN for the first time since 2026-08-23: 1168 passed/2 failed -> 1218/0, exit 0. retirement-check's cross-package-refs class was matching COMMENTS. THE TODO UNDERCOUNTED AND THE CASE IT MISSED DECIDED THE DESIGN: a measured --all had TWO failing classes, and the third hit (WallpaperTile.qml:50) matched the ENGLISH WORD in 'the focus walker' - which rules out the todo's own options 2 (reword the comment) and 3 (exempt the path), since neither survives an ordinary English word. Option 1 was the only one left standing. THE SAFETY ARGUMENT IS STRUCTURAL, NOT AESTHETIC: mirrors motion-lint:148-203 / colour-lint:179-197 but deliberately narrower - those strip INLINE because they hunt values that sit mid-line; this class hunts a NAME, and a name in real code always has code on its line, so WHOLE-LINE comments only and a trailing comment after code still scans. The filter therefore CANNOT suppress a line carrying code, which is what makes it acceptable under a blocking-tier gate. #/-- require a following space so #waybar { } (a real CSS id selector) and --waybar-compat still scan. Opt-in, ONE caller; the other fifteen classes still match comments on purpose because a commented-out exec-once = waybar IS a leftover. THE PREDICTED FIXTURE TRAP FIRED AND ONLY A MID-TASK GATE RUN CAUGHT IT: poisoned-stray-cross-script-ref's only poison was itself a comment line, so the filter turned it green and the self-test went 5/0 -> 4/1, the blocking gate silently losing its own proof it can fail. Re-poisoned onto a real kitty.conf line IN THE SAME COMMIT. A SECOND HOLE WAS MEASURED, NOT GUESSED: with the predicate stubbed to return False, ALL FIVE fixtures still returned their expected verdicts - the self-test could not see the predicate at all. tests/test-retirement-comment-filter.sh now covers its boundaries in 21 falsifiable cases and spells NO registry surface name anywhere (comments included), because tests/ is scanned by test-fixtures WITHOUT the filter. Falsified three ways: stub the predicate and the exact three hits return; make it over-eager and exactly the two CSS-selector cases fail; ship without re-poisoning and the self-test drops to 4/1. Gates run UNPIPED: retirement-check --all exit 1 -> exit 0 (144 PASS), --self-test 5/0 throughout, comment-filter 21/0, theme-doctor 1218/0. ALSO CORRECTED a stale STATE.md claim that yazi.desktop's Terminal=true was open - 260826-6o1 had already closed it (Terminal=false wrappers via /usr/local/bin/open-in-terminal, both verified installed on host; AppsPage.qml:407 drops raw Terminal=true entries). The claim survived by being carried verbatim out of 260826-437's stopped_at. quickshell-doctor --self-test NOT run, still operator-only. Three interactive checks remain unreachable by any agent (no pointer injection on this host): settings category drill-in, Browse dialog controls, scroll-stutter on live tiles. todos/pending/ now holds only the steamwebhelper todo, which is upstream in Steam's code and not fixable here. v5.0 STILL HAS NO ROADMAP."
+last_updated: "2026-08-26T14:35:00.000Z"
 last_activity: 2026-08-26
 last_activity_desc: "retirement-check stopped reading its own prose; theme-doctor clean again, and the fixture that proved the class can fail had to be re-poisoned in the same commit."
-state_head: 2241ac92
+state_head: b87908ce
 progress:
   total_phases: 6
   completed_phases: 6
@@ -1339,6 +1339,23 @@ Resume file: None
   the `Qt.callLater(_recollectRows)` hook exists precisely because push timing is uncertain)
   and **7b** (the new StepperRow by mouse AND by keyboard) are the two that no static gate can
   reach. Everything else is gate-proven.
+- ~~**Pending todo — `retirement-check` matches its own waybar prose**~~ — **CLOSED 2026-08-26**,
+  quick task 260826-npc (`882fea85`, `13a0cb89`, `b87908ce`). `theme-doctor` is **1218 passed / 0
+  failed, exit 0** — clean for the first time since 2026-08-23. Todo moved to `todos/completed/`.
+
+- **NOTHING IS AWAITING AN AGENT.** `.planning/todos/pending/` holds one item, the
+  `steamwebhelper` crash loop, and it is **not fixable from this repo** — root-caused to Chromium
+  bad_message 213 `INVALID_INITIATOR_ORIGIN` in Steam's own code. Filing an upstream Valve issue is
+  the highest-value remaining action; workaround stays `steam -shutdown`.
+
+- **AWAITING OPERATOR — three interactive checks no tool here can reach.** No pointer-injection
+  tool exists on this host and `wtype` is keyboard-only: (a) the settings category drill-in,
+  (b) the Browse dialog's own controls, (c) scroll-stutter behaviour on the live wallpaper tiles.
+
+- **AWAITING OPERATOR — `quickshell-doctor --self-test`** still unrun. It is a live probe that
+  restarts the shell, so it stays operator-only. Nothing in 260826-npc touched a quickshell
+  surface, so this is carried, not newly owed.
+
 - v4.0 shipped 2026-08-17 and is archived (`milestones/v4.0-MILESTONE.md`); Phases 18-22 all closed
 - Scope the next milestone with `/gsd-new-milestone` (v5.0 has no roadmap yet)
 - Before scoping, review `/gsd-review-backlog` and the v4.0 "Known carried debt" section
