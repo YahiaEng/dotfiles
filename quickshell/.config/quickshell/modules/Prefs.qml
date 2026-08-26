@@ -116,6 +116,13 @@ Singleton {
         "dashboard.panels.calendar",
         "dashboard.panels.media",
         "dashboard.panels.resources",
+        // Quick task 260826-rfy — which LAYOUT each of the two composed tabs
+        // draws. Both are plain strings resolved by a Loader in the tab's own
+        // host file (DashboardTab.qml / PerformanceTab.qml); an unrecognised
+        // value falls back to the default rather than leaving an empty pane,
+        // so a hand-edited prefs.json cannot blank the drawer.
+        "dashboard.layout.dash",
+        "dashboard.layout.performance",
         // Task 12 (D-01 bundle 3) — Session page: power-menu behaviour.
         "session.warnWhenBusy",
         "session.defaultAction",
@@ -249,6 +256,13 @@ Singleton {
         "dashboard.panels.calendar": true,
         "dashboard.panels.media": true,
         "dashboard.panels.resources": true,
+        // 260826-rfy. Operator's picks from the design study: "lanes" (D2) and
+        // "telemetry" (P3). "column" is the pre-260826-rfy single-column dash,
+        // kept selectable as the fallback the operator can always return to —
+        // a layout Loader that fails to load leaves an empty pane, not a dead
+        // shell, and this key is how you get back out of one.
+        "dashboard.layout.dash": "lanes",
+        "dashboard.layout.performance": "telemetry",
         "session.warnWhenBusy": true,
         "session.defaultAction": "Lock",
         "bar.entries.cpu": true,

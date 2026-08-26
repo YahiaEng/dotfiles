@@ -211,6 +211,54 @@ Scope {
     property var _cpuSamples: []
     property var _netPrev: null // { rx, tx, ts }
 
+    // ── Rolling history (quick task 260826-rfy, P3 "Telemetry Strip") ───
+    // The design study's finding was that every reading this reader
+    // publishes is INSTANTANEOUS — nothing here could answer "is this
+    // climbing?", which is the question a performance tab exists for. These
+    // four buffers are that missing time axis.
+    //
+    // Oldest-first, newest LAST, so a consumer draws left-to-right by index
+    // with no reversal. Values are the same units the scalar properties
+    // publish: cpu/gpu are 0..1 fractions, the two net buffers are bytes/sec
+    // (NOT normalised — a rate has no ceiling to normalise against, which is
+    // D-36's standing rule and the reason the rate row was never a dial).
+    //
+    // `historyLength` is a CAP, not a guarantee: a buffer is short until it
+    // fills, and a consumer must render a partial buffer rather than waiting.
+    // At the default 2000ms fast poll, 60 samples is a two-minute window.
+    readonly property int historyLength: 60
+    property var cpuHistory: []
+    property var gpuHistory: []
+    property var netRxHistory: []
+    property var netTxHistory: []
+
+    // Every buffer goes through here. Reassigns rather than mutating in
+    // place: this file's own header records that a `property var` notifies
+    // on REASSIGNMENT only, so an in-place push would update the array and
+    // never repaint the consumer — the exact trap `_cpuSamples` above is
+    // already written around.
+    function _pushHistory(buf, value) {
+        if (!isFinite(value))
+            return buf;
+        var next = buf.slice();
+        next.push(value);
+        while (next.length > root.historyLength)
+            next.shift();
+        return next;
+    }
+
+    // Largest value in a buffer, floored at `floorValue` so a flat-zero
+    // series still yields a usable scale instead of dividing by zero. Lives
+    // here rather than in the drawing code because both the sparkline and any
+    // future readout need the SAME ceiling to agree on.
+    function historyMax(buf, floorValue) {
+        var m = floorValue;
+        for (var i = 0; i < buf.length; i++)
+            if (isFinite(buf[i]) && buf[i] > m)
+                m = buf[i];
+        return m;
+    }
+
     // Clears every stored baseline AND drops every per-metric register back
     // to "pending" — the full first-run reset. Called ONLY from
     // Component.onCompleted, i.e. exactly once per session, since nothing is
@@ -233,6 +281,12 @@ Scope {
         // at that point — see the file header's GPU section.
         root.gpuState = "pending";
         root.widgetState = "pending";
+        // Once per session (this function's own contract) — see the note in
+        // `_clearSamplingState()` for why the re-summon path must not do this.
+        root.cpuHistory = [];
+        root.gpuHistory = [];
+        root.netRxHistory = [];
+        root.netTxHistory = [];
     }
 
     // Round-3 render-gate defect B ("takes a few seconds for the readings
@@ -250,6 +304,14 @@ Scope {
         root._cpuPrevTotals = null;
         root._cpuSamples = [];
         root._netPrev = null;
+        // The four 260826-rfy history buffers are deliberately NOT cleared
+        // here. This function runs on every RE-SUMMON (see the warm-start
+        // note below), and its own contract above is that it re-baselines
+        // delta state and "never the displayed values". A history buffer is
+        // a displayed value — clearing it here would blank every sparkline
+        // each time the drawer opens, which is precisely the two-minute
+        // window the telemetry layout exists to show. They are cleared in
+        // `resetBaselines()` instead, which runs once per session.
     }
 
     Component.onCompleted: root.resetBaselines()
@@ -560,6 +622,7 @@ Scope {
                         for (var si = 0; si < samples.length; si++)
                             sum += samples[si];
                         root.cpuFraction = sum / samples.length;
+                        root.cpuHistory = root._pushHistory(root.cpuHistory, root.cpuFraction);
                         root.cpuState = "populated";
                         root.widgetState = "populated";
                     }
@@ -618,6 +681,13 @@ Scope {
                         root.netRxRate = 0;
                         root.netTxRate = 0;
                     }
+                    // Both branches above have published a rate by now (the
+                    // re-baseline branch publishes an honest 0), so the
+                    // buffers advance on every populated tick — a gap in the
+                    // series would misread as a flat line rather than a
+                    // missing sample.
+                    root.netRxHistory = root._pushHistory(root.netRxHistory, root.netRxRate);
+                    root.netTxHistory = root._pushHistory(root.netTxHistory, root.netTxRate);
                     root.networkState = "populated";
                     root.widgetState = "populated";
                 }
@@ -891,6 +961,7 @@ Scope {
             // bytes, so the shared byte formatter the other dials already
             // use formats this identically.
             root.gpuFraction = Math.max(0, Math.min(1, util / 100));
+            root.gpuHistory = root._pushHistory(root.gpuHistory, root.gpuFraction);
             root.gpuUsedBytes = usedMiB * 1024 * 1024;
             root.gpuTotalBytes = totalMiB * 1024 * 1024;
             root.gpuState = "populated";
