@@ -258,6 +258,10 @@ Singleton {
         { pageIdx: 14, section: "Updates", label: "Update all", keywords: "updates upgrade paru terminal system all" },
         { pageIdx: 14, section: "Updates", label: "Update status", keywords: "updates status checking uptodate pending count repo aur" },
         { pageIdx: 14, section: "Updates", label: "Last checked", keywords: "updates last checked time refresh" },
+        // quick-260826-437 Task 3, D-6 — states the per-package update's
+        // partial-upgrade risk in a searchable row, not only at the point
+        // of the two-step-armed click.
+        { pageIdx: 14, section: "Updates", label: "Single-package updates", keywords: "updates single package partial upgrade risk one paru" },
 
         // ── pageIdx 15 — About (quick task 260825-wj2 Task 3) ────────────
         // Nine literal system fields (quick-260826-1n9 Task 4, D-3) —

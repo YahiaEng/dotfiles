@@ -118,6 +118,59 @@ PageBase {
         }
     }
 
+    // ── Per-package update — two-step arm (quick-260826-437 Task 3, D-6)
+    //    ──────────────────────────────────────────────────────────────
+    // Declared ABOVE the `Repeater` below that reads `_armedPkg` and calls
+    // `_cellClicked` (this file's own declare-before-construction-time-use
+    // discipline). `_armedPkg` names at most one package at a time; a
+    // second click on the SAME package fires the command, a click on a
+    // DIFFERENT package simply re-arms on that one (its own `armed`
+    // binding auto-clears the prior cell), and the 6 s Timer disarms on
+    // its own if neither happens.
+    property string _armedPkg: ""
+
+    Timer {
+        id: _disarmTimer
+        interval: 6000
+        running: false
+        repeat: false
+        onTriggered: root._armedPkg = ""
+    }
+
+    function _cellClicked(pkg) {
+        if (root._armedPkg === pkg.name) {
+            root._armedPkg = "";
+            _disarmTimer.stop();
+            // The command (D-5). NO `-y`, ever — `-Sy <pkg>` is the exact
+            // documented Arch partial-upgrade footgun: it refreshes the
+            // sync database and then installs ONE package against a
+            // system that has not been upgraded, dragging in newer
+            // dependencies. Omitting `-y` bounds the transaction to the
+            // database already on disk. Combined with the measured fact
+            // that `checkupdates` syncs into a TEMPORARY db
+            // (`/usr/bin/checkupdates` line 150: `fakeroot -- pacman -Sy
+            // … --dbpath "$CHECKUPDATES_DB"`, default
+            // `${TMPDIR:-/tmp}/checkup-db-${UID}/`) and never touches
+            // `/var/lib/pacman/sync`, the honest worst case is that paru
+            // reports nothing to do — a no-op, the safe direction.
+            // `--needed` turns a stale-database hit into an explicit skip
+            // rather than a same-version reinstall. One command for both
+            // sources: `paru` resolves a repo package through pacman and
+            // an AUR package through a build, and both existing update
+            // paths in this tree already shell `paru` (this file's own
+            // "Update all" above, `SystemCapsule.qml:588`) — a `sudo
+            // pacman -S` branch for repo packages would add a second
+            // privilege-escalation shape for no capability.
+            // `execDetached`, never a page-scoped `Process` (D-8,
+            // 260822-sht): this MUST outlive the page — the user may
+            // navigate away while paru is building.
+            Quickshell.execDetached([Prefs.getValue("apps.terminal"), "-e", "paru", "-S", "--needed", pkg.name]);
+        } else {
+            root._armedPkg = pkg.name;
+            _disarmTimer.restart();
+        }
+    }
+
     // Locally-declared, deliberately NOT a row primitive — invisible to
     // `ROW_PRIMITIVE_RE` (measured: `component PackageCell: Rectangle {`
     // does not match), so the grid needs no RowIndex entries and cannot
@@ -126,15 +179,43 @@ PageBase {
     // literal), and children never derive width from a cell that itself
     // derives width from them — this module's own SettingsSection header
     // records exactly that circular-binding failure at 81px.
+    //
+    // `armed`/`requested()` (D-6) — an inline component must not reach for
+    // the page's `id: root` (inline components do not reliably see the
+    // enclosing component's ids), so this cell only ever touches its own
+    // `cell.*` properties and the `Design`/`Colours`/`Motion` singletons;
+    // the Repeater delegate below, which IS in the page's scope, wires
+    // `armed`/`onRequested` to `root._armedPkg`/`root._cellClicked`.
+    // Border WIDTH stays a constant 2px always (only the color toggles) —
+    // the same geometry-stability discipline every other row/ring in this
+    // module uses, so a hover or arm never reflows the grid.
     component PackageCell: Rectangle {
         id: cell
         required property var pkg
+        property bool armed: false
+        signal requested()
 
         implicitHeight: cellCol.implicitHeight + Design.spacingSm * 2
         radius: 10
         color: Colours.surfaceVariant
-        border.width: 1
-        border.color: Colours.outline
+        border.width: 2
+        border.color: cell.armed ? Colours.error : (cellArea.containsMouse ? Colours.primary : Colours.outline)
+
+        Behavior on border.color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.colourDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.colourEasing
+            }
+        }
+
+        MouseArea {
+            id: cellArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: cell.requested()
+        }
 
         Column {
             id: cellCol
@@ -187,6 +268,19 @@ PageBase {
                 elide: Text.ElideRight
                 width: parent.width
             }
+
+            // Third line, armed state only (D-6) — the risk stated at the
+            // point of action, where it is read. Wraps rather than elides:
+            // the whole point of this line is to be read before the second
+            // click.
+            Text {
+                visible: cell.armed
+                text: "Updates only this package — a partial upgrade, which can break Arch. Click again to run."
+                font.pixelSize: Design.settingsFontSub
+                color: Colours.error
+                wrapMode: Text.WordWrap
+                width: parent.width
+            }
         }
     }
 
@@ -217,6 +311,13 @@ PageBase {
             icon: "schedule"
             subtext: root._lastChecked
         }
+        // Fourth row (D-6) — states the risk plainly so it is discoverable
+        // by reading and by searching, not only by clicking a cell.
+        InfoRow {
+            label: "Single-package updates"
+            icon: "warning"
+            subtext: "Clicking a package below updates that one package alone — a partial upgrade, which Arch discourages because a single package can pull newer dependencies onto a system that has not been fully upgraded. The command deliberately does not refresh the package database, so it may report nothing to do. Use Update all when in doubt."
+        }
     }
 
     // Below the section, inside PageBase's own Flickable — D-4, no
@@ -238,6 +339,8 @@ PageBase {
                 required property var modelData
                 width: (packagesGrid.width - packagesGrid.columnSpacing) / 2
                 pkg: modelData
+                armed: root._armedPkg === modelData.name
+                onRequested: root._cellClicked(modelData)
             }
         }
     }
