@@ -9,8 +9,12 @@ artifact: https://claude.ai/code/artifact/5bcd0725-ecf7-4a81-b3b5-20b6a57e31a9
 
 # 260826-rfy — Dashboard + Performance redesign study
 
-**Deliverable: a decision, not a diff.** No QML was touched. The study page is
-published as an Artifact and vendored to `.planning/notes/dashboard-perf-studies.html`.
+**Two stages.** Stage 1 was a decision, not a diff — the study page, published
+as an Artifact and vendored to `.planning/notes/dashboard-perf-studies.html`.
+Stage 2, after the operator picked **D2 + P3**, built those two layouts and the
+setting that switches between them; see the second half of this file. The
+"no QML was touched" statements below describe stage 1 and stayed true through
+the operator's pick.
 
 ## What shipped
 
