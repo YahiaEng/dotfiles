@@ -108,3 +108,108 @@ nothing to be better *than*.
 | P1 (cards) | container tint; device-name fields on `SystemResources`; a D-41 ruling on the battery slot |
 | P3 (telemetry) | ring buffers on `SystemResources`; measure repaint cost against OVER-04's 2.4× headroom rather than assuming it |
 | P2 / P4 / D2 / D3 | nothing — layout only |
+
+---
+
+# Stage 2 — the operator picked D2 + P3, and they are now built
+
+Operator's decision 2026-08-26: **D2 + P3 first**, plus a setting to switch
+between P1/P2/P3 and D1/D2. This half implements the picks and the switch
+mechanism; P1, P2 and D1 are the remaining work.
+
+## A correction to this study's own cost tags
+
+The page tagged **P2 and D1 with "needs a container tint"**. That overstated
+it. The real constraint is narrower and was found by reading `Dial.qml`:
+its unfilled arc is drawn in `Colours.surfaceVariant`, so a ring placed
+*inside* a `surfaceVariant` card disappears — which is the 14-10 finding
+exactly, not a missing palette role. **Fixed by drawing in-card tracks as an
+alpha overlay on `onSurface`**, which is what `PerfTelemetry.qml`'s `BarTile`
+now does. All five layouts are therefore buildable with no theme-pipeline
+change. A real `surfaceContainer` would make D1 richer; it is not a
+prerequisite. The one genuine blocker left is the D-41 battery ruling, and it
+gates only P1.
+
+## What shipped
+
+| Commit | Contents |
+|---|---|
+| `3ee70c11` | `SystemResources` history buffers + the two `dashboard.layout.*` prefs |
+| `8c36565c` | `Sparkline.qml`, `PerfTelemetry.qml` (P3), `DashLanes.qml` (D2), qmldir, Loader switch |
+| `1257a8e8` | The two Appearance pickers + their RowIndex entries |
+
+Defaults are `lanes` and `telemetry`. The previous layouts stay registered and
+selectable as `column` and `dials`.
+
+## THE SWITCH LIVES AT THE LOADERS, NOT INSIDE THE TABS
+
+`Dashboard.qml`'s two tab Loaders resolve the pref and pick a Component; a
+layout file knows nothing about being one of several. That is what makes P1,
+P2 and D1 purely additive later — each is a new file plus one `qmldir` line
+plus one branch, with no edit to a sibling layout.
+
+**The old layouts were deliberately NOT deleted.** A layout Loader whose
+component fails to load leaves an empty pane, not a dead shell — so `column`
+and `dials` are the way back out of a bad render, and they are reachable from
+the settings picker without a restart. Deleting them would have removed the
+only recovery path from a change nobody can verify from the agent shell.
+
+## TWO SIZING BUGS THAT MEASURING CAUGHT, NOT REASONING
+
+1. **A fixed content height would have overlapped the toggles.**
+   `QuickToggles.implicitHeight` is `chipsRow(72) + spacingSm + presetRow` —
+   about 120, not the ~44 the first draft's fixed 440 left for it. The
+   toggles are bottom-anchored and the resources card is top-anchored, so
+   they would have collided by roughly 76px. `DashLanes` now **derives**
+   `contentHeight` from the right lane's real requirement with a floor for
+   the calendar. The loop worry this raises is already answered by precedent:
+   `DashboardTab.qml:351` feeds `toggles.implicitHeight` into its own
+   `implicitHeight` today and ships fine.
+2. **Width parity is real; height parity is not achievable statically.**
+   Both layouts declare `contentWidth: 712`, which lands `drawerWidth`
+   exactly on its 760 floor and closes the 280px crossing animation. But
+   because `DashLanes` must derive its height from a runtime
+   `implicitHeight`, `PerfTelemetry` cannot match it with a constant. The
+   drawer still animates its *height* a little between these two tabs.
+   Recorded in both files' headers rather than quietly left as an implied
+   full fix.
+
+## THE CALENDAR IS DUPLICATED ON PURPOSE
+
+`DashLanes` reproduces the column layout's date arithmetic — locale
+first-day-of-week, the fixed 42-cell six-row grid, the Friday weekend rule,
+and the `firstDayOfWeek` 0-6 Sunday-based vs `dayName` 1-7 Monday-based
+split that `DashboardTab.qml` records as verified live rather than assumed.
+Extracting it into a shared component would have meant **editing the working
+column layout in the same commit that introduces an unverifiable new one**.
+The two must now be changed together until `column` is retired, at which
+point the duplication resolves itself. Stated in the file header so it is a
+known debt, not a discovery.
+
+## Verified statically; NOT verified live
+
+Green: `colour-lint` 434/0, `motion-lint` 621/0, `settings-index-check`
+180/0, `qmllint` clean on every touched file, brace/paren balance, and a
+reference-resolution pass confirming every `Design.*`, `Motion.*`,
+`systemResources.*`, `mediaBackend.*` and `weatherBackend.*` name used in the
+new files exists on its target.
+
+**None of that can see a QML import error or a layout defect** — the repo's
+own standing finding. The gates were also checked for whether they actually
+*saw* the new files rather than skipping them, since a green gate only proves
+what it can reach. Nothing was restarted: restarting quickshell from the
+agent shell has killed this session three times.
+
+**Operator verification needed:** restart the shell, open Super+D. Expect the
+Dashboard tab in two lanes and the Performance tab as three graphs plus two
+bars. The graphs need roughly two poll intervals before they draw anything —
+"Collecting…" is the correct first state, not a defect. Settings →
+Appearance → Dashboard drawer switches either tab back.
+
+## Remaining
+
+| Plate | Work left |
+|---|---|
+| P2 Weighted Arcs | add `startAngle`/`sweepAngle` to `Dial.qml` (it hardcodes `-90`/`360 * value`), then the layout |
+| P1 Caelestia Cards | device-name field on `SystemResources` (`gpuName` already exists, no CPU equivalent), a hand-rolled morphing badge, and **a D-41 ruling on the battery slot** |
+| D1 Bento | a rounding scale in `Design.qml`; optionally a real `surfaceContainer` role for richer separation |
