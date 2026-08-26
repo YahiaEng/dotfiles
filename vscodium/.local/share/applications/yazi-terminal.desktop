@@ -1,0 +1,17 @@
+[Desktop Entry]
+# Wrapper around the packaged yazi.desktop, which is Terminal=true and so
+# opens no window when xdg-open's generic resolver picks it as the
+# inode/directory handler. See /usr/local/bin/open-in-terminal for the full
+# explanation. Categories keep FileManager (the Settings -> Apps predicate
+# matches on it) and drop ConsoleOnly, which is no longer true of this entry.
+Name=Yazi File Manager
+GenericName=File Manager
+Comment=Blazing fast terminal file manager, opened in your configured terminal
+Icon=yazi
+Type=Application
+Terminal=false
+TryExec=/usr/local/bin/open-in-terminal
+Exec=/usr/local/bin/open-in-terminal yazi %f
+MimeType=inode/directory;
+Categories=System;FileManager;FileTools;
+Keywords=File;Manager;Explorer;Browser;

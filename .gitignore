@@ -52,6 +52,11 @@ verify/cache/
 vscodium/.local/share/applications/*
 !vscodium/.local/share/applications/codium.desktop
 !vscodium/.local/share/applications/claude-code-url-handler.desktop
+# Terminal-app wrappers: xdg-open never reads Terminal=true, so the packaged
+# yazi/nvim entries open no window when set as default handlers. These two
+# are Terminal=false and route through /usr/local/bin/open-in-terminal.
+!vscodium/.local/share/applications/yazi-terminal.desktop
+!vscodium/.local/share/applications/nvim-terminal.desktop
 
 # Python bytecode cache (260818-u6v). theme-engine/lib/fastfetch-sprites.py is
 # this repo's first Python file, and theme-engine/lib is stow-symlinked to

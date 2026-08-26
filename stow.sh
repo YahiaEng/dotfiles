@@ -731,6 +731,23 @@ else
     echo "  ⚠ nvim not installed — skipping plugin restore"
 fi
 
+# Rebuild the user desktop-entry MIME cache. Without a mimeinfo.cache in
+# ~/.local/share/applications, `gio mime <type>` reports only the system
+# entries — measured on this host: it listed yazi.desktop but not the stowed
+# codium.desktop, despite codium declaring inode/directory. The Settings →
+# Apps default-app pickers build their candidate lists from exactly that
+# `gio mime` output, so the repo's own wrapper entries (yazi-terminal,
+# nvim-terminal) would never appear in them until this runs. Guarded and
+# non-fatal, matching the nvim/zellij posture above.
+if command -v update-desktop-database >/dev/null 2>&1; then
+    echo ""
+    echo "Rebuilding the desktop-entry MIME cache..."
+    update-desktop-database "$HOME/.local/share/applications" || \
+        echo "  ⚠ update-desktop-database failed — the Apps pickers may not list the wrapper entries" >&2
+else
+    echo "  ⚠ update-desktop-database not installed (desktop-file-utils) — skipping MIME cache rebuild"
+fi
+
 echo ""
 echo "╔══════════════════════════════════════════╗"
 echo "║       Dotfiles stowed successfully!      ║"

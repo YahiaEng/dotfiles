@@ -1,0 +1,18 @@
+[Desktop Entry]
+# Wrapper around the packaged nvim.desktop, which is Terminal=true and so
+# opens no window when xdg-open's generic resolver picks it as a text/*
+# handler. See /usr/local/bin/open-in-terminal for the full explanation.
+# MimeType is copied verbatim from /usr/share/applications/nvim.desktop, and
+# %F (multiple files) is kept rather than normalised to yazi's %f.
+Name=Neovim
+GenericName=Text Editor
+Comment=Edit text files in your configured terminal
+Icon=nvim
+Type=Application
+Terminal=false
+StartupNotify=false
+TryExec=/usr/local/bin/open-in-terminal
+Exec=/usr/local/bin/open-in-terminal nvim %F
+MimeType=text/english;text/plain;text/x-makefile;text/x-c++hdr;text/x-c++src;text/x-chdr;text/x-csrc;text/x-java;text/x-moc;text/x-pascal;text/x-tcl;text/x-tex;application/x-shellscript;text/x-c;text/x-c++;
+Categories=Utility;TextEditor;Development;
+Keywords=Text;editor;
