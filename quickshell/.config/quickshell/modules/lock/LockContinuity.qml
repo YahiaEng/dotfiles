@@ -42,6 +42,33 @@ Item {
         LockClock {
             Layout.alignment: Qt.AlignHCenter
             scale: 1.0
+
+            // Entrance step 0 — the stack rises in sequence rather than the
+            // whole surface fading in flat. Property-value-source animations:
+            // they self-start at creation and are guaranteed to settle on `to`.
+            opacity: 0
+            transform: Translate {
+                SequentialAnimation on y {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 0 }
+                    NumberAnimation {
+                        from: 26
+                        to: 0
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
+            }
+            SequentialAnimation on opacity {
+                PauseAnimation { duration: Motion.staggerOffsetDuration * 0 }
+                NumberAnimation {
+                    from: 0
+                    to: 1
+                    duration: Motion.emphasizedInDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedInEasing
+                }
+            }
         }
 
         Text {
@@ -49,6 +76,33 @@ Item {
             text: Qt.formatDateTime(dateClock.date, "dddd, MMMM d")
             color: Colours.onSurface
             font.pixelSize: 22
+
+            // Entrance step 1 — the stack rises in sequence rather than the
+            // whole surface fading in flat. Property-value-source animations:
+            // they self-start at creation and are guaranteed to settle on `to`.
+            opacity: 0
+            transform: Translate {
+                SequentialAnimation on y {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 1 }
+                    NumberAnimation {
+                        from: 26
+                        to: 0
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
+            }
+            SequentialAnimation on opacity {
+                PauseAnimation { duration: Motion.staggerOffsetDuration * 1 }
+                NumberAnimation {
+                    from: 0
+                    to: 1
+                    duration: Motion.emphasizedInDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedInEasing
+                }
+            }
         }
 
         Text {
@@ -57,6 +111,33 @@ Item {
             text: root.mediaBackend ? (root.mediaBackend.displayArtist + " — " + root.mediaBackend.displayTitle) : ""
             color: Colours.onSurface
             font.pixelSize: 14
+
+            // Entrance step 2 — the stack rises in sequence rather than the
+            // whole surface fading in flat. Property-value-source animations:
+            // they self-start at creation and are guaranteed to settle on `to`.
+            opacity: 0
+            transform: Translate {
+                SequentialAnimation on y {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 2 }
+                    NumberAnimation {
+                        from: 26
+                        to: 0
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
+            }
+            SequentialAnimation on opacity {
+                PauseAnimation { duration: Motion.staggerOffsetDuration * 2 }
+                NumberAnimation {
+                    from: 0
+                    to: 1
+                    duration: Motion.emphasizedInDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedInEasing
+                }
+            }
         }
 
         Text {
@@ -65,6 +146,33 @@ Item {
             color: Colours.secondary
             font.pixelSize: 18
             Layout.topMargin: 8
+
+            // Entrance step 3 — the stack rises in sequence rather than the
+            // whole surface fading in flat. Property-value-source animations:
+            // they self-start at creation and are guaranteed to settle on `to`.
+            opacity: 0
+            transform: Translate {
+                SequentialAnimation on y {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 3 }
+                    NumberAnimation {
+                        from: 26
+                        to: 0
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
+            }
+            SequentialAnimation on opacity {
+                PauseAnimation { duration: Motion.staggerOffsetDuration * 3 }
+                NumberAnimation {
+                    from: 0
+                    to: 1
+                    duration: Motion.emphasizedInDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedInEasing
+                }
+            }
         }
 
         LockField {
@@ -74,6 +182,33 @@ Item {
             Layout.topMargin: 12
             pam: root.pam
             fieldRadius: 12
+
+            // Entrance step 4 — the stack rises in sequence rather than the
+            // whole surface fading in flat. Property-value-source animations:
+            // they self-start at creation and are guaranteed to settle on `to`.
+            opacity: 0
+            transform: Translate {
+                SequentialAnimation on y {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 4 }
+                    NumberAnimation {
+                        from: 26
+                        to: 0
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
+            }
+            SequentialAnimation on opacity {
+                PauseAnimation { duration: Motion.staggerOffsetDuration * 4 }
+                NumberAnimation {
+                    from: 0
+                    to: 1
+                    duration: Motion.emphasizedInDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedInEasing
+                }
+            }
         }
 
         LockStatus {

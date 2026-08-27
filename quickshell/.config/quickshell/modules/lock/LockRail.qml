@@ -52,6 +52,34 @@ Item {
         radius: root.cqw * 1.4
         color: Colours.surface
 
+        // Entrance: the rail arrives from the edge it is anchored to, which
+        // is the whole idea of the direction — it should read as something
+        // sliding in off-screen, not as a panel materialising in place.
+        //
+        // Animated through a Translate rather than on `x` directly: `x` here
+        // carries a real binding to the output width, and starting an
+        // animation on a bound property destroys the binding. That is
+        // precisely how Split Canvas shipped invisible
+        // (`qml-configured-after-construction`). A transform is independent
+        // of the binding, so there is nothing to lose.
+        opacity: 0
+        transform: Translate {
+            NumberAnimation on x {
+                from: -((root.screen?.width ?? 2560) * 0.262)
+                to: 0
+                duration: Motion.spatialInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.emphasizedInEasing
+            }
+        }
+        NumberAnimation on opacity {
+            from: 0
+            to: 1
+            duration: Motion.emphasizedInDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.emphasizedInEasing
+        }
+
         ColumnLayout {
             anchors.fill: parent
             anchors.margins: root.cqw * 1.6

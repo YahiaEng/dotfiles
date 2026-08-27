@@ -101,13 +101,12 @@ WlSessionLockSurface {
             easing.bezierCurve: Motion.emphasizedInEasing
         }
 
-        NumberAnimation on scale {
-            from: 1.04
-            to: 1
-            duration: Motion.spatialInDuration
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.spatialInEasing
-        }
+        // NOTE: the surface-level entrance is deliberately a plain fade and
+        // nothing more. It reveals the BACKDROP; the character belongs to
+        // each layout, which now stages its own entrance (the flanks sliding
+        // in on Three Columns, the rail arriving from its edge, the stack
+        // rising on Continuity). A simultaneous scale here fought those
+        // transforms and read as a wobble.
 
         // Surface-wide click-to-refocus. Declared BEFORE the layout loader
         // so it sits underneath: a LockField's own MouseArea still wins for

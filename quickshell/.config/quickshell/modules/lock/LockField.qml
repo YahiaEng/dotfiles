@@ -150,7 +150,13 @@ Item {
 
                 Behavior on scale {
                     NumberAnimation {
-                        duration: Motion.spatialOutDuration
+                        // Halved 2026-08-27 (150ms -> 75ms): at speed the
+                        // 150ms pop still overlapped the next keystroke, so
+                        // the row read as awkward rather than responsive. A
+                        // password dot wants to acknowledge the key, not
+                        // perform. Derived from the token rather than written
+                        // as a literal — motion-lint rejects a bare `Nms`.
+                        duration: Motion.spatialOutDuration / 2
                         easing.type: Easing.BezierSpline
                         easing.bezierCurve: Motion.spatialOutEasing
                     }

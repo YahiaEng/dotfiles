@@ -53,39 +53,67 @@ Item {
     readonly property real cqw: (root.screen?.width ?? 2560) / 100
 
     readonly property real centerScale: Math.min(1, (root.screen?.height ?? 1440) / 1440)
-    // Caelestia's own token is `heightMult 0.7`, and that is what shipped —
-    // but it reads as a floating window here rather than as the lock screen
-    // ("it reads like a hovered window, because the entire thing occupies a
-    // small area of the screen center"). Their 0.7 sits on a heavily blurred
-    // screencopy that fuses card and ground into one surface; ours reads as
-    // an object on a backdrop. Raised to 0.86, which on a 16:9 output leaves
-    // an even 7% margin on every side (the card is k% of BOTH axes, since
-    // width is height x 16/9 on a 16/9 screen). Deliberate divergence from
-    // the reference, on operator report — see `reference-wins-over-my-taste`
-    // for why this needs saying out loud rather than being done quietly.
-    readonly property real cardHeight: (root.screen?.height ?? 1440) * 0.86
-    readonly property real cardWidth: root.cardHeight * (16 / 9)
+
+    // ── The card is gone ──────────────────────────────────────────────
+    // Caelestia's own token is `heightMult 0.7`; raising it to 0.86 did not
+    // fix "it reads like a hovered window", and the operator settled the
+    // question directly: this layout should scale to fit the ENTIRE screen.
+    // Recorded plainly because it is a deliberate divergence from both the
+    // reference AND from this task's own design study — the study drew a
+    // centred card, and on a real 2560x1440 output that is simply the wrong
+    // call. An SVG mockup has no display to be dwarfed by
+    // (`design-study-ignores-gaps-out` is the same class of error).
+    //
+    // The three columns now own the whole surface. `surface` is dropped as
+    // a fill too: with no card there is nothing to distinguish from the
+    // backdrop, and painting it would just hide the wallpaper blur that
+    // gives this layout its depth. The tiles keep their own
+    // `surfaceVariant` grounds, so the columns still read as panels.
     readonly property real centerWidth: 600 * root.centerScale
 
-    Rectangle {
+    Item {
         id: card
 
-        anchors.centerIn: parent
-        width: root.cardWidth
-        height: root.cardHeight
-        radius: Design.roundingXl
-        color: Colours.surface
+        anchors.fill: parent
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 40
-            spacing: 48
+            anchors.margins: root.cqw * 2.4
+            spacing: root.cqw * 2.4
 
             // ── Left column: weather / fetch / media ──────────────────
             ColumnLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 16
+
+                // Entrance: the two flanks slide inward from their own edges while the
+                // centre rises, so the composition assembles instead of fading in
+                // as one flat sheet. Written as property-value-source animations
+                // (they self-start at creation and settle on `to`).
+                opacity: 0
+                transform: Translate {
+                    SequentialAnimation on x {
+                        PauseAnimation { duration: Motion.staggerOffsetDuration * 0 }
+                        NumberAnimation {
+                            from: -root.cqw * 4
+                            to: 0
+                            duration: Motion.emphasizedInDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedInEasing
+                        }
+                    }
+                }
+                SequentialAnimation on opacity {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 0 }
+                    NumberAnimation {
+                        from: 0
+                        to: 1
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
 
                 Rectangle {
                     Layout.fillWidth: true
@@ -279,6 +307,32 @@ Item {
                 Layout.alignment: Qt.AlignVCenter
                 spacing: 24
 
+                // Centre rises rather than slides — it is the anchor of the
+                // composition, so it moves along a different axis to the flanks.
+                opacity: 0
+                transform: Translate {
+                    SequentialAnimation on y {
+                        PauseAnimation { duration: Motion.staggerOffsetDuration * 2 }
+                        NumberAnimation {
+                            from: root.cqw * 1.6
+                            to: 0
+                            duration: Motion.emphasizedInDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedInEasing
+                        }
+                    }
+                }
+                SequentialAnimation on opacity {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 2 }
+                    NumberAnimation {
+                        from: 0
+                        to: 1
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
+
                 LockClock {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 16
@@ -381,6 +435,31 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 spacing: 16
+
+                // Mirror of the left flank, one beat later.
+                opacity: 0
+                transform: Translate {
+                    SequentialAnimation on x {
+                        PauseAnimation { duration: Motion.staggerOffsetDuration * 4 }
+                        NumberAnimation {
+                            from: root.cqw * 4
+                            to: 0
+                            duration: Motion.emphasizedInDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedInEasing
+                        }
+                    }
+                }
+                SequentialAnimation on opacity {
+                    PauseAnimation { duration: Motion.staggerOffsetDuration * 4 }
+                    NumberAnimation {
+                        from: 0
+                        to: 1
+                        duration: Motion.emphasizedInDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.emphasizedInEasing
+                    }
+                }
 
                 Rectangle {
                     Layout.fillWidth: true

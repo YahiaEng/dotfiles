@@ -244,6 +244,7 @@ Item {
 
                 readonly property var current: root.weatherBackend ? root.weatherBackend.current : null
                 readonly property real cpuFrac: root.systemResources ? root.systemResources.cpuFraction : 0
+                readonly property real memFrac: root.systemResources ? root.systemResources.memoryFraction : 0
                 readonly property bool hasPlayer: root.mediaBackend && root.mediaBackend.hasPlayer === true
 
                 RowLayout {
@@ -267,12 +268,28 @@ Item {
                 RowLayout {
                     spacing: root.cqw * 0.3
                     Text {
-                        text: "▲"
+                        text: "speed"
+                        font.family: Design.symbolFontFamily
                         color: Colours.secondary
-                        font.pixelSize: root.cqw * 0.62
+                        font.pixelSize: root.cqw * 0.78
                     }
                     Text {
                         text: qsTr("CPU %1%").arg(Math.round(ambientRow.cpuFrac * 100))
+                        color: Colours.onSurfaceVariant
+                        font.pixelSize: root.cqw * 0.62
+                    }
+                }
+
+                RowLayout {
+                    spacing: root.cqw * 0.3
+                    Text {
+                        text: "memory"
+                        font.family: Design.symbolFontFamily
+                        color: Colours.primary
+                        font.pixelSize: root.cqw * 0.78
+                    }
+                    Text {
+                        text: qsTr("MEM %1%").arg(Math.round(ambientRow.memFrac * 100))
                         color: Colours.onSurfaceVariant
                         font.pixelSize: root.cqw * 0.62
                     }
@@ -281,9 +298,10 @@ Item {
                     visible: ambientRow.hasPlayer
                     spacing: root.cqw * 0.3
                     Text {
-                        text: "♪"
-                        color: Colours.primary
-                        font.pixelSize: root.cqw * 0.62
+                        text: "music_note"
+                        font.family: Design.symbolFontFamily
+                        color: Colours.secondary
+                        font.pixelSize: root.cqw * 0.78
                     }
                     Text {
                         text: root.mediaBackend ? root.mediaBackend.displayTitle : ""
