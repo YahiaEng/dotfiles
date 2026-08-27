@@ -1,10 +1,10 @@
 ---
 schema_version: 1
-open_count: 62
+open_count: 65
 waived_count: 2
 fixed_count: 29
-total_count: 93
-last_updated: 2026-08-21T10:21:20.843Z
+total_count: 96
+last_updated: 2026-08-27T03:24:57.153Z
 ---
 
 # Broken Windows Ledger
@@ -108,6 +108,9 @@ last_updated: 2026-08-21T10:21:20.843Z
 | 91 | quick-260820-nua | unrun-verify | .planning/quick/260820-nua-build-the-themed-neovim-config-wired-int/260820-nua-PLAN.md |  | Task 8 operator checkpoint (blocking-human) not yet performed: live visual verification of syntax colours, live re-theme, monochrome/light palettes, plugin slate, and zellij autolock with nvim focused. All prior 7 tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real kitty window. | fixed | Operator verified live in a real terminal 2026-08-20: live theme reload confirmed; tested on a light theme and on vantablack; greeter renders correctly on both; which-key works and every prefix is named; keybinds work; zellij autolock fires when nvim opens; K and gr confirmed working after the LSP keymap cleanup (379435c). | 2026-08-20T14:57:22.290Z | 2026-08-20T17:29:46.038Z |
 | 92 | quick-260820-sqd | unrun-verify | .planning/quick/260820-sqd-build-an-in-shell-qml-settings-menu-cont/260820-sqd-PLAN.md |  | Task 4 operator checkpoint (blocking-human) not yet performed: live visual pass across the whole settings window - Super+comma open/close, pointer+keyboard input, all four nav pages, theme re-colour, wallpaper/icon/font pickers, audio/wifi/bluetooth panels, display/input dropdowns surviving a theme switch, motion/DND, and the new editable idle/lock section (including the append-not-replace lengthened-lock-timeout check). All four tasks are code-complete and gate-verified; this is the one item requiring the operator's own eyes in a real session. | fixed |  | 2026-08-20T20:04:54.092Z | 2026-08-21T01:40:17.262Z |
 | 93 | quick-260821-6z1 | deviation | quickshell/.config/quickshell/modules/settings/pages/WindowManagerPage.qml |  | N-01: no compositor animation-speed knob — the Motion preset row already IS this control on this build (config/animations.lua derives every leaf's speed from motion tokens); relabelled + InfoRow instead | open |  | 2026-08-21T10:21:20.843Z |  |
+| 94 | quick-260827-833 | deviation | quickshell/.config/quickshell/modules/lock/Lock.qml |  | signal unlock renamed to unlockRequested to avoid colliding with native WlSessionLock.unlock() method | open |  | 2026-08-27T03:24:52.871Z |  |
+| 95 | quick-260827-833 | stub | quickshell/.config/quickshell/modules/lock/LockCaelestia.qml |  | weather/fetch/resources tiles render plain text rather than Caelestia's icon-font glyphs (cosmetic, plan-licensed simplification) | open |  | 2026-08-27T03:24:57.049Z |  |
+| 96 | quick-260827-833 | stub | quickshell/.config/quickshell/modules/lock/LockRail.qml |  | media capsule cover art is a solid colour swatch, not real album art (artist/title text is live) | open |  | 2026-08-27T03:24:57.153Z |  |
 
 ````json
 [
@@ -1225,6 +1228,42 @@ last_updated: 2026-08-21T10:21:20.843Z
     "status": "open",
     "reason": "",
     "recorded_at": "2026-08-21T10:21:20.843Z",
+    "resolved_at": null
+  },
+  {
+    "id": 94,
+    "kind": "deviation",
+    "phase": "quick-260827-833",
+    "file": "quickshell/.config/quickshell/modules/lock/Lock.qml",
+    "line": null,
+    "description": "signal unlock renamed to unlockRequested to avoid colliding with native WlSessionLock.unlock() method",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-27T03:24:52.871Z",
+    "resolved_at": null
+  },
+  {
+    "id": 95,
+    "kind": "stub",
+    "phase": "quick-260827-833",
+    "file": "quickshell/.config/quickshell/modules/lock/LockCaelestia.qml",
+    "line": null,
+    "description": "weather/fetch/resources tiles render plain text rather than Caelestia's icon-font glyphs (cosmetic, plan-licensed simplification)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-27T03:24:57.049Z",
+    "resolved_at": null
+  },
+  {
+    "id": 96,
+    "kind": "stub",
+    "phase": "quick-260827-833",
+    "file": "quickshell/.config/quickshell/modules/lock/LockRail.qml",
+    "line": null,
+    "description": "media capsule cover art is a solid colour swatch, not real album art (artist/title text is live)",
+    "status": "open",
+    "reason": "",
+    "recorded_at": "2026-08-27T03:24:57.153Z",
     "resolved_at": null
   }
 ]
