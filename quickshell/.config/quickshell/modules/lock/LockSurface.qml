@@ -101,11 +101,12 @@ WlSessionLockSurface {
                     return railComponent;
                 case "split":
                     return splitComponent;
+                case "focus":
+                    return focusComponent;
                 default:
-                    // Layout E (Task 5) adds its own `case` arm here in
-                    // the same commit that registers its type in qmldir.
-                    // Until then every other valid layoutKey value falls
-                    // back to continuity — never an empty surface.
+                    // Every valid layoutKey value now has its own arm.
+                    // This default stays as the never-empty-surface
+                    // fallback for any FUTURE unhandled value.
                     return continuityComponent;
                 }
             }
@@ -201,6 +202,16 @@ WlSessionLockSurface {
             mediaBackend: root.mediaBackend
             systemResources: root.systemResources
             weatherBackend: root.weatherBackend
+            screen: root.screen
+        }
+    }
+
+    Component {
+        id: focusComponent
+
+        LockFocus {
+            pam: root.pam
+            mediaBackend: root.mediaBackend
             screen: root.screen
         }
     }
