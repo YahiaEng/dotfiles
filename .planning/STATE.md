@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "260826-rfy stages 1-4 COMPLETE, operator-approved, pushed, tree clean. D2 lanes + P3 telemetry are the live defaults; column/dials still selectable via Settings > Appearance > Dashboard drawer. Operator asked to CLEAR CONTEXT and then continue with THE REMAINING THREE PLATES: P2 Weighted Arcs, D1 Caelestia Bento, P1 Caelestia Cards. Full self-contained resume brief is the first section of Operator Next Steps in this file — reusable assets, the four-edit recipe for adding a layout, and the paid-for traps. P1 IS NO LONGER BLOCKED: the D-41 battery ruling it waited on was taken (overturned for battery only)."
-last_updated: "2026-08-26T19:10:00.000Z"
-last_activity: 2026-08-26
-last_activity_desc: "Three operator-reported dashboard defects fixed by measuring pixels; one reserved 18px explained both, the ring track was invisible for the third time, and D-41 is overturned for battery."
+stopped_at: "260827-50i COMPLETE — ALL THREE REMAINING PLATES BUILT (P2 arcs, D1 bento, P1 cards). The design study is now fully implemented; nothing from it is left unbuilt. Operator defaults untouched (lanes/telemetry). OWED TO THE OPERATOR: neither Performance layout has been rendered — there is no quickshell:performance global and no click-injection tool, so `arcs` and `cards` are gate-proven but UNSEEN. See the SUMMARY's 'NOT verified' section for the exact commands. Prior context follows. || 260826-rfy stages 1-4 COMPLETE, operator-approved, pushed, tree clean. D2 lanes + P3 telemetry are the live defaults; column/dials still selectable via Settings > Appearance > Dashboard drawer. Operator asked to CLEAR CONTEXT and then continue with THE REMAINING THREE PLATES: P2 Weighted Arcs, D1 Caelestia Bento, P1 Caelestia Cards. Full self-contained resume brief is the first section of Operator Next Steps in this file — reusable assets, the four-edit recipe for adding a layout, and the paid-for traps. P1 IS NO LONGER BLOCKED: the D-41 battery ruling it waited on was taken (overturned for battery only)."
+last_updated: "2026-08-27T00:55:00.000Z"
+last_activity: 2026-08-27
+last_activity_desc: "The design study is fully built — the last three plates shipped, the two-width-family fork taken on measurement rather than deferred, and the bento verified live at exactly its declared 944."
 state_head: 069c4fda
 progress:
   total_phases: 6
@@ -33,7 +33,7 @@ Phase: 22
 Plan: Not started
 Status: All phases complete
 Progress: [██████████] 100%
-Last activity: 2026-08-26 - Built the launcher wallpaper carousel (the picker actually meant) with live preview, and made the settings tiles keyboard-reachable
+Last activity: 2026-08-27 - Completed quick task 260827-50i: built the three remaining dashboard/performance layout plates (P2 arcs, D1 bento, P1 cards)
 
 ## Performance Metrics
 
@@ -579,6 +579,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260827-50i | THE STUDY IS NOW FULLY BUILT — the last three plates shipped, and the one real fork was TAKEN rather than deferred. P2 "arcs", D1 "bento" and P1 "cards" all land selectable; operator defaults (lanes/telemetry) restored untouched. PREREQUISITES LANDED SEPARATELY so the layout commits are pure layout: `Dial.qml` gained opt-in `startAngle`/`sweepAngle` defaulting to the exact hardcoded values (the TRACK arc reads them too — a full circle at the default, but a narrowed sweep needs both arcs sharing one origin); `Design.qml` gained the shared rounding ladder 18/28/42/56 it never had; `SystemResources` gained `cpuName`/`distroName`/`uptimeText` (static facts one-shot and cached on first open per the hwmon/GPU probe doctrine, uptime on the existing 30s slow timer, all failing quiet because they are LABELS not D-41 readings) and later `netRxTotal`/`netTxTotal`. THE FORK: the study designs TWO WIDTH FAMILIES and says so in D1's own note — 'these two tabs have to be chosen together'. So bento+cards share 944 of content (drawer 1040) and lanes/telemetry/arcs share 712 (drawer 808). Compressing D1 to 712 was REJECTED ON MEASUREMENT, not taste: the media column alone is 236, leaving 460 for a row carrying a 250px weather cell plus a 92px avatar and three text lines. This NARROWS rather than contradicts the earlier 'declare the same 712' note, which was written while every live layout was narrow and still binds the whole narrow family. ONE MEASURED DIVERGENCE FROM A PLATE: D1 folds toggles into the 236px media foot as three generic tiles, but `QuickToggles` is a SIX-chip row dividing its own width evenly — ~27px a chip. They run across the left stack's foot at 692 instead, MORE room than lanes gives them (356). The morphing usage badge is a Canvas polar blob (`1 + amp*cos(lobes*theta)`, both terms rising with load, animated so it morphs rather than snaps, a plain circle at idle) — their `MaterialShape` is a compiled C++ plugin and a build step in front of 'reproduces from one script' costs more than the shape; the header says APPROXIMATION rather than implying otherwise. D1 separates six same-fill cells by RADIUS ALONE because `Colours.qml` publishes no `surfaceContainer` and the pipeline does not generate one — the study's own stated fallback. VERIFIED LIVE ON THE DASHBOARD TAB, not just gated: bento instantiates clean, and raw pixels put card content at x=783..1726 = EXACTLY the declared 944, centred at 1254.5 against a screen centre of 1255; clock cell measured 104 and rail cell 82, both matching their declarations; all four corners of the 170px art box sample the card fill (68,71,90) proving the circular mask crops, centre is image; identity cell reads 'aorus / up 31m · Arch Linux / Hyprland · dracula' so uptime, distro AND the theme-state read are all live. NEITHER PERFORMANCE LAYOUT HAS BEEN RENDERED and that is the honest gap: there is no `quickshell:performance` global (only dashboard and media exist, shell.qml:1829/:1896), the tab's Loader is active only when current, and no click-injection tool exists here. So the 270° arc path, the Canvas badge, and both layouts' derived card heights are gate-proven but UNSEEN — and 'derived' was true of the heights that still clipped a play button last round. Expected-and-documented log line: one QQuickImage warning per load for the absent `~/.face`, which is the DESIGNED avatar-fallback state. | 2026-08-27 | `242544a9`, `03eea9e8`, `67c407ff`, `8090ade5` | `.planning/quick/260827-50i-build-the-three-remaining-dashboard-perf/` |
 | 260826-rfy | THE REFERENCE MOVED AND OUR CODE STILL CITES THE OLD ONE. Design study only — **no QML touched**. Vendored `caelestia-dots/shell` @ a788c432 to `.planning/notes/caelestia-dashboard/` (18 files + PROVENANCE) and published a 7-direction study to `.planning/notes/dashboard-perf-studies.html`. `PerformanceTab.qml`'s own round-2 comment says its dial cluster follows "the Caelestia reference's compact-gauge-cluster composition" — AT THE PINNED SHA THAT COMPOSITION NO LONGER EXISTS UPSTREAM. Their Performance tab is HeroCard×2 + Storage/Network/Memory cards + a bottom-filling BatteryTank, with no dial row anywhere; their Dash tab is a 6×2 bento whose six cells share ONE fill and separate purely by FOUR DIFFERENT RADII. Our in-tree reference comments are historical, not wrong — the stale-reference class that goes GREEN, not red. FOUR MEASUREMENTS SHAPED EVERY DIRECTION: (1) `contentWidth: 400` inside `dashboardMinWidth: 760` = **180px dead margin each side, permanently** — the frame is correctly wide for the 4-tab header, the content just never grew into it; (2) Performance 1040 vs Dashboard 760 with `drawerWidth` bound to the active tab, so the window animates 280px wider and back on EVERY tab crossing — which is why the page forces the two tabs to be picked AS A PAIR and answers "fixes the jump?" per COMBINATION, not per plate; (3) **`Colours.qml` has 19 roles, no helper functions, and NO `surfaceContainer`** — on dracula `surfaceVariant`/`primaryContainer`/`secondaryContainer` are byte-identical `#44475a`, ONE tint above surface, the same shape as 14-10's invisible-GPU-ring finding; (4) no rounding scale in `Design.qml`. Findings 3+4 are why the MOST FAITHFUL direction (D1 bento) is the one carrying an unanswered prerequisite — better on the page than discovered in execution. PORTING CONFLICT SURFACED, NOT DEFERRED: Caelestia gates `BatteryTank` on `isLaptopBattery` so it would never render here, while D-41 mandates always-show — P1 means overturning D-41 or drawing a 104px column of nothing forever. ONE SHARED 0.60 SCALE across all 9 plates on purpose: a per-plate scale would have made the 280px width disagreement invisible, hiding the very thing the study exists to show. Both current states drawn too — alternatives need something to be better than. No recommendation of a single winner; four PAIRINGS keyed to intent, expecting a plural answer. | 2026-08-26 | (see dir) | `.planning/quick/260826-rfy-redesign-the-dashboard-and-performance-t/` |
 | 260826-qr1 | A GATE THAT DRIFTED WENT GREEN OVER NOTHING, AND THE PACKAGE DESCRIPTION WAS THE TRAP. Two open items closed. (1) The reported bug was that `--self-test` read 58/1 with the 1 MISLABELLED - it printed as a chord-collision failure while that check PASSED with `found: 0`; the assertion tested keybind-doctor's WHOLE exit code, so the real failure (`declared-vs-registered`, a live `hyprctl binds` read) surfaced under a chord-collision label. True, and fixed - but the fixture was the SMALLER half. THE SHIPPED MANIFEST WAS STALE TOO: `shortcuts.json` declared overview at SUPER+O while keybinds.lua:265 binds SUPER+Tab, and the collision check walks the MANIFEST's chords hunting declared binds that claim them. Nothing binds Super+O any more (live `hyprctl binds` has ZERO `key: O`), so `found: 0` was VACUOUS and a bind claiming Super+Tab would not have been caught. THE GATE DID NOT GO RED WHEN ITS REFERENCE DATA DRIFTED - IT WENT GREEN, AND STAYED GREEN, OVER NOTHING. THE POISONED FIXTURE HAD TO MOVE IN THE SAME COMMIT because its poison depends on the manifest chord: manifest-only would have left the collider claiming a chord the manifest no longer owns, and the poisoned fixture would have gone quietly green - a poison that no longer bites, in a gate that then looks HEALTHIER. Re-proven biting (`found: 1`) before commit. `_qsd_kbd_collision_rc` now extracts the one verdict line a fixture can answer, returning 0/1/**2=never-ran**, and the poisoned assertions demand exactly 1 so an early death cannot satisfy 'expected non-zero'; no pipeline, since `grep -q` exits 141 under pipefail on an early match. All FOUR call sites re-pointed - the audio-panel pair passed only by luck of matching the live session and carried the identical latent defect. Enumerated all 13 manifest entries: EXACTLY ONE real drift; two others were MY OWN PARSER's false positives (`launcher` legitimately has a 2nd chord Super+R; `launcher-menu` declares release via a `{ release = true }` OPTIONS TABLE, not a function-name variant) - an instrument reporting '13 of 13 broken' is usually the broken thing. (2) webp: `qt6-imageformats` was filed as an UNCONFIRMED CANDIDATE because its description advertises only TIFF/MNG/TGA/WBMP - correctly refused as an install.sh entry on an unverified claim. THE DESCRIPTION IS INCOMPLETE: the real 6.11.2-1 package ships SEVEN plugins including `libqwebp.so`, with `Depends On: libwebp` corroborating. `pacman -Fl` was useless (no files db without a sudo `pacman -Fy`), so the package was fetched from the mirror and LISTED - reading contents, never metadata. Now in PACMAN_PKGS, hence VERIFY_PKGS. Live keybind-doctor 13/0 BYTE-IDENTICAL to the pre-change baseline; theme-doctor 1218/0. (3) EXTENDED after the operator installed qt6-imageformats and asked whether install.sh covers everything: IT DID NOT. `qt6-multimedia` was NOT declared and NOT transitively covered - `pactree -r -u qt6-multimedia` intersected with the declared set was EMPTY; it existed on this host only because ktextwidgets/qt6-speech happened to pull it, so a FRESH INSTALL would have shipped a shell whose mp4/mkv/webm/mov live wallpapers were dead on arrival, failing silently at the QML import exactly as the webp plugin did. Added with `qt6-multimedia-ffmpeg` named EXPLICITLY: qt6-multimedia depends on the VIRTUAL `qt6-multimedia-backend`, which has TWO providers here, and install.sh runs --noconfirm so an implicit choice is an arbitrary one. `qt6-declarative` checked the same way and IS genuinely covered (quickshell requires it). THE METHOD IS THE DURABLE PART: the command-derived pass - every command the repo invokes, 94 resolved to 60 owning packages, diffed against 130 declared - found NOTHING (only base packages, plus paru which install.sh bootstraps itself and sudo which is a prerequisite). BOTH REAL FINDINGS WERE IN THE NO-BINARY CLASS, which a command enumeration is structurally blind to; only a separate pass over QML imports, fonts, icon/cursor/GTK themes and portals could see them. Everything else in that class verified declared (ttf-firacode-nerd, ttf-material-symbols-variable-git, papirus-icon-theme, rose-pine-cursor/-hyprcursor, adw-gtk-theme under its REAL name, both portals, ffmpeg, matugen-bin). Webp then confirmed LIVE on host: canRead=True, 1920x1080, 150 frames (animated). | 2026-08-26 | `0766996e`, `94fb8103`, `3bf182f6`, `a24d366b` | `.planning/quick/260826-qr1-fix-stale-overview-chord-in-shortcuts-js/` |
 | 260826-oyu | FOUR OPERATOR-FOUND DEFECTS, none reachable by any gate — all four gates green throughout. (1) DRILLING INTO A SUB-PAGE BROKE KEYBOARD NAV, and it took two rounds because there were two causes stacked. Round 1: `_recollectRows()` ended with an unconditional `contentFocused = false`, so a push re-collected the sub-page's rows and then threw focus back to the rail. Real fix, still failed. Round 2 found the one underneath: `_collectFocusableRows` inferred 'not the current stack element' from `visible === false`, and THAT INFERENCE IS FALSE FOR THE WHOLE LENGTH OF A PUSH TRANSITION — StackPage pushes with StackView.PushTransition and QQC2 keeps BOTH items visible while it animates, so the next-tick re-collect also picked up the parent page's rows, first in declaration order. Focus was carried correctly and landed on row 0 of the page UNDERNEATH. Fixed by asking the StackView: `currentItem` is set SYNCHRONOUSLY inside push(), before any animation, so the timing question disappears rather than being tuned around with a longer delay that would work here and break on slower hardware. Two same-class holes closed with it: focusRowsInvalidated now KEEPS pane focus (it means 'my rows changed', not 'the user changed page'), and a focus request for a page with no rows yet is stashed until they arrive. (2) THE BROWSE DIALOG WAS INPUT-DEAD because HyprlandFocusGrab captures input EXCLUSIVELY to the surfaces it lists and the FilePicker is a separate FloatingWindow toplevel that was not one — clicks landed on the settings window behind AND read as clicks outside the grab, which is why it also dismissed. Registered through the shared SettingsState so the generic picker stays uncoupled. (3) LIVE TILES WERE ZOOMED AND CLIPPED. Captured the running carousel, which is its own control: 16:9 frame, 1920x1080 sources, so PreserveAspectCrop should be a no-op — poster neighbours whole, playing tile cut. Same geometry, same fillMode, ELEMENT TYPE the only variable. A hypothesis died on the way (GIF frames can legally be canvas sub-rects; QImageReader says 1920x1080 and all 150 frames full-size — not that), so the fix targets the surviving SIGNATURE, left-anchored overflow: cover-size the media box and CENTRE it instead of trusting the toolkit's crop. Worst case becomes a centred crop, never a corner. (4) LIVE WALLPAPERS SORTED TO THE END of the carousel (86-88 of 88) because `_list_wallpapers()` ran two independently-sorted finds and concatenated them; one sort over both streams groups them with their theme. The two PASSES stay separate (D-01/D-03 define live by FOLDER, not extension) and D-17's deliberate end-grouping in the fzf TUI is untouched — that surface is a flat text list where a trailing group plus the marker IS the affordance; the carousel badges every tile. Membership proven unchanged, so --set validation is unaffected. SEPARATE HOST GAP FOUND BY THE SAME MEASUREMENT: Qt on this machine CANNOT DECODE WEBP AT ALL (supportedImageFormats has no webp, canRead false, only gif/ico/jpeg/svg plugins present), so a .webp live wallpaper shows its poster for ever and a .webp still cannot render in the shell. Recorded, NOT 'fixed' — Arch's qt6-imageformats advertises only TIFF/MNG/TGA/WBMP, so it is named a CANDIDATE to verify, not added to install.sh on an unverified claim. Operator re-tested all four: 2/3/4 passed first time, 1 passed on round 2. | 2026-08-26 | 672f5b5b, b85d990e, bf1dbe98, 5d1e7c1a, 7a03a34d | .planning/quick/260826-oyu-fix-three-operator-found-defects-sub-pag/ |
@@ -1383,70 +1384,94 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — 260826-rfy, the remaining three plates
+### ▶ RESUME HERE — the design study is fully built; one render check is owed
 
-Everything below is measured and committed; **nothing needs re-deriving.**
-Tree clean, pushed, `main` level with `origin/main`.
+**260827-50i 2026-08-27 shipped the last three plates.** Everything the study
+drew now exists in the shell. Tree clean, pushed, `main` level with `origin/main`.
 
-**Shipped and operator-approved:** D2 "lanes" + P3 "telemetry" are the live
-defaults. `column` and `dials` remain selectable. Settings → Appearance →
-Dashboard drawer.
+**Selectable now** — Settings → Appearance → Dashboard drawer:
 
-**Remaining, in the order they are cheapest to build:**
-
-| Plate | What it needs | Where |
+| Tab | Options | Content width |
 |---|---|---|
-| **P2 Weighted Arcs** | `Dial.qml` hardcodes `startAngle: -90` and `sweepAngle: 360 * root.value` inside its value `PathAngleArc`. Add two opt-in properties (default to those exact values) and the 270° arcs fall out. Then write `PerfArcs.qml`. | `Dial.qml`, new `PerfArcs.qml` |
-| **D1 Caelestia Bento** | A rounding scale on `Design.qml` — it has scattered per-surface radii (`popoutCornerRadius: 20`, `attachedCornerRadius: 24`, drawer 28) but no shared scale, and the bento's whole separation trick is four different radii across six cells. Needs new data: uptime, distro, avatar. | `Design.qml`, new `DashBento.qml` |
-| **P1 Caelestia Cards** | Device names (`SystemResources.gpuName` exists; there is **no CPU name field** — add one). A hand-rolled morphing usage badge (their `MaterialShape` is a C++ plugin we do not have). `BatteryTank`. | new `PerfCards.qml` |
+| Dashboard | Two lanes *(default)*, Bento grid, Single column | 712 / **944** / 712 |
+| Performance | Telemetry strip *(default)*, Weighted arcs, Caelestia cards, Dials | 712 / 712 / **944** / — |
 
-**P1's blocker is GONE.** The D-41 battery ruling that gated it was taken on
-2026-08-26: D-41 is overturned for battery only, so a `BatteryTank` may now
-legitimately disappear when no battery is detected — which is exactly what
-the reference does (`isLaptopBattery`). Nothing else about D-41 changed.
+**Two width families, on purpose.** The study designs them that way and D1's own
+note says "these two tabs have to be chosen together". `bento` + `cards` are the
+wide pair (drawer 1040); `lanes`/`telemetry`/`arcs` are narrow (drawer 808).
+Picking within a family does not animate the drawer's width; picking across them
+does. The old "declare the same 712 in any new layout" rule still binds the whole
+narrow family — it was written when every live layout was narrow.
 
-**Adding a layout is deliberately cheap — four edits, no sibling touched:**
-1. New `<Name>.qml` in `modules/dashboard/`.
-2. One line in `modules/dashboard/qmldir` — **same commit, non-negotiable**,
-   the manifest is explicit and an unregistered type is unresolvable.
-3. One branch in `Dashboard.qml`'s `dashboardTabLoader`/`performanceTabLoader`
-   `sourceComponent` ternary + a `Component { }` beside the existing ones.
-4. One entry in `AppearancePage.qml`'s `dashLayoutOptions` /
-   `performanceLayoutOptions` array. (No new `RowIndex` entry needed — the two
-   rows already exist. A new *row* would need one in the same commit or
-   `settings-index-check` fails.)
+**OWED TO THE OPERATOR — neither Performance layout has been rendered.**
+There is no `quickshell:performance` global (only `quickshell:dashboard` and
+`quickshell:media`, `shell.qml:1829`/`:1896`), the Performance tab's Loader is
+`active` only while it is the current tab, and no click-injection tool exists
+here. So `PerfArcs` and `PerfCards` are gate-proven and code-reviewed but
+**unseen**. Three things are genuinely unproven rather than merely unlooked-at:
 
-**Reusable assets built this task — do not rewrite these:**
-- `Sparkline.qml` — Canvas line chart, right-anchored at fixed pitch,
-  optional second series. P1's NetworkCard wants it directly.
-- `SystemResources` history buffers: `cpuHistory`, `gpuHistory`,
-  `netRxHistory`, `netTxHistory`, `historyLength`, `historyMax()`.
-- `Dial.qml` opt-in knobs: `collapseEmptyLines`, `centerFontSize`,
-  `trackColor` — all defaulting to prior behaviour.
+1. **`Dial`'s new 270° arc path** (`startAngle: 135` / `sweepAngle: 270`) has
+   never painted — the bento rail exercises the DEFAULT angles only. Both
+   Performance plates depend on it.
+2. **The Canvas morphing usage badge** in `PerfCards` has never painted.
+3. **Derived card heights in both.** Every one derives from content — but so did
+   the heights that still clipped a play button in 260826-rfy.
 
-**Traps already paid for — re-hitting any of these is a regression:**
-- **Colour defaults render invisible.** `ConditionGlyph`'s four colour
-  properties default to `"transparent"`; `Dial`'s track defaulted to
-  `surfaceVariant` and vanished on a `surfaceVariant` card (third occurrence
-  of the 14-10 finding). Reuse a working call site verbatim.
-- **Never hand-pick a card height.** Derive from content. Fixed 176/88
-  clipped the play button and overflowed the ring column by 9px — measured.
-- **Drawer width = content + 48 + 48.** `implicitWidth` already includes the
-  tab's own padding and `Dashboard.qml` adds a second `spacingLg * 2`. Both
-  live layouts declare 712 of content and resolve to an **808** drawer.
-  Declare the same 712 in any new layout or the width jump returns.
-- **`QuickToggles.implicitHeight` is ~120**, not ~44.
-- **No `quickshell:performance` global exists**, so the Performance tab
-  cannot be opened from the agent shell — hand that tab's render check to the
-  operator.
+```
+qs ipc call prefs set dashboard.layout.performance arcs      # or: cards
+# Super+D, then click the Performance tab
+qs ipc call prefs set dashboard.layout.performance telemetry # restore
+```
+Pair `cards` with `dashboard.layout.dash bento` or the drawer changes width as
+you cross tabs.
 
-**Verification recipe that worked (Dashboard tab only):**
+**Verified live already (Dashboard tab only), do not re-derive:** bento
+instantiates clean; card content measures x=783..1726 = exactly the declared 944,
+centred at 1254.5 vs a screen centre of 1255; clock cell 104 and rail cell 82
+both match their declarations; the circular art mask crops (all four corners of
+the 170px box sample the card fill, centre is image); the identity cell reads
+`aorus / up 31m · Arch Linux / Hyprland · dracula`, so uptime, distro and the
+theme-state read are all live.
+
+**Expected log line, do NOT re-investigate:** one
+`QQuickImage … Cannot open: file:///home/aorus/.face` per load. There is no
+`~/.face` on this host and the person-glyph fallback is the designed state;
+QQuickImage always warns on a missing source and offers no suppression. Dropping
+an avatar at `~/.face` removes both the warning and the glyph.
+
+**Reusable assets — do not rewrite:** `Sparkline.qml`; `SystemResources`'
+history buffers (`cpuHistory`, `gpuHistory`, `netRxHistory`, `netTxHistory`,
+`historyLength`, `historyMax()`) and its identity fields (`cpuName`,
+`distroName`, `uptimeText`, `netRxTotal`, `netTxTotal`); `Dial`'s opt-in knobs
+(`collapseEmptyLines`, `centerFontSize`, `trackColor`, `startAngle`,
+`sweepAngle`); `Design`'s rounding ladder (`roundingSm/Md/Lg/Xl/Full`).
+
+**Adding a layout is still four edits, no sibling touched:** the new `.qml`; one
+line in `modules/dashboard/qmldir` **in the same commit** (the manifest is
+explicit, an unregistered type is unresolvable); one branch in `Dashboard.qml`'s
+tab-Loader ternary chain plus a `Component { }`; one entry in
+`AppearancePage.qml`'s options array.
+
+**Traps already paid for — re-hitting any is a regression:**
+- **Colour defaults render invisible.** `ConditionGlyph`'s four colour properties
+  default to `"transparent"`; `Dial`'s track defaulted to `surfaceVariant` and
+  vanished on a `surfaceVariant` card. Reuse a working call site verbatim.
+- **Never hand-pick a card height.** Derive it. Fixed 176/88 clipped a play
+  button and overflowed a ring column by 9px — measured.
+- **`QuickToggles` is a six-chip row** dividing its own width evenly, with an
+  `implicitHeight` of ~120, not ~44. It needs ≥ ~350px to be usable.
+- **Media progress is `positionSeconds`/`lengthSeconds`**, not `position`/
+  `length` (`MediaBackend.qml:444`, `:520`).
+- **The theme name lives at `~/.local/state/theme/current-theme`**, never the
+  `~/.cache/` orphan.
+
+**Verification recipe that worked:**
 `hyprctl dispatch 'hl.dsp.global("quickshell:dashboard")'` — the plain
 `dispatch global <name>` form fails on this Lua-parser build — then
-`grim -g "0,6 2510x1428"`, crop, upscale NEAREST, and census colours. QML
-hot-reloads on file change; the shell held the same pid throughout, so **no
-restart was ever needed or performed.**
-
+`grim -g "0,6 2510x1428"`, crop, upscale NEAREST, and census colours. Layouts can
+be switched live with `qs ipc call prefs set dashboard.layout.<dash|performance>
+<value>`. QML hot-reloads on file change; the shell held one pid throughout and
+**no restart was needed or performed.**
 
 - **RESTART QUICKSHELL ONCE — the only thing owed for webp.** The operator installed
   `qt6-imageformats` on 2026-08-26 and it is working: Qt reports `webp` in

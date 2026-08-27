@@ -286,10 +286,21 @@ Item {
 
                     // ~/.face is the reference's own convention for a user
                     // avatar, and there is no guarantee the file exists —
-                    // this host may well not have one. A missing image is
-                    // the DESIGNED state, not a failure: the circle keeps
-                    // its footprint and shows a person glyph, so the row
-                    // beside it never shifts.
+                    // this host does not have one. A missing image is the
+                    // DESIGNED state, not a failure: the circle keeps its
+                    // footprint and shows a person glyph, so the row beside
+                    // it never shifts.
+                    //
+                    // EXPECTED LOG LINE, do not re-investigate: with no
+                    // ~/.face, quickshell.log carries one
+                    // `QQuickImage ... Cannot open: file:///…/.face` warning
+                    // per load. QQuickImage always warns on a missing
+                    // source and offers no way to suppress it; the only
+                    // alternatives are a subprocess existence probe (against
+                    // the zero-idle doctrine this directory follows) or
+                    // reading the whole image through a FileView just to ask
+                    // whether it is there. Dropping an avatar at ~/.face
+                    // makes both the warning and the glyph go away.
                     Item {
                         width: root.avatarSize
                         height: root.avatarSize
