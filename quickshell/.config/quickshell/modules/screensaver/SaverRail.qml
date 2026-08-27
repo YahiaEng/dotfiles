@@ -73,7 +73,18 @@ Item {
 
     onWidthChanged: rail.requestPaint()
     onHeightChanged: rail.requestPaint()
-    on_PhaseChanged: rail.requestPaint()
+
+    // Repaint on a fixed tick, NOT on `_phase` changing. The animation
+    // advances `_phase` every frame (~133/s on this 165Hz output), and
+    // each repaint now walks ~250 points; painting the full-output canvas
+    // that often is work nobody is watching closely. `Design.saverTickMs`
+    // is the same ~30fps ambient cadence the other styles use.
+    Timer {
+        running: root.active && root.visible
+        repeat: true
+        interval: Design.saverTickMs
+        onTriggered: rail.requestPaint()
+    }
 
     Canvas {
         id: rail
@@ -200,23 +211,41 @@ Item {
             g.addColorStop(0.5, Colours.secondary);
             g.addColorStop(1, Colours.primary);
 
+            // ── Two resolutions, on purpose ───────────────────────────
+            // The alpha tail only needs a handful of bands, but the
+            // GEOMETRY has to be sampled far finer than that or the head
+            // cuts straight across the corners. Measured: 28 bands over a
+            // 1485px head is ~53px per band, and a corner arc is only
+            // (pi/2)*32 = 50px long — so an entire corner collapsed into
+            // ONE chord, visibly leaving the track's curve. Operator:
+            // "Edge Rail freaks out when it reaches any of the 4 corners."
+            //
+            // So each alpha band is itself walked as a polyline at
+            // `_stepPx`, which is far shorter than the corner arc. 28
+            // strokes per frame, each a short multi-point path — the
+            // corner is now sampled ~8 times instead of once.
             const headLen = perim * 0.19;
-            const segs = 28;
+            const bands = 28;
+            const stepPx = 6;
             const tip = root._phase * perim;
             ctx.lineWidth = root._stroke;
             ctx.lineCap = "round";
             ctx.lineJoin = "round";
             ctx.strokeStyle = g;
-            for (let k = 0; k < segs; k++) {
-                // k = 0 is the tip; alpha falls away toward the tail.
-                const a0 = tip - headLen * (k / segs);
-                const a1 = tip - headLen * ((k + 1) / segs);
-                ctx.globalAlpha = 1 - k / segs;
-                const p0 = rail._pointAt(a0, m, rw, rh, r, perim);
-                const p1 = rail._pointAt(a1, m, rw, rh, r, perim);
+            for (let k = 0; k < bands; k++) {
+                const a0 = tip - headLen * (k / bands);
+                const a1 = tip - headLen * ((k + 1) / bands);
+                const span = a0 - a1;
+                const n = Math.max(2, Math.ceil(span / stepPx));
+                ctx.globalAlpha = 1 - k / bands;
                 ctx.beginPath();
-                ctx.moveTo(p0[0], p0[1]);
-                ctx.lineTo(p1[0], p1[1]);
+                for (let j = 0; j <= n; j++) {
+                    const p = rail._pointAt(a0 - span * (j / n), m, rw, rh, r, perim);
+                    if (j === 0)
+                        ctx.moveTo(p[0], p[1]);
+                    else
+                        ctx.lineTo(p[0], p[1]);
+                }
                 ctx.stroke();
             }
             ctx.globalAlpha = 1;

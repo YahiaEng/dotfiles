@@ -52,6 +52,13 @@ Scope {
     // state for the bar and the launcher, and a second reader of the same
     // IPC object would be a second source of truth for one fact.
     property bool fullscreenBlocking: false
+    // shell.qml relays `WlSessionLock.locked`. The lock screen blurs a LIVE
+    // `ScreencopyView` of the output, so anything still on screen when it
+    // mounts is what gets blurred behind the password field — and with the
+    // saver at 300s and the lock at 600s, the saver is ALWAYS up when the
+    // lock arrives. Operator: "Our lockscreens now show blurred screensaver
+    // instead of blurred desktop background."
+    property bool sessionLocked: false
 
     readonly property bool active: surfaces.active
 
@@ -80,7 +87,7 @@ Scope {
     // Deliberately an affirmative list of reasons to stay away, not a
     // negation of "may show" — each clause is separately readable in a
     // log line and separately removable.
-    readonly property bool inhibited: root.style === "off" || root.mediaPlaying || root.fullscreenBlocking
+    readonly property bool inhibited: root.style === "off" || root.mediaPlaying || root.fullscreenBlocking || root.sessionLocked
 
     property bool _dismissing: false
 
@@ -91,11 +98,30 @@ Scope {
         surfaces.active = true;
     }
 
+    // Tears the surfaces down THIS INSTANT, with no exit animation. The
+    // ordinary `hide()` fades out over `Motion.emphasizedOutDuration` and
+    // only then unmounts, which is right for input dismissal and wrong for
+    // a lock: the lock's screencopy would capture a half-faded saver.
+    function hideNow(): void {
+        teardown.stop();
+        surfaces.active = false;
+        root._dismissing = false;
+    }
+
     function hide(): void {
         if (!surfaces.active || root._dismissing)
             return;
         root._dismissing = true;
         teardown.restart();
+    }
+
+    // Belt to the lock listener's braces. The hypridle chain calls
+    // `hideNow` before `loginctl lock-session`, which covers the idle path;
+    // this covers every OTHER way the session can lock (the power menu's
+    // Lock action, `before_sleep_cmd`, a bare `loginctl lock-session`).
+    onSessionLockedChanged: {
+        if (root.sessionLocked)
+            root.hideNow();
     }
 
     Timer {
@@ -165,6 +191,10 @@ Scope {
             root.hide();
         }
 
+        function hideNow(): void {
+            root.hideNow();
+        }
+
         function toggle(): void {
             if (root.active)
                 root.hide();
@@ -196,6 +226,8 @@ Scope {
                 return "inhibited (a media player is playing)";
             if (root.fullscreenBlocking)
                 return "inhibited (a window is fullscreen)";
+            if (root.sessionLocked)
+                return "inhibited (the session is locked)";
             return root.active ? "active (" + root.style + ")" : "idle (" + root.style + ")";
         }
     }

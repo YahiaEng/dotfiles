@@ -114,9 +114,32 @@ listener {
 }
 
 # ── Lock screen ─────────────────────────────────────
+# The screensaver is torn down BEFORE the lock, and the order matters.
+# The lock screen's backdrop is a live ScreencopyView of the output, so
+# whatever is on screen when it mounts is what gets blurred behind the
+# password field — and since the saver appears at the dim timeout above and
+# the lock is the NEXT rung, the saver is always up when this fires.
+# Operator: "Our lockscreens now show blurred screensaver instead of
+# blurred desktop background."
+#
+# The \`sleep 0.4\` is NOT superstition. Measured: with the saver up,
+# \`hideNow && loginctl lock-session\` still produced a lock screen whose
+# blurred backdrop was the saver — a captured lock frame showed the AORUS
+# wordmark ghosted behind the clock, even though \`hyprctl layers\` reported
+# zero saver surfaces by the time the lock was up. The IPC call returns as
+# soon as QML drops the surfaces; the compositor has not finished unmapping
+# and recompositing when the lock's ScreencopyView samples the output. 0.4s
+# is ~24 frames of margin and is not perceptible before a lock screen.
+#
+# \`hideNow\`, not \`hide\`: the ordinary dismissal fades out over the motion
+# token's duration and only then unmounts, which would leave the screencopy
+# capturing a half-faded saver. \`hideNow\` drops the surfaces immediately.
+# Screensaver.qml ALSO force-hides on its own \`sessionLocked\` watcher, which
+# covers the lock paths that never come through hypridle (the power menu,
+# before_sleep_cmd) — this line is the ordering guarantee for THIS path.
 listener {
     timeout = $t_lock
-    on-timeout = loginctl lock-session
+    on-timeout = qs ipc call -- screensaver hideNow && sleep 0.4 && loginctl lock-session
 }
 
 # ── Turn off display ────────────────────────────────

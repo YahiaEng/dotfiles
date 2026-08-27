@@ -594,6 +594,11 @@ ShellRoot {
         id: screensaverInstance
         mediaBackend: mediaBackendInstance
         fullscreenBlocking: root.fullscreenBlocking
+        // The lock screen blurs a live ScreencopyView of the output, so a
+        // saver still on screen when it mounts is what ends up blurred
+        // behind the password field. Relayed from the same always-on Lock
+        // instance above rather than re-derived.
+        sessionLocked: lockInstance.lock.locked
     }
 
     WeatherBackend {
