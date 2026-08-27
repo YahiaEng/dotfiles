@@ -1289,6 +1289,11 @@ PanelWindow {
                 DashboardTab {
                     mediaBackend: dashboardWindow.mediaBackend
                     systemResources: dashboardWindow.systemResources
+                    // 260827-50i: this layout is plate D3 now, and D3's hero
+                    // row carries a weather readout opposite the clock — so
+                    // it reads the same shared backend the Weather tab and
+                    // DashLanes do. Not a new backend, one more consumer.
+                    weatherBackend: dashboardWindow.weatherBackend
                     audioBackend: dashboardWindow.audioBackend
                     wifiBackend: dashboardWindow.wifiBackend
                     bluetoothBackend: dashboardWindow.bluetoothBackend
