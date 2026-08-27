@@ -53,10 +53,10 @@ local terminal = "uwsm app -- kitty.desktop"
 local fileExplorer = "uwsm app -- thunar.desktop"
 local tui = 'uwsm app -- kitty --class yazi-fm --title "Yazi" -- yazi'
 -- Quick task 260827-833 Task 7 (LOCK-01) — repointed onto the in-process
--- Quickshell lock screen's own `lock` IPC target. hyprlock's own
--- retirement is HELD (OP-4, Task 8) — the package, its config, its
--- matugen template and its screencopy grant all stay installed and
--- invocable by hand until the operator confirms the new surface live.
+-- Quickshell lock screen's own `lock` IPC target. The old external lock
+-- binary this replaced, along with its config, matugen template and
+-- screencopy grant, was retired in quick task 260827-ar3; this target is
+-- now the only lock path on the host.
 -- No `timeout` prefix: unlike the brightness/volume binds below, this
 -- bind has no fallback, and a `timeout` that fires here would leave the
 -- session UNLOCKED — strictly worse than a bind that blocks briefly.
@@ -365,7 +365,7 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(), { mouse = true }) -- 
 -- `quickshell-osd` indicator's own Connections block raises the surface
 -- from THAT, never from this keybind. `locked = true` is still what
 -- QOSD-01's in-session half rests on (the key must keep working while
--- hyprlock is up, per D-20-19's measurement) — kept verbatim, not
+-- the lock screen is up, per D-20-19's measurement) — kept verbatim, not
 -- re-decided by this plan. `-l 1.0` on the raise bind caps PipeWire's own
 -- software boost at 100%, which the retired OSD daemon's client used to
 -- cap for us.

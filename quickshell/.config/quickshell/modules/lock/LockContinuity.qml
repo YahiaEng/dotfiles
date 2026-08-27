@@ -8,13 +8,12 @@
 // line.
 //
 // NO AVATAR — it was rejected by the operator at a live checkpoint and
-// deleted from hyprlock.conf; this layout must not reintroduce one.
+// deleted from the old lock config; this layout must not reintroduce one.
 //
-// This is the DEFAULT layout while hyprlock is still the held Task 8
-// fallback: it is the one layout whose composition is mechanical to
-// compare against the table above, so a migration regression is easy to
-// spot. The operator flips the default once satisfied (operator checklist
-// item 9).
+// This is the DEFAULT layout. It was chosen as the default for the
+// migration because its composition was mechanical to compare against the
+// table above, making a regression easy to spot. The old config it was
+// compared against was retired in 260827-ar3; the default simply stayed.
 pragma ComponentBehavior: Bound
 
 import QtQuick

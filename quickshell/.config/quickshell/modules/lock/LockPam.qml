@@ -13,11 +13,13 @@
 // '^/etc/pam'` finds the literal string). `/etc/pam.d/passwd` exists
 // (shipped by `shadow`, always present) and its first line is `auth
 // include system-auth` — the real auth stack (pam_faillock -> pam_unix ->
-// pam_faillock). `/etc/pam.d/hyprlock` also exists today, but it is
-// SHIPPED BY THE HYPRLOCK PACKAGE and disappears the moment Task 8
-// uninstalls it — naming it here would build a lock screen that breaks
-// the instant its own migration completes. Caelestia's own upstream also
-// names `"passwd"`.
+// pam_faillock). The old lock binary shipped its own `/etc/pam.d`
+// service file, which disappeared the moment its package was
+// uninstalled — naming that one here would have built a lock screen that
+// broke the instant its own migration completed. That removal happened in
+// quick task 260827-ar3 and this file needed no change, which is the
+// decision working as intended. Caelestia's own upstream also names
+// `"passwd"`.
 //
 // ── Naming: `unlockRequested`, NOT `unlock` (deviation from the vendored
 //    source, Rule 1 auto-fix — see SUMMARY) ──────────────────────────────

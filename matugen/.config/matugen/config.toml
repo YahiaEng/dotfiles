@@ -120,11 +120,6 @@ output_path = "~/.local/state/theme/zellij-layout.kdl"
 input_path = "~/.config/matugen/templates/nvim-palette.lua"
 output_path = "~/.local/state/theme/nvim.lua"
 
-# ── Hyprlock colors (LOCK-01/D-30, dedicated target) ────
-[templates.hyprlock]
-input_path = "~/.config/matugen/templates/hyprlock-colors.conf"
-output_path = "~/.local/state/theme/hyprlock.conf"
-
 # ── Zen browser chrome colors (THM-05/D-27) ──────────
 [templates.zen]
 input_path = "~/.config/matugen/templates/zen-userchrome.css"
@@ -157,9 +152,8 @@ output_path = "~/.local/state/theme/satty.toml"
 #                                              precedent)
 #   separator -> outline    #8f909a   5.85:1  (deliberately low-contrast/
 #                                              receding — the same role
-#                                              hyprland-colors.lua and
-#                                              hyprlock-colors.conf already
-#                                              use for borders/rings)
+#                                              hyprland-colors.lua already
+#                                              uses for borders/rings)
 # All four clear WCAG AA (4.5:1).
 #
 # logo.color, all nine slots defined regardless of which art is active —

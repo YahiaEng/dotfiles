@@ -155,8 +155,8 @@ mkdir -p "$HOME/.config/systemd/user"
 # what should be a clean git checkout. Same pre-create-before-stow idiom
 # as fish/gtk-3.0/gtk-4.0/quickshell/systemd above: with the real
 # directory already present, stow descends into it and symlinks only its
-# individual top-level entries (config/, hyprland.lua, hyprlock.conf,
-# hypridle.conf, lib/, scripts/), leaving state/ to be created for real
+# individual top-level entries (config/, hyprland.lua, hypridle.conf,
+# lib/, scripts/), leaving state/ to be created for real
 # right where this file's own later code already assumes it lives.
 mkdir -p "$HOME/.config/hypr"
 
@@ -651,11 +651,10 @@ fi
 # fix, which still left it inside the stow tree). It is runtime state,
 # rewritten on every static theme switch by lib/wallpaper.sh's symlink
 # repoint, never repo content, so a fresh install has nothing providing it
-# unless this seed runs. theme-init.sh and hyprlock.conf both read this
-# exact path directly, and generate.sh reads it as the Material You source
-# image — all three degrade (no wallpaper, no lock background, no
-# Material You source) but none of them, and nothing else in the boot
-# path, fails to start without it. That is the opposite failure posture
+# unless this seed runs. theme-init.sh reads this exact path directly, and
+# generate.sh reads it as the Material You source image — both degrade (no
+# wallpaper, no Material You source) but neither of them, and nothing else
+# in the boot path, fails to start without it. That is the opposite failure posture
 # from the motion-file/GTK3-sass seeds above (whose absence is a hard
 # config-parse failure that keeps Hyprland from starting at all) —
 # deliberately kept as a warning, not a loud `exit 1`, because a

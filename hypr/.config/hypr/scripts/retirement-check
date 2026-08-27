@@ -125,6 +125,7 @@ wlogout|retired||RETIRE-07
 eww|retired||RETIRE-07
 tmux|retired|tmux/|260820-2yz
 walker|retired|walker/|260822-sht
+hyprlock|retired|hypr/.config/hypr/hyprlock.conf|260827-833
 elephant|retired|elephant/:hypr/.config/hypr/scripts/elephant-restart.sh|260822-sht
 retirement-fixture|retired|hypr/.config/hypr/scripts/tests/retirement-fixtures/|SELF-TEST'
 

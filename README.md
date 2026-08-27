@@ -24,7 +24,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 | Notifications   | Quickshell            |
 | Wallpaper       | awww                  |
 | Theming         | Matugen               |
-| Lock Screen     | Hyprlock              |
+| Lock Screen     | Quickshell (in-process) |
 | Idle Daemon     | Hypridle              |
 | Dotfile Manager | GNU Stow              |
 | Font            | FiraCode Nerd Font    |
@@ -47,7 +47,6 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │   ├── windowrules.conf                # Float/opacity/layer rules
 │   ├── colors.conf                     # Active colors (auto-managed)
 │   ├── hypridle.conf
-│   ├── hyprlock.conf
 │   └── scripts/
 │       ├── bar-orientation.sh          # Bar orientation switcher (invoked by the launcher's picker)
 │       ├── wallpaper-switch.sh         # opens Settings ▸ Wallpaper (fzf TUI fallback)
@@ -73,7 +72,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 │       ├── kitty-colors.conf
 │       ├── gtk-colors.css              # Shared by the gtk3 + gtk4 targets
 │       ├── qml-palette.json            # Feeds the Quickshell bar's Colours.qml
-│       └── ...                         # yazi, vscodium, fzf, hyprlock, zen, satty
+│       └── ...                         # yazi, vscodium, fzf, zen, satty
 │
 ├── theme-engine/.config/theme-engine/
 │   ├── theme-apply                     # The switch entry point (static + dynamic)

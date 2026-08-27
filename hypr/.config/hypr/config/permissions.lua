@@ -112,21 +112,11 @@ hl.permission({ binary = "/usr/bin/hyprpicker", type = "screencopy", mode = "all
 --     running `/usr/lib/xdg-desktop-portal-hyprland` process, not
 --     `xdg-desktop-portal-gtk`).
 hl.permission({ binary = "/usr/lib/xdg-desktop-portal-hyprland", type = "screencopy", mode = "allow" })
---   - hyprlock: the lock screen captures the screen to render its own
---     blurred/screenshot background. Missed by Phase 16's consumer
---     enumeration (this file's four grants above), so with
---     enforce_permissions on it hit the ASK path and popped "An
---     application hyprlock is trying to capture your screen" — reported
---     live by the operator on 2026-08-10, after a lock had been held a
---     while. Phase 16 debt, surfaced during Phase 17's render gates;
---     NOT Phase 17 scope and NOT an artifact of anything Phase 17 built.
---     Binary path confirmed on this host: `command -v hyprlock` and
---     `readlink -f` both resolve to /usr/bin/hyprlock (not a symlink to
---     elsewhere), matching the exact-absolute-path convention the four
---     grants above use rather than the upstream example's regex style.
---     Like every grant in this file, it is read once at compositor
---     startup and takes effect at the next Hyprland restart.
-hl.permission({ binary = "/usr/bin/hyprlock", type = "screencopy", mode = "allow" })
+--   - The old lock screen held a fifth screencopy grant here, for the
+--     blurred background it captured itself. It went with the package in
+--     quick task 260827-ar3. The Quickshell lock screen needs no grant of
+--     its own: it renders inside the shell process, which is already
+--     covered by the /usr/bin/quickshell entry above.
 
 -- ── Checked and deliberately excluded ────────────────────────────────
 --   - slurp: confirmed via `strings /usr/bin/slurp` to carry NO

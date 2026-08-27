@@ -20,9 +20,9 @@
 // out as well and any other power menu action".)
 //
 // Audited, all six: Lock (`qs ipc call lock lock` as of quick task
-// 260827-833 Task 7 — was `uwsm app -- hyprlock`, repointed onto the
-// in-process Quickshell lock screen; hyprlock's own retirement is HELD,
-// see that task's own header), Suspend and Hibernate
+// 260827-833 Task 7 — was the external lock binary, repointed onto the
+// in-process Quickshell lock screen, which fully replaced it when that
+// binary was retired in 260827-ar3), Suspend and Hibernate
 // (`systemctl suspend|hibernate`) never wrapped it and do not tear the
 // session down at all — they resume into this same session. Log Out,
 // Reboot and Shut Down all did. None do now, and a tree-wide grep shows
@@ -102,8 +102,9 @@ Singleton {
             glyph: "lock", label: "Lock", mnemonic: "l",
             // Quick task 260827-833 Task 7 (LOCK-01) — repointed onto the
             // in-process Quickshell lock screen's `lock` IPC target.
-            // hyprlock's own retirement is HELD (OP-4, Task 8) — this was
-            // the third live consumer, missing from the original brief.
+            // This was the third live consumer of the old external lock
+            // binary, missing from the original brief; that binary was
+            // retired in 260827-ar3.
             command: ["sh", "-c", "qs ipc call lock lock"]
         },
         {

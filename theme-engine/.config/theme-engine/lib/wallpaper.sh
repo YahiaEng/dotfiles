@@ -230,7 +230,7 @@ theme_engine_wallpaper_autoset() {
     if theme_engine_wallpaper_is_live_ref "$chosen"; then
         # D-06/D-08: live choice — repoint current.jpg at the FRAME, never
         # the video — this is what makes the lock screen
-        # (hyprlock.conf:50) show a real frame in EVERY mode. D-05 needs
+        # (the lock screen background) show a real frame in EVERY mode. D-05 needs
         # no code here: a static preset renders its palette from
         # palettes/$name.json and never reads current.jpg, so the frame
         # reaches the lock screen everywhere while the palette stays

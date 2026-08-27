@@ -371,9 +371,9 @@ PageBase {
     // `Prefs.qml` already carries `lock.layout` in both `_allowedKeys` and
     // `_defaults` (Task 1); this section only adds the row. Default stays
     // "continuity" — flipping it is the operator's own call (operator
-    // checklist item 9), and while hyprlock is still the held Task 8
-    // fallback the equivalence check against hyprlock.conf is worth more
-    // than the reference default.
+    // checklist item 9). It was held there during the migration so the
+    // old lock config stayed mechanically comparable; that config was
+    // retired in 260827-ar3, so nothing pins the default now.
     SettingsSection {
         id: lockLayoutSection
         title: "Lock screen"

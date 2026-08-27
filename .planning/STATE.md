@@ -4,7 +4,7 @@ milestone: v4.0
 current_phase: 22
 status: quick-task-checkpoint
 stopped_at: "260827-74s COMPLETE AND OPERATOR-CONFIRMED (2026-08-27). Both power-menu defects fixed across all six actions and verified live by the operator - no hang, dim covers the whole screen. NOTHING IS OWED. (1) The scrim was short by exactly the reserved zone [0,6,50,6] because a non-negative exclusiveZone OVERRIDES ExclusionMode.Ignore; now -1. The comment sitting on that line blamed layer order and read as settled, which is how the defect survived a full redesign - second file to name that wrong cause, after Bar.qml:613. (2) hyprshutdown has NO timeout in any form and loops 'Re-closing apps' until the last app exits or the operator clicks its own Force quit; systemd was a decoy (power-key poweroffs measure 1.3-1.5s, app-graphical.slice gone in 75ms). Log Out, Reboot and Shut Down all dropped it and are now bare cliphist-wipe + uwsm stop / systemctl reboot / systemctl poweroff; Lock, Suspend and Hibernate never wrapped it. Zero consumers left, so hyprshutdown also came out of install.sh. Trade-off accepted: apps killed on compositor exit rather than asked to close, QPOWER-04 mechanism retired, --vt N is the escape hatch if a black screen ever appears. WR-04/D-29 answered by evidence (app-graphical.slice released 67ms into a real teardown with VSCodium+Zen+7 kitty live, envelope down at 593ms) and corroborated by the live Log Out, and the operator TICKED MAINT-02 on 2026-08-27, closing the one unfinished v3.0 requirement and Phase 4's last advisory item; v3.0-MILESTONE-AUDIT.md is left untouched as the point-in-time record. Also closed both carried operator-only items (qt6-imageformats, doctor --self-test) and STRUCK the stale walker/elephant v5.0 candidate. NEXT REAL DECISION: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog and the v4.0 carried-debt ledger, checking every candidate against the code first."
-last_updated: "2026-08-27T04:55:00.000Z"
+last_updated: "2026-08-27T07:45:00.000Z"
 last_activity: 2026-08-27
 last_activity_desc: "In-process QML lock screen shipped and operator-verified across five defect rounds; hyprlock is dormant but its one-way removal (Task 8) is still unrun."
 state_head: 069c4fda
@@ -771,6 +771,8 @@ after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
 synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
+
+RESUMED 2026-08-27 — session restored via `/gsd-resume-work`. No handoff, checkpoint, async job or incomplete plan; tree clean at `f875a77d`, level with `origin/main`. Operator chose to proceed with the one owed item: **Task 8 of quick task 260827-833 — retiring hyprlock** (one-way, ten touchpoints, config-then-package in ONE commit). Routing to `/gsd-quick`.
 
 SHIPPED 2026-08-26 — **260826-rfy stage 3: three operator-reported defects, fixed by measuring.** `826b932f`, `0d8f3e24`, `c1e0256e`.
 

@@ -40,8 +40,8 @@ return {
     -- $image intentionally blank: matugen 4.1.0 does not populate the image
     -- color context in either json or image render mode (empirically
     -- verified during Plan 01-02) - referencing it throws a hard
-    -- ResolveError regardless of render mode. hyprlock theming is out of
-    -- scope this milestone (PROJECT.md); an empty string here is
-    -- sufficient and does not break template rendering.
+    -- ResolveError regardless of render mode. Nothing in this tree
+    -- consumes the image context; an empty string here is sufficient
+    -- and does not break template rendering.
     image = "",
 }

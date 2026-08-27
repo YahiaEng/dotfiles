@@ -59,8 +59,14 @@ done
 PACMAN_PKGS=(
     # Hyprland ecosystem
     hyprland
-    hyprlock
     hypridle
+    # The external lock binary was REMOVED 2026-08-27 (quick task
+    # 260827-ar3), replaced by the in-process Quickshell lock screen
+    # (260827-833). Its config, matugen template, contract entry and
+    # screencopy grant went with it. Deliberately not named here: the
+    # install-stow-lists retirement class greps this file WITHOUT
+    # skipping comments, so writing the name back would re-fail the gate
+    # this removal exists to turn green.
     # hyprshutdown REMOVED 2026-08-27 (quick task 260827-74s) — zero consumers.
     # It wrapped Log Out, Reboot and Shut Down in PowerActions.qml; all three
     # dropped it because it waits on apps with no timeout of any kind and only
@@ -156,7 +162,7 @@ PACMAN_PKGS=(
     stow
     # Phase 18/RETIRE-02 review WR-02: explicit, not transitive. The
     # theme-engine's lib/wallpaper.sh invokes `ffmpeg` directly to extract
-    # the still frame a live wallpaper hands to hyprlock, and
+    # the still frame a live wallpaper hands to the lock screen, and
     # scripts/gif-export.sh runs a two-pass palettegen/paletteuse
     # conversion through it. `ffmpegthumbnailer` is listed further down for
     # Thunar/yazi thumbnails and does NOT provide /usr/bin/ffmpeg — the two

@@ -328,10 +328,11 @@ Singleton {
         "region.weatherCity": "",
         "region.weatherLat": 0,
         "region.weatherLon": 0,
-        // Quick task 260827-833 Task 1 — ships as "continuity" so the
-        // old-vs-new comparison against hyprlock.conf stays mechanical
-        // while hyprlock is still the held Task 8 fallback. The operator
-        // flips this once satisfied (operator checklist item 9).
+        // Quick task 260827-833 Task 1 — shipped as "continuity"
+        // because it was the layout whose composition was mechanical to
+        // compare against the old lock config during the migration. That
+        // config is gone (260827-ar3); this is now just the default, and
+        // the operator can flip it freely.
         "lock.layout": "continuity"
     })
 

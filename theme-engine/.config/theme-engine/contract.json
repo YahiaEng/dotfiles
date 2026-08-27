@@ -37,10 +37,6 @@
       "format": "env-kv"
     },
     {
-      "name": "hyprlock.conf",
-      "format": "hypr-vars"
-    },
-    {
       "name": "zen-userchrome.css",
       "format": "css-literal"
     },
