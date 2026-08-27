@@ -179,21 +179,39 @@ PanelWindow {
     //    outside MouseArea (and HyprlandFocusGrab, for the other case) a
     //    screen-wide catch area with no second window to coordinate
     //    (Overview.qml's own full-screen-catch-region precedent).
-    //    exclusiveZone 0 — an overlay, reserves nothing. Namespace
-    //    declared in 20-03, first rendered here. ─────────────────────────
+    //    Namespace declared in 20-03, first rendered here. ──────────────
     anchors.top: true
     anchors.bottom: true
     anchors.left: true
     anchors.right: true
-    exclusiveZone: 0
+    // -1, NOT 0 (quick task 260827-74s). -1 means "reserve nothing AND do
+    // not sit inside anyone else's reservation"; 0 means only the first
+    // half, and an explicit non-negative zone OVERRIDES the exclusionMode
+    // below. At 0 this surface measured 0,6 2510x1428 against a monitor of
+    // 2560x1440 — short by exactly the reserved zone [0,6,50,6] — so the
+    // right-hand bar and a 6px strip top and bottom rendered bright and
+    // undimmed beside a scrimmed desktop. That is the operator's
+    // "frosted background does not cover the whole screen".
+    //
+    // An overlay reserves nothing either way, so -1 costs this surface
+    // nothing. Same measurement as SectionPopout's, where margins.right 0
+    // landed at 2510 under zone 0 and at the true 2560 under -1.
+    exclusiveZone: -1
     // Ignore, NOT Normal (user-reported: "Dimming does not affect the
     // quickshell bar"). Under Normal the compositor shrinks this surface
     // out of the bar's own exclusive zone, so the scrim stopped at the
     // bar's edge and the bar sat undimmed above a dimmed desktop — the
-    // modal read as partial. Layer order was never the problem: this
-    // surface is already WlrLayer.Overlay (level 3) against the bar's
-    // WlrLayer.Top (level 2), so it was always ABOVE the bar, just not
-    // BEHIND it in extent.
+    // modal read as partial.
+    //
+    // ⚠ Ignore alone was NOT sufficient, and the note that used to stand
+    // here said it was. It blamed layer ORDER and declared the extent
+    // problem solved; measurement in 260827-74s showed the surface still
+    // short by the full reserved zone for as long as exclusiveZone stayed
+    // 0. Layer order genuinely was never the problem — this surface is
+    // WlrLayer.Overlay (level 3) against the bar's WlrLayer.Top (level 2),
+    // so it was always ABOVE the bar — but the fix is the zone above, not
+    // this mode. Keep both: the mode states the intent, the zone enforces
+    // it.
     //
     // Deliberately diverges from Toast.qml:183, which documents choosing
     // Normal on purpose so transient notices do not cover the bar. The
