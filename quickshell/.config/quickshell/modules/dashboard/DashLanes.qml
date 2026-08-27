@@ -393,10 +393,28 @@ Item {
                     anchors.margins: root.spacingMd
                     spacing: root.spacingMd
 
+                    // Every colour property on ConditionGlyph defaults to
+                    // "transparent", so a call site that sets only
+                    // `symbolName`/`pixelSize` renders an INVISIBLE glyph —
+                    // which is exactly what this card did until 2026-08-26.
+                    // The four colour bindings below are WeatherTab.qml's
+                    // own, reused verbatim rather than re-derived: same
+                    // WeatherPalette singleton, same `|| Colours.primary`
+                    // fallback for an unrecognised code, same two-tone
+                    // sun/moon/cloud triple.
                     ConditionGlyph {
                         anchors.verticalCenter: parent.verticalCenter
                         symbolName: weatherCard.current ? weatherCard.current.symbol : "help"
                         pixelSize: root.fontDisplay
+                        baseFillAxis: 1
+                        singleToneColor: weatherCard.current
+                            ? (WeatherPalette.forSymbol(weatherCard.current.symbol) || Colours.primary)
+                            : Colours.primary
+                        sunColor: WeatherPalette.sun
+                        moonColor: WeatherPalette.night
+                        cloudColor: WeatherPalette.cloudLit
+                        conditionLabel: weatherCard.current ? weatherCard.current.label : ""
+                        tooltipDelay: Design.tooltipDelayMs
                     }
 
                     Column {
