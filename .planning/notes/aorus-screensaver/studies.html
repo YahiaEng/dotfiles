@@ -1,0 +1,1402 @@
+<title>Aorus Screensaver Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ──────────────────────────────────────────────────────────────
+   Aorus Screensaver Studies
+   Single-theme by deliberate choice: this page judges a black
+   idle canvas. You cannot read a black canvas on a white page,
+   so the study commits to the dark ground the subject lives on.
+   Palette is not invented — it is this repo's own live Dracula
+   theme, read from ~/.local/state/theme/palette.json 2026-08-27.
+   ────────────────────────────────────────────────────────────── */
+:root {
+  --ground:   #14151c;
+  --panel:    #1c1e27;
+  --raised:   #22242f;
+  --surface:  #282a36;
+  --variant:  #44475a;
+  --outline:  #6272a4;
+  --ink:      #f8f8f2;
+  --muted:    #97a0bd;
+  --faint:    #6b7396;
+  --pink:     #ff79c6;
+  --purple:   #bd93f9;
+  --cyan:     #8be9fd;
+  --lime:     #50fa7b;
+  --amber:    #f1fa8c;
+  --red:      #ff5555;
+
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --art:  "FiraCode Nerd Font Mono", "Fira Code", "DejaVu Sans Mono", "Noto Sans Mono", monospace;
+
+  --r: 14px;
+  --edge: 1px solid color-mix(in srgb, var(--outline) 34%, transparent);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px 120px; }
+
+/* ── type ─────────────────────────────────────────────────── */
+h1 {
+  font-size: clamp(34px, 5.4vw, 58px);
+  line-height: 1.02;
+  letter-spacing: -0.028em;
+  font-weight: 700;
+  margin: 0 0 18px;
+  text-wrap: balance;
+}
+h2 {
+  font-size: clamp(23px, 3vw, 30px);
+  line-height: 1.15;
+  letter-spacing: -0.018em;
+  font-weight: 600;
+  margin: 0 0 10px;
+  text-wrap: balance;
+}
+h3 { font-size: 18px; font-weight: 600; letter-spacing: -0.008em; margin: 0 0 8px; }
+p  { margin: 0 0 14px; max-width: 68ch; }
+a  { color: var(--cyan); text-decoration-color: color-mix(in srgb, var(--cyan) 40%, transparent); }
+strong { font-weight: 600; color: var(--ink); }
+code, .mono { font-family: var(--mono); font-size: 0.88em; }
+code {
+  background: color-mix(in srgb, var(--variant) 46%, transparent);
+  padding: 0.1em 0.4em; border-radius: 5px; color: var(--cyan);
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+  margin: 0 0 14px;
+}
+
+.lede { font-size: 19px; line-height: 1.6; color: var(--muted); max-width: 62ch; }
+.lede strong { color: var(--ink); }
+
+/* ── header ───────────────────────────────────────────────── */
+header.top {
+  padding: 76px 0 40px;
+  border-bottom: var(--edge);
+  margin-bottom: 44px;
+}
+.metarow {
+  display: flex; flex-wrap: wrap; gap: 8px 10px; margin-top: 26px;
+}
+.tag {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: 0.05em;
+  color: var(--muted);
+  border: 1px solid color-mix(in srgb, var(--outline) 40%, transparent);
+  background: color-mix(in srgb, var(--panel) 80%, transparent);
+  border-radius: 999px; padding: 5px 11px; white-space: nowrap;
+}
+.tag b { color: var(--ink); font-weight: 500; }
+
+/* ── sections ─────────────────────────────────────────────── */
+section { margin: 0 0 64px; scroll-margin-top: 20px; }
+.sechead { margin-bottom: 22px; }
+
+.callout {
+  border: var(--edge);
+  border-left: 3px solid var(--pink);
+  background: linear-gradient(100deg,
+      color-mix(in srgb, var(--pink) 8%, var(--panel)) 0%,
+      var(--panel) 55%);
+  border-radius: 0 var(--r) var(--r) 0;
+  padding: 22px 24px;
+}
+.callout p:last-child { margin-bottom: 0; }
+
+.note {
+  border: var(--edge); background: var(--panel);
+  border-radius: var(--r); padding: 18px 20px;
+}
+.note p:last-child { margin-bottom: 0; }
+
+/* ── the wordmark block ───────────────────────────────────── */
+.artbox {
+  background: #000; border: var(--edge); border-radius: var(--r);
+  padding: 26px 18px; overflow-x: auto; container-type: inline-size;
+}
+pre.art {
+  margin: 0; font-family: var(--art);
+  font-size: max(6px, 1.16cqw); line-height: 1.04;
+  letter-spacing: 0; color: var(--ink); white-space: pre;
+}
+
+/* ── plates ───────────────────────────────────────────────── */
+.plate {
+  border: var(--edge); border-radius: var(--r);
+  background: var(--panel); overflow: hidden; margin-bottom: 34px;
+}
+.plate.picked { border-color: var(--lime); box-shadow: 0 0 0 1px color-mix(in srgb, var(--lime) 45%, transparent); }
+
+.platehead {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 18px 20px; border-bottom: var(--edge);
+}
+.platehead .id {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  letter-spacing: 0.08em; color: var(--ground);
+  background: var(--purple); border-radius: 6px;
+  padding: 4px 8px; margin-top: 3px; flex: none;
+}
+.platehead .titles { flex: 1 1 auto; min-width: 0; }
+.platehead h3 { margin: 0; font-size: 19px; }
+.platehead .sub { color: var(--muted); font-size: 14px; margin: 2px 0 0; }
+
+.pickbtn {
+  flex: none; display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 12px; letter-spacing: 0.04em;
+  color: var(--muted); background: var(--raised);
+  border: 1px solid color-mix(in srgb, var(--outline) 42%, transparent);
+  border-radius: 999px; padding: 7px 13px; cursor: pointer;
+  transition: color .16s, border-color .16s, background .16s;
+}
+.pickbtn:hover { color: var(--ink); border-color: var(--outline); }
+.pickbtn:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.pickbtn .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  border: 1.5px solid var(--faint); flex: none;
+}
+.plate.picked .pickbtn { color: var(--lime); border-color: color-mix(in srgb, var(--lime) 55%, transparent); }
+.plate.picked .pickbtn .dot { background: var(--lime); border-color: var(--lime); }
+
+/* the screen itself — every plate is the same 2560×1440 at the same scale */
+.screen {
+  position: relative; width: 100%; aspect-ratio: 16 / 9;
+  background: #000; overflow: hidden; container-type: inline-size;
+  isolation: isolate;
+}
+.screen canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+
+.platefoot { padding: 16px 20px 18px; }
+.chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+.chip {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.04em;
+  border-radius: 999px; padding: 4px 10px;
+  border: 1px solid color-mix(in srgb, var(--outline) 38%, transparent);
+  color: var(--muted); background: var(--raised);
+}
+.chip.ok    { color: var(--lime);   border-color: color-mix(in srgb, var(--lime) 45%, transparent); }
+.chip.warn  { color: var(--amber);  border-color: color-mix(in srgb, var(--amber) 45%, transparent); }
+.chip.risk  { color: var(--red);    border-color: color-mix(in srgb, var(--red) 45%, transparent); }
+.chip.info  { color: var(--cyan);   border-color: color-mix(in srgb, var(--cyan) 40%, transparent); }
+.platefoot p { font-size: 14.5px; color: var(--muted); margin: 0 0 10px; max-width: 74ch; }
+.platefoot p:last-child { margin-bottom: 0; }
+.platefoot p strong { color: var(--ink); }
+
+/* ── in-plate composition pieces ──────────────────────────── */
+pre.plateart {
+  position: absolute; margin: 0; white-space: pre;
+  font-family: var(--art); font-size: 1.45cqw; line-height: 1.06;
+  color: var(--ink);
+}
+.grid-art { left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.grid-art span { display: inline-block; width: 1ch; }
+
+/* S3 aurora */
+.blob { position: absolute; border-radius: 50%; filter: blur(7cqw); opacity: .55; will-change: transform; }
+.ghost { opacity: .17; }
+
+/* S5 ambient */
+.amb {
+  position: absolute; left: 0; top: 0; padding: 6cqw 7cqw;
+  display: flex; flex-direction: column; gap: 1.1cqw; will-change: transform;
+}
+.amb .clock {
+  font-family: var(--art); font-weight: 400;
+  font-size: 13cqw; line-height: .92; letter-spacing: -0.02em;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.amb .date { font-family: var(--mono); font-size: 2.1cqw; letter-spacing: .22em; text-transform: uppercase; color: var(--outline); }
+.amb .row { display: flex; align-items: center; gap: 1.4cqw; margin-top: 1.6cqw; }
+.amb .pill {
+  font-family: var(--mono); font-size: 1.5cqw; letter-spacing: .06em;
+  color: var(--muted); border: 1px solid color-mix(in srgb, var(--outline) 55%, transparent);
+  border-radius: 999px; padding: .5cqw 1.3cqw;
+}
+.amb .pill b { color: var(--cyan); font-weight: 500; }
+.amb .mark { position: absolute; right: 6cqw; bottom: 5cqw; opacity: .5; }
+
+/* S6 rail */
+.railmark {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+  font-family: var(--art); font-size: 1.2cqw; line-height: 1.06; white-space: pre;
+  color: color-mix(in srgb, var(--ink) 62%, transparent);
+}
+
+/* ── ladder ───────────────────────────────────────────────── */
+.ladder { border: var(--edge); border-radius: var(--r); background: var(--panel); overflow: hidden; }
+.rung {
+  display: grid; grid-template-columns: 92px 1fr; gap: 16px;
+  padding: 13px 20px; border-bottom: var(--edge); align-items: baseline;
+}
+.rung:last-child { border-bottom: 0; }
+.rung .t { font-family: var(--mono); font-size: 13px; color: var(--cyan); font-variant-numeric: tabular-nums; }
+.rung .d { font-size: 14.5px; color: var(--muted); }
+.rung .d b { color: var(--ink); font-weight: 500; }
+.rung.new {
+  background: linear-gradient(100deg, color-mix(in srgb, var(--lime) 10%, var(--panel)), var(--panel) 60%);
+  border-left: 3px solid var(--lime);
+}
+.rung.new .t { color: var(--lime); }
+
+/* ── decisions ────────────────────────────────────────────── */
+.dec { border: var(--edge); border-radius: var(--r); background: var(--panel); padding: 20px; margin-bottom: 16px; }
+.dec .q { display: flex; gap: 12px; align-items: baseline; margin-bottom: 6px; }
+.dec .qid { font-family: var(--mono); font-size: 12px; color: var(--purple); font-weight: 600; flex: none; }
+.dec h3 { margin: 0; font-size: 17px; }
+.dec .why { font-size: 14.5px; color: var(--muted); margin: 0 0 14px; max-width: 72ch; }
+.opts { display: flex; flex-wrap: wrap; gap: 8px; }
+.opt {
+  position: relative; font-family: var(--mono); font-size: 12.5px;
+  border: 1px solid color-mix(in srgb, var(--outline) 42%, transparent);
+  background: var(--raised); color: var(--muted);
+  border-radius: 8px; padding: 8px 13px; cursor: pointer;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.opt:hover { color: var(--ink); border-color: var(--outline); }
+.opt input { position: absolute; opacity: 0; pointer-events: none; }
+.opt:has(input:checked) {
+  color: var(--ground); background: var(--cyan);
+  border-color: var(--cyan); font-weight: 600;
+}
+.opt:has(input:focus-visible) { outline: 2px solid var(--ink); outline-offset: 2px; }
+.opt .rec { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; opacity: .75; margin-left: 6px; }
+
+/* ── brief ────────────────────────────────────────────────── */
+.brief {
+  border: 1px solid color-mix(in srgb, var(--lime) 40%, transparent);
+  border-radius: var(--r); background: #0e1014; padding: 20px 22px;
+}
+.brief pre {
+  margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.75;
+  color: var(--ink); white-space: pre-wrap; word-break: break-word;
+}
+.brief .none { color: var(--faint); font-style: italic; }
+
+/* ── controls ─────────────────────────────────────────────── */
+.controls {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 11px 0; margin-bottom: 26px;
+  background: color-mix(in srgb, var(--ground) 90%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: var(--edge);
+}
+.ctrl {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--muted); background: var(--raised);
+  border: 1px solid color-mix(in srgb, var(--outline) 42%, transparent);
+  border-radius: 8px; padding: 7px 13px; cursor: pointer;
+}
+.ctrl:hover { color: var(--ink); border-color: var(--outline); }
+.ctrl:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.ctrl.on { color: var(--ground); background: var(--lime); border-color: var(--lime); font-weight: 600; }
+.controls .spacer { flex: 1 1 auto; }
+.controls .count { font-family: var(--mono); font-size: 12px; color: var(--faint); }
+
+/* ── table ────────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: var(--edge); border-radius: var(--r); background: var(--panel); }
+table { border-collapse: collapse; width: 100%; min-width: 660px; font-size: 14px; }
+th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid color-mix(in srgb, var(--outline) 22%, transparent); vertical-align: top; }
+th { font-family: var(--mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--faint); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td.mono { font-family: var(--mono); font-size: 12.5px; color: var(--cyan); }
+td b { font-weight: 600; }
+
+footer.end {
+  border-top: var(--edge); padding-top: 26px; margin-top: 20px;
+  font-size: 13.5px; color: var(--faint);
+}
+footer.end p { max-width: 76ch; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="top">
+  <p class="eyebrow">Quick task 260827-b52 · design study · ends at a decision</p>
+  <h1>Six ways for the desktop to sit still</h1>
+  <p class="lede">
+    Omarchy's screensaver is a fullscreen terminal running <strong>tte</strong> over a text file of block art.
+    This shell has spent a whole milestone deleting external surfaces, so the mechanism does not port —
+    <strong>the idea does</strong>. Here are six in-process directions for an Aorus idle canvas, every one
+    drawn at the same scale, on the same 2560×1440 screen you actually have. Pick one, or pick several
+    and get a style switcher.
+  </p>
+  <div class="metarow">
+    <span class="tag"><b>Scale</b> one shared factor, all plates</span>
+    <span class="tag"><b>Screen</b> DP-1 · 2560×1440 · 165 Hz</span>
+    <span class="tag"><b>Palette</b> live dracula, 19 roles</span>
+    <span class="tag"><b>Reference</b> omarchy @ f4378f0d, vendored</span>
+    <span class="tag"><b>tte</b> not installed here</span>
+  </div>
+</header>
+
+<!-- ═══════════════ THE RULING ═══════════════ -->
+<section id="ruling">
+  <div class="sechead">
+    <p class="eyebrow">What this rests on</p>
+    <h2>The mechanism does not port. The idea does.</h2>
+  </div>
+  <div class="callout">
+    <p>
+      Omarchy spawns <strong>one terminal window per monitor</strong> — class <code>org.omarchy.screensaver</code>,
+      alacritty/ghostty/foot/kitty picked by <code>xdg-terminal-exec</code> — running <code>tte</code> in a loop over
+      <code>~/.config/omarchy/branding/screensaver.txt</code>. That is a second toolkit, a second process, and a
+      second theming path.
+    </p>
+    <p>
+      This repo retired waybar, swaync, swayosd, walker/elephant and hyprlock for exactly that reason, and
+      <code>CLAUDE.md</code> states the rule outright: reintroducing one <em>“would re-split the theming pipeline
+      across a second toolkit for no functional gain.”</em> So the screensaver is a Quickshell layer surface,
+      built the way <code>modules/lock/</code> is built — N operator-selectable layouts behind one key, coloured
+      through <code>Colours.qml</code>, timed through <code>Motion.qml</code>, hot-reloading on file change.
+    </p>
+    <p>
+      One bonus falls out of that. Omarchy sets its screensaver at 150 s and its lock at <em>152</em> s, because
+      launching a terminal window resets the idle timer and the lock's clock restarts. No window is spawned here,
+      so the ladder stays honest.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════ THE WORDMARK ═══════════════ -->
+<section id="wordmark">
+  <div class="sechead">
+    <p class="eyebrow">The identity</p>
+    <h2>AORUS, run through Omarchy's own transcoder</h2>
+  </div>
+  <p>
+    The wordmark below was not hand-drawn. It is <code>magick</code> rendering “AORUS” at pointsize 400 in
+    FiraCode Nerd Font Mono Bold → alpha extract → trim → resize to <code>78x20!</code> → threshold → PBM, fed
+    through the half-block pairing algorithm lifted from <code>omarchy-transcode-ascii</code>. Same pipeline,
+    same <code>▄█▀</code> vocabulary, and it lands at <strong>10 rows × 78 columns</strong> — Omarchy's own
+    <code>logo.txt</code> is 10 × 80.
+  </p>
+  <div class="artbox"><pre class="art" id="heroart"></pre></div>
+  <p style="margin-top:14px">
+    Five of the six plates below are built on this grid. The sixth deliberately isn't — see S5.
+  </p>
+</section>
+
+<!-- ═══════════════ PLATES ═══════════════ -->
+<section id="plates">
+  <div class="sechead">
+    <p class="eyebrow">The six directions</p>
+    <h2>Plates</h2>
+    <p style="margin-top:8px">
+      Each plate is the whole 2560×1440 screen. They are live, not mockups — what you see is the motion.
+      Tap <strong>Pick</strong> on as many as you want; the brief at the bottom assembles itself.
+    </p>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl on" id="playbtn" type="button" aria-pressed="true">⏸ Pause all</button>
+    <button class="ctrl" id="clearbtn" type="button">Clear picks</button>
+    <span class="spacer"></span>
+    <span class="count" id="pickcount">0 picked</span>
+  </div>
+
+  <!-- S1 -->
+  <article class="plate" data-plate="S1" data-name="Terminal Effects">
+    <div class="platehead">
+      <span class="id">S1</span>
+      <div class="titles">
+        <h3>Terminal Effects</h3>
+        <p class="sub">The faithful port. Block wordmark, cycling reveal effects, true black.</p>
+      </div>
+      <button class="pickbtn" type="button"><span class="dot"></span>Pick</button>
+    </div>
+    <div class="screen" data-fx="s1"></div>
+    <div class="platefoot">
+      <div class="chips">
+        <span class="chip ok">buildable today</span>
+        <span class="chip ok">burn-in: safe</span>
+        <span class="chip info">effort: medium</span>
+        <span class="chip info">780-cell text grid</span>
+      </div>
+      <p>
+        <strong>What it is.</strong> Exactly what Omarchy does, in QML: a character grid holding the wordmark,
+        re-revealed every few seconds by a different effect — decrypt, rain, burn, expand, edge-slide. Glyphs
+        resolve from scramble to final; each reveal flashes an accent role before settling to <code>onSurface</code>.
+      </p>
+      <p>
+        <strong>Why it might win.</strong> It is the thing you asked for, and it is the only plate where the
+        <em>screensaver-ness</em> is the point. It also carries Omarchy's best idea for free: the art is just text,
+        so branding stays swappable (see D7).
+      </p>
+      <p>
+        <strong>The catch.</strong> Effects are hand-written — there is no <code>tte</code> here to borrow twenty of
+        them from. Budget one file per effect family, not one file total.
+      </p>
+    </div>
+  </article>
+
+  <!-- S2 -->
+  <article class="plate" data-plate="S2" data-name="Card Drift">
+    <div class="platehead">
+      <span class="id">S2</span>
+      <div class="titles">
+        <h3>Card Drift</h3>
+        <p class="sub">The brand mark itself, adrift. Re-tints on every wall it touches.</p>
+      </div>
+      <button class="pickbtn" type="button"><span class="dot"></span>Pick</button>
+    </div>
+    <div class="screen" data-fx="s2"></div>
+    <div class="platefoot">
+      <div class="chips">
+        <span class="chip ok">buildable today</span>
+        <span class="chip ok">burn-in: safe</span>
+        <span class="chip ok">effort: low</span>
+        <span class="chip info">uses assets/logo.svg verbatim</span>
+      </div>
+      <p>
+        <strong>What it is.</strong> The three fanned cards from <code>quickshell/assets/logo.svg</code> — the mark
+        drawn for <code>~/.face</code> on 2026-08-27 — drifting the screen in the DVD-logo lineage. Every wall
+        contact rotates the three card fills one step through <code>tertiary → secondary → primary</code> and
+        breathes the fan angle. Corner hits are rare and satisfying, which is the entire joke.
+      </p>
+      <p>
+        <strong>Why it might win.</strong> Cheapest plate here by a distance, and the only one that uses the
+        existing brand asset rather than a rendering of the word. It is also the only funny one.
+      </p>
+      <p>
+        <strong>The catch.</strong> It is a toy. It says nothing about the desktop and never will.
+      </p>
+    </div>
+  </article>
+
+  <!-- S3 -->
+  <article class="plate" data-plate="S3" data-name="Palette Aurora">
+    <div class="platehead">
+      <span class="id">S3</span>
+      <div class="titles">
+        <h3>Palette Aurora</h3>
+        <p class="sub">The core value as motion — the whole screen made of the current theme.</p>
+      </div>
+      <button class="pickbtn" type="button"><span class="dot"></span>Pick</button>
+    </div>
+    <div class="screen" data-fx="s3"></div>
+    <div class="platefoot">
+      <div class="chips">
+        <span class="chip ok">buildable today</span>
+        <span class="chip ok">burn-in: safe</span>
+        <span class="chip ok">effort: low</span>
+        <span class="chip warn">needs a real blur budget</span>
+      </div>
+      <p>
+        <strong>What it is.</strong> Three slow blurred fields in <code>primary</code>, <code>secondary</code> and
+        <code>tertiary</code> drifting over <code>surface</code>, with the wordmark ghosted at 17%. Nothing else.
+      </p>
+      <p>
+        <strong>Why it might win.</strong> This project's stated core value is <em>“one theme switch re-themes the
+        entire desktop.”</em> This is that sentence rendered. Switch to a matugen wallpaper theme and the
+        screensaver becomes a different screensaver — no per-style work, no palette mapping, it just is the theme.
+      </p>
+      <p>
+        <strong>The catch.</strong> A 7 cqw blur across a 2560×1440 surface at 165 Hz is the one plate here with a
+        genuine GPU cost. Verify with <code>ShaderEffect</code> or a downscaled layer, not a naive
+        <code>GaussianBlur</code> on a full-size item.
+      </p>
+    </div>
+  </article>
+
+  <!-- S4 -->
+  <article class="plate" data-plate="S4" data-name="Constellation">
+    <div class="platehead">
+      <span class="id">S4</span>
+      <div class="titles">
+        <h3>Constellation</h3>
+        <p class="sub">Particles wander, assemble into the wordmark, hold, disperse.</p>
+      </div>
+      <button class="pickbtn" type="button"><span class="dot"></span>Pick</button>
+    </div>
+    <div class="screen" data-fx="s4"></div>
+    <div class="platefoot">
+      <div class="chips">
+        <span class="chip ok">buildable today</span>
+        <span class="chip ok">burn-in: safe</span>
+        <span class="chip warn">effort: high</span>
+        <span class="chip info">~320 particles</span>
+      </div>
+      <p>
+        <strong>What it is.</strong> The same 78×10 grid, but every filled cell is a destination rather than a
+        glyph. Points drift and link to near neighbours, then migrate into formation, hold about four seconds,
+        and scatter. The wordmark is legible for a quarter of the cycle and absent the rest.
+      </p>
+      <p>
+        <strong>Why it might win.</strong> It is the most <em>designed</em> of the six — the reveal has a shape to
+        it, and the wordmark earns its appearance instead of just being displayed.
+      </p>
+      <p>
+        <strong>The catch.</strong> Highest effort on the board. A per-frame particle system in QML means
+        <code>Canvas</code> (repaint cost) or a <code>ShaderEffect</code> with the targets baked into a texture.
+        Neither is a half-hour job, and neither is covered by an existing pattern in this repo.
+      </p>
+    </div>
+  </article>
+
+  <!-- S5 -->
+  <article class="plate" data-plate="S5" data-name="Ambient Clock">
+    <div class="platehead">
+      <span class="id">S5</span>
+      <div class="titles">
+        <h3>Ambient Clock</h3>
+        <p class="sub">Not a logo toy. A dim glanceable screen that slowly wanders.</p>
+      </div>
+      <button class="pickbtn" type="button"><span class="dot"></span>Pick</button>
+    </div>
+    <div class="screen" data-fx="s5"></div>
+    <div class="platefoot">
+      <div class="chips">
+        <span class="chip ok">buildable today</span>
+        <span class="chip ok">burn-in: safe by design</span>
+        <span class="chip ok">effort: low</span>
+        <span class="chip info">reuses lock-screen backends</span>
+      </div>
+      <p>
+        <strong>What it is.</strong> Time, date, weather and now-playing at ambient brightness, with the mark
+        small in the corner — and the whole block slowly translating on a multi-minute cycle so no pixel is ever
+        static. This is a screensaver in the literal sense, and a useful screen at four paces.
+      </p>
+      <p>
+        <strong>Why it might win.</strong> It is the only plate you would actually <em>read</em>. Every backend it
+        needs already exists and is already wired into the lock screen —
+        <code>MediaBackend.qml</code>, <code>weatherBackend</code>, <code>LockClock.qml</code>. Lowest new code of
+        the six.
+      </p>
+      <p>
+        <strong>The catch.</strong> It has nothing to do with Omarchy, and it half-duplicates the lock screen you
+        shipped this morning. If you take this one, the honest question is whether the lock screen should simply
+        appear sooner.
+      </p>
+    </div>
+  </article>
+
+  <!-- S6 -->
+  <article class="plate" data-plate="S6" data-name="Edge Rail">
+    <div class="platehead">
+      <span class="id">S6</span>
+      <div class="titles">
+        <h3>Edge Rail</h3>
+        <p class="sub">The shell's own edge language, run around a black screen.</p>
+      </div>
+      <button class="pickbtn" type="button"><span class="dot"></span>Pick</button>
+    </div>
+    <div class="screen" data-fx="s6"></div>
+    <div class="platefoot">
+      <div class="chips">
+        <span class="chip ok">buildable today</span>
+        <span class="chip ok">burn-in: safe</span>
+        <span class="chip ok">effort: low</span>
+        <span class="chip info">extends GradientBorder</span>
+      </div>
+      <p>
+        <strong>What it is.</strong> A lit trace running the screen perimeter with a fading gradient tail, over a
+        black field with the wordmark quiet at centre. The stroke is the same accent sweep
+        <code>GradientBorder</code> already draws around the dashboard.
+      </p>
+      <p>
+        <strong>Why it might win.</strong> It is the only plate that looks like <em>this shell</em> rather than
+        like a screensaver in general — same rim, same sweep, same accent stops, on a surface a hundred times
+        larger. Continuity, for free.
+      </p>
+      <p>
+        <strong>The catch.</strong> Very little happens. As the only style it will get old; as one of two or
+        three in a rotation it is the calm one.
+      </p>
+    </div>
+  </article>
+</section>
+
+<!-- ═══════════════ LADDER ═══════════════ -->
+<section id="ladder">
+  <div class="sechead">
+    <p class="eyebrow">Where it fires</p>
+    <h2>The idle ladder, with a rung added</h2>
+  </div>
+  <p>
+    Measured from <code>~/.local/state/hypr/idle-overrides.conf</code> on this host. The proposed rung sits
+    between the bar hiding and the screen dimming, so the screensaver appears on a still-bright screen, then
+    dims with everything else at 300 s, then is replaced by the lock at 600 s.
+  </p>
+  <div class="ladder">
+    <div class="rung"><span class="t">120 s</span><span class="d">bar idle-hide — <b>bar-visibility.sh idle hide</b></span></div>
+    <div class="rung new"><span class="t">180 s</span><span class="d"><b>screensaver appears</b> — proposed, <code>qs ipc call screensaver show</code></span></div>
+    <div class="rung"><span class="t">300 s</span><span class="d">dim to 30% + live-wallpaper suppress — dims the screensaver too</span></div>
+    <div class="rung"><span class="t">600 s</span><span class="d">lock — <b>loginctl lock-session</b>, screensaver hides beneath it</span></div>
+    <div class="rung"><span class="t">1200 s</span><span class="d">display off — dpms, table form</span></div>
+    <div class="rung"><span class="t">1800 s</span><span class="d">suspend</span></div>
+  </div>
+</section>
+
+<!-- ═══════════════ DECISIONS ═══════════════ -->
+<section id="decisions">
+  <div class="sechead">
+    <p class="eyebrow">Rulings I should not make alone</p>
+    <h2>Seven decisions that are not visual</h2>
+    <p style="margin-top:8px">Each one is preset to my recommendation. Change any of them and the brief updates.</p>
+  </div>
+
+  <div class="dec" data-dec="ladder" data-label="Ladder position">
+    <div class="q"><span class="qid">D1</span><h3>When does it appear?</h3></div>
+    <p class="why">
+      Earlier means you see it more; later means it never interrupts a pause in reading. 180 s clears the
+      120 s bar-hide by a comfortable margin and still gives two minutes of screensaver before the dim.
+    </p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="ladder" value="120 s — as soon as the bar hides"><span>120 s</span></label>
+      <label class="opt"><input type="radio" name="ladder" value="180 s — between bar-hide and dim" checked><span>180 s<span class="rec">rec</span></span></label>
+      <label class="opt"><input type="radio" name="ladder" value="300 s — together with the dim"><span>300 s</span></label>
+      <label class="opt"><input type="radio" name="ladder" value="never on idle — keybind only"><span>keybind only</span></label>
+    </div>
+  </div>
+
+  <div class="dec" data-dec="backdrop" data-label="Backdrop">
+    <div class="q"><span class="qid">D2</span><h3>True black, or the theme's surface?</h3></div>
+    <p class="why">
+      Omarchy forces <code>#000000</code> with an OSC escape. True black is what makes a glowing wordmark read,
+      and costs least on an OLED — but it is a hardcoded literal, and <code>colour-lint</code> rejects those in
+      QML. Taking it means one annotated exception; taking <code>surface</code> means the plates look about 12%
+      milkier than they do above.
+    </p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="backdrop" value="true black #000, with an annotated colour-lint exception" checked><span>true black<span class="rec">rec</span></span></label>
+      <label class="opt"><input type="radio" name="backdrop" value="Colours.surface — no lint exception"><span>Colours.surface</span></label>
+      <label class="opt"><input type="radio" name="backdrop" value="a settings toggle between the two"><span>make it a setting</span></label>
+    </div>
+  </div>
+
+  <div class="dec" data-dec="dismiss" data-label="Dismissal">
+    <div class="q"><span class="qid">D3</span><h3>What dismisses it?</h3></div>
+    <p class="why">
+      hypridle's <code>on-resume</code> fires on any input the compositor sees, focus or not — so the cheap path
+      is to let hypridle hide it and add a local key/motion handler as a second line. The risk of “any input” is
+      dismissing it with a stray desk bump; the risk of “keys only” is a mouse-only user stuck staring at it.
+    </p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="dismiss" value="any input — hypridle on-resume plus a local handler" checked><span>any input<span class="rec">rec</span></span></label>
+      <label class="opt"><input type="radio" name="dismiss" value="keyboard and click only — ignore bare pointer motion"><span>key / click only</span></label>
+    </div>
+  </div>
+
+  <div class="dec" data-dec="inhibit" data-label="Inhibits">
+    <div class="q"><span class="qid">D4</span><h3>When must it stay away?</h3></div>
+    <p class="why">
+      Gaming mode already freezes hypridle outright (<code>pkill -STOP -x hypridle</code>), so that case is
+      covered with no new code. The open one is media: a paused-looking player is not the same as watching a
+      film with the mouse untouched for four minutes.
+    </p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="inhibit" value="inhibit while any MPRIS player reports Playing, and while fullscreen" checked><span>media + fullscreen<span class="rec">rec</span></span></label>
+      <label class="opt"><input type="radio" name="inhibit" value="inhibit on fullscreen only"><span>fullscreen only</span></label>
+      <label class="opt"><input type="radio" name="inhibit" value="no inhibits beyond gaming mode"><span>gaming mode only</span></label>
+    </div>
+  </div>
+
+  <div class="dec" data-dec="monitors" data-label="Monitors">
+    <div class="q"><span class="qid">D5</span><h3>One screen or all of them?</h3></div>
+    <p class="why">
+      This host has one output, so the choice is insurance for a laptop or a future second monitor. Independent
+      surfaces look better; a shared clock means two screens showing the same frame of the same effect.
+    </p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="monitors" value="one surface per screen, each animating independently" checked><span>per screen, independent<span class="rec">rec</span></span></label>
+      <label class="opt"><input type="radio" name="monitors" value="one surface per screen, sharing one animation clock"><span>per screen, in sync</span></label>
+      <label class="opt"><input type="radio" name="monitors" value="focused monitor only"><span>focused only</span></label>
+    </div>
+  </div>
+
+  <div class="dec" data-dec="branding" data-label="Branding">
+    <div class="q"><span class="qid">D6</span><h3>Is the wordmark swappable?</h3></div>
+    <p class="why">
+      Omarchy's best structural idea: the art is a plain text file, and any SVG or PNG can be transcoded into it.
+      We already have <code>magick</code>, and the awk half of their transcoder is fifty lines. The cost is one
+      more script and one more settings row.
+    </p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="branding" value="read ~/.config/aorus/branding/screensaver.txt if present, else built-in; ship the transcoder script" checked><span>swappable + transcoder<span class="rec">rec</span></span></label>
+      <label class="opt"><input type="radio" name="branding" value="read an override text file if present, no transcoder"><span>swappable text only</span></label>
+      <label class="opt"><input type="radio" name="branding" value="built-in wordmark only, baked into the QML"><span>baked in</span></label>
+    </div>
+  </div>
+
+  <div class="dec" data-dec="scope" data-label="Style scope">
+    <div class="q"><span class="qid">D7</span><h3>One style, or a switcher?</h3></div>
+    <p class="why">
+      The lock screen carries five layouts behind one <code>layoutKey</code> and a settings picker; the same
+      shape costs almost nothing extra here once the surface exists. A rotation is the third option — a
+      different style each time the screen goes idle.
+    </p>
+    <div class="opts">
+      <label class="opt"><input type="radio" name="scope" value="build the picked styles behind a settings picker, mirroring the lock-layout switch" checked><span>picker<span class="rec">rec</span></span></label>
+      <label class="opt"><input type="radio" name="scope" value="build the picked styles and rotate between them on each idle"><span>rotate</span></label>
+      <label class="opt"><input type="radio" name="scope" value="build exactly one style, no switch"><span>single style</span></label>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ COMPARISON ═══════════════ -->
+<section id="compare">
+  <div class="sechead">
+    <p class="eyebrow">Side by side</p>
+    <h2>What each one costs</h2>
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr><th>Plate</th><th>New code</th><th>Reuses</th><th>Risk</th><th>Says</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="mono">S1 Terminal Effects</td><td><b>Medium</b> — grid + one file per effect family</td><td>Colours, Motion</td><td>Effects are all hand-written</td><td>“This is a screensaver.”</td></tr>
+        <tr><td class="mono">S2 Card Drift</td><td><b>Low</b> — one item, one timer</td><td><code>assets/logo.svg</code></td><td>Wears out; it is a toy</td><td>“This desktop has a mark.”</td></tr>
+        <tr><td class="mono">S3 Palette Aurora</td><td><b>Low</b> — three fields + a ghost</td><td>Colours (all three accents)</td><td>Blur cost at 2560×1440</td><td>“One switch re-themes everything.”</td></tr>
+        <tr><td class="mono">S4 Constellation</td><td><b>High</b> — particle system</td><td>the 78×10 grid</td><td>No existing pattern in-repo</td><td>“Someone designed this.”</td></tr>
+        <tr><td class="mono">S5 Ambient Clock</td><td><b>Lowest</b> — layout only</td><td>MediaBackend, weather, LockClock</td><td>Overlaps the lock screen</td><td>“Here is your desk at a glance.”</td></tr>
+        <tr><td class="mono">S6 Edge Rail</td><td><b>Low</b> — one animated stroke</td><td>GradientBorder, edgebarpath</td><td>Too quiet to stand alone</td><td>“Same shell, bigger surface.”</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note" style="margin-top:20px">
+    <p>
+      <strong>If you want one sentence from me:</strong> take <strong>S1</strong> as the default, because it is
+      the thing you actually asked for and the only plate where the wordmark is the event — and add
+      <strong>S3</strong> as the second style, because it is cheap and it is the only one that makes the
+      project's core claim visible. S6 is the natural third if the rotation ever feels thin. S4 is the best
+      plate on the board and the one I would defer until something else is not owed.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════════════ BRIEF ═══════════════ -->
+<section id="brief">
+  <div class="sechead">
+    <p class="eyebrow">Hand this back</p>
+    <h2>Your brief</h2>
+    <p style="margin-top:8px">Assembled from your picks above. Paste it back to me and stage 2 starts from it.</p>
+  </div>
+  <div class="brief"><pre id="briefout"></pre></div>
+</section>
+
+<footer class="end">
+  <p>
+    <strong>Measured, not assumed:</strong> the idle ladder, the palette's 19 roles, the monitor geometry, the
+    absence of <code>tte</code>, the presence of <code>magick</code> and <code>chafa</code>, and Omarchy's source
+    at master <code>f4378f0d</code> (vendored to <code>.planning/notes/aorus-screensaver/</code>). The wordmark
+    was generated on this machine by the pipeline described above.
+  </p>
+  <p>
+    <strong>Not measured:</strong> the GPU cost of S3's blur and S4's particle count at 2560×1440 · 165 Hz. Both
+    are stated as risks rather than discovered in execution. A browser plate is not a compositor — these are
+    compositions to choose between, not performance evidence.
+  </p>
+  <p style="margin-top:18px; color: var(--faint)">Quick task 260827-b52 · Arch + Hyprland Dotfiles · 2026-08-27</p>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var ART = ["     ▄█▄▄█          ▄█████▄▄      █████▄▄▄▄▄     ▄█▄█     █▄█▄     ▄▄██████▄▄ ", "    ▄██████       ▄████▀████▄     ███████████    ████     ████    █████▀▀████▀", "    ███▀███      ▄███▀   ▀████    ████   ▀████   ████     ████   ████▀     ▀  ", "   ▄███ ████     ████     ████    ████    ████   ████     ████   ▀████▄▄      ", "   ███▀  ███▄    ████     ████    ████▄▄▄████▀   ████     ████    ▀███████▄▄  ", "  ▄███   ████    ████     ████    █████████▀     ████     ████      ▀▀▀██████▄", "  ███████████▄   ████     ████    ████ ████▄     ████     ████           ▀████", " █████▀▀▀▀████   ▀███▄   ▄████    ████  ████▄    ████▄   ▄████    ▄      ▄████", " ████     ▀███▄   ▀████▄█████     ████   ████▄    █████▄█████    █████▄▄█████ ", "████       ████     ▀█████▀▀      ███▀    ▀███▀    ▀▀█████▀▀      ▀▀██████▀▀  "];
+  var COLS = 78, ROWS = ART.length;
+  var GLYPHS = "▁▂▃▄▅▆▇█▏▎▍▌▋▊▉░▒▓╱╲╳┃━┏┓┗┛◢◣◤◥";
+  var C = {
+    ink: "#f8f8f2", pink: "#ff79c6", purple: "#bd93f9",
+    cyan: "#8be9fd", outline: "#6272a4", variant: "#44475a", surface: "#282a36"
+  };
+  var ACCENTS = [C.pink, C.purple, C.cyan];
+
+  var reduced = false;
+  try { reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches; } catch (e) {}
+
+  // ── hero art ────────────────────────────────────────────────
+  var hero = document.getElementById("heroart");
+  if (hero) hero.textContent = ART.join("\n");
+
+  // ── shared driver: only visible plates tick, and only when playing ──
+  var engines = [];
+  var playing = !reduced;
+  var lastT = 0;
+
+  function frame(t) {
+    var dt = lastT ? Math.min(64, t - lastT) : 16;
+    lastT = t;
+    for (var i = 0; i < engines.length; i++) {
+      var e = engines[i];
+      if (e.visible && (playing || !e.started)) { e.tick(t, dt); e.started = true; }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  var io = null;
+  try {
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) {
+        var e = en.target.__engine;
+        if (e) e.visible = en.isIntersecting;
+      });
+    }, { rootMargin: "220px 0px" });
+  } catch (e) {}
+
+  function register(el, engine) {
+    engine.visible = !io;
+    engine.started = false;
+    el.__engine = engine;
+    engines.push(engine);
+    if (io) io.observe(el);
+  }
+
+  // ── helpers ─────────────────────────────────────────────────
+  function px(el) { return el.clientWidth || 960; }
+  function rand(a, b) { return a + Math.random() * (b - a); }
+
+  function makeCanvas(host) {
+    var cv = document.createElement("canvas");
+    host.appendChild(cv);
+    var ctx = cv.getContext("2d");
+    function size() {
+      var dpr = Math.min(2, window.devicePixelRatio || 1);
+      var w = host.clientWidth, h = host.clientHeight;
+      if (!w || !h) return false;
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      return true;
+    }
+    size();
+    window.addEventListener("resize", size);
+    return { cv: cv, ctx: ctx, w: function () { return host.clientWidth; }, h: function () { return host.clientHeight; } };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // S1 — Terminal Effects
+  // ══════════════════════════════════════════════════════════════
+  function buildS1(host) {
+    var pre = document.createElement("pre");
+    pre.className = "plateart grid-art";
+    host.appendChild(pre);
+
+    var cells = [];   // {el, ch, r, c, t0}
+    for (var r = 0; r < ROWS; r++) {
+      var line = ART[r];
+      for (var c = 0; c < COLS; c++) {
+        var ch = line[c] || " ";
+        var sp = document.createElement("span");
+        sp.textContent = " ";
+        pre.appendChild(sp);
+        cells.push({ el: sp, ch: ch, r: r, c: c, t0: 0, done: false, blank: ch === " " });
+      }
+      pre.appendChild(document.createTextNode("\n"));
+    }
+
+    // Reduced motion: show the resolved wordmark and never animate it.
+    if (reduced) {
+      cells.forEach(function (cell) { cell.el.textContent = cell.ch; });
+      return { tick: function () {} };
+    }
+
+    var EFFECTS = ["decrypt", "rain", "burn", "expand", "slide"];
+    var fxi = 0;
+    var phase = "in", phaseStart = 0, scrambleT = 0, accent = ACCENTS[0];
+    var IN_MS = 2000, HOLD_MS = 2600, OUT_MS = 700;
+
+    function plan(kind, now) {
+      var cx = (COLS - 1) / 2, cy = (ROWS - 1) / 2;
+      var colHead = [];
+      for (var i = 0; i < COLS; i++) colHead[i] = Math.random() * 620;
+      cells.forEach(function (cell) {
+        var d;
+        switch (kind) {
+          case "decrypt": d = Math.random() * 1350; break;
+          case "rain":    d = colHead[cell.c] + cell.r * 78; break;
+          case "burn":    d = (ROWS - 1 - cell.r) * 130 + Math.random() * 180; break;
+          case "expand":  d = Math.hypot((cell.c - cx) / 2.2, (cell.r - cy)) * 88 + Math.random() * 120; break;
+          default:        d = Math.min(cell.c, COLS - 1 - cell.c) * 30 + Math.random() * 140; break;
+        }
+        cell.t0 = now + d;
+        cell.done = false;
+        cell.el.style.color = "";
+      });
+    }
+
+    plan(EFFECTS[0], 0);
+
+    return {
+      tick: function (t) {
+        if (!phaseStart) { phaseStart = t; plan(EFFECTS[fxi], t); }
+        var el = t - phaseStart;
+
+        if (phase === "in") {
+          var scramble = t - scrambleT > 55;
+          if (scramble) scrambleT = t;
+          for (var i = 0; i < cells.length; i++) {
+            var cell = cells[i];
+            if (cell.blank) continue;
+            if (t >= cell.t0) {
+              if (!cell.done) {
+                cell.done = true;
+                cell.el.textContent = cell.ch;
+                cell.el.style.color = accent;
+                (function (c2) { setTimeout(function () { c2.el.style.color = C.ink; }, 220 + Math.random() * 260); })(cell);
+              }
+            } else if (scramble && t > cell.t0 - 520) {
+              cell.el.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0];
+              cell.el.style.color = C.outline;
+            }
+          }
+          if (el > IN_MS) { phase = "hold"; phaseStart = t; }
+        } else if (phase === "hold") {
+          if (el > HOLD_MS) { phase = "out"; phaseStart = t; pre.style.transition = "opacity " + OUT_MS + "ms ease"; pre.style.opacity = "0"; }
+        } else {
+          if (el > OUT_MS) {
+            fxi = (fxi + 1) % EFFECTS.length;
+            accent = ACCENTS[fxi % ACCENTS.length];
+            cells.forEach(function (c3) { c3.el.textContent = " "; c3.el.style.color = ""; });
+            pre.style.transition = "none"; pre.style.opacity = "1";
+            plan(EFFECTS[fxi], t);
+            phase = "in"; phaseStart = t;
+          }
+        }
+      }
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // S2 — Card Drift (the real brand mark)
+  // ══════════════════════════════════════════════════════════════
+  function buildS2(host) {
+    var NS = "http://www.w3.org/2000/svg";
+    var box = document.createElement("div");
+    box.style.cssText = "position:absolute;left:0;top:0;width:26%;will-change:transform";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", "0 0 512 600");
+    svg.setAttribute("width", "100%");
+    box.appendChild(svg);
+
+    var disc = document.createElementNS(NS, "circle");
+    disc.setAttribute("cx", "256"); disc.setAttribute("cy", "256"); disc.setAttribute("r", "242");
+    disc.setAttribute("fill", "none"); disc.setAttribute("stroke", C.outline);
+    disc.setAttribute("stroke-opacity", "0.5"); disc.setAttribute("stroke-width", "5");
+    svg.appendChild(disc);
+
+    var g = document.createElementNS(NS, "g");
+    g.setAttribute("stroke", "#000"); g.setAttribute("stroke-width", "9");
+    g.setAttribute("stroke-linejoin", "round");
+    svg.appendChild(g);
+
+    var rects = [];
+    [0, 1, 2].forEach(function (i) {
+      var rc = document.createElementNS(NS, "rect");
+      rc.setAttribute("x", "176"); rc.setAttribute("y", "150");
+      rc.setAttribute("width", "160"); rc.setAttribute("height", "210");
+      rc.setAttribute("rx", "26");
+      g.appendChild(rc);
+      rects.push(rc);
+    });
+
+    var label = document.createElementNS(NS, "text");
+    label.setAttribute("x", "256"); label.setAttribute("y", "570");
+    label.setAttribute("text-anchor", "middle");
+    label.setAttribute("font-family", "IBM Plex Mono, monospace");
+    label.setAttribute("font-size", "62"); label.setAttribute("letter-spacing", "18");
+    label.setAttribute("fill", C.outline);
+    label.textContent = "AORUS";
+    svg.appendChild(label);
+
+    host.appendChild(box);
+
+    var tint = 0, fan = 24, fanDir = 1;
+    function paint() {
+      for (var i = 0; i < 3; i++) rects[i].setAttribute("fill", ACCENTS[(tint + i) % 3]);
+      var order = [-fan, 0, fan];
+      for (var j = 0; j < 3; j++) rects[j].setAttribute("transform", "rotate(" + order[j] + " 256 392)");
+    }
+    paint();
+
+    var x = 0.18, y = 0.14, vx = 0.052, vy = 0.038;  // fractions per second
+
+    return {
+      tick: function (t, dt) {
+        var s = dt / 1000;
+        var w = host.clientWidth, h = host.clientHeight;
+        var bw = box.offsetWidth / w, bh = box.offsetHeight / h;
+        x += vx * s; y += vy * s;
+        var hit = false;
+        if (x <= 0) { x = 0; vx = Math.abs(vx); hit = true; }
+        if (x + bw >= 1) { x = 1 - bw; vx = -Math.abs(vx); hit = true; }
+        if (y <= 0) { y = 0; vy = Math.abs(vy); hit = true; }
+        if (y + bh >= 1) { y = 1 - bh; vy = -Math.abs(vy); hit = true; }
+        if (hit) { tint = (tint + 1) % 3; fanDir = -fanDir; paint(); }
+        fan += fanDir * 2.4 * s;
+        if (fan > 30) { fan = 30; fanDir = -1; }
+        if (fan < 14) { fan = 14; fanDir = 1; }
+        paint();
+        box.style.transform = "translate(" + (x * w) + "px," + (y * h) + "px)";
+      }
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // S3 — Palette Aurora
+  // ══════════════════════════════════════════════════════════════
+  function buildS3(host) {
+    host.style.background = C.surface;
+    var blobs = [];
+    ACCENTS.forEach(function (col, i) {
+      var b = document.createElement("div");
+      b.className = "blob";
+      b.style.background = col;
+      b.style.width = (46 + i * 9) + "%";
+      b.style.aspectRatio = "1";
+      host.appendChild(b);
+      blobs.push({
+        el: b,
+        x: rand(0.1, 0.7), y: rand(0.05, 0.6),
+        vx: rand(-0.026, 0.026) || 0.02, vy: rand(-0.02, 0.02) || 0.015
+      });
+    });
+
+    var ghost = document.createElement("pre");
+    ghost.className = "plateart grid-art ghost";
+    ghost.textContent = ART.join("\n");
+    host.appendChild(ghost);
+
+    return {
+      tick: function (t, dt) {
+        var s = dt / 1000, w = host.clientWidth, h = host.clientHeight;
+        blobs.forEach(function (b) {
+          b.x += b.vx * s; b.y += b.vy * s;
+          if (b.x < -0.35 || b.x > 0.95) b.vx *= -1;
+          if (b.y < -0.35 || b.y > 0.95) b.vy *= -1;
+          b.el.style.transform = "translate(" + (b.x * w) + "px," + (b.y * h) + "px)";
+        });
+      }
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // S4 — Constellation
+  // ══════════════════════════════════════════════════════════════
+  function buildS4(host) {
+    var g = makeCanvas(host);
+    var targets = [];
+    for (var r = 0; r < ROWS; r++) {
+      for (var c = 0; c < COLS; c++) {
+        if ((ART[r][c] || " ") !== " ") targets.push([c / (COLS - 1), r / (ROWS - 1)]);
+      }
+    }
+    // sample down to a workable count, evenly
+    var WANT = 300;
+    var step = Math.max(1, Math.floor(targets.length / WANT));
+    var pts = [];
+    for (var i = 0; i < targets.length; i += step) pts.push(targets[i]);
+
+    var parts = pts.map(function (p) {
+      return {
+        tx: p[0], ty: p[1],
+        x: Math.random(), y: Math.random(),
+        vx: rand(-0.03, 0.03), vy: rand(-0.03, 0.03)
+      };
+    });
+
+    var CYCLE = 15000, t0 = 0;
+
+    return {
+      tick: function (t, dt) {
+        if (!t0) t0 = t;
+        var w = g.w(), h = g.h();
+        if (!w || !h) return;
+        var ph = ((t - t0) % CYCLE) / CYCLE;
+        // 0.00-0.28 drift · 0.28-0.52 assemble · 0.52-0.76 hold · 0.76-1.0 disperse
+        var pull = 0;
+        if (ph < 0.28) pull = 0;
+        else if (ph < 0.52) pull = (ph - 0.28) / 0.24;
+        else if (ph < 0.76) pull = 1;
+        else pull = 1 - (ph - 0.76) / 0.24;
+        pull = pull * pull * (3 - 2 * pull);
+
+        var s = dt / 1000;
+        var ctx = g.ctx;
+        ctx.clearRect(0, 0, w, h);
+        ctx.fillStyle = "#000";
+        ctx.fillRect(0, 0, w, h);
+
+        // wordmark occupies the middle 62% horizontally
+        var mw = 0.62, mh = 0.16, ox = (1 - mw) / 2, oy = (1 - mh) / 2;
+
+        for (var i = 0; i < parts.length; i++) {
+          var p = parts[i];
+          if (pull < 0.02) {
+            p.x += p.vx * s; p.y += p.vy * s;
+            if (p.x < 0 || p.x > 1) p.vx *= -1;
+            if (p.y < 0 || p.y > 1) p.vy *= -1;
+          }
+          var gx = ox + p.tx * mw, gy = oy + p.ty * mh;
+          var dx = p.x + (gx - p.x) * pull;
+          var dy = p.y + (gy - p.y) * pull;
+          p.dx = dx; p.dy = dy;
+        }
+
+        // links, strongest while loose
+        var linkA = 0.30 * (1 - pull) + 0.06;
+        ctx.lineWidth = 1;
+        for (var a = 0; a < parts.length; a += 2) {
+          for (var b = a + 2; b < Math.min(a + 26, parts.length); b += 2) {
+            var A = parts[a], B = parts[b];
+            var ddx = (A.dx - B.dx) * w, ddy = (A.dy - B.dy) * h;
+            var d2 = ddx * ddx + ddy * ddy;
+            if (d2 < 5200) {
+              ctx.strokeStyle = "rgba(98,114,164," + (linkA * (1 - d2 / 5200)).toFixed(3) + ")";
+              ctx.beginPath();
+              ctx.moveTo(A.dx * w, A.dy * h);
+              ctx.lineTo(B.dx * w, B.dy * h);
+              ctx.stroke();
+            }
+          }
+        }
+
+        for (var k = 0; k < parts.length; k++) {
+          var q = parts[k];
+          var rr = 1.2 + pull * 1.5;
+          ctx.fillStyle = pull > 0.55
+            ? "rgba(248,248,242," + (0.35 + pull * 0.6).toFixed(3) + ")"
+            : "rgba(189,147,249,0.72)";
+          ctx.beginPath();
+          ctx.arc(q.dx * w, q.dy * h, rr, 0, 6.284);
+          ctx.fill();
+        }
+      }
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // S5 — Ambient Clock
+  // ══════════════════════════════════════════════════════════════
+  function buildS5(host) {
+    host.style.background = "#050609";
+    var amb = document.createElement("div");
+    amb.className = "amb";
+    amb.innerHTML =
+      '<div class="clock" data-clock>--:--</div>' +
+      '<div class="date" data-date></div>' +
+      '<div class="row">' +
+        '<span class="pill">▶ <b>Bonobo</b> — Kerala</span>' +
+        '<span class="pill">☁ <b>19°</b> partly cloudy</span>' +
+        '<span class="pill">⏻ <b>uptime</b> 4h 12m</span>' +
+      '</div>';
+    host.appendChild(amb);
+
+    var mark = document.createElement("pre");
+    mark.className = "plateart mark";
+    mark.style.cssText += ";font-size:0.62cqw;right:6cqw;bottom:5cqw;left:auto;top:auto;opacity:.45";
+    mark.textContent = ART.join("\n");
+    amb.appendChild(mark);
+
+    function stamp() {
+      var d = new Date();
+      var hh = String(d.getHours()).padStart(2, "0");
+      var mm = String(d.getMinutes()).padStart(2, "0");
+      amb.querySelector("[data-clock]").textContent = hh + ":" + mm;
+      amb.querySelector("[data-date]").textContent =
+        d.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "long" });
+    }
+    stamp();
+    setInterval(stamp, 20000);
+
+    var t0 = 0;
+    return {
+      tick: function (t) {
+        if (!t0) t0 = t;
+        // slow burn-in wander: a full lap of the safe area every ~72 s
+        var a = (t - t0) / 72000 * 6.2832;
+        var w = host.clientWidth, h = host.clientHeight;
+        var dx = Math.cos(a) * w * 0.055 + Math.cos(a * 0.37) * w * 0.02;
+        var dy = Math.sin(a * 0.61) * h * 0.06;
+        amb.style.transform = "translate(" + dx + "px," + dy + "px)";
+      }
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  // S6 — Edge Rail
+  // ══════════════════════════════════════════════════════════════
+  function buildS6(host) {
+    var NS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("width", "100%"); svg.setAttribute("height", "100%");
+    svg.setAttribute("viewBox", "0 0 1600 900");
+    svg.setAttribute("preserveAspectRatio", "none");
+    svg.style.cssText = "position:absolute;inset:0";
+
+    var defs = document.createElementNS(NS, "defs");
+    var lg = document.createElementNS(NS, "linearGradient");
+    lg.setAttribute("id", "railgrad");
+    lg.setAttribute("gradientUnits", "userSpaceOnUse");
+    lg.setAttribute("x1", "0"); lg.setAttribute("y1", "0");
+    lg.setAttribute("x2", "1600"); lg.setAttribute("y2", "900");
+    [[0, C.cyan], [0.5, C.purple], [1, C.pink]].forEach(function (s) {
+      var st = document.createElementNS(NS, "stop");
+      st.setAttribute("offset", s[0]); st.setAttribute("stop-color", s[1]);
+      lg.appendChild(st);
+    });
+    defs.appendChild(lg);
+    svg.appendChild(defs);
+
+    function rail(stroke, width, opacity) {
+      var p = document.createElementNS(NS, "rect");
+      p.setAttribute("x", "14"); p.setAttribute("y", "14");
+      p.setAttribute("width", "1572"); p.setAttribute("height", "872");
+      p.setAttribute("rx", "26");
+      p.setAttribute("fill", "none");
+      p.setAttribute("stroke", stroke);
+      p.setAttribute("stroke-width", width);
+      p.setAttribute("stroke-opacity", opacity);
+      p.setAttribute("vector-effect", "non-scaling-stroke");
+      svg.appendChild(p);
+      return p;
+    }
+
+    rail(C.variant, "1.5", "0.55");            // the dark track
+    var lit = rail("url(#railgrad)", "3", "1"); // the travelling head
+    lit.setAttribute("stroke-linecap", "round");
+
+    host.appendChild(svg);
+
+    var mark = document.createElement("pre");
+    mark.className = "railmark";
+    mark.textContent = ART.join("\n");
+    host.appendChild(mark);
+
+    var LEN = 2 * (1572 + 872) - 8 * 26 + 2 * Math.PI * 26; // ≈ perimeter of the rounded rect
+    lit.setAttribute("stroke-dasharray", (LEN * 0.19) + " " + LEN);
+    var off = 0;
+
+    return {
+      tick: function (t, dt) {
+        off -= LEN * (dt / 9000);
+        if (off < -LEN) off += LEN;
+        lit.setAttribute("stroke-dashoffset", off);
+        var pulse = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(t / 2600));
+        mark.style.opacity = (0.34 + pulse * 0.22).toFixed(3);
+      }
+    };
+  }
+
+  // ── wire the plates ─────────────────────────────────────────
+  var BUILDERS = { s1: buildS1, s2: buildS2, s3: buildS3, s4: buildS4, s5: buildS5, s6: buildS6 };
+  document.querySelectorAll(".screen[data-fx]").forEach(function (host) {
+    var b = BUILDERS[host.getAttribute("data-fx")];
+    if (!b) return;
+    var eng = b(host);
+    register(host, eng);
+  });
+
+  // ── play / pause ────────────────────────────────────────────
+  var playbtn = document.getElementById("playbtn");
+  function setPlaying(v) {
+    playing = v;
+    playbtn.textContent = v ? "⏸ Pause all" : "▶ Play all";
+    playbtn.classList.toggle("on", v);
+    playbtn.setAttribute("aria-pressed", String(v));
+  }
+  setPlaying(playing);
+  playbtn.addEventListener("click", function () { setPlaying(!playing); });
+
+  // ── picks + decisions + brief ───────────────────────────────
+  var STORE = "aorus-screensaver-study.v1";
+  var picks = {};
+  try {
+    var raw = localStorage.getItem(STORE);
+    if (raw) picks = JSON.parse(raw) || {};
+  } catch (e) { picks = {}; }
+
+  function persist() {
+    try { localStorage.setItem(STORE, JSON.stringify(picks)); } catch (e) {}
+  }
+
+  var plates = Array.prototype.slice.call(document.querySelectorAll(".plate"));
+
+  function syncPlate(el) {
+    var id = el.getAttribute("data-plate");
+    var on = !!picks[id];
+    el.classList.toggle("picked", on);
+    var btn = el.querySelector(".pickbtn");
+    btn.lastChild.textContent = on ? "Picked" : "Pick";
+    btn.setAttribute("aria-pressed", String(on));
+  }
+
+  plates.forEach(function (el) {
+    syncPlate(el);
+    el.querySelector(".pickbtn").addEventListener("click", function () {
+      var id = el.getAttribute("data-plate");
+      if (picks[id]) delete picks[id]; else picks[id] = true;
+      syncPlate(el); persist(); brief();
+    });
+  });
+
+  document.getElementById("clearbtn").addEventListener("click", function () {
+    picks = {}; plates.forEach(syncPlate); persist(); brief();
+  });
+
+  document.querySelectorAll(".dec input[type=radio]").forEach(function (r) {
+    r.addEventListener("change", brief);
+  });
+
+  function brief() {
+    var chosen = plates.filter(function (el) { return picks[el.getAttribute("data-plate")]; });
+    document.getElementById("pickcount").textContent =
+      chosen.length === 1 ? "1 picked" : chosen.length + " picked";
+
+    var out = document.getElementById("briefout");
+    if (!chosen.length) {
+      out.innerHTML = '<span class="none">Pick at least one plate above and the brief writes itself here.</span>';
+      return;
+    }
+
+    var lines = [];
+    lines.push("STAGE 2 BRIEF — quick task 260827-b52");
+    lines.push("");
+    lines.push("Build these styles:");
+    chosen.forEach(function (el, i) {
+      lines.push("  " + (i === 0 ? "1." : (i + 1) + ".") + " " +
+        el.getAttribute("data-plate") + " " + el.getAttribute("data-name") +
+        (i === 0 ? "   (default style)" : ""));
+    });
+    lines.push("");
+    lines.push("Rulings:");
+    document.querySelectorAll(".dec").forEach(function (d) {
+      var sel = d.querySelector("input:checked");
+      var label = d.getAttribute("data-label");
+      lines.push("  " + (label + ":").padEnd(16) + (sel ? sel.value : "—"));
+    });
+    out.textContent = lines.join("\n");
+  }
+
+  brief();
+})();
+</script>
