@@ -50,8 +50,12 @@ Item {
         anchors.centerIn: parent
         spacing: 12
 
+        // Exit LIFTS rather than falls. The entrance rises from below, so
+        // continuing upward reads as the stack passing through and away;
+        // dropping it back down read as a collapse, which is why it was the
+        // one exit that felt wrong.
         transform: Translate {
-            y: root.unlocking ? 34 : 0
+            y: root.unlocking ? -30 : 0
             Behavior on y {
                 NumberAnimation {
                     duration: Motion.emphasizedOutDuration

@@ -679,6 +679,30 @@ if [[ ! -L "$HOME/.local/state/theme/current.jpg" ]]; then
     fi
 fi
 
+# ── Avatar seed (~/.face) ────────────────────────────
+# The lock screen's avatar reads ~/.face, the freedesktop convention. It is
+# a $HOME-root dotfile, so no stow package owns it — without this seed a
+# fresh install would have no avatar, which is host-only state the repo's
+# reproducibility constraint does not allow.
+#
+# Seeded only when ABSENT (same posture as the wallpaper pointer above), so
+# a user who drops in their own photo keeps it across re-runs. Relative
+# symlink for the same reason the wallpaper seed uses one — an absolute one
+# broke fresh installs before (quick task 260709-ciu).
+#
+# Degrade, not crash: the lock screen falls back to the bundled brand mark
+# on its own if this is missing, so a failure here is a warning.
+if [[ ! -e "$HOME/.face" ]]; then
+    FACE_SEED_TARGET="$DOTFILES_DIR/quickshell/.config/quickshell/assets/logo.png"
+    if [[ -f "$FACE_SEED_TARGET" ]]; then
+        if ! ln -sfr "$FACE_SEED_TARGET" "$HOME/.face" 2>/dev/null; then
+            echo "  ⚠ avatar seed failed — lock screen will use its built-in brand mark" >&2
+        fi
+    else
+        echo "  ⚠ $FACE_SEED_TARGET not found — skipping avatar seed" >&2
+    fi
+fi
+
 # ── Switch to zshell ─────────────────────────────────
 # Pitfall 6/D-59: a non-root `chsh` prompts for the invoking user's login
 # password via PAM, breaking the strictly-zero-prompts requirement. A

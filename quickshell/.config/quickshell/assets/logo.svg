@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <!--
+    Dotfiles brand mark — "one switch, every surface".
+
+    Three desktop surfaces fanned from a single point, each carrying a
+    different palette role. That is this project's core value stated as a
+    shape: one theme switch, static or dynamic, re-tints every surface at
+    once. The cards share one origin and one rotation step, so they read as
+    one system rather than three unrelated panels.
+
+    (An earlier draft drew a prism refracting a white beam. It encoded the
+    same idea and was discarded for being, unmistakably, the Dark Side of the
+    Moon cover — a borrowed mark is not a brand.)
+
+    Palette is the repo's own Dracula theme, read from
+    ~/.local/state/theme/palette.json on 2026-08-27:
+      surface #282a36 · surfaceVariant #44475a · outline #6272a4
+      onSurface #f8f8f2 · primary #ff79c6 · secondary #bd93f9 · tertiary #8be9fd
+
+    The disc is drawn edge-to-edge (r = 256) so a circular crop — which is how
+    every avatar consumer in this shell renders it — lands exactly on it.
+  -->
+  <defs>
+    <radialGradient id="disc" cx="36%" cy="28%" r="84%">
+      <stop offset="0%"   stop-color="#3c3f51"/>
+      <stop offset="60%"  stop-color="#282a36"/>
+      <stop offset="100%" stop-color="#1c1d26"/>
+    </radialGradient>
+  </defs>
+
+  <circle cx="256" cy="256" r="256" fill="url(#disc)"/>
+  <circle cx="256" cy="256" r="242" fill="none" stroke="#6272a4" stroke-opacity="0.5" stroke-width="5"/>
+
+  <!--
+    Cards fan from a pivot below the disc centre, so they splay outward at the
+    top like a held swatch deck rather than pinwheeling about their own
+    middles. Back to front: tertiary, secondary, primary. The pivot itself is
+    left unmarked — a dot drawn there read as a stray element rather than as
+    an origin.
+  -->
+  <g stroke="#1c1d26" stroke-width="9" stroke-linejoin="round">
+    <rect x="176" y="150" width="160" height="210" rx="26"
+          fill="#8be9fd" transform="rotate(-24 256 392)"/>
+    <rect x="176" y="150" width="160" height="210" rx="26"
+          fill="#bd93f9" transform="rotate(0 256 392)"/>
+    <rect x="176" y="150" width="160" height="210" rx="26"
+          fill="#ff79c6" transform="rotate(24 256 392)"/>
+  </g>
+</svg>

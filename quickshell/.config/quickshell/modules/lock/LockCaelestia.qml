@@ -64,6 +64,32 @@ Item {
     // relatively smaller, not larger.
     readonly property real cqw: (root.screen?.width ?? 2560) / 100
 
+    // Shared by the album-art backing and its mask so the two shapes can never
+    // drift apart. `lobes` bumps around the rim, `amp` how deep they cut.
+    function paintBlob(ctx, w, h, colour) {
+        const cx = w / 2;
+        const cy = h / 2;
+        const base = Math.min(w, h) / 2 * 0.94;
+        const lobes = 10;
+        const amp = 0.045;
+
+        ctx.reset();
+        ctx.beginPath();
+        for (let i = 0; i <= 240; i++) {
+            const t = i / 240 * Math.PI * 2;
+            const r = base * (1 + amp * Math.cos(lobes * t));
+            const x = cx + r * Math.cos(t);
+            const y = cy + r * Math.sin(t);
+            if (i === 0)
+                ctx.moveTo(x, y);
+            else
+                ctx.lineTo(x, y);
+        }
+        ctx.closePath();
+        ctx.fillStyle = colour;
+        ctx.fill();
+    }
+
     readonly property real centerScale: Math.min(1, (root.screen?.height ?? 1440) / 1440)
 
     // ── The card is gone ──────────────────────────────────────────────
@@ -274,12 +300,43 @@ Item {
                         // square cover cropped into a tall narrow box reads as
                         // stretched. Album art is square, so it is now pinned
                         // to a 1:1 box with a ceiling.
-                        ClippingRectangle {
+                        // Squiggle-edged album art, sized to fill most of the
+                        // tile. The previous 1:1 box at cqw*9 read as "just a
+                        // square in the top centre"; this is cqw*15, capped by
+                        // the tile so it never overflows.
+                        //
+                        // The wavy edge is a polar rosette, r(θ) = R(1 + a·cos(nθ)),
+                        // painted once to a Canvas and used as a MultiEffect
+                        // mask — the same masking pattern the avatar below
+                        // already uses. Canvas rather than QtQuick.Shapes
+                        // because the path is static: it is rasterised once per
+                        // resize and costs nothing thereafter.
+                        Item {
+                            id: artBlob
+
                             Layout.alignment: Qt.AlignHCenter
-                            Layout.preferredWidth: Math.min(parent.width, root.cqw * 9)
+                            Layout.preferredWidth: Math.min(parent.width, root.cqw * 15)
                             Layout.preferredHeight: Layout.preferredWidth
-                            radius: Design.roundingSm
-                            color: Colours.surface
+
+                            // Backing shape, so the squiggle is visible even
+                            // with no art loaded.
+                            Canvas {
+                                id: blobBacking
+
+                                // Repaint is driven by a declared property, not
+                                // by a Connections on Colours: Colours exposes
+                                // no `paletteChanged` signal, so that handler
+                                // would have been dead code and the blob would
+                                // have kept the palette it was first painted
+                                // with across a theme switch.
+                                readonly property color shapeColour: Colours.surface
+
+                                anchors.fill: parent
+                                onPaint: root.paintBlob(getContext("2d"), width, height, shapeColour)
+                                onShapeColourChanged: requestPaint()
+                                onWidthChanged: requestPaint()
+                                onHeightChanged: requestPaint()
+                            }
 
                             Image {
                                 id: art
@@ -291,16 +348,37 @@ Item {
                                 sourceSize.height: height
                                 asynchronous: true
                                 cache: true
-                                visible: status === Image.Ready
+                                visible: false
+                                layer.enabled: true
+                            }
+
+                            Canvas {
+                                id: blobMask
+                                anchors.fill: parent
+                                visible: false
+                                layer.enabled: true
+                                onPaint: root.paintBlob(getContext("2d"), width, height, "white")
+                                onWidthChanged: requestPaint()
+                                onHeightChanged: requestPaint()
+                            }
+
+                            MultiEffect {
+                                anchors.fill: parent
+                                source: art
+                                maskEnabled: true
+                                maskSource: blobMask
+                                maskThresholdMin: 0.5
+                                maskSpreadAtMin: 1.0
+                                visible: art.status === Image.Ready
                             }
 
                             // Fallback when there is no art (or none yet).
                             Text {
                                 anchors.centerIn: parent
-                                visible: !art.visible
+                                visible: art.status !== Image.Ready
                                 text: "\u266a"
                                 color: Colours.outline
-                                font.pixelSize: root.cqw * 2.2
+                                font.pixelSize: root.cqw * 2.6
                             }
                         }
 
@@ -448,10 +526,30 @@ Item {
                         color: Qt.rgba(Colours.onSurface.r, Colours.onSurface.g, Colours.onSurface.b, 0.10)
                     }
 
+                    // Prefers the user's own ~/.face, falls back to the
+                    // repo's bundled brand mark. Two reasons for the fallback
+                    // rather than a bare ~/.face:
+                    //   - a fresh install has no ~/.face until install.sh
+                    //     links one, and an empty avatar is a worse default
+                    //     than the project's own logo;
+                    //   - Qt's pixmap cache remembers a FAILED load for the
+                    //     life of the process, so a ~/.face created while the
+                    //     shell is running stays "missing" until a restart.
+                    //     The fallback means that window shows the logo
+                    //     instead of a hole.
                     Image {
                         id: faceImage
+
+                        readonly property string userFace: Quickshell.env("HOME") + "/.face"
+                        readonly property string brandMark: Quickshell.env("HOME") + "/.config/quickshell/assets/logo.png"
+                        property bool userFaceFailed: false
+
                         anchors.fill: parent
-                        source: Quickshell.env("HOME") + "/.face"
+                        source: userFaceFailed ? brandMark : userFace
+                        onStatusChanged: {
+                            if (status === Image.Error && !userFaceFailed)
+                                userFaceFailed = true;
+                        }
                         visible: false
                         fillMode: Image.PreserveAspectCrop
                         sourceSize.width: parent.width * 2
