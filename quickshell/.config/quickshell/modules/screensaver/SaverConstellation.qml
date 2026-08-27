@@ -10,6 +10,22 @@
 // the one with no existing pattern in this repo to copy — that is still
 // true, and it is the reason for the three notes below.
 //
+// ── NEVER read .r/.g/.b off a Colours role ───────────────────────────
+// `Colours.qml` declares every role as `property string` (a hex literal
+// like "#bd93f9"), NOT `property color` — see its own header for why.
+// A JS string has no `.r`/`.g`/`.b`, so `Qt.rgba(role.r, role.g, role.b, a)`
+// silently evaluates every channel to NaN and yields PURE BLACK at the
+// requested alpha. That is what made this style render as an entirely
+// black screen: 445 points were drawn every frame, in black, on black.
+// Measured — the fill string logged as `#b8000000`, alpha 0xb8 = 0.72
+// exactly as asked, RGB all zero.
+//
+// Assigning a role DIRECTLY to fillStyle/strokeStyle/addColorStop works
+// fine (the string is parsed as CSS). Only the channel accessors are the
+// trap. For alpha use `Qt.alpha(role, a)`; for a blend use
+// `Qt.tint(base, Qt.alpha(other, t))`. Both are documented Qt globals
+// that accept a colour-coercible string.
+//
 // ── Canvas with an FBO render target, not the default ─────────────────
 // A QML `Canvas` defaults to `Canvas.Image`: the scene is rasterised on
 // the CPU into a QImage and uploaded every repaint. At 2560×1440 that is
@@ -157,8 +173,8 @@ Item {
         id: field
 
         anchors.fill: parent
-        renderTarget: Canvas.FramebufferObject
-        renderStrategy: Canvas.Cooperative
+        // RENDER TARGET LEFT AT THE DEFAULT — see the measurement note in
+        // this file's header. FramebufferObject was measured non-functional here.
 
         onPaint: {
             var ctx = getContext("2d");
@@ -187,7 +203,6 @@ Item {
             var linkBase = 0.30 * (1 - pull) + 0.06;
             var reach = Math.max(40, w * 0.03);
             var reach2 = reach * reach;
-            var lc = Colours.outline;
             ctx.lineWidth = 1;
             for (var a = 0; a < n; a += 2) {
                 for (var b = a + 2; b < Math.min(a + 26, n); b += 2) {
@@ -195,7 +210,7 @@ Item {
                     var ddy = dy[a] - dy[b];
                     var d2 = ddx * ddx + ddy * ddy;
                     if (d2 < reach2) {
-                        ctx.strokeStyle = Qt.rgba(lc.r, lc.g, lc.b, linkBase * (1 - d2 / reach2));
+                        ctx.strokeStyle = Qt.alpha(Colours.outline, linkBase * (1 - d2 / reach2));
                         ctx.beginPath();
                         ctx.moveTo(dx[a], dy[a]);
                         ctx.lineTo(dx[b], dy[b]);
@@ -208,13 +223,11 @@ Item {
             // Loose points take the secondary accent; assembled ones
             // resolve toward onSurface, so the wordmark arrives as a
             // colour change as well as a position change.
-            var loose = Colours.secondary;
-            var solid = Colours.onSurface;
-            var mixR = loose.r + (solid.r - loose.r) * pull;
-            var mixG = loose.g + (solid.g - loose.g) * pull;
-            var mixB = loose.b + (solid.b - loose.b) * pull;
+            // Qt.tint(base, tint) composites `tint` over `base` using tint's
+            // OWN alpha, which is exactly a channel lerp — so `pull` drives
+            // the blend without ever touching .r/.g/.b (see the header).
             var radius = Math.max(1.2, w / 1400) * (1 + pull * 0.8);
-            ctx.fillStyle = Qt.rgba(mixR, mixG, mixB, 0.72 + pull * 0.28);
+            ctx.fillStyle = Qt.alpha(Qt.tint(Colours.secondary, Qt.alpha(Colours.onSurface, pull)), 0.72 + pull * 0.28);
             for (var k = 0; k < n; k++) {
                 ctx.beginPath();
                 ctx.arc(dx[k], dy[k], radius, 0, Math.PI * 2);

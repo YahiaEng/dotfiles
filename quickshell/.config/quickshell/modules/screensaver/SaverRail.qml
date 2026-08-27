@@ -79,8 +79,8 @@ Item {
         id: rail
 
         anchors.fill: parent
-        renderTarget: Canvas.FramebufferObject
-        renderStrategy: Canvas.Cooperative
+        // RENDER TARGET LEFT AT THE DEFAULT — see the measurement note in
+        // this file's header. FramebufferObject was measured non-functional here.
 
         // Traces a rounded rectangle. Written out rather than using
         // `arcTo` so the start point is unambiguous — the dash offset is
@@ -98,6 +98,50 @@ Item {
             ctx.lineTo(x, y + r);
             ctx.arc(x + r, y + r, r, Math.PI, Math.PI * 1.5);
             ctx.closePath();
+        }
+
+        // Maps an arc length (any real; wrapped) onto the rounded
+        // rectangle, walking the eight segments in the same clockwise order
+        // `_path` traces them: top, TR arc, right, BR arc, bottom, BL arc,
+        // left, TL arc. Returns [x, y].
+        function _pointAt(s, m, rw, rh, r, perim) {
+            let d = s % perim;
+            if (d < 0)
+                d += perim;
+            const hLine = rw - 2 * r;
+            const vLine = rh - 2 * r;
+            const arc = Math.PI * r / 2;
+            const x0 = m, y0 = m, x1 = m + rw, y1 = m + rh;
+
+            if (d < hLine)
+                return [x0 + r + d, y0];
+            d -= hLine;
+            if (d < arc) {
+                const t = d / arc * (Math.PI / 2);
+                return [x1 - r + r * Math.sin(t), y0 + r - r * Math.cos(t)];
+            }
+            d -= arc;
+            if (d < vLine)
+                return [x1, y0 + r + d];
+            d -= vLine;
+            if (d < arc) {
+                const t = d / arc * (Math.PI / 2);
+                return [x1 - r + r * Math.cos(t), y1 - r + r * Math.sin(t)];
+            }
+            d -= arc;
+            if (d < hLine)
+                return [x1 - r - d, y1];
+            d -= hLine;
+            if (d < arc) {
+                const t = d / arc * (Math.PI / 2);
+                return [x0 + r - r * Math.sin(t), y1 - r + r * Math.cos(t)];
+            }
+            d -= arc;
+            if (d < vLine)
+                return [x0, y1 - r - d];
+            d -= vLine;
+            const t = d / arc * (Math.PI / 2);
+            return [x0 + r - r * Math.cos(t), y0 + r - r * Math.sin(t)];
         }
 
         onPaint: {
@@ -119,30 +163,63 @@ Item {
             var perim = 2 * (rw - 2 * r) + 2 * (rh - 2 * r) + 2 * Math.PI * r;
 
             // ── The track: the whole perimeter, dim ───────────────────
-            var track = Colours.surfaceVariant;
             ctx.setLineDash([]);
             ctx.lineWidth = Math.max(1, root._stroke / 2);
-            ctx.strokeStyle = Qt.rgba(track.r, track.g, track.b, 0.55);
+            // Qt.alpha, NOT Qt.rgba(track.r, ...) — Colours roles are hex
+            // STRINGS, so the channel accessors are undefined and the whole
+            // stroke resolved to black-on-black. That is why the rail
+            // appeared to "vanish": the track was never visible at all, and
+            // only the travelling head ever drew.
+            ctx.strokeStyle = Qt.alpha(Colours.surfaceVariant, 0.55);
             rail._path(ctx, m, m, rw, rh, r);
             ctx.stroke();
 
-            // ── The lit head ─────────────────────────────────────────
-            var g = ctx.createLinearGradient(0, 0, w, h);
+            // ── The head, walked BY ARC LENGTH — no dash pattern ───────
+            // Two dash-based builds both left the head missing for part of
+            // every lap. `[lit, perim]` gave a pattern period 1.19x the
+            // path, so the lit run walked off the END with nothing wrapping
+            // back to the start. `[lit, perim - lit]` made the period tile
+            // the path exactly, which SHOULD wrap — and measurably did not:
+            // sampling the perimeter band every 2s found no head at all in
+            // 5 of 12 frames, on the lap's own ~9s cycle. Canvas dashing
+            // does not reliably wrap a closed sub-path here.
+            //
+            // So the head is no longer a dash. `_pointAt(s)` maps an arc
+            // length onto the rounded rectangle directly, and the head is
+            // stroked as a short polyline walked from its tail to its tip,
+            // wrapping with a plain modulo. That cannot gap: every frame
+            // draws the same number of segments, wherever they land.
+            //
+            // The tail fades via `globalAlpha` per segment rather than via
+            // the stroke gradient, which is what makes it a TAIL and not
+            // just a moving colour — the gradient still supplies the hue,
+            // so the head keeps the shell's primary/secondary/tertiary rim
+            // language.
+            const g = ctx.createLinearGradient(0, 0, w, h);
             g.addColorStop(0, Colours.tertiary);
             g.addColorStop(0.5, Colours.secondary);
             g.addColorStop(1, Colours.primary);
 
-            var lit = perim * 0.19;
-            ctx.setLineDash([lit, perim]);
-            // Negative so the head travels clockwise from the top-left
-            // corner, matching the direction GradientBorder's own angle
-            // rotates.
-            ctx.lineDashOffset = -root._phase * perim;
+            const headLen = perim * 0.19;
+            const segs = 28;
+            const tip = root._phase * perim;
             ctx.lineWidth = root._stroke;
             ctx.lineCap = "round";
+            ctx.lineJoin = "round";
             ctx.strokeStyle = g;
-            rail._path(ctx, m, m, rw, rh, r);
-            ctx.stroke();
+            for (let k = 0; k < segs; k++) {
+                // k = 0 is the tip; alpha falls away toward the tail.
+                const a0 = tip - headLen * (k / segs);
+                const a1 = tip - headLen * ((k + 1) / segs);
+                ctx.globalAlpha = 1 - k / segs;
+                const p0 = rail._pointAt(a0, m, rw, rh, r, perim);
+                const p1 = rail._pointAt(a1, m, rw, rh, r, perim);
+                ctx.beginPath();
+                ctx.moveTo(p0[0], p0[1]);
+                ctx.lineTo(p1[0], p1[1]);
+                ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
         }
     }
 
