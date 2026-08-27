@@ -82,12 +82,12 @@ stage-1 decision, not an assumption.
 - [x] Vendor Omarchy's screensaver sources; establish the real mechanism
 - [x] Generate the AORUS block wordmark through Omarchy's own transcoder
 - [x] Measure the palette (19 roles), motion tokens, idle ladder, monitor (2560×1440)
-- [ ] Publish a web-page artifact rendering every candidate direction **to
+- [x] Publish a web-page artifact rendering every candidate direction **to
       scale** at one shared scale factor (memory: *show the design, don't
       describe it*; *publish a design study, then let them pick*)
-- [ ] Surface the non-visual rulings the operator must make (ladder position,
+- [x] Surface the non-visual rulings the operator must make (ladder position,
       true black vs surface, burn-in policy, dismissal)
-- [ ] Commit study + vendored reference
+- [x] Commit study + vendored reference
 
 **Stage 1 ends here. No QML is written until the operator picks.**
 
