@@ -80,6 +80,35 @@ WlSessionLockSurface {
 
         anchors.fill: parent
 
+        // ── Entrance ──────────────────────────────────────────────────
+        // ADDED 2026-08-27. There was no entrance animation at all: the
+        // surface was simply mapped at full opacity, so every layout "just
+        // suddenly appears". Only Quiet Focus and Split Canvas looked
+        // animated, and only because those two happen to animate their own
+        // internal contents — which is exactly the pair the operator named.
+        //
+        // Written as property-value-source animations (`NumberAnimation on
+        // <prop>`) rather than an imperative `start()` in
+        // `Component.onCompleted`. They self-start at creation and are
+        // guaranteed to settle on `to`, so there is no path where a missed
+        // trigger leaves the lock screen invisible — which on THIS surface
+        // would mean a black screen with no way to type a password.
+        NumberAnimation on opacity {
+            from: 0
+            to: 1
+            duration: Motion.emphasizedInDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.emphasizedInEasing
+        }
+
+        NumberAnimation on scale {
+            from: 1.04
+            to: 1
+            duration: Motion.spatialInDuration
+            easing.type: Easing.BezierSpline
+            easing.bezierCurve: Motion.spatialInEasing
+        }
+
         // Surface-wide click-to-refocus. Declared BEFORE the layout loader
         // so it sits underneath: a LockField's own MouseArea still wins for
         // hover and the I-beam cursor, and this catches clicks anywhere
@@ -249,22 +278,28 @@ WlSessionLockSurface {
     SequentialAnimation {
         id: unlockAnim
 
+        // STRENGTHENED 2026-08-27. The exit existed and was correctly
+        // deferred, but was imperceptible: opacity over 150ms with a 4%
+        // scale change reads as "the lockscreen suddenly disappears".
+        // The path itself was never the problem — PAM success emits
+        // `unlockRequested`, which starts this, and only its final
+        // PropertyAction clears `locked`. Only the magnitudes changed.
         ParallelAnimation {
             NumberAnimation {
                 target: content
                 property: "opacity"
                 to: 0
-                duration: Motion.emphasizedOutDuration
+                duration: Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
                 easing.bezierCurve: Motion.emphasizedOutEasing
             }
             NumberAnimation {
                 target: content
                 property: "scale"
-                to: 0.96
-                duration: Motion.spatialOutDuration
+                to: 1.06
+                duration: Motion.emphasizedInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.spatialOutEasing
+                easing.bezierCurve: Motion.emphasizedOutEasing
             }
         }
         PropertyAction {

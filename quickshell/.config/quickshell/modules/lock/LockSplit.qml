@@ -22,6 +22,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import "../"
+import "../dashboard"
 
 Item {
     id: root
@@ -223,6 +224,16 @@ Item {
                 fieldRadius: root.cqw * 0.7
             }
 
+            // Moved here 2026-08-27, same reason as the Edge Rail: it sat at
+            // the very bottom of the panel, well below the ambient row, so
+            // "wrong password" and "caps lock is on" appeared nowhere near
+            // the input that produced them.
+            LockStatus {
+                Layout.topMargin: root.cqw * 0.6
+                Layout.fillWidth: true
+                pam: root.pam
+            }
+
             // Ambient data is demoted to ONE status line — the study's own
             // "what it costs" trade, accepted deliberately for this
             // layout only.
@@ -237,10 +248,15 @@ Item {
 
                 RowLayout {
                     spacing: root.cqw * 0.3
+                    // Was a literal "◈" placeholder. `WeatherBackend.current.symbol`
+                    // already carries the Material Symbols name, rendered
+                    // through `Design.symbolFontFamily` — same pairing the
+                    // dashboard's weather panel uses.
                     Text {
-                        text: "◈"
+                        text: ambientRow.current && ambientRow.current.symbol ? ambientRow.current.symbol : "help"
+                        font.family: Design.symbolFontFamily
                         color: Colours.tertiary
-                        font.pixelSize: root.cqw * 0.62
+                        font.pixelSize: root.cqw * 0.78
                     }
                     Text {
                         text: ambientRow.current ? (Math.round(ambientRow.current.temperature) + "° " + ambientRow.current.label) : qsTr("Weather —")
@@ -277,11 +293,6 @@ Item {
                 }
             }
 
-            LockStatus {
-                Layout.topMargin: root.cqw
-                Layout.fillWidth: true
-                pam: root.pam
-            }
         }
     }
 }

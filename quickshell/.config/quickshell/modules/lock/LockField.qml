@@ -45,6 +45,10 @@ Item {
     required property LockPam pam
     property real fieldRadius: 12
 
+    // Fixed delegate capacity — see the Repeater below. Dots past this
+    // are simply not drawn; the buffer itself is never truncated.
+    readonly property int maxDots: 64
+
     implicitWidth: 320
     implicitHeight: 55
 
@@ -114,22 +118,35 @@ Item {
         spacing: 8
 
         Repeater {
-            // An int model: one more character appends exactly one
-            // delegate. No array rebuild, no ambiguous diff, no reset.
-            model: root.pam.buffer.length
+            // FIXED AGAIN 2026-08-27 — "the dots blink with every character".
+            // The previous fix used `model: root.pam.buffer.length`, assuming
+            // an int model appends one delegate. It does not: changing the
+            // count makes Repeater REGENERATE, destroying and recreating every
+            // delegate, so all existing dots re-ran their pop-in on each
+            // keystroke — read as a blink of the whole row.
+            //
+            // The model is now a CONSTANT, so no delegate is ever created or
+            // destroyed while typing. Each dot decides for itself whether it
+            // is part of the current buffer; positioners skip invisible
+            // children, so the Row still packs tightly.
+            model: root.maxDots
 
             delegate: Rectangle {
+                required property int index
+
+                readonly property bool filled: index < root.pam.buffer.length
+
                 width: 10
                 height: 10
                 radius: 5
                 color: Colours.onSurface
                 anchors.verticalCenter: parent.verticalCenter
+                visible: filled
 
-                // Self-contained pop-in. This is safe at construction time
-                // — unlike a geometry-dependent animation, it reads nothing
-                // the Loader has yet to assign (`qml-configured-after-construction`).
-                scale: 0
-                Component.onCompleted: scale = 1
+                // Only the newly-filled dot animates; every other dot's
+                // binding still evaluates to the same value, so it does not
+                // re-animate.
+                scale: filled ? 1 : 0
 
                 Behavior on scale {
                     NumberAnimation {

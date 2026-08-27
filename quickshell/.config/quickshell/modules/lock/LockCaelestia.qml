@@ -43,6 +43,15 @@ Item {
     property var systemResources: null
     property var screen: null
 
+    // Typography is expressed in the study's own `cqw` unit (1% of output
+    // width) rather than in fixed pixels. FIXED 2026-08-27 — the layout
+    // still "looked miniature" after the card was enlarged, because the card
+    // was the wrong suspect: the CONTENTS were built at 11-15px on a 2201px
+    // card, roughly half what the study specified (tile labels 0.62cqw =
+    // 16px, values 1.05cqw = 27px). Enlarging the card alone made the text
+    // relatively smaller, not larger.
+    readonly property real cqw: (root.screen?.width ?? 2560) / 100
+
     readonly property real centerScale: Math.min(1, (root.screen?.height ?? 1440) / 1440)
     // Caelestia's own token is `heightMult 0.7`, and that is what shipped —
     // but it reads as a floating window here rather than as the lock screen
@@ -92,16 +101,36 @@ Item {
 
                         readonly property var current: root.weatherBackend ? root.weatherBackend.current : null
 
-                        Text {
-                            text: weatherCol.current ? Math.round(weatherCol.current.temperature) + "°" : qsTr("—")
-                            color: Colours.onSurface
-                            font.pixelSize: 32
-                            font.bold: true
+                        // Glyph + temperature on one line. The glyph was
+                        // missing entirely; `WeatherBackend.current.symbol`
+                        // already carries the Material Symbols name (produced
+                        // by its own `symbolForWeatherCode`), and the shell
+                        // renders those through `Design.symbolFontFamily` —
+                        // the same pairing the dashboard's weather panel uses.
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: root.cqw * 0.5
+
+                            Text {
+                                text: weatherCol.current && weatherCol.current.symbol ? weatherCol.current.symbol : "help"
+                                font.family: Design.symbolFontFamily
+                                font.pixelSize: root.cqw * 2.0
+                                color: Colours.tertiary
+                            }
+
+                            Text {
+                                text: weatherCol.current ? Math.round(weatherCol.current.temperature) + "°" : qsTr("—")
+                                color: Colours.onSurface
+                                font.pixelSize: root.cqw * 2.0
+                                font.bold: true
+                            }
+
+                            Item { Layout.fillWidth: true }
                         }
                         Text {
                             text: weatherCol.current ? weatherCol.current.label : qsTr("Weather unavailable")
                             color: Colours.onSurfaceVariant
-                            font.pixelSize: 13
+                            font.pixelSize: root.cqw * 0.72
                         }
                     }
                 }
@@ -121,18 +150,18 @@ Item {
                         Text {
                             text: qsTr("Arch Linux")
                             color: Colours.primary
-                            font.pixelSize: 13
+                            font.pixelSize: root.cqw * 0.72
                             font.bold: true
                         }
                         Text {
                             text: qsTr("WM: Hyprland")
                             color: Colours.onSurfaceVariant
-                            font.pixelSize: 12
+                            font.pixelSize: root.cqw * 0.66
                         }
                         Text {
                             text: qsTr("Shell: %1").arg(Quickshell.env("SHELL") || "fish")
                             color: Colours.onSurfaceVariant
-                            font.pixelSize: 12
+                            font.pixelSize: root.cqw * 0.66
                         }
                     }
                 }
@@ -194,7 +223,7 @@ Item {
                                 visible: !art.visible
                                 text: "\u266a"
                                 color: Colours.outline
-                                font.pixelSize: 40
+                                font.pixelSize: root.cqw * 2.2
                             }
                         }
 
@@ -203,7 +232,7 @@ Item {
                             elide: Text.ElideRight
                             text: mediaTile.hasPlayer ? root.mediaBackend.displayTitle : qsTr("Nothing playing")
                             color: Colours.onSurface
-                            font.pixelSize: 15
+                            font.pixelSize: root.cqw * 0.82
                             font.bold: true
                         }
 
@@ -213,7 +242,7 @@ Item {
                             visible: mediaTile.hasPlayer
                             text: root.mediaBackend ? root.mediaBackend.displayArtist : ""
                             color: Colours.onSurfaceVariant
-                            font.pixelSize: 12
+                            font.pixelSize: root.cqw * 0.66
                         }
 
                         Rectangle {
@@ -253,20 +282,23 @@ Item {
                 LockClock {
                     Layout.alignment: Qt.AlignHCenter
                     Layout.topMargin: 16
-                    scale: 0.75 * root.centerScale
+                    scale: root.centerScale
                 }
 
                 SystemClock {
                     id: dateClock
                     enabled: true
-                    precision: SystemClock.Days
+                    // `SystemClock.Days` does not exist — the enum is
+                    // Hours|Minutes|Seconds, so this assigned undefined and
+                    // logged "Unable to assign [undefined] to SystemClock::Enum".
+                    precision: SystemClock.Hours
                 }
 
                 Text {
                     Layout.alignment: Qt.AlignHCenter
                     text: Qt.formatDateTime(dateClock.date, "dddd • d MMM").toUpperCase()
                     color: Colours.onSurface
-                    font.pixelSize: 15
+                    font.pixelSize: root.cqw * 0.82
                     font.bold: true
                 }
 
@@ -280,7 +312,7 @@ Item {
                     Layout.topMargin: 24 * root.centerScale
                     Layout.bottomMargin: 16 * root.centerScale
 
-                    readonly property real avatarSize: 96 * root.centerScale
+                    readonly property real avatarSize: root.cqw * 5 * root.centerScale
                     width: avatarSize
                     height: avatarSize
 
@@ -388,13 +420,13 @@ Item {
                                     Text {
                                         text: modelData.label
                                         color: Colours.onSurfaceVariant
-                                        font.pixelSize: 11
+                                        font.pixelSize: root.cqw * 0.62
                                     }
                                     Item { Layout.fillWidth: true }
                                     Text {
                                         text: Math.round(modelData.frac * 100) + "%"
                                         color: Colours.onSurface
-                                        font.pixelSize: 11
+                                        font.pixelSize: root.cqw * 0.62
                                     }
                                 }
                                 Rectangle {
@@ -429,7 +461,7 @@ Item {
                         Text {
                             text: qsTr("Notifications")
                             color: Colours.onSurfaceVariant
-                            font.pixelSize: 12
+                            font.pixelSize: root.cqw * 0.66
                             font.bold: true
                         }
 
@@ -465,7 +497,7 @@ Item {
                                         elide: Text.ElideRight
                                         text: modelData.appName || qsTr("Notification")
                                         color: Colours.secondary
-                                        font.pixelSize: 11
+                                        font.pixelSize: root.cqw * 0.62
                                         font.bold: true
                                     }
                                     Text {
@@ -473,7 +505,7 @@ Item {
                                         elide: Text.ElideRight
                                         text: modelData.summary || ""
                                         color: Colours.onSurfaceVariant
-                                        font.pixelSize: 11
+                                        font.pixelSize: root.cqw * 0.62
                                     }
                                 }
                             }
@@ -483,7 +515,7 @@ Item {
                             visible: NotifServer.history.length === 0
                             text: qsTr("No notifications")
                             color: Colours.onSurfaceVariant
-                            font.pixelSize: 12
+                            font.pixelSize: root.cqw * 0.66
                         }
 
                         Item { Layout.fillHeight: true }
