@@ -173,6 +173,16 @@ Scope {
     // anything. D-36 is explicit that a rate is not a percentage.
     property real netRxRate: 0
     property real netTxRate: 0
+
+    // Cumulative bytes SINCE BOOT, summed across the same interfaces the
+    // rate pair is derived from (quick task 260827-50i, plate P1's network
+    // card wants a running total beside its two rates). These are the raw
+    // /proc/net/dev counters, not a session total — the shell restarting
+    // does not reset them, and a consumer labelling them "today" would be
+    // lying. Published rather than left in `_netPrev` because a private
+    // sampling detail is not a contract a layout may read.
+    property real netRxTotal: 0
+    property real netTxTotal: 0
     // CPU temperature (Celsius) and current frequency (GHz) — render-gate
     // round 2's Caelestia-look feedback ("more details"). Both are NaN
     // until a real read lands; PerformanceTab.qml composes whichever of
@@ -822,6 +832,13 @@ Scope {
             var netNow = root._parseNetDev(netdevFile.text());
             if (netNow) {
                 var nowMs = Date.now();
+                // The since-boot totals are the parse's own output and need
+                // no delta, so they publish unconditionally — including on
+                // the very first sample, where there is no previous reading
+                // to difference against and the rate pair below cannot yet
+                // say anything.
+                root.netRxTotal = netNow.rx;
+                root.netTxTotal = netNow.tx;
                 if (root._netPrev) {
                     var dtSeconds = (nowMs - root._netPrev.ts) / 1000;
                     var rxDelta = netNow.rx - root._netPrev.rx;

@@ -1359,14 +1359,16 @@ PanelWindow {
                 asynchronous: false
                 // 260826-rfy: "telemetry" (P3) is the default; "dials" is
                 // the pre-260826-rfy five-dial row, kept selectable.
-                // 260827-50i adds "arcs" (P2). The chain ends on telemetry
-                // rather than on a lookup table so an unrecognised value in
-                // a hand-edited prefs.json falls back to the default instead
-                // of leaving an empty pane.
+                // 260827-50i adds "arcs" (P2) and "cards" (P1). The chain
+                // ends on telemetry rather than on a lookup table so an
+                // unrecognised value in a hand-edited prefs.json falls back
+                // to the default instead of leaving an empty pane.
                 sourceComponent: dashboardWindow.performanceLayout === "dials"
                     ? perfDialsComponent
                     : dashboardWindow.performanceLayout === "arcs"
                     ? perfArcsComponent
+                    : dashboardWindow.performanceLayout === "cards"
+                    ? perfCardsComponent
                     : perfTelemetryComponent
                 onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
             }
@@ -1391,6 +1393,14 @@ PanelWindow {
                 id: perfArcsComponent
 
                 PerfArcs {
+                    systemResources: dashboardWindow.systemResources
+                }
+            }
+
+            Component {
+                id: perfCardsComponent
+
+                PerfCards {
                     systemResources: dashboardWindow.systemResources
                 }
             }

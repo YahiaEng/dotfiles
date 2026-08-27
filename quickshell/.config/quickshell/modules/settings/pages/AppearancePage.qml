@@ -332,6 +332,7 @@ PageBase {
         readonly property var performanceLayoutOptions: [
             { display: "Telemetry strip", value: "telemetry" },
             { display: "Weighted arcs", value: "arcs" },
+            { display: "Caelestia cards", value: "cards" },
             { display: "Dials", value: "dials" }
         ]
 
@@ -348,7 +349,9 @@ PageBase {
         }
         SelectRow {
             label: "Performance layout"
-            subtext: "Telemetry graphs recent history; arcs and dials show instant values"
+            // "Caelestia cards" is the wide one; it pairs with the bento
+            // grid above for the same reason given there.
+            subtext: "Telemetry graphs history; cards is wider and pairs with bento"
             model: drawerLayoutSection.performanceLayoutOptions
             currentValue: Prefs.getValue("dashboard.layout.performance")
             onSelected: (value) => Prefs.setValue("dashboard.layout.performance", value)
