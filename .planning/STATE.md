@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "Quick task 260826-rfy COMPLETE — design study only, NO QML TOUCHED. Vendored caelestia-dots/shell @ a788c432 to .planning/notes/caelestia-dashboard/ (18 files + PROVENANCE) and published a 7-direction study to .planning/notes/dashboard-perf-studies.html (artifact 5bcd0725). THE REFERENCE MOVED AND OUR CODE STILL CITES THE OLD ONE: PerformanceTab.qml's round-2 comment follows 'the Caelestia reference's compact-gauge-cluster composition' and at the pinned SHA that composition NO LONGER EXISTS — their Performance tab is HeroCard x2 + Storage/Network/Memory cards + a bottom-filling BatteryTank with no dial row, and their Dash tab is a 6x2 bento separating six same-fill cells by FOUR DIFFERENT RADII. Historical, not wrong — the stale-reference class that goes GREEN not red. FOUR MEASUREMENTS SHAPED EVERY DIRECTION: (1) contentWidth:400 inside dashboardMinWidth:760 = 180px DEAD MARGIN EACH SIDE permanently, the frame correctly wide for the 4-tab header and the content never grew into it; (2) Performance 1040 vs Dashboard 760 with drawerWidth bound to the active tab, so the window animates 280px wider and back on EVERY crossing — the page therefore forces the tabs to be picked AS A PAIR and answers 'fixes the jump?' per COMBINATION not per plate; (3) Colours.qml has 19 ROLES, NO HELPER FUNCTIONS AND NO surfaceContainer — on dracula surfaceVariant/primaryContainer/secondaryContainer are BYTE-IDENTICAL #44475a, one tint above surface, the same shape as 14-10's invisible-GPU-ring finding; (4) no rounding scale in Design.qml. Findings 3+4 are why the MOST FAITHFUL direction (D1 bento) carries an unanswered prerequisite — surfaced on the page rather than discovered in execution. PORTING CONFLICT SURFACED NOT DEFERRED: Caelestia gates BatteryTank on isLaptopBattery so it would never render here, while D-41 mandates always-show — P1 means overturning D-41 or drawing a 104px column of nothing forever. ONE SHARED 0.60 SCALE across all 9 plates ON PURPOSE: a per-plate scale would have made the 280px disagreement invisible, hiding the very thing the study exists to show. AWAITING OPERATOR PICK — one P plate and one D plate, together."
-last_updated: "2026-08-26T18:35:00.000Z"
+stopped_at: "260826-rfy stages 1-4 COMPLETE, operator-approved, pushed, tree clean. D2 lanes + P3 telemetry are the live defaults; column/dials still selectable via Settings > Appearance > Dashboard drawer. Operator asked to CLEAR CONTEXT and then continue with THE REMAINING THREE PLATES: P2 Weighted Arcs, D1 Caelestia Bento, P1 Caelestia Cards. Full self-contained resume brief is the first section of Operator Next Steps in this file — reusable assets, the four-edit recipe for adding a layout, and the paid-for traps. P1 IS NO LONGER BLOCKED: the D-41 battery ruling it waited on was taken (overturned for battery only)."
+last_updated: "2026-08-26T19:10:00.000Z"
 last_activity: 2026-08-26
 last_activity_desc: "Three operator-reported dashboard defects fixed by measuring pixels; one reserved 18px explained both, the ring track was invisible for the third time, and D-41 is overturned for battery."
 state_head: 069c4fda
@@ -1382,6 +1382,71 @@ lands (review `/gsd-review-backlog` and the v4.0 carried-debt section first).
 Resume file: None
 
 ## Operator Next Steps
+
+### ▶ RESUME HERE — 260826-rfy, the remaining three plates
+
+Everything below is measured and committed; **nothing needs re-deriving.**
+Tree clean, pushed, `main` level with `origin/main`.
+
+**Shipped and operator-approved:** D2 "lanes" + P3 "telemetry" are the live
+defaults. `column` and `dials` remain selectable. Settings → Appearance →
+Dashboard drawer.
+
+**Remaining, in the order they are cheapest to build:**
+
+| Plate | What it needs | Where |
+|---|---|---|
+| **P2 Weighted Arcs** | `Dial.qml` hardcodes `startAngle: -90` and `sweepAngle: 360 * root.value` inside its value `PathAngleArc`. Add two opt-in properties (default to those exact values) and the 270° arcs fall out. Then write `PerfArcs.qml`. | `Dial.qml`, new `PerfArcs.qml` |
+| **D1 Caelestia Bento** | A rounding scale on `Design.qml` — it has scattered per-surface radii (`popoutCornerRadius: 20`, `attachedCornerRadius: 24`, drawer 28) but no shared scale, and the bento's whole separation trick is four different radii across six cells. Needs new data: uptime, distro, avatar. | `Design.qml`, new `DashBento.qml` |
+| **P1 Caelestia Cards** | Device names (`SystemResources.gpuName` exists; there is **no CPU name field** — add one). A hand-rolled morphing usage badge (their `MaterialShape` is a C++ plugin we do not have). `BatteryTank`. | new `PerfCards.qml` |
+
+**P1's blocker is GONE.** The D-41 battery ruling that gated it was taken on
+2026-08-26: D-41 is overturned for battery only, so a `BatteryTank` may now
+legitimately disappear when no battery is detected — which is exactly what
+the reference does (`isLaptopBattery`). Nothing else about D-41 changed.
+
+**Adding a layout is deliberately cheap — four edits, no sibling touched:**
+1. New `<Name>.qml` in `modules/dashboard/`.
+2. One line in `modules/dashboard/qmldir` — **same commit, non-negotiable**,
+   the manifest is explicit and an unregistered type is unresolvable.
+3. One branch in `Dashboard.qml`'s `dashboardTabLoader`/`performanceTabLoader`
+   `sourceComponent` ternary + a `Component { }` beside the existing ones.
+4. One entry in `AppearancePage.qml`'s `dashLayoutOptions` /
+   `performanceLayoutOptions` array. (No new `RowIndex` entry needed — the two
+   rows already exist. A new *row* would need one in the same commit or
+   `settings-index-check` fails.)
+
+**Reusable assets built this task — do not rewrite these:**
+- `Sparkline.qml` — Canvas line chart, right-anchored at fixed pitch,
+  optional second series. P1's NetworkCard wants it directly.
+- `SystemResources` history buffers: `cpuHistory`, `gpuHistory`,
+  `netRxHistory`, `netTxHistory`, `historyLength`, `historyMax()`.
+- `Dial.qml` opt-in knobs: `collapseEmptyLines`, `centerFontSize`,
+  `trackColor` — all defaulting to prior behaviour.
+
+**Traps already paid for — re-hitting any of these is a regression:**
+- **Colour defaults render invisible.** `ConditionGlyph`'s four colour
+  properties default to `"transparent"`; `Dial`'s track defaulted to
+  `surfaceVariant` and vanished on a `surfaceVariant` card (third occurrence
+  of the 14-10 finding). Reuse a working call site verbatim.
+- **Never hand-pick a card height.** Derive from content. Fixed 176/88
+  clipped the play button and overflowed the ring column by 9px — measured.
+- **Drawer width = content + 48 + 48.** `implicitWidth` already includes the
+  tab's own padding and `Dashboard.qml` adds a second `spacingLg * 2`. Both
+  live layouts declare 712 of content and resolve to an **808** drawer.
+  Declare the same 712 in any new layout or the width jump returns.
+- **`QuickToggles.implicitHeight` is ~120**, not ~44.
+- **No `quickshell:performance` global exists**, so the Performance tab
+  cannot be opened from the agent shell — hand that tab's render check to the
+  operator.
+
+**Verification recipe that worked (Dashboard tab only):**
+`hyprctl dispatch 'hl.dsp.global("quickshell:dashboard")'` — the plain
+`dispatch global <name>` form fails on this Lua-parser build — then
+`grim -g "0,6 2510x1428"`, crop, upscale NEAREST, and census colours. QML
+hot-reloads on file change; the shell held the same pid throughout, so **no
+restart was ever needed or performed.**
+
 
 - **RESTART QUICKSHELL ONCE — the only thing owed for webp.** The operator installed
   `qt6-imageformats` on 2026-08-26 and it is working: Qt reports `webp` in
