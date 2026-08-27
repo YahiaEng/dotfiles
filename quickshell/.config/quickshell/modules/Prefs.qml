@@ -74,6 +74,11 @@ Singleton {
         "bar.capsules.launcher",
         "bar.capsules.workspaces",
         "bar.capsules.idleInhibitor",
+        // Security capsule (quick task 260827-np1). A PARENT row like
+        // systemTray rather than a per-entry toggle: its single entry has
+        // no independent children, and the capsule already self-hides
+        // whenever it has nothing to report.
+        "bar.capsules.security",
         // bar.capsules.mediaConnectivity RETIRED 2026-08-25 (operator, quick
         // task 260825-v3u), on exactly the precedent clockActions/system set
         // below: its six children (media/audio/brightness/network/bluetooth/
@@ -270,6 +275,13 @@ Singleton {
         "bar.capsules.launcher": true,
         "bar.capsules.workspaces": true,
         "bar.capsules.idleInhibitor": true,
+        // Security capsule allowed in the bar by default (quick task
+        // 260827-np1). This is "may it exist", not "is it drawn": the
+        // capsule self-hides unless a scan is running or there is a
+        // finding at Low or worse, so on a healthy machine it costs no
+        // bar space. `security.showCapsule` is the feature-level switch
+        // above it.
+        "bar.capsules.security": true,
         "bar.capsules.systemTray": true,
         "bar.tray.iconTint": "desaturate",
         "notifs.popupTimeoutMs": 5000,

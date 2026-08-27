@@ -85,6 +85,7 @@ Singleton {
         { pageIdx: 2, section: "Edge bar", label: "Edge bar style", keywords: "edge bar style continuous brackets segmented halo off picker frame rail outline corner workspace shape" },
         { pageIdx: 2, section: "Edge bar", label: "Animate the bulge", keywords: "edge bar bulge animate swell hover landmark permanent static continuous segmented halo off" },
         { pageIdx: 2, section: "Capsules", label: "Launcher", keywords: "bar capsule launcher apps icon" },
+        { pageIdx: 2, section: "Capsules", label: "Security", keywords: "bar capsule security alert chip scan posture firewall" },
         { pageIdx: 2, section: "Capsules", label: "CPU", keywords: "bar entry cpu readout system" },
         { pageIdx: 2, section: "Capsules", label: "RAM", keywords: "bar entry ram memory readout system" },
         { pageIdx: 2, section: "Capsules", label: "Disk", keywords: "bar entry disk storage readout system" },

@@ -186,6 +186,30 @@ Singleton {
             ]
         },
         {
+            // Security Center capsule (plate H1, quick task 260827-np1).
+            // Declared BEFORE mediaConnectivity so it renders at the
+            // start of the end zone — declaration order is render order
+            // in this file, and an alert belongs outboard of the media
+            // readout rather than buried after it.
+            //
+            // No backends: SecurityCapsule reads the SecurityBackend
+            // singleton directly, so there is no handle for Bar.qml to
+            // thread down and nothing for requiresBackend() to keep
+            // alive on its behalf.
+            //
+            // It carries its own `bar.capsules.security` toggle like
+            // every other capsule, AND its own `security.showCapsule`
+            // pref. Those are not redundant: the bar toggle is "may this
+            // capsule exist", the security pref is "does this feature
+            // use the bar at all", and the capsule additionally
+            // self-hides whenever it has nothing to report.
+            id: "security",
+            zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
+            entries: [
+                { id: "security", backends: [], textBearing: true }
+            ]
+        },
+        {
             id: "mediaConnectivity",
             zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
             entries: [

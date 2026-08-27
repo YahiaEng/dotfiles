@@ -49,6 +49,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "dashboard"
+import "security"
 
 PanelWindow {
     id: dashboardWindow
@@ -420,6 +421,7 @@ PanelWindow {
         if (mediaTabLoader.item) return mediaTabLoader.item.implicitWidth;
         if (performanceTabLoader.item) return performanceTabLoader.item.implicitWidth;
         if (weatherTabLoader.item) return weatherTabLoader.item.implicitWidth;
+        if (securityTabLoader.item) return securityTabLoader.item.implicitWidth;
         return drawerMinWidth;
     }
     readonly property real activeContentHeight: {
@@ -427,6 +429,7 @@ PanelWindow {
         if (mediaTabLoader.item) return mediaTabLoader.item.implicitHeight;
         if (performanceTabLoader.item) return performanceTabLoader.item.implicitHeight;
         if (weatherTabLoader.item) return weatherTabLoader.item.implicitHeight;
+        if (securityTabLoader.item) return securityTabLoader.item.implicitHeight;
         return drawerMinHeight - tabBarHeight;
     }
 
@@ -559,12 +562,30 @@ PanelWindow {
     // ── Pager & tab constants (D-15..D-19, Task 2) — declared beside the
     //    constants above so wave-3/wave-4 plans read them from one place.
     //    ─────────────────────────────────────────────────────────────────
-    readonly property int tabCount: 4
+    // Derived, NOT a literal (quick task 260827-np1): the Security tab
+    // (plate D1) is added/removed at runtime from `security.showDashboardTab`,
+    // and this feeds swipe clamping, keyboard nav and the header's
+    // per-cell width math. A hardcoded 4 would leave a fifth tab
+    // unreachable by swipe and half-width in the header.
+    readonly property int tabCount: tabModel.count
     // D-15's fixed order: Dashboard, Media, Performance, Weather.
     readonly property int tabIndexDashboard: 0
     readonly property int tabIndexMedia: 1
     readonly property int tabIndexPerformance: 2
     readonly property int tabIndexWeather: 3
+    // Appended last on purpose: inserting Security anywhere else would
+    // renumber Media/Performance/Weather and silently repoint every
+    // `pager.currentIndex === tabIndexX` comparison in this file.
+    readonly property int tabIndexSecurity: 4
+
+    // Reactive pref mirror (quick task 260827-np1). Prefs exposes NO
+    // change signal: `getValue()` reads `_data`, which `setValue()`
+    // reassigns wholesale rather than mutating in place, so a BINDING
+    // over getValue re-evaluates on every write while a `Connections`
+    // on an invented `valuesChanged` would silently never fire. This is
+    // the same shape Screensaver.qml uses for `screensaver.style`.
+    readonly property bool showSecurityTab: Prefs.getValue("security.showDashboardTab") === true
+    onShowSecurityTabChanged: tabModel._syncSecurityTab()
     // MD3 primary-tab height for an icon-plus-label tab.
     // ── Per-tab layout selection (quick task 260826-rfy) ────────────────
     // The Dashboard and Performance panes each have more than one layout;
@@ -1027,6 +1048,31 @@ PanelWindow {
                 ListElement { label: "Media"; symbol: "music_note" }
                 ListElement { label: "Performance"; symbol: "speed" }
                 ListElement { label: "Weather"; symbol: "partly_cloudy_day" }
+
+                // Security (plate D1, quick task 260827-np1) is appended
+                // and removed at runtime rather than declared: a
+                // ListElement cannot be conditional, and this tab is
+                // opt-in via `security.showDashboardTab`. Appended LAST
+                // so the four fixed indices above never move.
+                function _syncSecurityTab() {
+                    var want = Prefs.getValue("security.showDashboardTab");
+                    var hasIt = tabModel.count > 4;
+                    if (want && !hasIt) {
+                        tabModel.append({
+                            label: "Security",
+                            symbol: "security"
+                        });
+                    } else if (!want && hasIt) {
+                        // Leaving the pager parked on a tab that no
+                        // longer exists would clamp to a blank pane, so
+                        // step back onto the last surviving tab first.
+                        if (pager.currentIndex >= 4)
+                            pager.setCurrentIndex(3);
+                        tabModel.remove(4);
+                    }
+                }
+
+                Component.onCompleted: tabModel._syncSecurityTab()
             }
 
             TabBar {
@@ -1417,6 +1463,23 @@ PanelWindow {
                 sourceComponent: Component {
                     WeatherTab {
                         weatherBackend: dashboardWindow.weatherBackend
+                        settledPaneWidth: dashboardWindow.settledPaneWidth
+                        settledPaneHeight: dashboardWindow.settledPaneHeight
+                    }
+                }
+                onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
+            }
+
+            // Plate D1 (quick task 260827-np1). `active` also gates on
+            // the pref, so an off-by-default tab costs nothing: with the
+            // pref false the tab is not in tabModel, currentIndex can
+            // never reach 4, and this Loader never instantiates.
+            Loader {
+                id: securityTabLoader
+                active: pager.currentIndex === dashboardWindow.tabIndexSecurity && Prefs.getValue("security.showDashboardTab")
+                asynchronous: false
+                sourceComponent: Component {
+                    SecurityTab {
                         settledPaneWidth: dashboardWindow.settledPaneWidth
                         settledPaneHeight: dashboardWindow.settledPaneHeight
                     }

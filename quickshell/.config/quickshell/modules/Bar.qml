@@ -53,6 +53,7 @@ import Quickshell
 import Quickshell.Wayland
 import "dashboard"
 import "bar"
+import "security"
 // The rails' own path builder (quick task 260825-pyf, Task 3). The slab is
 // a vertical run with pill caps and a bulge on its inner face — which is
 // precisely what `buildOutline` already draws, so the popout bulge reuses
@@ -311,6 +312,8 @@ PanelWindow {
             return idleInhibitorComponent;
         if (capsuleId === "mediaConnectivity")
             return mediaConnectivityComponent;
+        if (capsuleId === "security")
+            return securityComponent;
         if (capsuleId === "systemTray")
             return systemTrayComponent;
         if (capsuleId === "clockActions")
@@ -364,6 +367,14 @@ PanelWindow {
             wifiBackend: barWindow.wifiBackend
             bluetoothBackend: barWindow.bluetoothBackend
         }
+    }
+    // Security capsule (plate H1, quick task 260827-np1). Takes NO
+    // backend handles — it reads the SecurityBackend singleton directly,
+    // which is the same singleton the settings page and the dashboard
+    // tab read. One backend, four readers.
+    Component {
+        id: securityComponent
+        SecurityCapsule {}
     }
     Component {
         id: mediaConnectivityComponent
