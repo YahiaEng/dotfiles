@@ -562,9 +562,18 @@ ShellRoot {
     // down the same "shared instance as an untyped property" way
     // `mediaBackend: mediaBackendInstance` is already relayed into
     // `dashboardLoader`'s `Dashboard {}` above.
+    // Task 2 (LOCK-01) widens the relay to weatherBackend/systemResources
+    // for the "caelestia" three-column layout's left/right tiles — the
+    // SAME shared instances every other consumer reads, read-only, per
+    // this task's own instruction: "if relaying a backend into the lock
+    // would widen its always-live gate, relay it read-only and leave the
+    // gate alone" (D-14's zero-idle doctrine). Neither backend's
+    // `drawerOpen` gate is touched here.
     Lock {
         id: lockInstance
         mediaBackend: mediaBackendInstance
+        weatherBackend: weatherBackendInstance
+        systemResources: systemResourcesInstance
     }
 
     WeatherBackend {

@@ -39,6 +39,11 @@ WlSessionLockSurface {
     required property WlSessionLock lock
     required property LockPam pam
     property var mediaBackend: null
+    // Task 2 (LOCK-01) — the "caelestia" layout's left/right column data,
+    // relayed straight through from Lock.qml. Read-only: neither backend's
+    // `drawerOpen` gate is touched anywhere in this module tree.
+    property var weatherBackend: null
+    property var systemResources: null
 
     readonly property alias unlocking: unlockAnim.running
 
@@ -90,8 +95,10 @@ WlSessionLockSurface {
                 switch (root.layoutKey) {
                 case "continuity":
                     return continuityComponent;
+                case "caelestia":
+                    return caelestiaComponent;
                 default:
-                    // Layouts A/C/D/E (Tasks 2-5) add their own `case` arm
+                    // Layouts C/D/E (Tasks 3-5) add their own `case` arm
                     // here in the same commit that registers their type in
                     // qmldir. Until then every other valid layoutKey value
                     // falls back to continuity — never an empty surface.
@@ -156,6 +163,18 @@ WlSessionLockSurface {
         LockContinuity {
             pam: root.pam
             mediaBackend: root.mediaBackend
+        }
+    }
+
+    Component {
+        id: caelestiaComponent
+
+        LockCaelestia {
+            pam: root.pam
+            mediaBackend: root.mediaBackend
+            weatherBackend: root.weatherBackend
+            systemResources: root.systemResources
+            screen: root.screen
         }
     }
 

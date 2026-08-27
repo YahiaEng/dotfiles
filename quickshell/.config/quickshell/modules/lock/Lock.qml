@@ -21,6 +21,11 @@ Scope {
 
     property alias lock: lock
     property var mediaBackend: null
+    // Task 2 (LOCK-01) — the "caelestia" layout's left/right column data.
+    // Same untyped-`property var` relay shape as mediaBackend above, read-
+    // only: this file never widens either backend's own `drawerOpen` gate.
+    property var weatherBackend: null
+    property var systemResources: null
 
     WlSessionLock {
         id: lock
@@ -37,6 +42,8 @@ Scope {
             lock: lock
             pam: pam
             mediaBackend: root.mediaBackend
+            weatherBackend: root.weatherBackend
+            systemResources: root.systemResources
         }
     }
 
