@@ -44,6 +44,7 @@ import "modules/osd"
 import "modules/session"
 import "modules/settings"
 import "modules/launcher"
+import "modules/lock"
 
 ShellRoot {
     id: root
@@ -551,6 +552,19 @@ ShellRoot {
         // named comment block beside audioTruthNeeded below for the full
         // reasoning; the same charge applies here.
         drawerOpen: dashboardLoader.active || barInstance.requiresMedia
+    }
+
+    // ── In-process lock screen (quick task 260827-833, LOCK-01) ──────────
+    // A plain, always-on child — NOT behind a LazyLoader, unlike
+    // dashboardLoader above. Lock.qml's own screencopy pre-warm has to run
+    // at shell start, and a lock that has to be incubated before it can
+    // lock is a lock that races the compositor. `mediaBackend` is relayed
+    // down the same "shared instance as an untyped property" way
+    // `mediaBackend: mediaBackendInstance` is already relayed into
+    // `dashboardLoader`'s `Dashboard {}` above.
+    Lock {
+        id: lockInstance
+        mediaBackend: mediaBackendInstance
     }
 
     WeatherBackend {

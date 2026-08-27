@@ -228,7 +228,14 @@ Singleton {
         "region.weatherMode",
         "region.weatherCity",
         "region.weatherLat",
-        "region.weatherLon"
+        "region.weatherLon",
+        // Quick task 260827-833 Task 1 (LOCK-01) — which of the five
+        // operator-approved lock-screen layouts LockSurface.qml's own
+        // switch resolves. An unrecognised value falls back to
+        // "continuity" at the READ site (LockSurface.qml's own
+        // `layoutKey`), not here — this allowlist entry only gates the
+        // WRITE.
+        "lock.layout"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -320,7 +327,12 @@ Singleton {
         "region.weatherMode": "auto",
         "region.weatherCity": "",
         "region.weatherLat": 0,
-        "region.weatherLon": 0
+        "region.weatherLon": 0,
+        // Quick task 260827-833 Task 1 — ships as "continuity" so the
+        // old-vs-new comparison against hyprlock.conf stays mechanical
+        // while hyprlock is still the held Task 8 fallback. The operator
+        // flips this once satisfied (operator checklist item 9).
+        "lock.layout": "continuity"
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

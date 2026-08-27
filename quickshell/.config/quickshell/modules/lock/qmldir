@@ -1,0 +1,23 @@
+# qmldir — explicit module manifest for quickshell/modules/lock/ (quick
+# task 260827-833, LOCK-01). Mirrors every sibling module manifest's own
+# standing instruction (see modules/osd/qmldir, modules/qmldir): any .qml
+# type added to this directory that is NOT declared below becomes
+# unresolvable to `shell.qml`'s `import "modules/lock"` — qml-import-check
+# enforces this. Any FUTURE type added to this directory MUST do the same,
+# in the same commit that creates it.
+#
+# Lock is NOT a singleton — shell.qml mounts one ordinary, always-on
+# instance at shell root (the screencopy pre-warm has to run at shell
+# start; see Lock.qml's own header). LockContinuity/LockCaelestia/
+# LockRail/LockSplit/LockFocus are the five operator-approved layouts,
+# selected by LockSurface.qml's own `layoutKey` switch — every one must be
+# declared here the same commit it gains a `case` arm in that switch, or
+# the arm references an unresolvable type.
+module qs.modules.lock
+Lock 1.0 Lock.qml
+LockPam 1.0 LockPam.qml
+LockSurface 1.0 LockSurface.qml
+LockClock 1.0 LockClock.qml
+LockField 1.0 LockField.qml
+LockStatus 1.0 LockStatus.qml
+LockContinuity 1.0 LockContinuity.qml
