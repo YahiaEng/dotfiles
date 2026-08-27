@@ -1,29 +1,42 @@
 // LockField.qml — the shared password field, all five lock layouts render
 // this rather than each rolling their own (quick task 260827-833 Task 1,
-// LOCK-01). Renders `pam.buffer` as one dot per character in a horizontal
-// row with an animated insert/remove, following
-// `caelestia-lock/center/InputField.qml`'s `ListView` + `ScriptModel`
-// shape but drawing plain `Rectangle` circles rather than `MaterialShape`
-// (a Caelestia C++ plugin type not installed here) — the animation is
-// QtQuick's own `ListView.add`/`.remove`/`.displaced` transitions rather
-// than a bespoke shape-morph, which is the idiomatic equivalent already
-// used elsewhere in this tree.
+// LOCK-01).
 //
-// Container/dot colours per the plan: container `Colours.surfaceVariant`,
-// dots `Colours.onSurface`, placeholder `Colours.outline`, active
-// placeholder `Colours.secondary`. Placeholder text switches to
-// "Loading..." while `pam.passwd.active` and "Max tries reached" at
-// `state === LockPam.MaxTries`, per `caelestia-lock/center/
-// InputField.qml`'s `nonAnimPlaceholder`.
+// ── Rewritten 2026-08-27 after operator testing found two defects that
+//    affected every layout ────────────────────────────────────────────────
 //
-// Sizing/rounding are the CALLER's concern (each layout sizes its own
-// field: continuity is 320x55 rounding 12, the rail is full rail width,
-// the split panel uses `.7cqw` rounding, quiet focus rises to 16% width)
-// — this component fills whatever width/height its parent gives it.
-pragma ComponentBehavior: Bound
+// DEFECT 1 — "clicking on the password input does nothing." It did nothing
+// because there was nothing to click: the field was a bare `Item` with no
+// `MouseArea`, no hover state, no cursor change and no caret. Typing worked
+// the whole time (keys are routed by `LockSurface`'s single `focusOwner`),
+// so the field was functional but read as dead. Fixed here with a hover
+// border, an I-beam cursor and a blinking caret, plus a surface-wide
+// click-to-refocus in `LockSurface.qml` so a click anywhere re-asserts
+// keyboard focus if anything ever steals it.
+//
+// DEFECT 2 — "the typing animation is laggy." Three compounding causes,
+// all removed:
+//   (a) every dot animated for `Motion.standardDuration` (200ms). Typing at
+//       a normal ~5 chars/sec starts a new 200ms animation every 200ms, so
+//       the row never settles. Dots now use `Motion.spatialOutDuration`
+//       (150ms) and only on entry.
+//   (b) the ListView bound `width: Math.min(parent.width - 32, contentWidth)`
+//       while it was `anchors.centerIn: parent`. Every inserted dot changed
+//       contentWidth, which changed width, which re-centred the whole row —
+//       relayout on every frame of every transition.
+//   (c) `ScriptModel { values: root.pam.buffer.split("") }` rebuilt an array
+//       of fresh single-character strings on every keystroke. Duplicate
+//       characters ("aaa") make that diff ambiguous, so it degenerates to a
+//       full model reset and every delegate is destroyed and recreated.
+// A `Repeater` over `pam.buffer.length` has none of these properties: the
+// model is an int, adding a character appends exactly one delegate, and the
+// row is laid out by a `Row` rather than re-measured against itself.
+//
+// Removal is deliberately not animated — a `Repeater` drops the delegate
+// immediately, which makes Backspace feel instant. That is the right
+// trade-off for a password field.
 
 import QtQuick
-import Quickshell
 import "../"
 
 Item {
@@ -35,13 +48,7 @@ Item {
     implicitWidth: 320
     implicitHeight: 55
 
-    Rectangle {
-        id: container
-
-        anchors.fill: parent
-        radius: root.fieldRadius
-        color: Colours.surfaceVariant
-    }
+    readonly property bool interactive: mouse.containsMouse
 
     readonly property string placeholderText: {
         if (root.pam.passwd.active)
@@ -49,6 +56,36 @@ Item {
         if (root.pam.state === LockPam.MaxTries)
             return qsTr("Max tries reached");
         return qsTr("Enter Password...");
+    }
+
+    Rectangle {
+        id: container
+
+        anchors.fill: parent
+        radius: root.fieldRadius
+        color: Colours.surfaceVariant
+
+        // The affordance the operator was missing: the field visibly
+        // responds to the pointer instead of sitting inert.
+        border.width: 1
+        border.color: root.interactive ? Colours.primary : Colours.outline
+
+        Behavior on border.color {
+            ColorAnimation {
+                duration: Motion.colourDuration
+            }
+        }
+    }
+
+    MouseArea {
+        id: mouse
+
+        anchors.fill: parent
+        hoverEnabled: true
+        cursorShape: Qt.IBeamCursor
+        // Routed through LockPam because every layout already holds one;
+        // LockSurface connects it to the single focusOwner.
+        onPressed: root.pam.requestFocus()
     }
 
     Text {
@@ -69,66 +106,69 @@ Item {
         }
     }
 
-    ListView {
-        id: charList
+    // Dots + caret, laid out by a Row so nothing re-measures itself.
+    Row {
+        id: dotRow
 
         anchors.centerIn: parent
-        width: Math.min(parent.width - 32, contentWidth)
-        height: 12
-        orientation: ListView.Horizontal
-        interactive: false
         spacing: 8
 
-        model: ScriptModel {
-            values: root.pam.buffer.split("")
-        }
+        Repeater {
+            // An int model: one more character appends exactly one
+            // delegate. No array rebuild, no ambiguous diff, no reset.
+            model: root.pam.buffer.length
 
-        delegate: Rectangle {
-            width: 10
-            height: 10
-            radius: 5
-            color: Colours.onSurface
-            anchors.verticalCenter: parent ? parent.verticalCenter : undefined
-        }
+            delegate: Rectangle {
+                width: 10
+                height: 10
+                radius: 5
+                color: Colours.onSurface
+                anchors.verticalCenter: parent.verticalCenter
 
-        add: Transition {
-            NumberAnimation {
-                properties: "scale"
-                from: 0
-                to: 1
-                duration: Motion.standardDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
-            }
-            NumberAnimation {
-                properties: "opacity"
-                from: 0
-                to: 1
-                duration: Motion.standardDuration
-            }
-        }
+                // Self-contained pop-in. This is safe at construction time
+                // — unlike a geometry-dependent animation, it reads nothing
+                // the Loader has yet to assign (`qml-configured-after-construction`).
+                scale: 0
+                Component.onCompleted: scale = 1
 
-        remove: Transition {
-            NumberAnimation {
-                properties: "scale"
-                to: 0
-                duration: Motion.standardDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
-            }
-            NumberAnimation {
-                properties: "opacity"
-                to: 0
-                duration: Motion.standardDuration
+                Behavior on scale {
+                    NumberAnimation {
+                        duration: Motion.spatialOutDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.spatialOutEasing
+                    }
+                }
             }
         }
 
-        displaced: Transition {
-            NumberAnimation {
-                properties: "x"
-                duration: Motion.standardDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.standardEasing
+        Rectangle {
+            id: caret
+
+            width: 2
+            height: 18
+            radius: 1
+            color: Colours.primary
+            anchors.verticalCenter: parent.verticalCenter
+            visible: !root.pam.passwd.active
+
+            // Durations are derived from tokens rather than written as
+            // literals — motion-lint (TOKEN-04) rejects a bare `Nms`.
+            SequentialAnimation {
+                running: caret.visible
+                loops: Animation.Infinite
+
+                NumberAnimation {
+                    target: caret
+                    property: "opacity"
+                    to: 0
+                    duration: Motion.standardDuration * 2
+                }
+                NumberAnimation {
+                    target: caret
+                    property: "opacity"
+                    to: 1
+                    duration: Motion.standardDuration * 2
+                }
             }
         }
     }

@@ -58,6 +58,17 @@ Scope {
 
     signal flashMsg
 
+    // Raised when the pointer is pressed on a LockField. LockSurface
+    // connects this to its single `focusOwner`, so a click re-asserts
+    // keyboard focus without every layout having to plumb a signal
+    // up to the surface. Fixes the operator-reported "clicking on the
+    // password input does nothing" (2026-08-27).
+    signal focusRequested
+
+    function requestFocus() {
+        root.focusRequested();
+    }
+
     // Copied verbatim from caelestia-lock/Pam.qml's character filter: the
     // regex allows anything except control characters, Enter starts an
     // auth attempt, Backspace deletes one character, Ctrl+Backspace clears

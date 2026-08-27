@@ -44,7 +44,17 @@ Item {
     property var screen: null
 
     readonly property real centerScale: Math.min(1, (root.screen?.height ?? 1440) / 1440)
-    readonly property real cardHeight: (root.screen?.height ?? 1440) * 0.7
+    // Caelestia's own token is `heightMult 0.7`, and that is what shipped —
+    // but it reads as a floating window here rather than as the lock screen
+    // ("it reads like a hovered window, because the entire thing occupies a
+    // small area of the screen center"). Their 0.7 sits on a heavily blurred
+    // screencopy that fuses card and ground into one surface; ours reads as
+    // an object on a backdrop. Raised to 0.86, which on a 16:9 output leaves
+    // an even 7% margin on every side (the card is k% of BOTH axes, since
+    // width is height x 16/9 on a 16/9 screen). Deliberate divergence from
+    // the reference, on operator report — see `reference-wins-over-my-taste`
+    // for why this needs saying out loud rather than being done quietly.
+    readonly property real cardHeight: (root.screen?.height ?? 1440) * 0.86
     readonly property real cardWidth: root.cardHeight * (16 / 9)
     readonly property real centerWidth: 600 * root.centerScale
 
@@ -127,35 +137,106 @@ Item {
                     }
                 }
 
+                // ── Now playing ───────────────────────────────────────
+                // REBUILT 2026-08-27. This previously centred a 14px title
+                // and a 12px artist inside a tall fill-height rounded rect
+                // and drew nothing else — the operator's "just a giant
+                // round box with tiny text in the middle". The study's own
+                // media tile (`lock-screen-studies.html`, article `s-a`)
+                // has album art, a bottom-anchored title/artist pair and a
+                // progress bar; all three were missing. Content is now
+                // bottom-aligned so the tile reads as a panel rather than
+                // as a caption floating in space.
                 Rectangle {
+                    id: mediaTile
+
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     radius: Design.roundingMd
                     color: Colours.surfaceVariant
+                    clip: true
+
+                    readonly property bool hasPlayer: root.mediaBackend && root.mediaBackend.hasPlayer === true
+                    readonly property real progress: {
+                        if (!hasPlayer || !root.mediaBackend.lengthSeconds)
+                            return 0;
+                        return Math.max(0, Math.min(1, root.mediaBackend.positionSeconds / root.mediaBackend.lengthSeconds));
+                    }
 
                     ColumnLayout {
-                        anchors.centerIn: parent
-                        width: parent.width - 32
-                        spacing: 4
+                        anchors.fill: parent
+                        anchors.margins: 16
+                        spacing: 10
 
-                        readonly property bool hasPlayer: root.mediaBackend && root.mediaBackend.hasPlayer === true
-
-                        Text {
+                        // Album art fills the tile's spare height.
+                        Rectangle {
                             Layout.fillWidth: true
-                            elide: Text.ElideRight
-                            horizontalAlignment: Text.AlignHCenter
-                            text: parent.hasPlayer ? root.mediaBackend.displayTitle : qsTr("Nothing playing")
-                            color: Colours.onSurface
-                            font.pixelSize: 14
+                            Layout.fillHeight: true
+                            Layout.minimumHeight: 0
+                            radius: Design.roundingSm
+                            color: Colours.surface
+                            clip: true
+
+                            Image {
+                                id: art
+
+                                anchors.fill: parent
+                                source: mediaTile.hasPlayer && root.mediaBackend.artPath ? "file://" + root.mediaBackend.artPath : ""
+                                fillMode: Image.PreserveAspectCrop
+                                asynchronous: true
+                                cache: true
+                                visible: status === Image.Ready
+                            }
+
+                            // Fallback when there is no art (or none yet).
+                            Text {
+                                anchors.centerIn: parent
+                                visible: !art.visible
+                                text: "\u266a"
+                                color: Colours.outline
+                                font.pixelSize: 40
+                            }
                         }
+
                         Text {
                             Layout.fillWidth: true
                             elide: Text.ElideRight
-                            horizontalAlignment: Text.AlignHCenter
-                            visible: parent.hasPlayer
+                            text: mediaTile.hasPlayer ? root.mediaBackend.displayTitle : qsTr("Nothing playing")
+                            color: Colours.onSurface
+                            font.pixelSize: 15
+                            font.bold: true
+                        }
+
+                        Text {
+                            Layout.fillWidth: true
+                            elide: Text.ElideRight
+                            visible: mediaTile.hasPlayer
                             text: root.mediaBackend ? root.mediaBackend.displayArtist : ""
                             color: Colours.onSurfaceVariant
                             font.pixelSize: 12
+                        }
+
+                        Rectangle {
+                            Layout.fillWidth: true
+                            visible: mediaTile.hasPlayer
+                            implicitHeight: 4
+                            radius: 2
+                            color: Colours.outline
+
+                            Rectangle {
+                                width: parent.width * mediaTile.progress
+                                height: parent.height
+                                radius: 2
+                                color: Colours.primary
+
+                                Behavior on width {
+                                    NumberAnimation {
+                                        duration: Motion.standardDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.standardEasing
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -287,9 +368,14 @@ Item {
 
                         Repeater {
                             model: [
-                                { label: qsTr("CPU"), frac: resourcesCol.cpuFrac },
-                                { label: qsTr("MEM"), frac: resourcesCol.memFrac },
-                                { label: qsTr("GPU"), frac: resourcesCol.gpuFrac }
+                                // Each metric carries its own accent. They were
+                                // all `Colours.primary`, which is what the
+                                // operator saw as "the system metrics all have
+                                // the same color" — the study drew them apart
+                                // (`lock-screen-studies.html`, article `s-a`).
+                                { label: qsTr("CPU"), frac: resourcesCol.cpuFrac, accent: Colours.secondary },
+                                { label: qsTr("MEM"), frac: resourcesCol.memFrac, accent: Colours.tertiary },
+                                { label: qsTr("GPU"), frac: resourcesCol.gpuFrac, accent: Colours.primary }
                             ]
 
                             delegate: ColumnLayout {
@@ -320,7 +406,7 @@ Item {
                                         width: parent.width * Math.max(0, Math.min(1, modelData.frac))
                                         height: parent.height
                                         radius: 2
-                                        color: Colours.primary
+                                        color: modelData.accent
                                     }
                                 }
                             }
@@ -350,25 +436,45 @@ Item {
                         Repeater {
                             model: NotifServer.history.slice(0, 4)
 
-                            delegate: ColumnLayout {
+                            // Each notification sits on its own chip. They
+                            // were bare Text items directly on the tile, which
+                            // is exactly the operator's "no styling, it just
+                            // looks like white text". The study draws a
+                            // recessed rounded chip per notification, with the
+                            // app name in the accent.
+                            delegate: Rectangle {
                                 required property var modelData
-                                Layout.fillWidth: true
-                                spacing: 0
 
-                                Text {
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                    text: modelData.appName || qsTr("Notification")
-                                    color: Colours.onSurface
-                                    font.pixelSize: 12
-                                    font.bold: true
-                                }
-                                Text {
-                                    Layout.fillWidth: true
-                                    elide: Text.ElideRight
-                                    text: modelData.summary || ""
-                                    color: Colours.onSurfaceVariant
-                                    font.pixelSize: 11
+                                Layout.fillWidth: true
+                                implicitHeight: notifBody.implicitHeight + 16
+                                radius: Design.roundingSm
+                                color: Colours.surface
+
+                                ColumnLayout {
+                                    id: notifBody
+
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 1
+
+                                    Text {
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                        text: modelData.appName || qsTr("Notification")
+                                        color: Colours.secondary
+                                        font.pixelSize: 11
+                                        font.bold: true
+                                    }
+                                    Text {
+                                        Layout.fillWidth: true
+                                        elide: Text.ElideRight
+                                        text: modelData.summary || ""
+                                        color: Colours.onSurfaceVariant
+                                        font.pixelSize: 11
+                                    }
                                 }
                             }
                         }

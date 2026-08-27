@@ -148,6 +148,16 @@ Item {
                 fieldRadius: root.cqw * 0.7
             }
 
+            // Moved here 2026-08-27. It previously sat at the very bottom of
+            // the rail, below the resources and media tiles, so "wrong
+            // password" and "caps lock is on" appeared nowhere near the
+            // input that produced them. Feedback belongs adjacent to its
+            // control.
+            LockStatus {
+                Layout.fillWidth: true
+                pam: root.pam
+            }
+
             Item {
                 Layout.fillHeight: true
             }
@@ -244,10 +254,6 @@ Item {
                 }
             }
 
-            LockStatus {
-                Layout.fillWidth: true
-                pam: root.pam
-            }
         }
     }
 }

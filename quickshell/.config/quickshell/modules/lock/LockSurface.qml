@@ -80,6 +80,16 @@ WlSessionLockSurface {
 
         anchors.fill: parent
 
+        // Surface-wide click-to-refocus. Declared BEFORE the layout loader
+        // so it sits underneath: a LockField's own MouseArea still wins for
+        // hover and the I-beam cursor, and this catches clicks anywhere
+        // else. Part of the 2026-08-27 fix for "clicking the password input
+        // does nothing".
+        MouseArea {
+            anchors.fill: parent
+            onPressed: focusOwner.forceActiveFocus()
+        }
+
         Loader {
             id: backdropLoader
 
@@ -127,6 +137,13 @@ WlSessionLockSurface {
             }
 
             Keys.onPressed: event => root.pam.handleKey(event)
+
+            Connections {
+                target: root.pam
+                function onFocusRequested() {
+                    focusOwner.forceActiveFocus();
+                }
+            }
         }
     }
 

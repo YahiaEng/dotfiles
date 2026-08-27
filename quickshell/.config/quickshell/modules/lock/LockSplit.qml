@@ -35,6 +35,17 @@ Item {
     readonly property real cqw: (root.screen?.width ?? 2560) / 100
     readonly property real panelWidth: (root.screen?.width ?? 2560) * 0.38
 
+    // Deferred: inside `onWidthChanged` a child binding can still observe
+    // the OLD value (`child-binding-lags-parent-signal`), so hand the flip
+    // to the next tick once the geometry has actually settled.
+    function _revealPanel() {
+        if (root.width > 0)
+            panel.revealed = true;
+    }
+
+    onWidthChanged: Qt.callLater(root._revealPanel)
+    Component.onCompleted: Qt.callLater(root._revealPanel)
+
     SystemClock {
         id: splitClock
         enabled: true
@@ -57,20 +68,32 @@ Item {
         height: root.height
         color: Colours.surface
 
-        // Signature move 1/2: wipes in from the right edge. `x` starts
-        // off-screen (root.width) and settles at (root.width -
-        // panelWidth), i.e. flush against the right edge.
-        x: root.width
-        Component.onCompleted: wipeAnim.start()
+        // Signature move 1/2: wipes in from the right edge, settling flush
+        // against it.
+        //
+        // FIXED 2026-08-27 — this shipped invisible. It previously read
+        // `x: root.width` with `Component.onCompleted: wipeAnim.start()`,
+        // and a Loader assigns geometry AFTER it constructs its item
+        // (`qml-configured-after-construction`). At construction
+        // `root.width` is 0, so the animation's `to:` evaluated to
+        // `0 - panelWidth` = -972 and drove the panel entirely off-screen
+        // to the LEFT — and because starting an animation on `x` destroys
+        // the binding on `x`, it never came back. The operator saw the
+        // wallpaper and nothing else.
+        //
+        // Both states are now real numbers on one binding, so `x` is never
+        // written imperatively and never loses its binding. `revealed` is
+        // flipped only once the Loader has given us a real width.
+        property bool revealed: false
 
-        NumberAnimation {
-            id: wipeAnim
-            target: panel
-            property: "x"
-            to: root.width - root.panelWidth
-            duration: Motion.spatialInDuration
-            easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.spatialInEasing
+        x: revealed ? root.width - root.panelWidth : root.width
+
+        Behavior on x {
+            NumberAnimation {
+                duration: Motion.spatialInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.spatialInEasing
+            }
         }
 
         ColumnLayout {
