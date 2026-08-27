@@ -110,6 +110,16 @@ NOTES = []   # list[str]
 OBJ_RE = re.compile(r'^\s*([A-Z][A-Za-z0-9_]*)\s*\{')
 PROP_RE = re.compile(r'\bproperty\s+([A-Z][A-Za-z0-9_]*)\s')
 LIST_RE = re.compile(r'list<([A-Z][A-Za-z0-9_]*)>')
+# A type instantiated as a PROPERTY VALUE — `model: ScriptModel {`,
+# `layer.effect: MultiEffect {`, `delegate: Rectangle {`. OBJ_RE is
+# anchored to line start and structurally cannot see this form, which
+# is how quick-260827-833 shipped LockField.qml referencing ScriptModel
+# with no `import Quickshell` behind a green run of this very gate —
+# the second escape of the class this gate exists to close. The
+# lowercase (optionally dotted) property name before the colon is what
+# keeps JS object literals (`opts: [{ display: ... }]`) and ternaries
+# (`sourceComponent: c ? a : b`) from matching.
+PROPVAL_RE = re.compile(r'\b[a-z][A-Za-z0-9_.]*\s*:\s*([A-Z][A-Za-z0-9_]*)\s*\{')
 COMPONENT_RE = re.compile(r'^\s*component\s+([A-Z][A-Za-z0-9_]*)\s*:')
 IMPORT_QUOTED_RE = re.compile(r'^\s*import\s+"([^"]+)"')
 IMPORT_DOTTED_RE = re.compile(r'^\s*import\s+([A-Za-z][A-Za-z0-9_.]*)')
@@ -312,6 +322,8 @@ def process_file(path):
         for m in PROP_RE.finditer(line):
             referenced.append((m.group(1), lineno))
         for m in LIST_RE.finditer(line):
+            referenced.append((m.group(1), lineno))
+        for m in PROPVAL_RE.finditer(line):
             referenced.append((m.group(1), lineno))
 
     unresolved = [(ident, ln) for ident, ln in referenced if ident not in available]
