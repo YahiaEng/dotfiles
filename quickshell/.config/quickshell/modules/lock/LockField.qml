@@ -150,13 +150,17 @@ Item {
 
                 Behavior on scale {
                     NumberAnimation {
-                        // Halved 2026-08-27 (150ms -> 75ms): at speed the
-                        // 150ms pop still overlapped the next keystroke, so
-                        // the row read as awkward rather than responsive. A
-                        // password dot wants to acknowledge the key, not
-                        // perform. Derived from the token rather than written
-                        // as a literal — motion-lint rejects a bare `Nms`.
-                        duration: Motion.spatialOutDuration / 2
+                        // 100ms, on operator request.
+                        //
+                        // Both of my earlier numbers here were wrong because I
+                        // read the FALLBACKS in Motion.qml (`|| 150`) instead
+                        // of the live values in ~/.local/state/theme/motion.json.
+                        // This theme is motion_style "zen": spatial-out is
+                        // 350ms, not 150 — so "spatialOutDuration / 2" shipped
+                        // 175ms while the comment claimed 75ms. stagger-offset
+                        // is 50ms and is the only token that composes to 100
+                        // exactly. A literal would fail motion-lint (TOKEN-04).
+                        duration: Motion.staggerOffsetDuration * 2
                         easing.type: Easing.BezierSpline
                         easing.bezierCurve: Motion.spatialOutEasing
                     }

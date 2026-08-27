@@ -212,6 +212,7 @@ WlSessionLockSurface {
 
         LockContinuity {
             pam: root.pam
+            unlocking: root.unlocking
             mediaBackend: root.mediaBackend
         }
     }
@@ -221,6 +222,7 @@ WlSessionLockSurface {
 
         LockCaelestia {
             pam: root.pam
+            unlocking: root.unlocking
             mediaBackend: root.mediaBackend
             weatherBackend: root.weatherBackend
             systemResources: root.systemResources
@@ -233,6 +235,7 @@ WlSessionLockSurface {
 
         LockRail {
             pam: root.pam
+            unlocking: root.unlocking
             mediaBackend: root.mediaBackend
             systemResources: root.systemResources
             screen: root.screen
@@ -244,6 +247,7 @@ WlSessionLockSurface {
 
         LockSplit {
             pam: root.pam
+            unlocking: root.unlocking
             mediaBackend: root.mediaBackend
             systemResources: root.systemResources
             weatherBackend: root.weatherBackend
@@ -256,6 +260,7 @@ WlSessionLockSurface {
 
         LockFocus {
             pam: root.pam
+            unlocking: root.unlocking
             mediaBackend: root.mediaBackend
             screen: root.screen
         }

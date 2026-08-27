@@ -33,11 +33,23 @@ import Quickshell
 import "../"
 import "../dashboard"
 import "../notifications"
+import Quickshell.Widgets
 
 Item {
     id: root
 
     required property LockPam pam
+
+    // ── Exit ──────────────────────────────────────────────────────────
+    // Set by LockSurface while its unlock animation runs. Each layout leaves
+    // along the axis it arrived on, so unlocking reads as the reverse of
+    // locking rather than every surface sharing one flat fade.
+    //
+    // Driven by a SECOND Translate composed on top of the entrance one: the
+    // entrance transforms are property-value-source animations that own their
+    // Translate's property outright, so an exit binding on the same property
+    // would fight them. Two Translates simply add.
+    property bool unlocking: false
     property var mediaBackend: null
     property var weatherBackend: null
     property var systemResources: null
@@ -92,7 +104,8 @@ Item {
                 // as one flat sheet. Written as property-value-source animations
                 // (they self-start at creation and settle on `to`).
                 opacity: 0
-                transform: Translate {
+                transform: [
+                Translate {
                     SequentialAnimation on x {
                         PauseAnimation { duration: Motion.staggerOffsetDuration * 0 }
                         NumberAnimation {
@@ -103,7 +116,26 @@ Item {
                             easing.bezierCurve: Motion.emphasizedInEasing
                         }
                     }
+                },
+                Translate {
+                    x: root.unlocking ? -root.cqw * 6 : 0
+                    y: 0
+                    Behavior on x {
+                        NumberAnimation {
+                            duration: Motion.emphasizedOutDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedOutEasing
+                        }
+                    }
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Motion.emphasizedOutDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedOutEasing
+                        }
+                    }
                 }
+                ]
                 SequentialAnimation on opacity {
                     PauseAnimation { duration: Motion.staggerOffsetDuration * 0 }
                     NumberAnimation {
@@ -225,14 +257,29 @@ Item {
                         anchors.margins: 16
                         spacing: 10
 
-                        // Album art fills the tile's spare height.
-                        Rectangle {
-                            Layout.fillWidth: true
-                            Layout.fillHeight: true
-                            Layout.minimumHeight: 0
+                        // ── Album art ─────────────────────────────────
+                        // FIXED 2026-08-27: "too large, rough (square
+                        // corners) and stretched."
+                        //
+                        // Square corners: the container was a `Rectangle`
+                        // with `radius` and `clip: true`. `clip` clips to the
+                        // bounding BOX, never to the radius, so the image
+                        // painted straight over the rounded corners.
+                        // `ClippingRectangle` (Quickshell.Widgets) is the
+                        // type that actually clips to its own radius.
+                        //
+                        // Too large / stretched: it was `Layout.fillHeight`,
+                        // which was merely big inside the old card but became
+                        // enormous once this layout went full-screen — and a
+                        // square cover cropped into a tall narrow box reads as
+                        // stretched. Album art is square, so it is now pinned
+                        // to a 1:1 box with a ceiling.
+                        ClippingRectangle {
+                            Layout.alignment: Qt.AlignHCenter
+                            Layout.preferredWidth: Math.min(parent.width, root.cqw * 9)
+                            Layout.preferredHeight: Layout.preferredWidth
                             radius: Design.roundingSm
                             color: Colours.surface
-                            clip: true
 
                             Image {
                                 id: art
@@ -240,6 +287,8 @@ Item {
                                 anchors.fill: parent
                                 source: mediaTile.hasPlayer && root.mediaBackend.artPath ? "file://" + root.mediaBackend.artPath : ""
                                 fillMode: Image.PreserveAspectCrop
+                                sourceSize.width: width
+                                sourceSize.height: height
                                 asynchronous: true
                                 cache: true
                                 visible: status === Image.Ready
@@ -254,6 +303,9 @@ Item {
                                 font.pixelSize: root.cqw * 2.2
                             }
                         }
+
+                        // Absorbs the spare height the art no longer takes.
+                        Item { Layout.fillHeight: true }
 
                         Text {
                             Layout.fillWidth: true
@@ -310,7 +362,8 @@ Item {
                 // Centre rises rather than slides — it is the anchor of the
                 // composition, so it moves along a different axis to the flanks.
                 opacity: 0
-                transform: Translate {
+                transform: [
+                Translate {
                     SequentialAnimation on y {
                         PauseAnimation { duration: Motion.staggerOffsetDuration * 2 }
                         NumberAnimation {
@@ -321,7 +374,26 @@ Item {
                             easing.bezierCurve: Motion.emphasizedInEasing
                         }
                     }
+                },
+                Translate {
+                    x: 0
+                    y: root.unlocking ? root.cqw * 3 : 0
+                    Behavior on x {
+                        NumberAnimation {
+                            duration: Motion.emphasizedOutDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedOutEasing
+                        }
+                    }
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Motion.emphasizedOutDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedOutEasing
+                        }
+                    }
                 }
+                ]
                 SequentialAnimation on opacity {
                     PauseAnimation { duration: Motion.staggerOffsetDuration * 2 }
                     NumberAnimation {
@@ -438,7 +510,8 @@ Item {
 
                 // Mirror of the left flank, one beat later.
                 opacity: 0
-                transform: Translate {
+                transform: [
+                Translate {
                     SequentialAnimation on x {
                         PauseAnimation { duration: Motion.staggerOffsetDuration * 4 }
                         NumberAnimation {
@@ -449,7 +522,26 @@ Item {
                             easing.bezierCurve: Motion.emphasizedInEasing
                         }
                     }
+                },
+                Translate {
+                    x: root.unlocking ? root.cqw * 6 : 0
+                    y: 0
+                    Behavior on x {
+                        NumberAnimation {
+                            duration: Motion.emphasizedOutDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedOutEasing
+                        }
+                    }
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Motion.emphasizedOutDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.emphasizedOutEasing
+                        }
+                    }
                 }
+                ]
                 SequentialAnimation on opacity {
                     PauseAnimation { duration: Motion.staggerOffsetDuration * 4 }
                     NumberAnimation {

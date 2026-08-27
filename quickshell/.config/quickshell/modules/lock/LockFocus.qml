@@ -34,6 +34,11 @@ Item {
     id: root
 
     required property LockPam pam
+
+    // ── Exit ──────────────────────────────────────────────────────────
+    // Set by LockSurface while its unlock animation runs, so each layout
+    // leaves along the axis it arrived on rather than sharing one flat fade.
+    property bool unlocking: false
     property var mediaBackend: null
     property var screen: null
 

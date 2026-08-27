@@ -35,6 +35,11 @@ Item {
     id: root
 
     required property LockPam pam
+
+    // ── Exit ──────────────────────────────────────────────────────────
+    // Set by LockSurface while its unlock animation runs, so each layout
+    // leaves along the axis it arrived on rather than sharing one flat fade.
+    property bool unlocking: false
     property var mediaBackend: null
     property var systemResources: null
     property var screen: null
@@ -63,21 +68,42 @@ Item {
         // (`qml-configured-after-construction`). A transform is independent
         // of the binding, so there is nothing to lose.
         opacity: 0
-        transform: Translate {
+        transform: [
+        Translate {
+            // The "tiny delay before it kicks in" was not a delay — there is
+            // no PauseAnimation here. It was the EASING: `emphasized-in`'s
+            // bezier starts at [0.05, 0], an almost flat ramp, so the first
+            // ~15% of a 400-500ms animation covers almost no distance and
+            // reads as dead time. `spatial-in` starts at [0.38, 1.21] and
+            // moves immediately. Measured from ~/.local/state/theme/motion.json,
+            // not from Motion.qml's fallbacks.
             NumberAnimation on x {
                 from: -((root.screen?.width ?? 2560) * 0.262)
                 to: 0
                 duration: Motion.spatialInDuration
                 easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.emphasizedInEasing
+                easing.bezierCurve: Motion.spatialInEasing
+            }
+        },
+        // Exit: back out the way it came. Composed as a second Translate
+        // because the entrance animation owns the first one's `x` outright.
+        Translate {
+            x: root.unlocking ? -((root.screen?.width ?? 2560) * 0.262) : 0
+            Behavior on x {
+                NumberAnimation {
+                    duration: Motion.emphasizedOutDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedOutEasing
+                }
             }
         }
+        ]
         NumberAnimation on opacity {
             from: 0
             to: 1
-            duration: Motion.emphasizedInDuration
+            duration: Motion.standardDuration
             easing.type: Easing.BezierSpline
-            easing.bezierCurve: Motion.emphasizedInEasing
+            easing.bezierCurve: Motion.standardEasing
         }
 
         ColumnLayout {

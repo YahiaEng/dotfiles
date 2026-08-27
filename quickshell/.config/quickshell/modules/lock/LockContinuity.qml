@@ -26,6 +26,17 @@ Item {
     id: root
 
     required property LockPam pam
+
+    // ── Exit ──────────────────────────────────────────────────────────
+    // Set by LockSurface while its unlock animation runs. Each layout leaves
+    // along the axis it arrived on, so unlocking reads as the reverse of
+    // locking instead of every surface sharing one flat fade.
+    //
+    // Driven by a SECOND Translate composed on top of the entrance one: the
+    // entrance transforms are property-value-source animations that own their
+    // Translate's property outright, so an exit binding on the same property
+    // would fight them. Two Translates simply add.
+    property bool unlocking: false
     property var mediaBackend: null
 
     SystemClock {
@@ -38,6 +49,17 @@ Item {
     ColumnLayout {
         anchors.centerIn: parent
         spacing: 12
+
+        transform: Translate {
+            y: root.unlocking ? 34 : 0
+            Behavior on y {
+                NumberAnimation {
+                    duration: Motion.emphasizedOutDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.emphasizedOutEasing
+                }
+            }
+        }
 
         LockClock {
             Layout.alignment: Qt.AlignHCenter

@@ -28,6 +28,11 @@ Item {
     id: root
 
     required property LockPam pam
+
+    // ── Exit ──────────────────────────────────────────────────────────
+    // Set by LockSurface while its unlock animation runs, so each layout
+    // leaves along the axis it arrived on rather than sharing one flat fade.
+    property bool unlocking: false
     property var mediaBackend: null
     property var systemResources: null
     property var weatherBackend: null
@@ -87,7 +92,10 @@ Item {
         // flipped only once the Loader has given us a real width.
         property bool revealed: false
 
-        x: revealed ? root.width - root.panelWidth : root.width
+        // Exit falls out of the SAME binding as the entrance: unlocking simply
+        // un-reveals the panel, so it wipes back off the right edge along the
+        // path it arrived on. No second mechanism needed.
+        x: (revealed && !root.unlocking) ? root.width - root.panelWidth : root.width
 
         Behavior on x {
             NumberAnimation {
