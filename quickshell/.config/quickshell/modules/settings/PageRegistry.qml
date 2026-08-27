@@ -159,6 +159,19 @@ Singleton {
             slug: "updates"
         },
         {
+            // Security Center (quick task 260827-np1). Sits in the
+            // `system` category beside Updates deliberately: the two
+            // answer neighbouring questions ("is my software current?"
+            // / "is this machine safe?") and an operator who opens one
+            // is usually looking for the other. Inserted BEFORE About so
+            // About stays last, as every prior page addition has kept it.
+            label: "Security",
+            icon: "security",
+            description: "Malware, vulnerabilities, firewall, disk health",
+            category: "system",
+            slug: "security"
+        },
+        {
             label: "About",
             icon: "info",
             description: "System information, credits",

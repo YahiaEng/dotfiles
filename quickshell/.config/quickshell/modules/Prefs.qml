@@ -217,6 +217,14 @@ Singleton {
         "region.unitsTemp",
         "region.unitsWind",
         "region.unitsPrecip",
+        // Quick task 260827-np1 — Security Center. The operator picked
+        // "all plates", so all four surfaces ship and these three keys
+        // choose between them: one layout pick for the settings page
+        // (S1/S2) and one visibility toggle each for the bar capsule
+        // (H1) and the dashboard tab (D1).
+        "security.pageLayout",
+        "security.showCapsule",
+        "security.showDashboardTab",
         // Quick task 260826-1n9 Task 7 — the weather location's
         // automatic/manual toggle and its three data fields. Consumer:
         // WeatherBackend.qml's computed `lat`/`lon`/`cityOverride`
@@ -326,6 +334,26 @@ Singleton {
         "region.unitsTemp": "auto",
         "region.unitsWind": "auto",
         "region.unitsPrecip": "auto",
+        // Quick task 260827-np1 — Security Center defaults.
+        //
+        // "findings" is the default layout because the pane's whole job
+        // is answering "am I OK?" in one line; "sections" is the way
+        // back out if that layout ever fails to render.
+        //
+        // The capsule defaults ON but hides itself whenever the machine
+        // is healthy AND no scan is running (see SecurityCapsule.qml) —
+        // so on a clean system it costs no bar space, and the operator
+        // is not asked to opt in to the one surface that makes a
+        // minutes-long scan visible.
+        //
+        // The dashboard tab defaults OFF. It is the one plate that
+        // WORSENS an existing defect: each drawer tab declares its own
+        // contentWidth and the drawer animates between them, so a fifth
+        // width makes that jump worse. Shipped because the operator
+        // asked for all four, defaulted off because it costs something.
+        "security.pageLayout": "findings",
+        "security.showCapsule": true,
+        "security.showDashboardTab": false,
         // Quick task 260826-1n9 Task 7 — "auto" keeps an existing
         // hand-edited weather.json fully authoritative (D-8), exactly the
         // same reasoning "auto" already carries for the three units keys

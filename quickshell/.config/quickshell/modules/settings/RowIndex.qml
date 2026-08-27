@@ -273,19 +273,34 @@ Singleton {
         // of the two-step-armed click.
         { pageIdx: 14, section: "Updates", label: "Single-package updates", keywords: "updates single package partial upgrade risk one paru" },
 
-        // ── pageIdx 15 — About (quick task 260825-wj2 Task 3) ────────────
+        // ── pageIdx 15 — Security (quick task 260827-np1) ────────────────
+        // Only the page's OWN row primitives are indexed. The findings
+        // feed's rows are `FindingRow`s built from live probe data — they
+        // have no stable label to jump to and are deliberately not a
+        // row primitive settings-index-check scans.
+        { pageIdx: 15, section: "Layout", label: "Security page layout", keywords: "security layout findings sections plate posture domain" },
+        { pageIdx: 15, section: "Layout", label: "Security capsule in the bar", keywords: "security capsule bar posture scan visible glance" },
+        { pageIdx: 15, section: "Layout", label: "Security tab on the dashboard", keywords: "security dashboard tab drawer bento fifth" },
+        { pageIdx: 15, section: "Scanning", label: "Scan target", keywords: "security scan target path home directory clamav virus" },
+        { pageIdx: 15, section: "Scanning", label: "Virus signatures", keywords: "security virus signatures clamav freshclam database malware" },
+        { pageIdx: 15, section: "Scanning", label: "Disk health source", keywords: "security disk health smart smartd snapshot drive nvme" },
+        { pageIdx: 15, section: "Scanning", label: "Privileged actions", keywords: "security privileged polkit password root pkexec firewall install" },
+
+        // ── pageIdx 16 — About (quick task 260825-wj2 Task 3; renumbered
+//    15 -> 16 by quick task 260827-np1, which inserted Security at
+//    15). ─────────────────────────────────────────────────────────
         // Nine literal system fields (quick-260826-1n9 Task 4, D-3) —
         // replaces the single "System information" Repeater entry.
-        { pageIdx: 15, section: "System", label: "OS", keywords: "about system os operating system distro" },
-        { pageIdx: 15, section: "System", label: "Host", keywords: "about system host machine model" },
-        { pageIdx: 15, section: "System", label: "Kernel", keywords: "about system kernel linux version release" },
-        { pageIdx: 15, section: "System", label: "Uptime", keywords: "about system uptime running time" },
-        { pageIdx: 15, section: "System", label: "Packages", keywords: "about system packages installed pacman count" },
-        { pageIdx: 15, section: "System", label: "Shell version", keywords: "about system shell version bash zsh fish" },
-        { pageIdx: 15, section: "System", label: "CPU", keywords: "about system cpu processor" },
-        { pageIdx: 15, section: "System", label: "GPU", keywords: "about system gpu graphics card nvidia" },
-        { pageIdx: 15, section: "System", label: "Memory", keywords: "about system memory ram used total" },
-        { pageIdx: 15, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
-        { pageIdx: 15, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
+        { pageIdx: 16, section: "System", label: "OS", keywords: "about system os operating system distro" },
+        { pageIdx: 16, section: "System", label: "Host", keywords: "about system host machine model" },
+        { pageIdx: 16, section: "System", label: "Kernel", keywords: "about system kernel linux version release" },
+        { pageIdx: 16, section: "System", label: "Uptime", keywords: "about system uptime running time" },
+        { pageIdx: 16, section: "System", label: "Packages", keywords: "about system packages installed pacman count" },
+        { pageIdx: 16, section: "System", label: "Shell version", keywords: "about system shell version bash zsh fish" },
+        { pageIdx: 16, section: "System", label: "CPU", keywords: "about system cpu processor" },
+        { pageIdx: 16, section: "System", label: "GPU", keywords: "about system gpu graphics card nvidia" },
+        { pageIdx: 16, section: "System", label: "Memory", keywords: "about system memory ram used total" },
+        { pageIdx: 16, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
+        { pageIdx: 16, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
     ]
 }

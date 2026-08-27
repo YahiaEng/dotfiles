@@ -34,3 +34,7 @@ LanguageRegionPage 1.0 LanguageRegionPage.qml
 # category tile on WallpaperPage; declared here in the same commit that
 # creates it, per this manifest's own standing rule.
 WallpaperCategoryPage 1.0 WallpaperCategoryPage.qml
+# Security Center (quick task 260827-np1) — flat, no sub-pages.
+# Declared in the same commit that creates SecurityPage.qml, per this
+# manifest's own standing rule.
+SecurityPage 1.0 SecurityPage.qml

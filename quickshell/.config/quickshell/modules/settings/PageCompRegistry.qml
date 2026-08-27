@@ -124,6 +124,11 @@ Singleton {
     readonly property Component updatesComp: Component {
         UpdatesPage {}
     }
+    // Security Center (quick task 260827-np1). A plain Component, not
+    // StackPage-wrapped: the page is flat and has no sub-pages.
+    readonly property Component securityComp: Component {
+        SecurityPage {}
+    }
     readonly property Component aboutComp: Component {
         AboutPage {}
     }
@@ -148,6 +153,7 @@ Singleton {
         servicesComp,
         languageRegionComp,
         updatesComp,
+        securityComp,
         aboutComp
     ]
 
@@ -172,6 +178,7 @@ Singleton {
         "services",
         "language-region",
         "updates",
+        "security",
         "about"
     ]
 

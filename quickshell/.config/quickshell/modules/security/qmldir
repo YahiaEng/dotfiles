@@ -1,0 +1,46 @@
+# qmldir — explicit module manifest for quickshell/modules/security/
+# (quick task 260827-np1). Mirrors every sibling module manifest's own
+# standing instruction (see modules/screensaver/qmldir, modules/lock/qmldir,
+# modules/osd/qmldir): any .qml type added to this directory that is NOT
+# declared below becomes unresolvable, with no load error — it simply
+# reads `undefined` forever. qml-import-check enforces this. Any FUTURE
+# type added here MUST be declared in the same commit that creates it.
+#
+# ── THE `singleton` KEYWORD IS LOAD-BEARING ───────────────────────────
+# Severity and SecurityBackend each carry `pragma Singleton` AND are
+# marked `singleton` below. modules/qmldir's own header records why both
+# are required, binary-verified in 12-06: without the qmldir keyword, a
+# bare `SecurityBackend.findings`-style access resolves to `undefined`
+# forever and the object is never constructed. Removing either one is a
+# silent, error-free failure.
+#
+# SecurityBackend is the singleton that owns every probe AND the running
+# scan. It is a singleton specifically so a scan outlives the page that
+# started it — see its own header for the measurement that forced this.
+# The bar capsule, the dashboard tab and both settings layouts are four
+# readers of ONE backend, never four backends.
+module qs.modules.security
+
+singleton Severity 1.0 Severity.qml
+singleton SecurityBackend 1.0 SecurityBackend.qml
+
+# ── Surfaces ──
+# The two settings-page layouts the operator picked (plates S1 and S2),
+# switched by SecurityPage.qml's Loader on the `security.pageLayout`
+# pref. Both are kept selectable rather than one replacing the other:
+# a layout Loader whose component fails leaves an empty pane rather than
+# a dead shell, so the other layout is the way back out of a bad render —
+# the same reasoning DashLanes/DashboardTab already ship under.
+SecuritySections 1.0 SecuritySections.qml
+SecurityFindings 1.0 SecurityFindings.qml
+
+# Plate D1 — the dashboard drawer tab.
+SecurityTab 1.0 SecurityTab.qml
+
+# Plate H1 — the bar capsule. Posture at a glance, and the ONLY place a
+# running scan stays visible from once the settings window is closed.
+SecurityCapsule 1.0 SecurityCapsule.qml
+
+# Shared row primitive used by both settings layouts and the tab, so a
+# finding renders identically wherever it appears.
+FindingRow 1.0 FindingRow.qml
