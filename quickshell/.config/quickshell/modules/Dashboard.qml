@@ -1265,8 +1265,14 @@ PanelWindow {
                 // 260826-rfy: "lanes" (D2) is the default; "column" is the
                 // pre-260826-rfy single-column layout, kept selectable so
                 // there is always a known-good pane to return to.
+                // 260827-50i adds "bento" (D1). Same fall-through discipline
+                // as the Performance loader below: the chain ends on the
+                // default so an unrecognised value in a hand-edited
+                // prefs.json cannot blank the pane.
                 sourceComponent: dashboardWindow.dashLayout === "column"
                     ? dashColumnComponent
+                    : dashboardWindow.dashLayout === "bento"
+                    ? dashBentoComponent
                     : dashLanesComponent
                 onLoaded: Qt.callLater(dashboardWindow.runCascadeForActivePane)
             }
@@ -1307,6 +1313,23 @@ PanelWindow {
                     // The one property the column layout does not take: D2
                     // puts a weather card in its right lane, so this layout
                     // reads the same backend the Weather tab does.
+                    weatherBackend: dashboardWindow.weatherBackend
+                    audioBackend: dashboardWindow.audioBackend
+                    wifiBackend: dashboardWindow.wifiBackend
+                    bluetoothBackend: dashboardWindow.bluetoothBackend
+                    mediaTabIndex: dashboardWindow.tabIndexMedia
+                    performanceTabIndex: dashboardWindow.tabIndexPerformance
+                    onTabRequested: (index) => pager.setCurrentIndex(index)
+                    onPanelRequested: (name) => dashboardWindow.panelRequested(name)
+                }
+            }
+
+            Component {
+                id: dashBentoComponent
+
+                DashBento {
+                    mediaBackend: dashboardWindow.mediaBackend
+                    systemResources: dashboardWindow.systemResources
                     weatherBackend: dashboardWindow.weatherBackend
                     audioBackend: dashboardWindow.audioBackend
                     wifiBackend: dashboardWindow.wifiBackend

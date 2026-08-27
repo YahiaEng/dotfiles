@@ -326,6 +326,7 @@ PageBase {
 
         readonly property var dashLayoutOptions: [
             { display: "Two lanes", value: "lanes" },
+            { display: "Bento grid", value: "bento" },
             { display: "Single column", value: "column" }
         ]
         readonly property var performanceLayoutOptions: [
@@ -336,7 +337,11 @@ PageBase {
 
         SelectRow {
             label: "Dashboard layout"
-            subtext: "Two lanes fills the frame; single column is the original"
+            // The bento grid is wider than the other two, so it pairs with
+            // the Performance tab's "Caelestia cards" — picking one of the
+            // two wide layouts on its own means the drawer changes width as
+            // you cross between those tabs.
+            subtext: "Two lanes fills the frame; bento is wider and pairs with cards"
             model: drawerLayoutSection.dashLayoutOptions
             currentValue: Prefs.getValue("dashboard.layout.dash")
             onSelected: (value) => Prefs.setValue("dashboard.layout.dash", value)

@@ -119,6 +119,7 @@ Sparkline 1.0 Sparkline.qml
 PerfTelemetry 1.0 PerfTelemetry.qml
 DashLanes 1.0 DashLanes.qml
 PerfArcs 1.0 PerfArcs.qml
+DashBento 1.0 DashBento.qml
 Cascade 1.0 Cascade.qml
 ConditionGlyph 1.0 ConditionGlyph.qml
 GradientBorder 1.0 GradientBorder.qml
