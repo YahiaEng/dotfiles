@@ -88,6 +88,37 @@ Singleton {
     readonly property int spacingXl: 32
     readonly property int panelPadding: 24
 
+    // ── Rounding scale (quick task 260827-50i, plate D1) ────────────────
+    // A SHARED corner-radius ladder, which this file did not previously
+    // have — it carried only per-surface one-offs (`popoutCornerRadius: 20`,
+    // `attachedCornerRadius: 24`, the drawer's own 28). Those stay exactly
+    // as they are: this scale is additive, and nothing is re-pointed at it
+    // in the commit that introduces it.
+    //
+    // The reason a ladder is needed at all is D1's separation trick. Its
+    // six cells are all painted the SAME fill, and the only thing stopping
+    // them reading as one flat slab is that each cell carries a visibly
+    // different radius. That only works if the steps are far enough apart
+    // to be told apart at a glance — which is why this is 18/28/42/56 and
+    // not a tidy 16/24/32/40. The study's own plate note fixes those four
+    // numbers ("radii 18 / 28 / 42 / 56"); they are the reference's, not a
+    // derivation of ours, and the study is vendored at
+    // `.planning/notes/dashboard-perf-studies.html`.
+    //
+    // Why the reference's ladder rather than our own: this shell has no
+    // `surfaceContainer` palette role (confirmed absent from `Colours.qml` —
+    // the theme pipeline does not generate one), so radius and gap have to
+    // do the separation work that a third container tint would normally do.
+    // Compressing the steps would quietly give that up.
+    readonly property int roundingSm: 18
+    readonly property int roundingMd: 28
+    readonly property int roundingLg: 42
+    readonly property int roundingXl: 56
+    // A radius large enough that any cell this shell draws resolves to a
+    // pill/circle. Not `Number.POSITIVE_INFINITY`: that reaches Rectangle's
+    // `radius` as a non-finite double and the corner is dropped entirely.
+    readonly property int roundingFull: 9999
+
     // ── Icon sizing — see the provenance note above ─────────────────────
     readonly property int iconSizeMd: 24
 

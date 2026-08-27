@@ -157,6 +157,23 @@ Item {
     // Negative means "inherit `fontHeading`", i.e. exactly today's value.
     property int centerFontSize: -1
 
+    // ── Opt-in arc geometry (quick task 260827-50i, plate P2) ───────────
+    // Both default to EXACTLY the values that were hardcoded into the value
+    // arc below, so every call site that does not set them draws the same
+    // pixels it drew before this property existed. P2's hero arcs pass
+    // `startAngle: 135` / `sweepAngle: 270` to open a gap at the bottom.
+    //
+    // `sweepAngle` is the FULL-scale sweep, not the drawn one — the arc
+    // still multiplies by `value` itself. A caller passes the shape it
+    // wants at 100%, never a pre-multiplied number, or the ring would stop
+    // tracking its own reading.
+    //
+    // The track arc reads them too (as `startAngle` + a full `sweepAngle`),
+    // which is what keeps the unfilled remainder of a 270° dial visible
+    // instead of drawing a full circle behind a three-quarter arc.
+    property real startAngle: -90
+    property real sweepAngle: 360
+
     readonly property int _centerFontSize: root.centerFontSize > 0 ? root.centerFontSize : root._fontHeading
     readonly property bool _captionHasText: root.widgetState === "empty"
         ? root.emptyText !== "" : (root.label !== "" || root.icon !== "")
@@ -204,14 +221,21 @@ Item {
                 centerY: dialShape.height / 2
                 radiusX: (root.diameter - root.ringThickness) / 2
                 radiusY: (root.diameter - root.ringThickness) / 2
-                startAngle: 0
-                sweepAngle: 360
+                // Was a literal `0`/`360`. At the default `startAngle: -90`
+                // this still draws the identical full circle — a closed ring
+                // does not care where it started. It only becomes load-
+                // bearing once a caller narrows `sweepAngle`, where the
+                // track has to share the value arc's start or the two would
+                // be drawn against different origins.
+                startAngle: root.startAngle
+                sweepAngle: root.sweepAngle
                 moveToStart: true
             }
         }
 
-        // The value arc — starts at twelve o'clock (-90 degrees in this
-        // API's convention) and sweeps clockwise by `360 * value`. A
+        // The value arc — starts at `startAngle` (default -90, twelve
+        // o'clock in this API's convention) and sweeps clockwise by
+        // `sweepAngle * value` (default 360, a full ring). A
         // sweep of 0 (pending/empty callers always pass `value: 0`) simply
         // draws nothing, so no separate state gating is needed here — the
         // D-41 branch logic lives entirely in what the caller feeds
@@ -237,8 +261,8 @@ Item {
                 centerY: dialShape.height / 2
                 radiusX: (root.diameter - root.ringThickness) / 2
                 radiusY: (root.diameter - root.ringThickness) / 2
-                startAngle: -90
-                sweepAngle: 360 * root.value
+                startAngle: root.startAngle
+                sweepAngle: root.sweepAngle * root.value
                 moveToStart: true
             }
         }

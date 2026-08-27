@@ -193,6 +193,51 @@ Scope {
     property string gpuName: ""
     property bool gpuAvailable: false
 
+    // ── Identity readings (quick task 260827-50i) ───────────────────────
+    // Three static-or-slow facts that no existing consumer needed, added
+    // for the two Caelestia-derived layouts: `cpuName` is P1's hero-card
+    // subtitle (the counterpart to `gpuName`, which already existed and is
+    // why P1's cost note read "SystemResources: device names"); `uptimeText`
+    // and `distroName` are D1's identity cell.
+    //
+    // None of them is a D-41 metric and none carries a state register: they
+    // are labels, not readings. An unreadable source leaves the string
+    // empty and the consuming layout composes around it — the same quiet-
+    // failure posture `cpuFreqGHz` already takes, and for the same reason
+    // (a container or a VM missing one of these is not an error worth a log
+    // line, let alone an "Unavailable" chip in the UI).
+    //
+    // `cpuName` and `distroName` cannot change while the shell is running,
+    // so both are read ONCE on the first real drawer open and cached
+    // forever — the same zero-idle doctrine as the hwmon and GPU probes.
+    // `uptimeSeconds` obviously does change, so it rides the existing ~30s
+    // slow timer rather than adding a fourth cadence; a minute-resolution
+    // readout does not need the 2s fast poll.
+    property string cpuName: ""
+    property string distroName: ""
+    property real uptimeSeconds: 0
+
+    // Formatted for direct display: "4h 12m", "12m", "3d 4h". Deliberately
+    // at most two components — an uptime line is a glance, and "3d 4h 12m
+    // 9s" is four facts where one was wanted. Empty until the first read so
+    // a consumer can tell "not yet" from "zero minutes".
+    readonly property string uptimeText: {
+        if (!(root.uptimeSeconds > 0))
+            return "";
+        var total = Math.floor(root.uptimeSeconds);
+        var d = Math.floor(total / 86400);
+        var h = Math.floor((total % 86400) / 3600);
+        var m = Math.floor((total % 3600) / 60);
+        if (d > 0)
+            return d + "d " + h + "h";
+        if (h > 0)
+            return h + "h " + m + "m";
+        return m + "m";
+    }
+
+    // One-shot guards, mirroring `_hwmonDiscoveryDone`/`_gpuProbeDone`.
+    property bool _identityReadDone: false
+
     // ── Per-metric D-41 state registers ─────────────────────────────────
     property string cpuState: "empty"
     property string memoryState: "empty"
@@ -356,6 +401,11 @@ Scope {
                 // `nvidia-smi` query returns in well under a second.
                 gpuProbeProcess.running = true;
             }
+            // Third one-shot, same doctrine as the two above (260827-50i):
+            // CPU model and distro name, read on the first real open only.
+            // No subprocess at all for this one — three synchronous procfs/
+            // sysfs reads, so it is cheaper than either probe above.
+            root.readIdentityOnce();
         } else {
             // Force the storage subprocess dead the instant the drawer
             // closes so an in-flight `df` read cannot outlive this surface
@@ -433,6 +483,113 @@ Scope {
         blockLoading: true
         blockAllReads: true
         printErrors: true
+    }
+
+    // ── Identity sources (quick task 260827-50i) ────────────────────────
+    // Same blocking-read triple as the metric files above, for the same
+    // reason: these are procfs/sysfs reads measured in microseconds, and a
+    // synchronous read is the only shape that composes with the
+    // reload()/waitForJob()/text() sequence this file already uses
+    // everywhere. `printErrors: false` on all three — see the quiet-failure
+    // note on the property declarations.
+    FileView {
+        id: cpuinfoFile
+        path: "/proc/cpuinfo"
+        preload: false
+        blockLoading: true
+        blockAllReads: true
+        printErrors: false
+    }
+    FileView {
+        id: osReleaseFile
+        path: "/etc/os-release"
+        preload: false
+        blockLoading: true
+        blockAllReads: true
+        printErrors: false
+    }
+    FileView {
+        id: uptimeFile
+        path: "/proc/uptime"
+        preload: false
+        blockLoading: true
+        blockAllReads: true
+        printErrors: false
+    }
+
+    // Read once, cached forever. Called from the first real drawer open.
+    function readIdentityOnce() {
+        if (root._identityReadDone)
+            return;
+        root._identityReadDone = true;
+
+        // /proc/cpuinfo: the first "model name" line. Every core repeats
+        // it, so the first match is the answer and scanning further is
+        // wasted work on a 64-thread machine's 2000-line file.
+        try {
+            cpuinfoFile.reload();
+            cpuinfoFile.waitForJob();
+            var cpuLines = (cpuinfoFile.text() || "").split("\n");
+            for (var i = 0; i < cpuLines.length; i++) {
+                // ARM and some VMs report "Model" or "Hardware" instead of
+                // "model name"; matching the x86 key only is deliberate —
+                // a wrong-but-plausible label is worse here than none, and
+                // the consuming card already composes around an empty
+                // string.
+                if (cpuLines[i].indexOf("model name") === 0) {
+                    var colon = cpuLines[i].indexOf(":");
+                    if (colon >= 0) {
+                        root.cpuName = cpuLines[i].substring(colon + 1).trim();
+                    }
+                    break;
+                }
+            }
+        } catch (eCpu) {
+            root.cpuName = "";
+        }
+
+        // /etc/os-release: PRETTY_NAME, falling back to NAME. Values may be
+        // double-quoted per the os-release spec, so strip one matched pair
+        // — never a blind character trim, which would eat a legitimate
+        // trailing quote from a distro that ships one.
+        try {
+            osReleaseFile.reload();
+            osReleaseFile.waitForJob();
+            var osLines = (osReleaseFile.text() || "").split("\n");
+            var pretty = "";
+            var plain = "";
+            for (var j = 0; j < osLines.length; j++) {
+                var line = osLines[j].trim();
+                if (line.indexOf("PRETTY_NAME=") === 0)
+                    pretty = line.substring("PRETTY_NAME=".length);
+                else if (line.indexOf("NAME=") === 0)
+                    plain = line.substring("NAME=".length);
+            }
+            var picked = pretty !== "" ? pretty : plain;
+            if (picked.length >= 2 && picked.charAt(0) === '"'
+                && picked.charAt(picked.length - 1) === '"') {
+                picked = picked.substring(1, picked.length - 1);
+            }
+            root.distroName = picked;
+        } catch (eOs) {
+            root.distroName = "";
+        }
+    }
+
+    // /proc/uptime's first field is seconds since boot as a float. Called
+    // from the slow timer, which already fires on drawer open.
+    function readUptime() {
+        try {
+            uptimeFile.reload();
+            uptimeFile.waitForJob();
+            var first = ((uptimeFile.text() || "").trim().split(/\s+/))[0];
+            var secs = parseFloat(first);
+            if (isFinite(secs) && secs >= 0)
+                root.uptimeSeconds = secs;
+        } catch (eUp) {
+            // Previous value stands — an uptime that briefly fails to read
+            // has not reset to zero, and showing "0m" would be a lie.
+        }
     }
 
     // CPU frequency (round 2 detail) — a fixed, stable sysfs path (every
@@ -743,8 +900,14 @@ Scope {
         // not a change to the published cadence.
         triggeredOnStart: true
         onTriggered: {
-            if (root.drawerOpen)
-                storageProcess.running = true;
+            if (!root.drawerOpen)
+                return;
+            storageProcess.running = true;
+            // Uptime rides this cadence rather than adding a fourth timer
+            // (260827-50i). `triggeredOnStart` above means the first read
+            // lands on open, so D1's identity cell is never blank-then-
+            // populated a full 30s later.
+            root.readUptime();
         }
     }
 
