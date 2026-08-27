@@ -13,6 +13,44 @@
 // `pragma Singleton` here AND the `singleton` keyword in
 // modules/session/qmldir, or bare `PowerActions.actions`-style access
 // resolves to `undefined` forever, with no load error.
+//
+// ── Reboot and Shut Down dropped their hyprshutdown wrap ────────────────
+// (quick task 260827-74s, 2026-08-27, operator decision.)
+//
+// Both used to run `hyprshutdown --post-cmd '<verb>'`, which asks every
+// window to close and then WAITS. hyprshutdown 0.1.1-6 registers exactly
+// these options — dry-run, no-exit, top-label, post-cmd, verbose, no-fork,
+// vt, help — and NO timeout of any kind. Run with --dry-run --verbose it
+// loops `Re-closing apps` forever; its own UI offers `Force quit` with the
+// warning "You can force quit Hyprland, but that risks losing unsaved
+// progress." So one app that will not close held the machine on
+// "Shutting down... / Waiting for your apps to exit." indefinitely. That
+// was the operator's reported hang.
+//
+// systemd was NOT the bottleneck, so lowering DefaultTimeoutStopSec would
+// have fixed nothing: the journal holds two clean power-key poweroffs that
+// bypass hyprshutdown, Aug 22 (1.5s) and Aug 24 (1.3s) power-key to
+// `Reached target System Power Off`, with app-graphical.slice gone 75ms
+// into the Aug 24 teardown.
+//
+// The wrap was never load-bearing either. It came from Phase 4 / FIX-01,
+// whose own 04-01-SUMMARY.md Task 2 records the hang it targeted as never
+// reproduced — "No hang reproduced", "intermittent / not currently
+// reproducible on demand" — and applied the wrap on a structural
+// bare-systemctl-is-uwsm-incorrect argument, not on evidence.
+//
+// TRADE-OFF, stated to the operator before they chose this and accepted:
+// apps are now killed when the compositor exits rather than asked to close,
+// so unsaved work is likelier lost. This also retires the mechanism behind
+// requirement QPOWER-04 ("keep the graceful compositor exit that closed the
+// FIX-01 hang class"). If a black-screen hang ever DOES appear on this
+// path, hyprshutdown's `--vt N` option ("Switch to VT N after Hyprland
+// exits (fixes NVIDIA+SDDM black screen)") is the targeted remedy — it was
+// never wired up here.
+//
+// Log Out still wraps hyprshutdown and still carries the same indefinite
+// wait. Left deliberately: the operator asked about Shutdown and Reboot.
+//
 pragma Singleton
 import QtQuick
 import Quickshell
@@ -43,11 +81,11 @@ Singleton {
         },
         {
             glyph: "restart_alt", label: "Reboot", mnemonic: "r",
-            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'systemctl reboot'"]
+            command: ["sh", "-c", "cliphist wipe; systemctl reboot"]
         },
         {
             glyph: "power_settings_new", label: "Shut Down", mnemonic: "s",
-            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'systemctl poweroff'"]
+            command: ["sh", "-c", "cliphist wipe; systemctl poweroff"]
         }
     ]
 }
