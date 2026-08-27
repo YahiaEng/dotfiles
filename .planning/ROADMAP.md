@@ -575,9 +575,18 @@ never the debt.
 
 v5.0 is unscoped. Standing candidates:
 
-- **Rebuild walker/elephant in QML** — deliberately excluded from v4.0. Whether
-  shell consistency justifies rebuilding fuzzy search, app indexing, clipboard
-  and calc providers is the open question.
+- ~~**Rebuild walker/elephant in QML**~~ — **STRUCK 2026-08-27 (quick task
+  260827-74s): already done, this candidate describes finished work.** Both
+  packages were retired and uninstalled from repo AND host in quick task
+  260822-sht (2026-08-23), along with all ten `elephant-*` provider packages;
+  `retirement-check` reports `status=retired failed_classes=0` for each. The
+  launcher is in-process QML today at
+  `quickshell/.config/quickshell/modules/launcher/` — fuzzy app search, a
+  6-route prefix router (calc/websearch/files/clipboard/symbols/providerlist),
+  the 9-verb `MenuTree.qml`, and the picker surfaces. There is no second
+  process and no socket. Leaving this row live would have put a shipped
+  migration back into a v5.0 scope; see CLAUDE.md's "What NOT to Use", which
+  bans reintroducing either package.
 
 - **Per-screen surface fan-out (QS-03)** — dropped one-way under D-13; revisit
   only if a second monitor arrives *and* upstream fixes it.
