@@ -92,6 +92,14 @@
 # Dashboard.qml's two tab Loaders now choose between them on
 # `Prefs.getValue("dashboard.layout.*")`, so the pre-existing single-column
 # and five-dial layouts stay selectable and stay registered below.
+#
+# Quick task 260827-50i adds the three layout types 260826-rfy left unbuilt,
+# each registered in the SAME commit that creates it per the standing rule
+# at the top of this file: `PerfArcs` (plate P2, "arcs"), `DashBento` (plate
+# D1, "bento") and `PerfCards` (plate P1, "cards"). None is a singleton, and
+# none replaces a sibling — all four Performance layouts and all three
+# Dashboard layouts stay selectable through `Prefs.getValue("dashboard.
+# layout.*")`.
 module qs.modules.dashboard
 singleton Design 1.0 Design.qml
 singleton WeatherPalette 1.0 WeatherPalette.qml
@@ -110,6 +118,7 @@ Dial 1.0 Dial.qml
 Sparkline 1.0 Sparkline.qml
 PerfTelemetry 1.0 PerfTelemetry.qml
 DashLanes 1.0 DashLanes.qml
+PerfArcs 1.0 PerfArcs.qml
 Cascade 1.0 Cascade.qml
 ConditionGlyph 1.0 ConditionGlyph.qml
 GradientBorder 1.0 GradientBorder.qml

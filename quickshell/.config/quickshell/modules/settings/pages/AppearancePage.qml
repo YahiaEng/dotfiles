@@ -330,6 +330,7 @@ PageBase {
         ]
         readonly property var performanceLayoutOptions: [
             { display: "Telemetry strip", value: "telemetry" },
+            { display: "Weighted arcs", value: "arcs" },
             { display: "Dials", value: "dials" }
         ]
 
@@ -342,7 +343,7 @@ PageBase {
         }
         SelectRow {
             label: "Performance layout"
-            subtext: "Telemetry graphs recent history; dials show instant values"
+            subtext: "Telemetry graphs recent history; arcs and dials show instant values"
             model: drawerLayoutSection.performanceLayoutOptions
             currentValue: Prefs.getValue("dashboard.layout.performance")
             onSelected: (value) => Prefs.setValue("dashboard.layout.performance", value)
