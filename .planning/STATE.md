@@ -1407,8 +1407,12 @@ summary.
 | | Wide column | D3 | 712 |
 | Performance | Telemetry strip *(default)* | P3 | 712 |
 | | Weighted arcs | P2 | 712 |
-| | Caelestia cards | P1 | **944** |
+| | Bento | P1 | **944** |
 | | Tightened dials | P4 | 712 |
+
+Both wide layouts are labelled **"Bento"** (operator rename, post-approval).
+Only the display string — the Performance pref VALUE is still `cards` and the
+file is still `PerfCards.qml`, whose header cites plate P1 "Caelestia Cards".
 
 D3 and P4 are TRANSFORMATIONS of `DashboardTab.qml`/`PerformanceTab.qml`, not
 new files — a sibling would have left the original selectable, and the study

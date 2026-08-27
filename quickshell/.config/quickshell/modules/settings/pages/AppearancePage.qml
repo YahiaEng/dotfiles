@@ -332,7 +332,7 @@ PageBase {
         readonly property var performanceLayoutOptions: [
             { display: "Telemetry strip", value: "telemetry" },
             { display: "Weighted arcs", value: "arcs" },
-            { display: "Caelestia cards", value: "cards" },
+            { display: "Bento", value: "cards" },
             { display: "Tightened dials", value: "dials" }
         ]
 
@@ -342,16 +342,19 @@ PageBase {
             // the Performance tab's "Caelestia cards" — picking one of the
             // two wide layouts on its own means the drawer changes width as
             // you cross between those tabs.
-            subtext: "Lanes and wide column fit the frame; bento is wider and pairs with cards"
+            subtext: "Lanes and wide column fit the frame; bento is wider — pair it with Performance's bento"
             model: drawerLayoutSection.dashLayoutOptions
             currentValue: Prefs.getValue("dashboard.layout.dash")
             onSelected: (value) => Prefs.setValue("dashboard.layout.dash", value)
         }
         SelectRow {
             label: "Performance layout"
-            // "Caelestia cards" is the wide one; it pairs with the bento
-            // grid above for the same reason given there.
-            subtext: "Telemetry graphs history; cards is wider and pairs with bento"
+            // "Bento" is the wide one here, and it pairs with the Dashboard's
+            // bento grid above for the same reason given there. Both wide
+            // layouts share the name deliberately — they are the matched
+            // pair, and the value stays "cards" so an existing prefs.json
+            // keeps resolving.
+            subtext: "Telemetry graphs history; bento is wider — pair it with the Dashboard's bento"
             model: drawerLayoutSection.performanceLayoutOptions
             currentValue: Prefs.getValue("dashboard.layout.performance")
             onSelected: (value) => Prefs.setValue("dashboard.layout.performance", value)
