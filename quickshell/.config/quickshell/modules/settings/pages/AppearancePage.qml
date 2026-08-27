@@ -360,4 +360,39 @@ PageBase {
             onSelected: (value) => Prefs.setValue("dashboard.layout.performance", value)
         }
     }
+
+    // ── Lock screen (quick task 260827-833, LOCK-01) ────────────────────
+    // Which of the five operator-approved in-process lock-screen layouts
+    // `LockSurface.qml`'s own switch resolves. A QML Loader re-instantiates
+    // on `sourceComponent` change (the same mechanism the dashboard
+    // drawer's own layout picker above already relies on), so a pick here
+    // applies the next time the session locks — no shell restart.
+    //
+    // `Prefs.qml` already carries `lock.layout` in both `_allowedKeys` and
+    // `_defaults` (Task 1); this section only adds the row. Default stays
+    // "continuity" — flipping it is the operator's own call (operator
+    // checklist item 9), and while hyprlock is still the held Task 8
+    // fallback the equivalence check against hyprlock.conf is worth more
+    // than the reference default.
+    SettingsSection {
+        id: lockLayoutSection
+        title: "Lock screen"
+        icon: "lock"
+
+        readonly property var lockLayoutOptions: [
+            { display: "Three columns", value: "caelestia" },
+            { display: "Continuity", value: "continuity" },
+            { display: "Edge rail", value: "rail" },
+            { display: "Split canvas", value: "split" },
+            { display: "Quiet focus", value: "focus" }
+        ]
+
+        SelectRow {
+            label: "Lock screen layout"
+            subtext: "Edge rail and split canvas leave the wallpaper sharp; the other three blur what was on screen"
+            model: lockLayoutSection.lockLayoutOptions
+            currentValue: Prefs.getValue("lock.layout")
+            onSelected: (value) => Prefs.setValue("lock.layout", value)
+        }
+    }
 }

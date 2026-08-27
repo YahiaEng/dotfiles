@@ -53,6 +53,8 @@ Singleton {
         // Quick task 260826-rfy — the Super+D drawer's per-tab layout picks.
         { pageIdx: 0, section: "Dashboard drawer", label: "Dashboard layout", keywords: "dashboard drawer layout lanes column super+d dash" },
         { pageIdx: 0, section: "Dashboard drawer", label: "Performance layout", keywords: "performance layout telemetry graph sparkline dials drawer" },
+        // Quick task 260827-833 — the in-process lock screen's layout pick.
+        { pageIdx: 0, section: "Lock screen", label: "Lock screen layout", keywords: "lock screen layout lockscreen caelestia rail split focus continuity password" },
 
         // ── pageIdx 1 — Wallpaper ─────────────────────────────────────────
         { pageIdx: 1, section: "Wallpaper", label: "The wallpaper drives dynamic theming", keywords: "wallpaper theme dynamic materialyou palette" },
