@@ -235,7 +235,16 @@ Singleton {
         // "continuity" at the READ site (LockSurface.qml's own
         // `layoutKey`), not here — this allowlist entry only gates the
         // WRITE.
-        "lock.layout"
+        "lock.layout",
+        // Quick task 260827-b52 — which of the four operator-picked
+        // screensaver styles ScreensaverSurface.qml's own switch resolves,
+        // plus the fifth value "off". "off" is a first-class style rather
+        // than a separate `screensaver.enabled` boolean, so the settings
+        // picker is its own kill switch (the same shape `edgeBarStyle`
+        // already uses). An unrecognised value falls back to "terminal" at
+        // the READ site (Screensaver.qml's own `style`), not here — this
+        // allowlist entry only gates the WRITE.
+        "screensaver.style"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -333,7 +342,12 @@ Singleton {
         // compare against the old lock config during the migration. That
         // config is gone (260827-ar3); this is now just the default, and
         // the operator can flip it freely.
-        "lock.layout": "continuity"
+        "lock.layout": "continuity",
+        // Quick task 260827-b52 — S1 "Terminal Effects" is the operator's
+        // stated default style (brief: "1. S1 Terminal Effects (default
+        // style)"), and it is the one that carries the Omarchy lineage
+        // this feature was asked for.
+        "screensaver.style": "terminal"
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

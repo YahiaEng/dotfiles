@@ -657,3 +657,26 @@ hl.layer_rule({ match = { namespace = "quickshell-osd" }, ignore_alpha = 0.2 })
 -- layer on top of it.
 hl.layer_rule({ match = { namespace = "quickshell-session" }, animation = "fade" })
 hl.layer_rule({ match = { namespace = "quickshell-session" }, ignore_alpha = 0.2 })
+
+-- ── quickshell-screensaver (quick task 260827-b52) ──────────────────────
+-- Placed AFTER the `^quickshell-.*` family arms above, which is the only
+-- position where a per-surface override actually wins: the family regex
+-- sets blur = true and ignore_alpha = 0.5 for every namespace in this
+-- shell, and a rule declared before it would simply be overwritten.
+--
+-- blur = false, unlike every other surface in the family. This one is an
+-- OPAQUE full-output black canvas (ruling D2): there is nothing behind it
+-- to see, so blurring it is a full-screen gaussian every frame producing
+-- a result identical to not blurring it. That is the whole reason this
+-- pair of rows exists.
+--
+-- ignore_alpha is dropped to 0 for the same reason. At the family's 0.5
+-- the compositor treats sub-0.5-alpha pixels as click-through; the saver
+-- is deliberately input-grabbing on every pixel (any input dismisses it,
+-- ruling D3), and the styles legitimately draw very low-alpha content —
+-- the aurora's ghosted wordmark sits at 0.17, the rail's mark pulses down
+-- to 0.30. Leaving the floor at 0.5 would punch holes in the dismissal
+-- surface exactly where the artwork is faintest.
+hl.layer_rule({ match = { namespace = "quickshell-screensaver" }, blur = false })
+hl.layer_rule({ match = { namespace = "quickshell-screensaver" }, ignore_alpha = 0 })
+hl.layer_rule({ match = { namespace = "quickshell-screensaver" }, animation = "fade" })

@@ -351,6 +351,20 @@ LINE_EXEMPTIONS = [
                "sit on a blurred backdrop rather than sharp desktop "
                "(in-file rationale comment) — not a theme colour",
      'pending': False},
+    {'label': 'screensaver/ScreensaverSurface.qml backdrop:',
+     'regex': re.compile(r'(^|/)screensaver/ScreensaverSurface\.qml$'),
+     'anchor': re.compile(r'readonly\s+property\s+color\s+backdrop\s*:'),
+     'line': None,
+     'reason': "true black by operator ruling D2 (quick task 260827-b52), "
+               "matching Omarchy's own screensaver forcing #000000 via an "
+               "OSC 11 escape — a screensaver backdrop must stay black "
+               "across every theme, and no Colours.* role offers that "
+               "guarantee (Colours.surface is #282a36 on dracula and would "
+               "be near-white under a light matugen palette). Declared "
+               "ONCE and read by all four styles through `root.backdrop`, "
+               "so this line exemption covers the module's only hex while "
+               "every other colour in the file stays gated",
+     'pending': False},
 ]
 
 for lx in LINE_EXEMPTIONS:

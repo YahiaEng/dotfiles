@@ -45,6 +45,7 @@ import "modules/session"
 import "modules/settings"
 import "modules/launcher"
 import "modules/lock"
+import "modules/screensaver"
 
 ShellRoot {
     id: root
@@ -574,6 +575,25 @@ ShellRoot {
         mediaBackend: mediaBackendInstance
         weatherBackend: weatherBackendInstance
         systemResources: systemResourcesInstance
+    }
+
+    // ── In-process idle screensaver (quick task 260827-b52) ─────────────
+    // Always-on and cheap: this Scope mounts nothing visible until its
+    // `show()` runs — the Variants inside it hold `active: false`, so no
+    // wl_surface exists at all in daily use, the same zero-idle posture
+    // `probeVariants` above keeps.
+    //
+    // `mediaBackend` and `fullscreenBlocking` are relayed for the D4
+    // inhibit ruling (stay away while a player is Playing or a window is
+    // fullscreen), read-only and using the SAME shared instances every
+    // other consumer reads. `fullscreenBlocking` is relayed rather than
+    // recomputed inside the module — this root already tracks it for the
+    // bar and the launcher, and a second reader of the same IPC object
+    // would be a second source of truth for one fact.
+    Screensaver {
+        id: screensaverInstance
+        mediaBackend: mediaBackendInstance
+        fullscreenBlocking: root.fullscreenBlocking
     }
 
     WeatherBackend {

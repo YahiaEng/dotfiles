@@ -2,8 +2,8 @@
 quick_id: 260827-b52
 slug: implement-an-idle-screen-saver-for-the-q
 date: 2026-08-27
-status: in-progress
-stage: 1
+status: complete
+stage: 2
 ---
 
 # Quick task 260827-b52 — Aorus idle screen saver

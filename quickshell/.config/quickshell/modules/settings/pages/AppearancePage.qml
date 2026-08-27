@@ -395,4 +395,36 @@ PageBase {
             onSelected: (value) => Prefs.setValue("lock.layout", value)
         }
     }
+
+    // ── Screensaver (quick task 260827-b52) ─────────────────────────────
+    // Which of the four operator-picked styles the idle screensaver
+    // renders, plus "Off". "Off" is a STYLE VALUE, not a separate toggle:
+    // `Screensaver.qml` treats it as an inhibit reason and never mounts a
+    // surface, which makes this one row both the picker and the kill
+    // switch — the same shape the edge bar's own style picker uses.
+    //
+    // A pick applies at the next idle timeout, not immediately: the
+    // surface reads `style` when it mounts, and nothing is mounted while
+    // you are sitting in the settings window changing it.
+    SettingsSection {
+        id: screensaverSection
+        title: "Screensaver"
+        icon: "screenshot_monitor"
+
+        readonly property var screensaverStyleOptions: [
+            { display: "Off", value: "off" },
+            { display: "Terminal effects", value: "terminal" },
+            { display: "Palette aurora", value: "aurora" },
+            { display: "Constellation", value: "constellation" },
+            { display: "Edge rail", value: "rail" }
+        ]
+
+        SelectRow {
+            label: "Screensaver style"
+            subtext: "Appears with the screen dim after 5 minutes idle, and clears on any input. Off disables it entirely"
+            model: screensaverSection.screensaverStyleOptions
+            currentValue: Prefs.getValue("screensaver.style")
+            onSelected: (value) => Prefs.setValue("screensaver.style", value)
+        }
+    }
 }

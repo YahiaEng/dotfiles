@@ -517,6 +517,46 @@ Singleton {
     // UI-SPEC. Gates SLIDER-ROW MEMBERSHIP (a control earns a row only if
     // its value changed within this window), not the dwell.
     readonly property int osdRecencyWindowMs: 1500
+
+    // ── Screensaver pacing (quick task 260827-b52) ─────────────────────
+    // Ambient cycle lengths, not UI motion. They are DELIBERATELY not
+    // Motion.* tokens and deliberately not named `*Duration`: a token
+    // named `saverCycleDuration: 15000` would be read by motion-lint's
+    // CHECK B as a hand-rolled raw duration, and correctly so — the
+    // motion tokens describe how a surface responds to a person, on the
+    // order of 200–400ms. Nothing here is a response to anything; these
+    // are the periods of an unattended loop, three to four orders of
+    // magnitude longer. The saver's own entrance and exit DO use
+    // Motion.*, because those are responses.
+    //
+    // saverEffectHoldMs — how long S1 leaves a fully-resolved wordmark on
+    // screen before wiping it for the next effect. Long enough to read,
+    // short enough that no glyph sits on one pixel for a burn-in-relevant
+    // span (ruling: no static pixel beyond a minute).
+    readonly property int saverEffectHoldMs: 2600
+    // saverEffectRevealMs — the span across which S1 staggers a single
+    // effect's per-cell reveals. Not an animation duration: individual
+    // cells flip instantly, this is the width of the stagger window.
+    readonly property int saverEffectRevealMs: 2000
+    // saverCycleMs — one full assemble/hold/disperse lap for S4.
+    readonly property int saverCycleMs: 15000
+    // saverRailLapMs — one full perimeter lap for S6's lit head.
+    readonly property int saverRailLapMs: 9000
+    // saverDriftMs — the period of S3's slowest aurora field. The other
+    // two are derived from it so the three never beat in phase.
+    readonly property int saverDriftMs: 42000
+    // saverTickMs — the shared repaint interval for the two styles that
+    // drive their own frames (S1's scramble, S4's particles). 16ms would
+    // be 60fps; these are ambient surfaces on an idle machine and 33ms
+    // (~30fps) is deliberate, halving GPU wake-ups for motion nobody is
+    // watching closely.
+    readonly property int saverTickMs: 33
+    // saverArtWidthFraction — how much of the output width the wordmark
+    // spans. Derived from the container, never an eyeballed point size
+    // (MEMORY derive-size-from-container): each style computes its glyph
+    // size as `width * fraction / cols`.
+    readonly property real saverArtWidthFraction: 0.62
+
     readonly property int notifImageSize: 42
     readonly property int notifBadgeSize: 20
     // Reuses the rim's own stroke weight rather than inventing a fourth

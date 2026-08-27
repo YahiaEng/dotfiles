@@ -1,0 +1,27 @@
+# qmldir — explicit module manifest for quickshell/modules/screensaver/
+# (quick task 260827-b52). Mirrors every sibling module manifest's own
+# standing instruction (see modules/lock/qmldir, modules/osd/qmldir): any
+# .qml type added to this directory that is NOT declared below becomes
+# unresolvable to `shell.qml`'s `import "modules/screensaver"` —
+# qml-import-check enforces this. Any FUTURE type added to this directory
+# MUST do the same, in the same commit that creates it.
+#
+# Screensaver is NOT a singleton — shell.qml mounts one ordinary,
+# always-on Scope at shell root, which fans out to one
+# ScreensaverSurface per screen through its own Variants (ruling D5).
+#
+# SaverTerminal/SaverAurora/SaverConstellation/SaverRail are the four
+# operator-picked styles, selected by ScreensaverSurface.qml's own
+# `style` switch. Every one must be declared here the same commit it
+# gains a `case` arm in that switch, or the arm references an
+# unresolvable type. The fifth valid style value, "off", has no file and
+# no arm: it is handled upstream in Screensaver.qml's `inhibited`, which
+# never mounts a surface at all.
+module qs.modules.screensaver
+Screensaver 1.0 Screensaver.qml
+ScreensaverSurface 1.0 ScreensaverSurface.qml
+SaverArt 1.0 SaverArt.qml
+SaverTerminal 1.0 SaverTerminal.qml
+SaverAurora 1.0 SaverAurora.qml
+SaverConstellation 1.0 SaverConstellation.qml
+SaverRail 1.0 SaverRail.qml

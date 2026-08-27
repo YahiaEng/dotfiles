@@ -55,6 +55,11 @@ Singleton {
         { pageIdx: 0, section: "Dashboard drawer", label: "Performance layout", keywords: "performance layout telemetry graph sparkline dials drawer" },
         // Quick task 260827-833 — the in-process lock screen's layout pick.
         { pageIdx: 0, section: "Lock screen", label: "Lock screen layout", keywords: "lock screen layout lockscreen caelestia rail split focus continuity password" },
+        // quick-260827-b52 — the screensaver style picker. Keyworded on
+        // "screensaver"/"idle" (what someone looking for it types) and on
+        // the four style names, plus "off" and "disable" because the row
+        // is also the kill switch.
+        { pageIdx: 0, section: "Screensaver", label: "Screensaver style", keywords: "screensaver screen saver idle style terminal effects aurora constellation edge rail off disable wordmark aorus" },
 
         // ── pageIdx 1 — Wallpaper ─────────────────────────────────────────
         { pageIdx: 1, section: "Wallpaper", label: "The wallpaper drives dynamic theming", keywords: "wallpaper theme dynamic materialyou palette" },

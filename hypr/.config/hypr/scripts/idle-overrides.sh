@@ -68,15 +68,49 @@ listener {
     on-resume = ~/.config/hypr/scripts/bar-visibility.sh idle show
 }
 
-# ── Dim screen (D-30) ────────────────────────────────
+# ── Dim screen (D-30) + screensaver (quick task 260827-b52) ──────────
 # D-30 chains the live-wallpaper owner's idle suppression onto THIS
 # existing listener rather than adding a new one. hypridle chains
 # multiple shell commands on one on-timeout/on-resume line correctly
 # (each command fires independently, in order).
+#
+# The screensaver chains onto the SAME listener, per the operator's own
+# ruling ("300 s — together with the dim"). That is why there is no
+# t_screensaver knob and no sixth listener: the saver has no independent
+# timeout to tune, by design. Moving it later means moving the dim.
+#
+# The \`&&\` chain is safe here even though this host has NO backlight
+# device (/sys/class/backlight/ is empty): measured, a \`brightnessctl -s
+# set 30%\` falls through to the first leds-class device it finds and
+# exits 0, so the chain never short-circuits before reaching the saver.
+# (It currently dims the ethernet port's LAN LED. Harmless, pre-existing,
+# and noted here only so the exit code is not re-derived later.)
+#
+# ⚠ EVERY BACKTICK IN THIS HEREDOC MUST STAY ESCAPED. _render's heredoc
+# is <<CONFEOF, NOT <<'CONFEOF', so bash expands its body — an unescaped
+# backtick pair is COMMAND SUBSTITUTION, executed at render time. Adding
+# this very comment with bare backticks made the script hang: bash forked
+# a real \`qs ipc call screensaver show\` and blocked on its pipe with a
+# zero-byte .conf.tmp already in place. Escaped, as every other backtick
+# in this heredoc already is.
+#
+# The \`--\` before the target is MANDATORY, not stylistic. On this \`qs\`
+# CLI the literal token "show" collides with the \`ipc show\` subcommand
+# one level up in CLI11's parser, so \`qs ipc call screensaver show\`
+# silently prints the target's interface listing and exits 0 WITHOUT
+# calling anything. This repo has been bitten by it once already —
+# bar-visibility.sh:254 records the same finding and the same \`--\` fix
+# for the bar. Reproduced here before the separator was added: the call
+# returned the handler listing and no surface was ever created.
+#
+# The show call is a no-op when the style picker is
+# "off", when a media player is playing, or when a window is fullscreen —
+# Screensaver.qml gates all three at its own show() rather than here, so
+# a future second trigger inherits the gate.
 listener {
     timeout = $t_dim
-    on-timeout = brightnessctl -s set 30% && ~/.config/hypr/scripts/wallpaper-visibility.sh idle hide
-    on-resume = brightnessctl -r && ~/.config/hypr/scripts/wallpaper-visibility.sh idle show
+    on-timeout = brightnessctl -s set 30% && ~/.config/hypr/scripts/wallpaper-visibility.sh idle hide && qs ipc call -- screensaver show
+    on-resume = brightnessctl -r && ~/.config/hypr/scripts/wallpaper-visibility.sh idle show && qs ipc call -- screensaver hide
 }
 
 # ── Lock screen ─────────────────────────────────────
