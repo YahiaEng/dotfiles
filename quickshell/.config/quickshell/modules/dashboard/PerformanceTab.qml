@@ -1,8 +1,44 @@
-// PerformanceTab.qml — tab 2, filled (Phase 14 Plan 06, D-36, DASH-05),
-// grown to five (14-10 Task 2, DASH-09): one row of five MD3 circular
-// dials (CPU, Memory, Storage, Battery, GPU) plus an honest network
-// up/down rate row — a rate is not a percentage, so it stays two labelled
-// readouts, never a sixth dial and never a normalised bar.
+// PerformanceTab.qml — Performance tab layout "dials", and as of quick task
+// 260827-50i that means plate **P4 "Tighten What's There"** from
+// `.planning/notes/dashboard-perf-studies.html`, NOT the original five-dial
+// row it used to be.
+//
+// ── WHAT CHANGED, and why this is an edit rather than a new file ────────
+// The study frames P4 as "the cheap option, included so the others have a
+// floor": same parts, retuned. Its whole cost note is "a handful of
+// constants… no new roles, no plugin". So it is implemented as a
+// transformation of this file rather than as a fifth sibling — writing
+// `PerfTight.qml` beside this one would have left the original selectable,
+// which is exactly what the operator asked to stop.
+//
+// The three changes the plate specifies:
+//   1. The battery DIAL is gone. It was a 176px slot that on this machine
+//      could only ever render "No battery"; battery is now a status line
+//      under the network card. This is the D-41 overturn of 2026-08-26
+//      applied to the layout that motivated it.
+//   2. Dials shrink 176 → 128 and the ring with them, 17 → 13.
+//   3. The tab settles at the NARROW family's 712 of content, so the drawer
+//      lands at 808 and crossing between tabs stops animating the window
+//      280px wider and back. The rate pair stops floating and gets a card.
+//
+// ── One deliberate departure from the plate's drawing ──────────────────
+// The study draws the dials CPU-first and draws the battery line even with
+// no battery ("No battery on this host"). Neither is followed here, and both
+// for the same reason: a later operator decision outranks the drawing.
+//   • Dial ORDER stays GPU, CPU, Memory, Storage — set explicitly by the
+//     operator at 14-10 Task 4's render gate. The plate's own "Change" list
+//     says nothing about order, so there is no reason to overturn it.
+//   • The battery LINE is hidden when no battery is detected, matching
+//     `PerfTelemetry`/`PerfArcs`. The 2026-08-26 ruling was "hide it when
+//     none is detected", and it postdates the study.
+//
+// ── Historical, from when this file WAS the five-dial row ──────────────
+// Originally: tab 2, filled (Phase 14 Plan 06, D-36, DASH-05), grown to five
+// (14-10 Task 2, DASH-09) — one row of five MD3 circular dials (CPU, Memory,
+// Storage, Battery, GPU) plus an honest network up/down rate row. A rate is
+// not a percentage, so it stays two labelled readouts, never another dial
+// and never a normalised bar — that part is unchanged, it just sits in a
+// card now.
 //
 // Root type Item, filled via anchors.fill: parent by the Loader Dashboard.qml
 // places it in — actual rendered geometry stays anchors.fill-driven,
@@ -78,7 +114,11 @@ Item {
 
     // ── D-21's cascade band list (Phase 14 Plan 09) — D-36 read order:
     //    the dial grid, then the network rate row.
-    readonly property var cascadeBands: [dialGridRow, networkRowWrap]
+    // 260827-50i: the battery band joins only when it actually renders — a
+    // hidden band would burn a stagger step on nothing.
+    readonly property var cascadeBands: root.batteryPresent
+        ? [dialGridRow, networkRowWrap, batteryLine]
+        : [dialGridRow, networkRowWrap]
 
     // ── Tab-root layout constants ────────────────────────────────────────
     // 14-UI-SPEC.md's Spacing Scale explicitly carves dial arc radius/
@@ -118,8 +158,37 @@ Item {
     // this task — only the Performance frame's HEIGHT is expected to
     // shrink, since the dial row's own footprint got shorter; see
     // 14-10-SUMMARY.md for the measured live number.
-    readonly property int dialDiameter: 176
-    readonly property real dialRingThickness: 17
+    //
+    // ── 260827-50i UPDATE (plate P4) — everything above is now historical
+    // The arithmetic above solved for "five dials at a fixed 944 width".
+    // P4 drops the battery dial and shrinks the rest, so neither the count
+    // nor the 944 survives: FOUR dials at 128 with spacingMd between them is
+    // 128*4 + 16*3 = 560, which sits inside the narrow family's 712 rather
+    // than defining the width itself. The ring thickness follows the
+    // diameter proportionally, exactly as 14-10 scaled it before:
+    // 17 * (128/176) ≈ 12.4, and the study's own plate draws 13.
+    readonly property int dialDiameter: 128
+    readonly property real dialRingThickness: 13
+
+    // ── Frame width: NARROW family, 712 of content, drawer lands at 808 ──
+    // This is the plate's headline fix. The width used to be whatever
+    // `dialGrid` happened to measure (944 with five 176px dials), which is
+    // why crossing between Dashboard and Performance animated the window
+    // 280px wider and back on EVERY tab change.
+    //
+    // Declaring the same 712 that `DashLanes`, `PerfTelemetry` and
+    // `PerfArcs` declare removes that entirely. Do not "tidy" this back to a
+    // content-derived width, and do not change it in one file only — the
+    // narrow family is only a family while all four agree.
+    //
+    // The dial row (560) is now NARROWER than the frame and centres within
+    // it, which is what `dialGridRow`'s wrapper already existed to do.
+    readonly property int contentWidth: 712
+
+    // The rate card's own width, from the plate (544 inside its 712). Kept
+    // narrower than the frame on purpose: a full-width card for two figures
+    // reads as a band across the tab rather than as a card.
+    readonly property int rateCardWidth: 544
 
     // ── D-41 OVERTURNED FOR BATTERY ONLY (operator, 2026-08-26) ─────────
     // This file's own header and 14-10's arithmetic both assume five dials
@@ -154,8 +223,10 @@ Item {
     // item is actually filling right now. Deliberately bound to `dialGrid`'s
     // OWN natural width/height below, never to `contentColumn`'s actual
     // rendered width — see the round-3 note on `contentColumn` for why.
-    implicitWidth: dialGrid.width + root.spacingLg * 2
-    implicitHeight: dialGridRow.height + root.spacingLg + networkRowWrap.height + root.spacingLg * 2
+    implicitWidth: root.contentWidth + root.spacingLg * 2
+    implicitHeight: dialGridRow.height + root.spacingLg + networkRowWrap.height
+        + (root.batteryPresent ? root.spacingMd + batteryLine.height : 0)
+        + root.spacingLg * 2
 
     // Round 3 (render-gate defect A: "crammed to the left side, leaving a
     // lot of empty space to the right"). Root cause: `Dashboard.qml`'s
@@ -200,9 +271,12 @@ Item {
                 // 14-10 Task 2: one row of five, not four — see
                 // `dialDiameter`'s own header note above for the width
                 // arithmetic this converges on.
-                // Follows the dial count, so dropping battery re-centres the
-                // row instead of leaving a 176px hole on the right.
-                columns: root.batteryPresent ? 5 : 4
+                // 260827-50i (plate P4): a flat 4, no longer conditional on
+                // battery. The battery dial is gone from this row entirely —
+                // it is a status line under the rate card now — so there is
+                // no fifth cell whose presence the column count has to
+                // track. GPU, CPU, Memory, Storage.
+                columns: 4
                 // Round 2: spacingMd rather than spacingLg between the four
                 // dials — a denser cluster (still an already-named scale
                 // value, not an invented one) offsetting the diameter
@@ -339,187 +413,197 @@ Item {
                 emptyText: "Unavailable"
             }
 
-            // Battery — on this machine there is no battery hardware, so
-            // this dial's empty branch is what actually renders, at the
-            // same footprint as the other three. That combination IS this
-            // tab's partial state (14-UI-SPEC.md), not a degraded tab. The
-            // populated path was separately proven under fault injection
-            // at the reader's `batterySource` seam (see 14-06-SUMMARY.md).
-            Dial {
-                id: batteryDial
-                // D-41 overturned for battery only — see `batteryPresent`.
-                visible: root.batteryPresent
-                diameter: root.dialDiameter
-                ringThickness: root.dialRingThickness
-                label: "Battery"
-                icon: "battery_full"
-                accentColor: Colours.error
-                widgetState: root.hasReader ? root.systemResources.batteryState : "pending"
-                value: root.hasReader ? root.systemResources.batteryFraction : 0
-                valueText: root.hasReader ? root.systemResources.formatPercent(root.systemResources.batteryFraction) : ""
-                detailText: root.hasReader ? root.systemResources.batteryStateText : ""
-                emptySymbol: "battery_unknown"
-                emptyText: "No battery"
-            }
+            // 260827-50i (plate P4): the battery Dial that stood here is
+            // GONE, not merely hidden. It occupied a full dial slot to say
+            // "No battery" on a machine that will never have one — the exact
+            // waste the plate's "Change" note names first. Battery is a
+            // status line under the rate card now; see `batteryLine`.
+            //
+            // The populated path this dial used to carry was separately
+            // proven under fault injection at the reader's `batterySource`
+            // seam (14-06-SUMMARY.md), and that proof still stands — the
+            // reading is unchanged, only its presentation moved.
             } // dialGrid
 
         } // dialGridRow
 
-        // ── Section two — the honest network up/down rate row ───────────
+        // ── Section two — the network rate pair, in a card ─────────────
         // D-36 is explicit that a rate is not a percentage: two labelled
-        // readouts, not a fifth dial and not a normalised bar.
+        // readouts, not another dial and not a normalised bar. That part is
+        // unchanged from the five-dial era.
         //
-        // Round 3 (defect A, continued): wrapped in `networkRowWrap`, whose
-        // `width` is `parent.width` (this tab's ACTUAL current rendered
-        // width) purely so `networkRow` itself — still sized off
-        // `dialGrid.width`, the round-2 fix, unchanged — can anchor-center
-        // within it rather than sit flush left. Same split as
-        // `dialGridRow`/`dialGrid` above: the wrapper carries the frame-
-        // derived width for centering, the inner item keeps the natural,
-        // content-derived width the round-2 fix already established.
+        // 260827-50i (plate P4): what changed is that the pair used to FLOAT
+        // — two columns centred over dead space, sized off `dialGrid.width`.
+        // The plate gives it a card at a fixed 544, so the two figures read
+        // as one grouped readout instead of two orphans, and the row stops
+        // being a function of the dial grid's width.
+        //
+        // The wrapper/inner split is kept: the wrapper carries the frame-
+        // derived width so the card can anchor-centre within whatever the
+        // frame currently is, and the card carries its own fixed natural
+        // width. Binding the card's width back to the frame would reintroduce
+        // round 2's self-referential "frame can never shrink to its content"
+        // loop, which is documented at length on `contentColumn` above.
         Item {
             id: networkRowWrap
             anchors.top: dialGridRow.bottom
             anchors.topMargin: root.spacingLg
             width: parent.width
-            height: networkRow.height
+            height: rateCard.height
 
-            Item {
-            id: networkRow
-            anchors.horizontalCenter: parent.horizontalCenter
-            // Round 2 fix (the real root cause behind "half the panel is
-            // empty"): this was `width: contentColumn.width` — but
-            // `contentColumn` anchors.fill's `root`, so that bound back to
-            // WHATEVER width the pager frame already happened to be (the
-            // PREVIOUS tab's width, since Dashboard.qml sizes the frame
-            // FROM this tab's own implicitWidth, which in turn was reading
-            // this same value back out of the current frame). A self-
-            // referential echo, not a real measurement — Performance's
-            // frame width could never actually shrink to its own content.
-            // `dialGrid.width` is the real, deterministic natural width of
-            // this tab's widest row (purely a function of `dialDiameter`/
-            // `columnSpacing`, never of the frame's own current size), so
-            // binding here instead breaks the loop and lets the frame
-            // genuinely fit the dial grid.
-            width: dialGrid.width
-            height: Math.max(downloadCell.height, uploadCell.height)
-
-            // 14-10 Task 4 (render gate): the human asked for the rate pair to
-            // be centred and widened into the empty space this row used to
-            // leave. Previously both cells sat flush-left at their MEASURED
-            // MINIMUM (`rateCellWidth`, ~150px each), so the pair occupied
-            // roughly a third of the 944px row and the rest was dead space.
-            // Now the row splits into two equal halves that together span the
-            // full dial-grid width, each with its readout centred inside its
-            // own half — the pair reads as centred AND the space is consumed.
-            //
-            // The inner value `Text` keeps its FIXED `rateCellWidth`-derived
-            // width, so round 2's anti-reflow guarantee (the row must not
-            // shift as magnitudes change) is preserved exactly — the readout
-            // is re-centred, never re-measured. Each cell is an `Item` rather
-            // than a bare `Column` precisely so its content CAN be
-            // anchor-centred: a `Column` is a positioner and manages its own
-            // children's `x` directly, so anchoring inside one is the very
-            // conflict this file's `contentColumn` note already documents.
-            Item {
-                id: downloadCell
-                anchors.left: parent.left
-                width: (dialGrid.width - root.spacingMd) / 2
-                height: downloadColumn.height
-
-                Column {
-                id: downloadColumn
+            Rectangle {
+                id: rateCard
                 anchors.horizontalCenter: parent.horizontalCenter
-                spacing: root.spacingXs
+                width: root.rateCardWidth
+                height: rateRow.height + root.spacingMd * 2
+                radius: Design.roundingSm
+                color: Colours.surfaceVariant
 
                 Row {
-                    id: downloadValueRow
-                    spacing: root.spacingXs
+                    id: rateRow
+                    anchors.centerIn: parent
+                    spacing: root.spacingMd
 
-                    Text {
-                        width: root.iconSizeMd
-                        horizontalAlignment: Text.AlignHCenter
-                        text: "arrow_downward"
-                        font.family: root.symbolFontFamily
-                        font.pixelSize: root.iconSizeMd
-                        // Round 2: distinct from both the CPU dial's
-                        // primary ring and the upload arrow below it, so
-                        // the rate row reads as its own coloured accent
-                        // rather than a re-use of the dial grid's palette.
-                        color: Colours.tertiary
-                    }
-
-                    // Fixed-width, right-aligned: the row must not reflow
-                    // as the numbers change magnitude (backstop, 14-UI-
-                    // SPEC.md's long-text row) — the render gate confirms
-                    // this holds across an idle reading and a sustained
-                    // transfer.
-                    Text {
-                        width: root.rateCellWidth - root.iconSizeMd - root.spacingXs
-                        horizontalAlignment: Text.AlignRight
-                        text: root.hasReader
+                    RateCell {
+                        width: (rateCard.width - root.spacingMd * 4 - 1) / 2
+                        symbol: "arrow_downward"
+                        accent: Colours.tertiary
+                        caption: "Download"
+                        value_: root.hasReader
                             ? root.systemResources.formatRate(root.systemResources.netRxRate)
-                            : "—"
-                        font.pixelSize: root.fontBody
-                        font.weight: root.weightBody
-                        color: Colours.onSurface
+                            : "\u2014"
+                    }
+
+                    // A hairline divider, the plate's own separator between
+                    // the two directions. Alpha over onSurface rather than a
+                    // palette role: this card's fill already IS
+                    // surfaceVariant, and a rule drawn in a role identical to
+                    // its backing surface renders invisible — proven live in
+                    // 14-10 and hit twice more since.
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 1
+                        height: root.iconSizeMd
+                        color: Qt.rgba(Colours.onSurface.r, Colours.onSurface.g, Colours.onSurface.b, 0.14)
+                    }
+
+                    RateCell {
+                        width: (rateCard.width - root.spacingMd * 4 - 1) / 2
+                        symbol: "arrow_upward"
+                        accent: Colours.secondary
+                        caption: "Upload"
+                        value_: root.hasReader
+                            ? root.systemResources.formatRate(root.systemResources.netTxRate)
+                            : "\u2014"
                     }
                 }
+            }
+        } // networkRowWrap
 
-                Text {
-                    text: "Download"
-                    font.pixelSize: root.fontLabel
-                    font.weight: root.weightBody
-                    color: Colours.onSurfaceVariant
-                }
-                } // downloadColumn
+        // ── Section three — battery, as a status line ───────────────────
+        // 260827-50i (plate P4): what is left of the retired battery dial.
+        //
+        // The plate DRAWS this line even with no battery ("No battery on
+        // this host"), but the operator's 2026-08-26 ruling — the same one
+        // that authorised retiring the dial — was "hide it when none is
+        // detected", and it postdates the study. So the line follows
+        // `PerfTelemetry`/`PerfArcs` and disappears entirely.
+        //
+        // The absence test is the reader's affirmative `empty`, never merely
+        // "not populated": a battery that exists but has not been read yet is
+        // `pending`, and hiding the line on the first poll then springing it
+        // back would be exactly the jump D-41 exists to prevent.
+        Row {
+            id: batteryLine
+            anchors.top: networkRowWrap.bottom
+            anchors.topMargin: root.spacingMd
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: root.spacingXs
+            visible: root.batteryPresent
+
+            Text {
+                width: root.iconSizeMd
+                horizontalAlignment: Text.AlignHCenter
+                text: (root.hasReader && root.systemResources.batteryState === "populated")
+                    ? "battery_full" : "battery_unknown"
+                font.family: root.symbolFontFamily
+                font.pixelSize: root.iconSizeMd
+                color: Colours.outline
             }
 
-            Item {
-                id: uploadCell
-                anchors.left: downloadCell.right
-                anchors.leftMargin: root.spacingMd
-                width: (dialGrid.width - root.spacingMd) / 2
-                height: uploadColumn.height
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: {
+                    if (!root.hasReader)
+                        return "Battery unavailable";
+                    // The "no battery" copy went with the dial; what remains
+                    // is the pre-first-read window.
+                    if (root.systemResources.batteryState !== "populated")
+                        return "Battery reading\u2026";
+                    return root.systemResources.formatPercent(root.systemResources.batteryFraction)
+                        + " \u00b7 " + root.systemResources.batteryStateText;
+                }
+                font.pixelSize: root.fontLabel
+                font.weight: root.weightBody
+                color: Colours.onSurfaceVariant
+            }
+        }
+    }
 
-                Column {
-                id: uploadColumn
-                anchors.horizontalCenter: parent.horizontalCenter
+    // ── One direction of the rate pair ─────────────────────────────────
+    // An Item, not a bare Column: a Column is a positioner that manages its
+    // children's `x` directly, so anchoring inside one is the exact conflict
+    // `contentColumn`'s own note documents.
+    component RateCell: Item {
+        id: rc
+
+        required property string symbol
+        required property color accent
+        required property string caption
+        required property string value_
+
+        implicitHeight: rcColumn.height
+        height: implicitHeight
+
+        Column {
+            id: rcColumn
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: root.spacingXs
+
+            Row {
                 spacing: root.spacingXs
 
-                Row {
-                    spacing: root.spacingXs
-
-                    Text {
-                        width: root.iconSizeMd
-                        horizontalAlignment: Text.AlignHCenter
-                        text: "arrow_upward"
-                        font.family: root.symbolFontFamily
-                        font.pixelSize: root.iconSizeMd
-                        color: Colours.secondary
-                    }
-
-                    Text {
-                        width: root.rateCellWidth - root.iconSizeMd - root.spacingXs
-                        horizontalAlignment: Text.AlignRight
-                        text: root.hasReader
-                            ? root.systemResources.formatRate(root.systemResources.netTxRate)
-                            : "—"
-                        font.pixelSize: root.fontBody
-                        font.weight: root.weightBody
-                        color: Colours.onSurface
-                    }
-                }
-
                 Text {
-                    text: "Upload"
-                    font.pixelSize: root.fontLabel
-                    font.weight: root.weightBody
-                    color: Colours.onSurfaceVariant
+                    width: root.iconSizeMd
+                    horizontalAlignment: Text.AlignHCenter
+                    text: rc.symbol
+                    font.family: root.symbolFontFamily
+                    font.pixelSize: root.iconSizeMd
+                    color: rc.accent
                 }
-                } // uploadColumn
+
+                // Fixed-width, right-aligned: the row must not reflow as the
+                // numbers change magnitude (14-UI-SPEC.md's long-text row).
+                // `rateCellWidth` is MEASURED off the widest realistic rate
+                // string via TextMetrics, never guessed — carried across from
+                // the five-dial layout unchanged.
+                Text {
+                    width: root.rateCellWidth - root.iconSizeMd - root.spacingXs
+                    horizontalAlignment: Text.AlignRight
+                    text: rc.value_
+                    font.pixelSize: root.fontBody
+                    font.weight: root.weightBody
+                    color: Colours.onSurface
+                }
             }
-            } // networkRow
-        } // networkRowWrap
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: rc.caption
+                font.pixelSize: root.fontLabel
+                font.weight: root.weightBody
+                color: Colours.onSurfaceVariant
+            }
+        }
     }
 }

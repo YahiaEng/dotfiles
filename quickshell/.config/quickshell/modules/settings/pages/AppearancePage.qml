@@ -327,13 +327,13 @@ PageBase {
         readonly property var dashLayoutOptions: [
             { display: "Two lanes", value: "lanes" },
             { display: "Bento grid", value: "bento" },
-            { display: "Single column", value: "column" }
+            { display: "Wide column", value: "column" }
         ]
         readonly property var performanceLayoutOptions: [
             { display: "Telemetry strip", value: "telemetry" },
             { display: "Weighted arcs", value: "arcs" },
             { display: "Caelestia cards", value: "cards" },
-            { display: "Dials", value: "dials" }
+            { display: "Tightened dials", value: "dials" }
         ]
 
         SelectRow {
@@ -342,7 +342,7 @@ PageBase {
             // the Performance tab's "Caelestia cards" — picking one of the
             // two wide layouts on its own means the drawer changes width as
             // you cross between those tabs.
-            subtext: "Two lanes fills the frame; bento is wider and pairs with cards"
+            subtext: "Lanes and wide column fit the frame; bento is wider and pairs with cards"
             model: drawerLayoutSection.dashLayoutOptions
             currentValue: Prefs.getValue("dashboard.layout.dash")
             onSelected: (value) => Prefs.setValue("dashboard.layout.dash", value)
