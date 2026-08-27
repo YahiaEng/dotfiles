@@ -61,7 +61,11 @@ PACMAN_PKGS=(
     hyprland
     hyprlock
     hypridle
-    hyprshutdown
+    # hyprshutdown REMOVED 2026-08-27 (quick task 260827-74s) — zero consumers.
+    # It wrapped Log Out, Reboot and Shut Down in PowerActions.qml; all three
+    # dropped it because it waits on apps with no timeout of any kind and only
+    # its own "Force quit" button ends the wait. Reinstall by hand if you ever
+    # want its `--vt N` NVIDIA+SDDM black-screen workaround.
     xdg-desktop-portal-hyprland
     xdg-desktop-portal-gtk
 

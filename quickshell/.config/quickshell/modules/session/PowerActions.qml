@@ -14,10 +14,18 @@
 // modules/session/qmldir, or bare `PowerActions.actions`-style access
 // resolves to `undefined` forever, with no load error.
 //
-// ── Reboot and Shut Down dropped their hyprshutdown wrap ────────────────
-// (quick task 260827-74s, 2026-08-27, operator decision.)
+// ── NO ACTION HERE WRAPS hyprshutdown ANY MORE ─────────────────────────
+// (quick task 260827-74s, 2026-08-27, operator decision. Reboot and Shut
+// Down first; Log Out followed in the same task on the operator's "fix log
+// out as well and any other power menu action".)
 //
-// Both used to run `hyprshutdown --post-cmd '<verb>'`, which asks every
+// Audited, all six: Lock (`uwsm app -- hyprlock`), Suspend and Hibernate
+// (`systemctl suspend|hibernate`) never wrapped it and do not tear the
+// session down at all — they resume into this same session. Log Out,
+// Reboot and Shut Down all did. None do now, and a tree-wide grep shows
+// zero remaining consumers outside this comment.
+//
+// They used to run `hyprshutdown --post-cmd '<verb>'`, which asks every
 // window to close and then WAITS. hyprshutdown 0.1.1-6 registers exactly
 // these options — dry-run, no-exit, top-label, post-cmd, verbose, no-fork,
 // vt, help — and NO timeout of any kind. Run with --dry-run --verbose it
@@ -46,10 +54,34 @@
 // FIX-01 hang class"). If a black-screen hang ever DOES appear on this
 // path, hyprshutdown's `--vt N` option ("Switch to VT N after Hyprland
 // exits (fixes NVIDIA+SDDM black screen)") is the targeted remedy — it was
-// never wired up here.
+// never wired up here. It is no longer in `install.sh` either, since
+// nothing consumes it — `sudo pacman -S hyprshutdown` first if you ever
+// want that flag.
 //
-// Log Out still wraps hyprshutdown and still carries the same indefinite
-// wait. Left deliberately: the operator asked about Shutdown and Reboot.
+// ── Log Out specifically: bare `uwsm stop` does NOT stall ──────────────
+// This is the WR-04 / D-29 question — "does `uwsm stop` stall on unclosed
+// clients on this host?" — whose stopwatch test the operator waived unrun
+// on 2026-07-28, leaving Logout wrapped "by default, not by evidence"
+// (13-03-SUMMARY.md). The journal answers it. On the Aug 24 teardown, with
+// VSCodium, Zen and seven kitty windows live (10.2 GiB peak across the
+// slice):
+//
+//   18:31:44.095  uwsm receives SIGTERM, starts stopping the session
+//   18:31:44.162  app-graphical.slice released          ← +67ms
+//   18:31:44.581  wayland-wm@hyprland.desktop stopped   ← +486ms
+//   18:31:44.688  session envelope fully stopped        ← +593ms
+//
+// Clients did not hold it up; nothing came near `wayland-wm`'s own 10s
+// TimeoutStopSec, let alone the 90s the app scopes carry. `uwsm stop`
+// stops `wayland-wm@*.service` (uwsm main.py `stop_wm()`), and systemd
+// cascades that to `graphical-session.target` and `app-graphical.slice` —
+// the same units torn down above.
+//
+// HONEST CAVEAT: that trigger was SIGTERM delivered to uwsm during a
+// system poweroff, not the `uwsm stop` CLI. Same units, same cascade, so
+// the durations carry — but this is journal-derived, not the literal
+// stopwatch D-29 asked for. Treat WR-04 as answered-by-evidence, not as a
+// gate that was finally run.
 //
 pragma Singleton
 import QtQuick
@@ -69,7 +101,7 @@ Singleton {
         },
         {
             glyph: "logout", label: "Log Out", mnemonic: "e",
-            command: ["sh", "-c", "cliphist wipe; hyprshutdown --post-cmd 'uwsm stop'"]
+            command: ["sh", "-c", "cliphist wipe; uwsm stop"]
         },
         {
             glyph: "bedtime", label: "Suspend", mnemonic: "u",
