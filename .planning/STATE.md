@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
-status: quick-task-checkpoint
+status: milestone-complete
 stopped_at: "260827-74s COMPLETE AND OPERATOR-CONFIRMED (2026-08-27). Both power-menu defects fixed across all six actions and verified live by the operator - no hang, dim covers the whole screen. NOTHING IS OWED. (1) The scrim was short by exactly the reserved zone [0,6,50,6] because a non-negative exclusiveZone OVERRIDES ExclusionMode.Ignore; now -1. The comment sitting on that line blamed layer order and read as settled, which is how the defect survived a full redesign - second file to name that wrong cause, after Bar.qml:613. (2) hyprshutdown has NO timeout in any form and loops 'Re-closing apps' until the last app exits or the operator clicks its own Force quit; systemd was a decoy (power-key poweroffs measure 1.3-1.5s, app-graphical.slice gone in 75ms). Log Out, Reboot and Shut Down all dropped it and are now bare cliphist-wipe + uwsm stop / systemctl reboot / systemctl poweroff; Lock, Suspend and Hibernate never wrapped it. Zero consumers left, so hyprshutdown also came out of install.sh. Trade-off accepted: apps killed on compositor exit rather than asked to close, QPOWER-04 mechanism retired, --vt N is the escape hatch if a black screen ever appears. WR-04/D-29 answered by evidence (app-graphical.slice released 67ms into a real teardown with VSCodium+Zen+7 kitty live, envelope down at 593ms) and corroborated by the live Log Out, and the operator TICKED MAINT-02 on 2026-08-27, closing the one unfinished v3.0 requirement and Phase 4's last advisory item; v3.0-MILESTONE-AUDIT.md is left untouched as the point-in-time record. Also closed both carried operator-only items (qt6-imageformats, doctor --self-test) and STRUCK the stale walker/elephant v5.0 candidate. NEXT REAL DECISION: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog and the v4.0 carried-debt ledger, checking every candidate against the code first."
-last_updated: "2026-08-27T07:45:00.000Z"
+last_updated: "2026-08-27T08:05:00.000Z"
 last_activity: 2026-08-27
-last_activity_desc: "In-process QML lock screen shipped and operator-verified across five defect rounds; hyprlock is dormant but its one-way removal (Task 8) is still unrun."
-state_head: 069c4fda
+last_activity_desc: "hyprlock retired from repo and host (quick task 260827-ar3); retirement-check failed_classes=0 and theme-doctor 1330/0 — nothing owed, v4.0 fully closed."
+state_head: 7578f95c
 progress:
   total_phases: 6
   completed_phases: 6
@@ -33,7 +33,7 @@ Phase: 22
 Plan: Not started
 Status: All phases complete
 Progress: [██████████] 100%
-Last activity: 2026-08-27 - Completed quick task 260827-74s: power-menu scrim spans the true screen and no action wraps hyprshutdown any more - operator-confirmed live, nothing owed
+Last activity: 2026-08-27 - Completed quick task 260827-ar3: hyprlock retired from repo and host, closing Task 8 of 260827-833 - retirement-check failed_classes=0, theme-doctor 1330/0, nothing owed
 
 ## Performance Metrics
 
@@ -579,6 +579,7 @@ Decisions are logged in PROJECT.md Key Decisions table. The v1.0 per-plan decisi
 
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
+| 260827-ar3 | **hyprlock RETIRED — repo and host. Task 8 of 260827-833 closed; NOTHING IS OWED.** `retirement-check hyprlock` = `failed_classes=0`, **`theme-doctor` 1330/0 — first fully-green run on record.** Deleted `hyprlock.conf` + `hyprlock-colors.conf`; dropped `[templates.hyprlock]`, the `contract.json` entry (22→21), the `/usr/bin/hyprlock` screencopy grant and the `install.sh` package; **ADDED** the registry row, which never existed (`retirement-check hyprlock` previously errored `unknown surface` — the brief said to remove one). **The brief said 7 touchpoints, the SUMMARY said 10, a grep found 25 FILES** — but the actionable set is not "files that mention it", it is "files the gate fails on", derived by reading `retirement-check`'s own 16 scan classes. **Only `scan_cross_package_refs` passes `skip_comment_lines=True`**, so comment prose is fatal in `keybinds`/`contract-json`/`matugen-templates`/`test-fixtures`/`install-stow-lists` — and **my own `install.sh` retirement note named the surface and would have failed class 10**, the gate this task exists to green. After removing a token, grep for it again: your changelog note is a reference. Second instance of that class. **PAM was safe by design, not luck:** `/etc/pam.d/hyprlock` is package-owned and dies with `-Rns`, but `LockPam.qml` names `config: "passwd"` (owned by **shadow**) — a choice 260827-833's author made specifically to survive this removal; verified via `pacman -Qo`, not by trusting the comment. `pacman -Rsp` printed exactly one package: no cascade. Left untouched: the 2026-07-28 design doc (point-in-time record) and accurate historical comments. Corrected only prose the removal made FALSE (README lock row + 2 tree listings, four "retirement is HELD" comments). | 2026-08-27 | `7578f95c` | `.planning/quick/260827-ar3-retire-hyprlock-task-8-of-quick-task-260/` |
 | 260827-833 | **SHIPPED AND OPERATOR-VERIFIED — the lock screen is in-process QML now; hyprlock is dormant but NOT yet removed (Task 8, one-way, unrun).** Quickshell 0.3.1 ships `WlSessionLock`/`WlSessionLockSurface` and a full `PamContext`, and **Caelestia never used hyprlock at all** — their own QML lock is vendored at `.planning/notes/caelestia-lock/` @ a788c432. All five operator-picked layouts built (`continuity` default, `caelestia`, `rail`, `split`, `focus`) behind Settings > Appearance > Lock screen. **PAM names `/etc/pam.d/passwd`, not `/etc/pam.d/hyprlock`** — `pacman -Qo` shows the latter is owned by the package being retired, so naming it would authenticate fine until its own removal commit. The brief said seven touchpoints; there were **ten**. **THE SHELL WOULD NOT START BEHIND THREE GREEN GATES**: `LockField.qml` used `ScriptModel` with no `import Quickshell` and quickshell refused the ENTIRE config; the desktop survived only because the live shell keeps its last-good one. Root cause of the escape: `qml-import-check` read line-anchored shapes only, so `model: ScriptModel {` — a type as a PROPERTY VALUE — was invisible to it. Second escape of the class that gate exists to close; fixed in `dc5c8d53` with a positive-control fixture, 0/160 after. **Then five rounds of operator defects.** Standouts: `Repeater` with an int model REGENERATES every delegate (blinking dots); `clip: true` clips to the bounding BOX not the radius (square-cornered art); a Loader assigns geometry AFTER construction so Split Canvas animated to x=-972 and shipped invisible; and **I read Motion.qml's FALLBACKS instead of the live tokens for four rounds** — this theme is `motion_style: "zen"`, standard 400ms not 200, spatial-out 350ms not 150. **The generative lesson:** three separate "still wrong" rounds all traced to constants tuned by eye (`heightMult 0.86`, then font sizes, then a `cqw*15` cap); the class only closed when size was DERIVED from its container. Also shipped a brand mark seeded to `~/.face` via stow.sh, squiggle-edged album art, and a `SystemClock.Days` fix (that enum is only Hours|Minutes|Seconds). Operator: *"Good all verified and pass now."* | 2026-08-27 | `953f5055..70da9be9` (18 commits) | `.planning/quick/260827-833-replace-hyprlock-with-an-in-process-quic/` |
 | 260827-74s | TWO POWER-MENU DEFECTS, BOTH ROOT-CAUSED BY MEASUREMENT BEFORE ANY EDIT. (a) The frosted scrim did not cover the whole screen: `hyprctl layers` put `quickshell-session` at `0,6 2510x1428` against a 2560x1440 monitor — short by EXACTLY the reserved zone `[0,6,50,6]`, confirmed by `grim -g` captures showing the right-hand edge bar and a 6px top strip bright and undimmed beside a scrimmed desktop. Cause was `exclusiveZone: 0`: an explicit non-negative zone OVERRIDES `ExclusionMode.Ignore` and puts the surface inside every other surface's reservation. Fixed to `-1`. THE COMMENT THAT STOOD THERE NAMED THE WRONG CAUSE — it blamed layer order, declared `Ignore` the fix, and read as settled, so the defect survived a whole redesign underneath a confident explanation; rewritten to carry the measurement. Positive control: hyprshutdown's own overlay measured `0,0 2560x1440` in the same session, so full span is reachable here. (b) Shutdown/Reboot hung: `hyprshutdown` 0.1.1-6 registers dry-run/no-exit/top-label/post-cmd/verbose/no-fork/vt/help and NO TIMEOUT OF ANY KIND; under `--dry-run --no-exit --no-fork --verbose` it loops `Re-closing apps` forever, escaping only when the last app exits or the operator clicks its own `Force quit`. Its UI strings ARE the operator's report — `Shutting down...`, `Waiting for your apps to exit.` SYSTEMD WAS RULED OUT BY COUNTER-EVIDENCE, so a TimeoutStopSec drop-in would have fixed nothing: the journal holds two clean power-key poweroffs that bypass hyprshutdown, Aug 22 (1.5s) and Aug 24 (1.3s) door-to-door, with `app-graphical.slice` gone 75ms into the Aug 24 teardown; the 90s scope timeout is never reached. There is also NO journal record of any power-menu shutdown completing, matching the `~`-suffixed uncleanly-closed journals. AND THE WRAP WAS NEVER LOAD-BEARING: Phase 4's own `04-01-SUMMARY.md` Task 2 records the FIX-01 hang it targeted as NEVER REPRODUCED and applied the wrap on a structural bare-systemctl-is-uwsm-incorrect argument, not evidence — so dropping it reopens a precaution, not a demonstrated failure. Offered a bounded 10s grace, dropping it, or 30s, the OPERATOR CHOSE TO DROP IT with the trade-off stated first and accepted: apps are killed on compositor exit rather than asked to close, unsaved work is likelier lost, and QPOWER-04's mechanism retires. Escape hatch recorded in the file header: `hyprshutdown --vt N` ('fixes NVIDIA+SDDM black screen') was never wired up in any revision and is the targeted remedy if a black screen ever does appear. LOG OUT LEFT ALONE ON THE FIRST PASS — the request named Shutdown and Reboot, so it was FLAGGED rather than silently widened; that flag is what prompted the follow-up below, which fixed it. Also closed two carried operator-only items (qt6-imageformats installed + shell restarted; `quickshell-doctor --self-test` run clean, matching the predicted 59/0) and STRUCK the stale v5.0 candidate 'Rebuild walker/elephant in QML' — both were retired and uninstalled in 260822-sht with all ten elephant-* providers, so the row described finished work and would have put a shipped migration back into scope. NEITHER FIX WAS EXERCISED THROUGH A REAL SHUTDOWN (session-ending, and agent-shell restarts are banned here) — handed over as a 4-step operator checklist in the SUMMARY. EXTENDED ON OPERATOR REQUEST 'fix log out as well and any other power menu action': all six audited rather than assumed - Lock, Suspend and Hibernate never wrapped it and do not tear the session down at all, Log Out was the LAST consumer and is now bare `cliphist wipe; uwsm stop`. Tree-wide grep returns zero consumers, so hyprshutdown also came out of install.sh (the --vt escape hatch now needs a manual pacman install, stated in both files). THAT ALSO ANSWERED WR-04/D-29, the measurement waived unrun on 2026-07-28 that left Logout wrapped 'by default, not by evidence': on the Aug 24 teardown with VSCodium, Zen and seven kitty windows live (10.2 GiB across the slice) app-graphical.slice released at +67ms, wayland-wm stopped at +486ms and the envelope was down at +593ms - nowhere near wayland-wm's own 10s TimeoutStopSec, let alone the app scopes' 90s. Caveat kept: that trigger was SIGTERM to uwsm during a poweroff, not the uwsm stop CLI, so it is journal-derived rather than the literal stopwatch - surfaced as the operator's call, and they TICKED IT: MAINT-02 and WR-04 are now CLOSED across v3.0-REQUIREMENTS.md, PROJECT.md, MILESTONES.md and this file's Deferred Items, which retires the one unfinished v3.0 requirement and the last of Phase 4's advisory items. The archived v3.0-MILESTONE-AUDIT.md is deliberately NOT rewritten - v3.0 really did close with this open. LESSON: the gate demanded a session-ending TTY stopwatch, which is why it was waived and stayed waived a month; the same question was answerable from journalctl for free, so look for a cheaper instrument before accepting a waiver. OPERATOR CONFIRMED ALL OF IT LIVE 2026-08-27 - 'It works with no hang and the power menu dim is fixed' - which is the THIRD consecutive task where handing over a short checklist of what could NOT be checked programmatically beat another gate run. Gates green: colour-lint 443/0, motion-lint 630/0, settings-index-check 180/0, plus qmllint rc=0 and bash -n install.sh. | 2026-08-27 | `69e0369f`, `32261912`, `cd06e3f4`, `5bcc520f` | `.planning/quick/260827-74s-power-menu-full-screen-scrim-fix-exclusi/` |
 | 260827-50i | THE STUDY IS NOW FULLY BUILT — the last three plates shipped, and the one real fork was TAKEN rather than deferred. P2 "arcs", D1 "bento" and P1 "cards" all land selectable; operator defaults (lanes/telemetry) restored untouched. PREREQUISITES LANDED SEPARATELY so the layout commits are pure layout: `Dial.qml` gained opt-in `startAngle`/`sweepAngle` defaulting to the exact hardcoded values (the TRACK arc reads them too — a full circle at the default, but a narrowed sweep needs both arcs sharing one origin); `Design.qml` gained the shared rounding ladder 18/28/42/56 it never had; `SystemResources` gained `cpuName`/`distroName`/`uptimeText` (static facts one-shot and cached on first open per the hwmon/GPU probe doctrine, uptime on the existing 30s slow timer, all failing quiet because they are LABELS not D-41 readings) and later `netRxTotal`/`netTxTotal`. THE FORK: the study designs TWO WIDTH FAMILIES and says so in D1's own note — 'these two tabs have to be chosen together'. So bento+cards share 944 of content (drawer 1040) and lanes/telemetry/arcs share 712 (drawer 808). Compressing D1 to 712 was REJECTED ON MEASUREMENT, not taste: the media column alone is 236, leaving 460 for a row carrying a 250px weather cell plus a 92px avatar and three text lines. This NARROWS rather than contradicts the earlier 'declare the same 712' note, which was written while every live layout was narrow and still binds the whole narrow family. ONE MEASURED DIVERGENCE FROM A PLATE: D1 folds toggles into the 236px media foot as three generic tiles, but `QuickToggles` is a SIX-chip row dividing its own width evenly — ~27px a chip. They run across the left stack's foot at 692 instead, MORE room than lanes gives them (356). The morphing usage badge is a Canvas polar blob (`1 + amp*cos(lobes*theta)`, both terms rising with load, animated so it morphs rather than snaps, a plain circle at idle) — their `MaterialShape` is a compiled C++ plugin and a build step in front of 'reproduces from one script' costs more than the shape; the header says APPROXIMATION rather than implying otherwise. D1 separates six same-fill cells by RADIUS ALONE because `Colours.qml` publishes no `surfaceContainer` and the pipeline does not generate one — the study's own stated fallback. VERIFIED LIVE ON THE DASHBOARD TAB, not just gated: bento instantiates clean, and raw pixels put card content at x=783..1726 = EXACTLY the declared 944, centred at 1254.5 against a screen centre of 1255; clock cell measured 104 and rail cell 82, both matching their declarations; all four corners of the 170px art box sample the card fill (68,71,90) proving the circular mask crops, centre is image; identity cell reads 'aorus / up 31m · Arch Linux / Hyprland · dracula' so uptime, distro AND the theme-state read are all live. NEITHER PERFORMANCE LAYOUT HAS BEEN RENDERED and that is the honest gap: there is no `quickshell:performance` global (only dashboard and media exist, shell.qml:1829/:1896), the tab's Loader is active only when current, and no click-injection tool exists here. So the 270° arc path, the Canvas badge, and both layouts' derived card heights are gate-proven but UNSEEN — and 'derived' was true of the heights that still clipped a play button last round. Expected-and-documented log line: one QQuickImage warning per load for the absent `~/.face`, which is the DESIGNED avatar-fallback state. EXTENDED AFTER OPERATOR CORRECTION: the brief this task started from listed THREE remaining plates; the study drew SEVEN and FIVE were unbuilt. The two it missed were the point — D3 "Wide Column" and P4 "Tighten What's There" exist specifically to REPLACE the two originals still holding picker slots, so shipping only the other three left exactly what the operator wanted gone still selectable. Both now built, both as TRANSFORMATIONS of the original files rather than new siblings, because a sibling would have left the original selectable and because the study frames both as edits ("one binding + re-proportioning", "a handful of constants"). P4: battery dial GONE to a status line, 176 -> 128 with the ring following 17 -> 13, tab settles at 712 so the 280px cross-tab width jump dies, rate pair gets the plate's card; dial ORDER kept at the render-gate-set GPU/CPU/Memory/Storage and the battery line HIDDEN when absent, both because a later operator decision outranks the drawing. D3: contentWidth 400 -> 712, which WAS the measured defect (a 400px column in a 760px frame = ~180px dead margin each side, permanently), media and resources paired onto one line, hero gains a weather readout from the already-shared backend. CAPTURING D3 FOUND TWO DEFECTS THE CODE REVIEW DID NOT: the resources strip was clipped (four dials with used-of-total detail lines never fit beside the media widget - "5.5/31.3 GiB" ran straight through "10.3 GiB / 1.8 TiB", which is exactly why the plate draws ring+short-label only), and every ring in that strip had an INVISIBLE TRACK because Dial defaults trackColor to surfaceVariant and the strip card is also surfaceVariant - FOURTH occurrence of the 14-10 class, pre-existing, fixed here. D3 verified live at exactly 712 (x=899..1610) with visible tracks and no collision. THREE Performance layouts were gate-proven and unseen, not two - HANDED OVER AS A CHECKLIST AND ALL THREE OPERATOR-APPROVED 2026-08-27, which retired every one of the four carried worries (the 270-degree arc path, the Canvas usage badge, the derived card heights, P4 whole retune) with NO FIX NEEDED. Second time on this work that handing over a short specific checklist beat another gate run. Final operator change: the Performance P1 option is labelled "Bento" - display string only, the pref value stays "cards" and the file stays PerfCards.qml, whose header cites plate P1 in the study. | 2026-08-27 | `242544a9`, `03eea9e8`, `67c407ff`, `8090ade5` | `.planning/quick/260827-50i-build-the-three-remaining-dashboard-perf/` |
@@ -772,7 +773,19 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-RESUMED 2026-08-27 — session restored via `/gsd-resume-work`. No handoff, checkpoint, async job or incomplete plan; tree clean at `f875a77d`, level with `origin/main`. Operator chose to proceed with the one owed item: **Task 8 of quick task 260827-833 — retiring hyprlock** (one-way, ten touchpoints, config-then-package in ONE commit). Routing to `/gsd-quick`.
+SHIPPED 2026-08-27 — **260827-ar3: hyprlock retired, repo and host. Task 8 of 260827-833 closed; NOTHING IS OWED.** `7578f95c`, package removed by the operator.
+
+**THE GATE, NOT THE BRIEF, IS THE SOURCE OF THE TOUCHPOINT LIST.** Seven per the original brief, ten per 260827-833's SUMMARY, **25 files** per a tree-wide grep. All three are answers to the wrong question. `retirement-check` has 16 scan classes with fixed targets; the actionable set is "files a blocking class greps", which is far smaller than "files that mention it" and is *derivable in one read of the gate*. Deriving it turned a guess into arithmetic and found the two traps below.
+
+**ONLY ONE SCAN CLASS SKIPS COMMENTS — AND MY OWN CHANGELOG NOTE WALKED INTO IT.** `grep_hits(..., skip_comment_lines=True)` is passed by `scan_cross_package_refs` and no other scanner; the gate's own comment says so ("The ONE caller that skips whole-line comments"). So prose is FATAL in `keybinds`, `contract-json`, `matugen-templates`, `test-fixtures`, `install-stow-lists` and harmless everywhere else. I wrote "hyprlock REMOVED 2026-08-27" into `install.sh` — class 10, the exact gate this task exists to turn green. Caught on the post-edit grep, not by reasoning. **After removing a token, grep for the token again.** Second recorded instance of this class.
+
+**THE ONE DANGEROUS CHECK WAS ALREADY ANSWERED, IN CODE, BY THE PREVIOUS AUTHOR.** `/etc/pam.d/hyprlock` is package-owned and dies with `-Rns` — the only way this removal could have locked the operator out. It was safe because `LockPam.qml` names `config: "passwd"`, owned by **shadow 4.20.0.arch1-1**, a choice 260827-833's author made *specifically* to survive this removal and documented in the file header. Verified against `pacman -Qo` on both files rather than trusting the comment (a comment describes intent, not result); both facts held, and the file needed no edit.
+
+**GATES: `retirement-check hyprlock` `failed_classes=0`; `theme-doctor` 1330 passed / 0 failed — the first fully-green doctor run recorded in this file.** Also `theme-parity` 1897/0, `hypr-equivalence-check` PASS 3 FAIL 0, `keybind-doctor` 13/0, quickshell `Configuration Loaded`. `pacman -Rsp` printed exactly one package — no dependency cascade, every dep shared with hyprland.
+
+**SCOPE DISCIPLINE:** corrected only prose the removal made FALSE (README's lock-screen row + two tree listings, four "retirement is HELD" comments, `wallpaper.sh`'s citation of a deleted file, `LockPam.qml`'s note to past tense). Left the 2026-07-28 migration design doc untouched as a point-in-time record — same treatment `v3.0-MILESTONE-AUDIT.md` got — and left accurate historical comments alone. `repo-prose` is report-domain, so this costs nothing.
+
+**NOT verified by me:** `quickshell-doctor` (restarts the shell from inside — forbidden from an agent shell). The removed screencopy grant is live-inert until the next Hyprland restart.
 
 SHIPPED 2026-08-26 — **260826-rfy stage 3: three operator-reported defects, fixed by measuring.** `826b932f`, `0d8f3e24`, `c1e0256e`.
 
@@ -1388,50 +1401,58 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — one thing is owed: retiring hyprlock (Task 8, one-way).
+### ▶ RESUME HERE — NOTHING IS OWED. The lock-screen migration is closed.
 
-**Quick task 260827-833 shipped and is OPERATOR-VERIFIED.** The lock screen is
-in-process QML with all five layouts live behind Settings > Appearance > Lock
-screen. Operator's closing verdict: *"Good all verified and pass now."* Tree
-clean, 18 commits `953f5055..70da9be9`, `main` level with `origin/main`.
+**Quick task 260827-ar3 retired hyprlock (2026-08-27), completing Task 8 of
+260827-833.** Commit `7578f95c`, package removed by the operator.
+`retirement-check hyprlock` reports **`status=retired failed_classes=0`** and
+`theme-doctor` is **1330 passed / 0 failed** — the first fully-green doctor run
+recorded in this file. Tree clean, `main` level with `origin/main`.
 
-**What is owed.** Task 8 removes hyprlock and is `reversibility: one-way`. The
-checkpoint it was gated on has now PASSED, but the removal was never separately
-authorised, so it was deliberately NOT run. hyprlock is **dormant, not live** —
-all three consumers (`keybinds.lua:63`, `hypridle.conf:42`,
-`PowerActions.qml:101`) were repointed onto `qs ipc call lock lock` in
-`ee25f4b9`, so nothing reaches it. Full removal checklist is in the task's
-SUMMARY under "STILL OWED"; it must land config-then-package in ONE commit
-(the `eww.scss` / WINDOWS #1 precedent), and the brief's "seven touchpoints"
-were actually **ten**.
+Deleted `hyprlock.conf` and `hyprlock-colors.conf`; removed
+`[templates.hyprlock]`, the `contract.json` entry (22 → 21 files), the
+`/usr/bin/hyprlock` screencopy grant and the `install.sh` package line; ADDED
+the registry row (it never existed — `retirement-check hyprlock` used to error
+`unknown surface`). Host: dangling stow symlink and orphaned
+`~/.local/state/theme/hyprlock.conf` cleaned; `/etc/pam.d/hyprlock` went with
+the package and `/etc/pam.d/passwd` is untouched.
 
-**Read the SUMMARY's ADDENDUM before touching this surface again** — the
-executor's own report describes only Tasks 1-7 and predates every defect fix.
+**Three findings worth keeping:**
 
-**Four findings worth keeping:**
+1. **A retirement brief's touchpoint list decays; the gate does not.** The brief
+   said seven touchpoints, 260827-833's SUMMARY said ten, a tree-wide grep found
+   **25 files**. But "which files mention it" is the wrong question — "which
+   files does `retirement-check` fail on" is the actionable one, and the two sets
+   differ a lot. Read the gate and derive the list; do not inherit it.
 
-1. **A gate named `qml-import-check` was blind to the import it exists to
-   check.** It collected types from line-anchored shapes, so
-   `model: ScriptModel {` — a type as a property VALUE — was invisible, and
-   three green gates shipped a config quickshell refused outright. Second
-   escape of that class. Fixed `dc5c8d53`.
+2. **Exactly one scan class skips comments, and I walked into it.**
+   `skip_comment_lines=True` is passed by `scan_cross_package_refs` and no other
+   scanner, so comment prose is FATAL in `keybinds`, `contract-json`,
+   `matugen-templates`, `test-fixtures` and `install-stow-lists`. My own
+   `install.sh` retirement note named the surface and would have failed class 10
+   — the very gate the task exists to green. **After removing a token, grep for
+   the token again: your own changelog note is a reference.** Second recorded
+   instance of this class.
 
-2. **The hot-reload log is a restart-free instrument.** `Configuration Loaded`
-   vs `Failed to load configuration` in `~/.cache/quickshell.log` answers "did
-   this QML load" without restarting the shell — which is forbidden from an
-   agent shell. Every fix this task was verified that way.
+3. **The one genuinely dangerous check had already been answered in code.**
+   `/etc/pam.d/hyprlock` is package-owned and dies with `-Rns`, which is the only
+   way this removal could have locked the operator out. It was safe because
+   `LockPam.qml` names `config: "passwd"` and `/etc/pam.d/passwd` is owned by
+   **shadow** — a choice 260827-833's author made *specifically* to survive this
+   removal, with the reasoning written into the file header. Verified against
+   `pacman -Qo` rather than trusting the comment; both facts held.
 
-3. **Read the live tokens, never Motion.qml's fallbacks.**
-   `~/.local/state/theme/motion.json` is the truth. This theme is
-   `motion_style: "zen"`: standard 400ms (not the 200 fallback), spatial-out
-   350ms (not 150). Four rounds of timing were wrong because of this, and the
-   code comments asserted the wrong numbers confidently.
+**Operator note:** the removed screencopy grant takes effect at the next
+Hyprland restart — the live compositor still has it loaded (harmless; it names a
+binary that no longer exists). `quickshell-doctor` was not run (it restarts the
+shell from inside); available if wanted.
 
-4. **Derive sizes from the container; do not tune constants by eye.** Three
-   separate "still too small" rounds traced to `heightMult 0.86`, then font
-   sizes, then a `cqw*15` cap. The class closed only when the art was sized by
-   the box that holds it. Same shape as finding 3 — a constant that can drift
-   from reality is a defect waiting for the next change.
+**NEXT REAL DECISION: v5.0 has no roadmap.** v4.0 is 100% (6/6 phases, 63/63
+plans) and the carried-debt ledger is unchanged. Scope it with
+`/gsd-new-milestone` after `/gsd-review-backlog`, checking every candidate
+against the code first — PROJECT.md "known gaps" have been found already-fixed
+before.
+
 
 ### Previous checkpoint (260827-74s, superseded 2026-08-27) — power menu, nothing owed
 
