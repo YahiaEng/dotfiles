@@ -48,9 +48,24 @@
 // ── D-15-21 — zero vertical growth, and the corrected arithmetic. ────────
 // The grid goes from three tiles to six in ONE row (reference lens — end-4
 // and Caelestia both scale a toggle grid with more compact tiles, never
-// with more rows). HARD CONSTRAINT: the Do Not Disturb label wraps to two
-// lines inside the 72px height and must NEVER be shortened to an
-// acronym — Phase 14's render gate explicitly rejected that acronym.
+// with more rows).
+//
+// ── The no-acronym constraint is LIFTED for DND (operator, 2026-08-26) ───
+// This header used to read: "HARD CONSTRAINT: the Do Not Disturb label wraps
+// to two lines inside the 72px height and must NEVER be shortened to an
+// acronym — Phase 14's render gate explicitly rejected that acronym."
+// The operator has since asked for exactly that acronym, which overrides the
+// earlier gate verdict. Recorded rather than deleted so nobody "restores"
+// the long label on the strength of a constraint that no longer holds.
+//
+// Scope of the lift: the DND CHIP LABEL only. Its tooltip still spells "Do
+// Not Disturb" in full, so the acronym stays discoverable, and the settings
+// page keeps its full "Do not disturb" row label — that one has room, and
+// `settings-index-check` requires it to match RowIndex.qml verbatim.
+//
+// The no-abbreviation reasoning still governs every OTHER label here: the
+// `HorizontalFit` note further down rejects "BT" for Bluetooth on it, and
+// that rejection stands. One label was overridden, not the principle.
 import QtQml
 import QtQuick
 import QtQuick.Controls
@@ -150,7 +165,7 @@ Item {
     //    live-confirmed to render as real glyphs, not tofu). ─────────────
     readonly property var chipModel: [
         { name: "gaming", label: "Gaming", glyph: "sports_esports", tooltip: "Toggle gaming mode — disables idle timeout and notification popups while you play", panel: "", chevronTooltip: "" },
-        { name: "dnd", label: "Do Not Disturb", glyph: "do_not_disturb_on", tooltip: "Toggle Do Not Disturb — silences notifications", panel: "", chevronTooltip: "" },
+        { name: "dnd", label: "DND", glyph: "do_not_disturb_on", tooltip: "Toggle Do Not Disturb — silences notifications", panel: "", chevronTooltip: "" },
         { name: "dark", label: "Dark", glyph: "dark_mode", tooltip: "Open the theme picker to switch the desktop's colour palette", panel: "", chevronTooltip: "" },
         { name: "volume", label: "Volume", glyph: "volume_up", tooltip: "Mute or unmute the default audio output — open the arrow for the full mixer", panel: "audio", chevronTooltip: "Open the audio mixer" },
         { name: "wifi", label: "Wi-Fi", glyph: "wifi", tooltip: "Turn the Wi-Fi radio on or off — open the arrow for networks and saved connections", panel: "wifi", chevronTooltip: "Open the Wi-Fi panel" },
@@ -304,17 +319,20 @@ Item {
                     // simply painted past the tile and off the frame.
                     //
                     // WordWrap cannot rescue it: "Bluetooth" is a single
-                    // word with no break opportunity, which is why the
-                    // two-word "Do Not Disturb" wraps happily on the same
-                    // grid while this one clips.
+                    // word with no break opportunity. (The two-word "Do Not
+                    // Disturb" used to wrap happily on this same grid and was
+                    // the counter-example here; it is "DND" as of 2026-08-26
+                    // — see the header — so Bluetooth is now the longest
+                    // label on the row and this note is the only thing
+                    // keeping it legible.)
                     //
                     // HorizontalFit shrinks ONLY labels that don't fit,
                     // down to minimumPixelSize, leaving every label that
                     // already fits at full fontLabel. Chosen over the two
                     // alternatives deliberately: eliding gives "Bluetoot…"
                     // (worse than the clip), and shortening to "BT" fights
-                    // the same no-abbreviation constraint this grid
-                    // already documents for "Do Not Disturb". The wider
+                    // the same no-abbreviation principle this grid still
+                    // applies to every label but DND. The wider
                     // dashboard drawer is unaffected, since nothing needs
                     // shrinking at that width.
                     fontSizeMode: Text.HorizontalFit
