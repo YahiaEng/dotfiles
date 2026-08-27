@@ -59,15 +59,22 @@ Item {
 
         layer.enabled: true
         layer.smooth: true
-        // NO `layer.textureSize` HERE — see the header. It silently
-        // disables the layer effect on this Qt, which is what shipped a
-        // hard-edged circle instead of an aurora.
+        // NO `layer.textureSize` HERE — see the header. It did NOT disable
+        // the effect (an earlier note claimed that and was wrong); it
+        // tightened the edge ramp from ~816px to ~320px, which is not what
+        // an aurora wants.
         layer.effect: MultiEffect {
             autoPaddingEnabled: false
             blurEnabled: true
             blur: 1
-            // 7% of the output width — the study's own `filter: blur(7cqw)`,
-            // expressed in the pixels MultiEffect wants.
+            // A HARD CAP, not a free parameter. The study asks for
+            // `filter: blur(7cqw)`, which at 2560 wide is ~179px — and
+            // MultiEffect rendered NOTHING AT ALL at that value: the fields
+            // vanished completely and the screen was bare surface. Measured
+            // by bisection, ~64 is the largest radius that still draws here.
+            // Raising this to chase the study's figure re-breaks the plate;
+            // if more softness is ever needed, get it from the field sizes
+            // and opacity, not from this number.
             blurMax: 64
             blurMultiplier: 1
         }
@@ -99,7 +106,16 @@ Item {
                 // spread evenly across the range. Second, over-correcting
                 // that by sizing the fields past the screen diagonal made
                 // all three overlap everywhere and the plate collapsed to
-                // ONE FLAT COLOUR. The sizes below are the study's.
+                // ONE FLAT COLOUR.
+                //
+                // The sizes below are the study's 46/55/64% SCALED UP to
+                // 68/78/88%, which is a deliberate divergence: the operator
+                // asked for the fields to "fill the entire screen", and at
+                // the study's own sizes the measured coverage was 57%. At
+                // these it is 92.7% with all three hues still distinct
+                // (pink 33% / purple 22% / cyan 45%) — the point being that
+                // they must overlap enough to cover, but not so much that
+                // they blend into one colour.
                 readonly property real span: root.width * (0.68 + blob.index * 0.10)
 
                 // Position as a fraction of the output, drifting at a

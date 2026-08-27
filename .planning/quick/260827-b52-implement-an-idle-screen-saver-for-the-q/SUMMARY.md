@@ -3,14 +3,22 @@ quick_id: 260827-b52
 slug: implement-an-idle-screen-saver-for-the-q
 date: 2026-08-27
 status: complete
-stage: 2
+stage: 3
+operator_verdict: approved 2026-08-27
 ---
 
 # Quick task 260827-b52 — Aorus idle screen saver
 
-Shipped in two stages. Stage 1 published a design study and ended at a
+Shipped in three stages. Stage 1 published a design study and ended at a
 decision; stage 2 built the four styles the operator picked, under the
-seven rulings the operator locked.
+seven rulings they locked; stage 3 fixed five defects they found in live
+testing. **Operator verdict: approved.**
+
+The stage-2 "Not verified" checklist below is left as written — it is the
+honest record of what I had NOT checked at that point, and stage 3 is what
+happened when the operator checked it. Items 1 and 2 of that list are now
+closed: every style has been captured and measured on screen, and the
+picker was exercised by the operator.
 
 **Operator's brief, verbatim:** S1 Terminal Effects (default), S3 Palette
 Aurora, S4 Constellation, S6 Edge Rail. Ladder 300 s with the dim; true
@@ -134,9 +142,11 @@ re-derived.
 
 ## Not verified — operator checklist
 
-1. **How any of it actually looks.** No screenshots were taken; the
-   conflicting notes on `grim` on this NVIDIA host make it not worth the
-   risk, and this is a judgement call regardless.
+1. ~~**How any of it actually looks.** No screenshots were taken.~~
+   **CLOSED in stage 3** — `grim` is safe on this host (verified: a capture
+   ran and the compositor survived), and every style has since been
+   captured, measured and viewed. This item is exactly what let three
+   broken styles ship.
 2. **The style picker end to end.** Settings → Appearance → Screensaver.
    A pick applies at the next idle timeout.
 3. **The D4 inhibits firing.** The relay is verified present; a genuinely
@@ -146,3 +156,112 @@ re-derived.
    Hyprland reload. Until then the saver is blurred by the family regex —
    invisible on an opaque black surface, but it costs GPU.
 5. **A real 300 s idle.** Every trigger was driven by hand.
+
+---
+
+# Stage 3 — operator testing, two rounds of defects (2026-08-27)
+
+The operator ran all four styles live. **Everything below was found with
+`grim` captures and pixel measurement**, on their explicit instruction:
+*"Take a screenshot and measure do not assume."* That instruction was
+correct — my first diagnosis was wrong in four separate cases, and each
+was overturned by the next measurement, not by more reasoning.
+
+## Round 1 — three styles broken
+
+**Constellation rendered NOTHING. 0 lit pixels of 921,600, measured.**
+Root cause: `Colours.qml` declares every role as `property string` (a hex
+literal), **not `property color`**. A JS string has no `.r`/`.g`/`.b`, so
+`Qt.rgba(role.r, role.g, role.b, a)` evaluated every channel to NaN and
+produced **pure black at the requested alpha**. 445 points were drawn every
+frame, in black, on black. The proof was logging the resolved fill:
+`#b8000000` — alpha `0xb8` = 0.72 exactly as asked, RGB all zero. Fixed with
+`Qt.alpha()` / `Qt.tint()`, which take colour-coercible strings.
+
+Two hypotheses were refuted first, both by measurement: the Canvas FBO
+render target (swapping it changed nothing) and `Qt.rgba` being unsupported
+(a probe drew all five colour-specification forms correctly).
+
+**Edge Rail gapped every lap.** The same string bug made the dim track
+black-on-black, so only the head ever drew. Then the dash: `[lit, perim]` is
+a pattern period 1.19× the path length, so the lit run walked off the END
+with nothing wrapping. Retiling as `[lit, perim - lit]` *should* have wrapped
+and measurably did not — still 5 of 12 frames with no head. Canvas dashing
+does not reliably wrap a closed sub-path here, so the head is no longer a
+dash: `_pointAt()` maps arc length onto the rounded rectangle and the head is
+stroked as a walked polyline with a `globalAlpha` tail. 0/12 gaps after.
+
+**I claimed the rail fixed while it was still broken**, because I measured
+the lit bounding box — which is the TRACK, drawn every frame, and therefore
+incapable of showing a head gap. See the finding below.
+
+**Palette Aurora did not match its own study.** Driving the fields with
+`Easing.InOutSine` between two endpoints makes them decelerate to a stop
+exactly where they sit off-screen; the study bounces at constant velocity.
+Over-correcting by sizing fields past the screen diagonal collapsed the plate
+to one flat colour. Geometry and motion are now the study's `buildS3`,
+enlarged 46/55/64% → 68/78/88% for the coverage the operator asked for:
+**92.7% covered, three hues distinct**. Field opacity 0.55 → 0.42 and the
+wordmark 0.17 → 0.62, both on the operator's report that *"the colors are too
+bright and the text is hard to read"*.
+
+Also measured here: **MultiEffect renders nothing above a `blurMax` of ~64.**
+At the study's 7cqw (~179px at 2560) the fields vanished entirely. And
+`layer.textureSize` never disabled the effect as an earlier note in that file
+claimed — it tightened the edge ramp from ~816px to ~320px. Both corrected
+in-file.
+
+## Round 2 — corners and the lock screen
+
+**Edge Rail cut the corners.** A 4× crop showed the head crossing the corner
+as a straight chord while the track curved beneath it. The head is walked as
+a polyline and was sampled at a fixed SEGMENT COUNT: 28 bands over a 1485px
+head is ~53px per band, and a corner arc is only (π/2)·32 = 50px — so an
+entire corner collapsed into one segment. Geometry and alpha now sample
+independently: 28 alpha bands, each walked at 6px steps, so a corner gets ~8
+samples. Repainting also moved off `on_PhaseChanged` (~133/s on a 165Hz
+output) onto the ambient tick.
+
+**The lock screen blurred the screensaver, not the desktop.** The lock's
+backdrop is a live `ScreencopyView`, and the saver appears at the dim rung
+(300s) with the lock as the very next rung (600s) — so the saver was on
+screen every single time. Three parts:
+
+1. `hideNow()` — drops the surfaces with no exit animation, or the capture
+   catches a half-faded saver.
+2. `sessionLocked`, relayed from `WlSessionLock` into the inhibit set with
+   its own force-hide watcher — covers the power menu and `before_sleep_cmd`,
+   which never reach hypridle.
+3. The lock listener chains `hideNow && sleep 0.4 && loginctl lock-session`.
+
+**That sleep is measured, not superstition.** With `hideNow` alone the
+captured lock frame STILL showed the AORUS wordmark ghosted behind the clock,
+even though `hyprctl layers` reported zero saver surfaces by then. The IPC
+call returns as soon as QML drops the surfaces; the compositor has not
+finished unmapping when the screencopy samples. Verified against a no-saver
+baseline — ghost gone, backdrop is the blurred desktop.
+
+## Findings worth keeping
+
+1. **Colours roles are STRINGS.** `.r/.g/.b` are undefined and
+   `Qt.rgba(role.r, …)` silently yields pure black. Use `Qt.alpha()` /
+   `Qt.tint()`, or assign the role directly.
+2. **Measure the element the report names.** "Rail is fixed" was measured on
+   the track, which could never show the defect. A check that would read the
+   same whether or not the bug exists is a vacuous check.
+3. **The unquoted heredoc bit twice in one task.** Backticks in a new
+   `idle-overrides.sh` comment would have executed at render time again;
+   knowing about the trap did not prevent it — the audit did.
+4. **Look at the picture.** Several rounds of statistics missed what one
+   downscaled capture showed instantly (fields entirely absent because a
+   patch had deleted the delegate's `width`/`height`/`color`).
+
+## Operator note
+
+While restoring `prefs.json` during testing I overwrote the on-disk
+`screensaver.style` while the running shell held `rail` in memory — the pick
+would have silently reverted on the next restart. Disk now matches the live
+value (`rail`).
+
+**Operator verdict 2026-08-27: approved.**
+
