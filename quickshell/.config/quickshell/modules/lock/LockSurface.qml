@@ -97,8 +97,10 @@ WlSessionLockSurface {
                     return continuityComponent;
                 case "caelestia":
                     return caelestiaComponent;
+                case "rail":
+                    return railComponent;
                 default:
-                    // Layouts C/D/E (Tasks 3-5) add their own `case` arm
+                    // Layouts D/E (Tasks 4-5) add their own `case` arm
                     // here in the same commit that registers their type in
                     // qmldir. Until then every other valid layoutKey value
                     // falls back to continuity — never an empty surface.
@@ -173,6 +175,17 @@ WlSessionLockSurface {
             pam: root.pam
             mediaBackend: root.mediaBackend
             weatherBackend: root.weatherBackend
+            systemResources: root.systemResources
+            screen: root.screen
+        }
+    }
+
+    Component {
+        id: railComponent
+
+        LockRail {
+            pam: root.pam
+            mediaBackend: root.mediaBackend
             systemResources: root.systemResources
             screen: root.screen
         }
