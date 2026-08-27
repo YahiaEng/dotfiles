@@ -146,23 +146,35 @@ Item {
                 // Only the newly-filled dot animates; every other dot's
                 // binding still evaluates to the same value, so it does not
                 // re-animate.
+                //
+                // Scale AND opacity together: a dot that only scales appears
+                // at full strength the instant it exists, so the eye catches
+                // the first frame as a pop. Fading it over the same curve
+                // gives the edge somewhere to go, which is what reads as
+                // smooth at this duration.
                 scale: filled ? 1 : 0
+                opacity: filled ? 1 : 0
 
+                // Duration stays 100ms (stagger-offset is 50ms and is the only
+                // token that composes to 100 exactly; a literal fails
+                // motion-lint TOKEN-04). The EASING is what changed: spatial-out's
+                // bezier starts [0.42, 1.67], an overshoot curve, so each dot
+                // sprang past its size and settled back — legible as a snap at
+                // 350ms, but at 100ms it just reads as jitter. `standard`
+                // ([0.2, 0]) decelerates cleanly with no overshoot.
                 Behavior on scale {
                     NumberAnimation {
-                        // 100ms, on operator request.
-                        //
-                        // Both of my earlier numbers here were wrong because I
-                        // read the FALLBACKS in Motion.qml (`|| 150`) instead
-                        // of the live values in ~/.local/state/theme/motion.json.
-                        // This theme is motion_style "zen": spatial-out is
-                        // 350ms, not 150 — so "spatialOutDuration / 2" shipped
-                        // 175ms while the comment claimed 75ms. stagger-offset
-                        // is 50ms and is the only token that composes to 100
-                        // exactly. A literal would fail motion-lint (TOKEN-04).
                         duration: Motion.staggerOffsetDuration * 2
                         easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.spatialOutEasing
+                        easing.bezierCurve: Motion.standardEasing
+                    }
+                }
+
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: Motion.staggerOffsetDuration * 2
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.standardEasing
                     }
                 }
             }

@@ -314,9 +314,24 @@ Item {
                         Item {
                             id: artBlob
 
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.preferredWidth: Math.min(parent.width, root.cqw * 15)
-                            Layout.preferredHeight: Layout.preferredWidth
+                            // Takes ALL the spare room in the tile and draws the
+                            // largest centred square that fits. It was previously
+                            // capped at cqw*15 (384px) inside a tile ~825px wide,
+                            // so the cap — not the tile — decided the size and it
+                            // read as a small square; and a fillHeight spacer sat
+                            // BELOW it, pinning it to the top rather than centring
+                            // it. Both gone: the square is bounded by the box, so
+                            // it grows with the tile and stays centred on both
+                            // axes by construction.
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+
+                            Item {
+                                id: artSquare
+
+                                anchors.centerIn: parent
+                                width: Math.min(parent.width, parent.height)
+                                height: width
 
                             // Backing shape, so the squiggle is visible even
                             // with no art loaded.
@@ -380,10 +395,8 @@ Item {
                                 color: Colours.outline
                                 font.pixelSize: root.cqw * 2.6
                             }
+                            }
                         }
-
-                        // Absorbs the spare height the art no longer takes.
-                        Item { Layout.fillHeight: true }
 
                         Text {
                             Layout.fillWidth: true
