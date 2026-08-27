@@ -19,7 +19,10 @@
 // Down first; Log Out followed in the same task on the operator's "fix log
 // out as well and any other power menu action".)
 //
-// Audited, all six: Lock (`uwsm app -- hyprlock`), Suspend and Hibernate
+// Audited, all six: Lock (`qs ipc call lock lock` as of quick task
+// 260827-833 Task 7 — was `uwsm app -- hyprlock`, repointed onto the
+// in-process Quickshell lock screen; hyprlock's own retirement is HELD,
+// see that task's own header), Suspend and Hibernate
 // (`systemctl suspend|hibernate`) never wrapped it and do not tear the
 // session down at all — they resume into this same session. Log Out,
 // Reboot and Shut Down all did. None do now, and a tree-wide grep shows
@@ -97,7 +100,11 @@ Singleton {
     readonly property var actions: [
         {
             glyph: "lock", label: "Lock", mnemonic: "l",
-            command: ["sh", "-c", "uwsm app -- hyprlock"]
+            // Quick task 260827-833 Task 7 (LOCK-01) — repointed onto the
+            // in-process Quickshell lock screen's `lock` IPC target.
+            // hyprlock's own retirement is HELD (OP-4, Task 8) — this was
+            // the third live consumer, missing from the original brief.
+            command: ["sh", "-c", "qs ipc call lock lock"]
         },
         {
             glyph: "logout", label: "Log Out", mnemonic: "e",

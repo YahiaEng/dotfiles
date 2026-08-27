@@ -52,7 +52,15 @@ local mainMod = "SUPER"
 local terminal = "uwsm app -- kitty.desktop"
 local fileExplorer = "uwsm app -- thunar.desktop"
 local tui = 'uwsm app -- kitty --class yazi-fm --title "Yazi" -- yazi'
-local lockScreen = "uwsm app -- hyprlock"
+-- Quick task 260827-833 Task 7 (LOCK-01) — repointed onto the in-process
+-- Quickshell lock screen's own `lock` IPC target. hyprlock's own
+-- retirement is HELD (OP-4, Task 8) — the package, its config, its
+-- matugen template and its screencopy grant all stay installed and
+-- invocable by hand until the operator confirms the new surface live.
+-- No `timeout` prefix: unlike the brightness/volume binds below, this
+-- bind has no fallback, and a `timeout` that fires here would leave the
+-- session UNLOCKED — strictly worse than a bind that blocks briefly.
+local lockScreen = "qs ipc call lock lock"
 local codeEditor = "uwsm app -- codium.desktop --enable-features=UseOzonePlatform --ozone-platform=wayland --log debug"
 
 -- ── Core ─────────────────────────────────────────────
@@ -294,7 +302,7 @@ hl.bind(mainMod .. " + M", hl.dsp.global("quickshell:media")) -- Open dashboard 
 hl.bind(mainMod .. " + comma", hl.dsp.global("quickshell:settings")) -- Toggle settings window (quick task 260820-sqd)
 
 -- ── Lock screen ──────────────────────────────────────
-hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(lockScreen)) -- Lock screen
+hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(lockScreen)) -- Lock screen (in-process Quickshell lock, quick task 260827-833)
 
 -- ── Move focus ───────────────────────────────────────
 hl.bind(mainMod .. " + left", hl.dsp.focus({ direction = "l" })) -- Focus window left
