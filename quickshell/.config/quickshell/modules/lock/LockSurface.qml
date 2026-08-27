@@ -99,11 +99,13 @@ WlSessionLockSurface {
                     return caelestiaComponent;
                 case "rail":
                     return railComponent;
+                case "split":
+                    return splitComponent;
                 default:
-                    // Layouts D/E (Tasks 4-5) add their own `case` arm
-                    // here in the same commit that registers their type in
-                    // qmldir. Until then every other valid layoutKey value
-                    // falls back to continuity — never an empty surface.
+                    // Layout E (Task 5) adds its own `case` arm here in
+                    // the same commit that registers its type in qmldir.
+                    // Until then every other valid layoutKey value falls
+                    // back to continuity — never an empty surface.
                     return continuityComponent;
                 }
             }
@@ -187,6 +189,18 @@ WlSessionLockSurface {
             pam: root.pam
             mediaBackend: root.mediaBackend
             systemResources: root.systemResources
+            screen: root.screen
+        }
+    }
+
+    Component {
+        id: splitComponent
+
+        LockSplit {
+            pam: root.pam
+            mediaBackend: root.mediaBackend
+            systemResources: root.systemResources
+            weatherBackend: root.weatherBackend
             screen: root.screen
         }
     }

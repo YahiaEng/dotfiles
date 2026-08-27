@@ -23,3 +23,4 @@ LockStatus 1.0 LockStatus.qml
 LockContinuity 1.0 LockContinuity.qml
 LockCaelestia 1.0 LockCaelestia.qml
 LockRail 1.0 LockRail.qml
+LockSplit 1.0 LockSplit.qml
