@@ -1,0 +1,14 @@
+# smart-snapshot.timer — quick task 260827-np1.
+# Every 15 minutes, and once shortly after boot. SMART attributes move on
+# the scale of days; a tighter interval would spin up the SATA drive for
+# nothing.
+[Unit]
+Description=Refresh the Security Center's SMART snapshot
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

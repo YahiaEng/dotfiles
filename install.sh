@@ -370,6 +370,34 @@ PACMAN_PKGS=(
     # must be declared explicitly rather than relied upon.
     cmake
     cpio
+
+    # ── Security Center scanners (quick task 260827-np1) ──
+    # The operator's brief was explicit: "whichever is more secure, this
+    # is my priority" — so the full set installs by default rather than
+    # being offered from the pane. All four are in official `extra`; none
+    # needs an AUR helper, which is why they sit here and not in
+    # AUR_PKGS.
+    #
+    # These land in VERIFY_PKGS with everything else, so a fresh install
+    # that silently fails to fetch one of them HARD-FAILS rather than
+    # producing a Security Center whose scanners are all "not installed"
+    # — the exact adw-gtk3 ghost class verify_packages exists to catch.
+    #
+    # clamav is the expensive one (30.7 MiB plus a ~300 MB signature
+    # database). Its freshclam service is enabled in section_security
+    # below, NOT here: a clamav with no signatures scans nothing and
+    # reports clean, which is the single worst failure this pane could
+    # have — a false all-clear.
+    clamav
+    arch-audit
+    rkhunter
+    lynis
+    # smartmontools provides smartctl AND smartd; the Security Center's
+    # device-health half is unreadable without it. Declared explicitly
+    # rather than relied on transitively (it was already present on the
+    # reference host, which is exactly the host-only-state class the
+    # reproducibility constraint forbids).
+    smartmontools
 )
 
 # ── Official repo packages (hardware — NVIDIA GPU only) ─
@@ -1000,6 +1028,104 @@ section_hardware() {
 # Hardcoded personal config (git identity, timezone) — not meaningful (and
 # potentially wrong) inside a disposable container/VM, so this section is
 # skipped under --core-only (D-61).
+# ── section_security ──────────────────────────────────
+# Quick task 260827-np1. Places the three root-owned pieces the Security
+# Center needs and enables the units that feed it. Runs in the core
+# section (not behind --core-only) because the shell's Security page is
+# part of the core rice and renders wrong without these.
+#
+# Nothing here turns the firewall ON. Installing a ruleset and enabling
+# a packet filter are different acts: the file is placed so the pane's
+# "Enable firewall" button has something valid to load, and the operator
+# makes the call. An installer that silently starts filtering a machine's
+# traffic is not a thing this repo should do unattended.
+section_security() {
+    echo ""
+    echo "╔══════════════════════════════════════════╗"
+    echo "║     Security Center                      ║"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
+
+    # Root-owned files live under system/ — the same convention
+    # kernel-module-verify and open-in-terminal already use, installed
+    # with `sudo install -Dm...` rather than stowed.
+    local SRC="$REPO_DIR/system"
+
+    # ── 1. Privileged helper + snapshot producer ──
+    # Deliberately NOT stowed. These are pkexec targets; a root-executed
+    # script living inside a user-writable dotfiles tree is a local
+    # privilege escalation, not a convenience. They are COPIED to
+    # root-owned /usr/local/lib and re-copied on every install so an
+    # edit in the repo actually ships.
+    echo "Installing privileged helpers to /usr/local/lib/security-center..."
+    sudo install -Dm755 -o root -g root \
+        "$SRC/usr/local/lib/security-center/security-action" \
+        /usr/local/lib/security-center/security-action
+    sudo install -Dm755 -o root -g root \
+        "$SRC/usr/local/lib/security-center/smart-snapshot" \
+        /usr/local/lib/security-center/smart-snapshot
+    sudo install -d -o root -g root -m 0755 /var/lib/security-center
+
+    # ── 2. polkit action ──
+    # Names the action so the auth dialog says what is about to happen
+    # instead of pkexec's generic "run a program as another user".
+    sudo install -Dm644 -o root -g root \
+        "$SRC/usr/share/polkit-1/actions/org.aorus.securitycenter.policy" \
+        /usr/share/polkit-1/actions/org.aorus.securitycenter.policy
+
+    # ── 3. Firewall ruleset (placed, not activated) ──
+    # Back up whatever is there first — on a fresh Arch box that is the
+    # stock file, and the stock file is what we are deliberately
+    # replacing (its `forward policy drop` chain breaks Docker/k3d; see
+    # system/etc/nftables.conf's header for the measurement).
+    if [[ -f /etc/nftables.conf ]] && ! cmp -s "$SRC/etc/nftables.conf" /etc/nftables.conf; then
+        echo "Backing up existing /etc/nftables.conf -> /etc/nftables.conf.pre-dotfiles"
+        sudo cp -n /etc/nftables.conf /etc/nftables.conf.pre-dotfiles
+    fi
+    sudo install -Dm644 -o root -g root "$SRC/etc/nftables.conf" /etc/nftables.conf
+
+    # Validate what we just placed. A ruleset with `input policy drop`
+    # and a syntax error is how a machine loses its network, so a bad
+    # file must fail the install loudly here rather than at the moment
+    # the operator clicks Enable.
+    if ! sudo nft -c -f /etc/nftables.conf; then
+        echo "install.sh: /etc/nftables.conf failed validation — refusing to continue" >&2
+        exit 1
+    fi
+    echo "  /etc/nftables.conf installed and validated (NOT enabled — enable it from Settings → Security)"
+
+    # ── 4. Units ──
+    sudo install -Dm644 -o root -g root \
+        "$SRC/etc/systemd/system/smart-snapshot.service" \
+        /etc/systemd/system/smart-snapshot.service
+    sudo install -Dm644 -o root -g root \
+        "$SRC/etc/systemd/system/smart-snapshot.timer" \
+        /etc/systemd/system/smart-snapshot.timer
+    sudo systemctl daemon-reload
+
+    # smartd: the root-side monitor the operator chose as the privilege
+    # strategy. It watches SMART and warns; the timer below is what makes
+    # its subject matter renderable, since smartctl needs root even when
+    # smartd is running.
+    sudo systemctl enable --now smartd.service     || echo "  ⚠ smartd enable failed" >&2
+    sudo systemctl enable --now smart-snapshot.timer || echo "  ⚠ smart-snapshot.timer enable failed" >&2
+    # Prime the snapshot so the pane has data on first open instead of an
+    # empty device list for up to 15 minutes.
+    sudo systemctl start smart-snapshot.service    || echo "  ⚠ first SMART snapshot failed" >&2
+
+    # clamav signatures. Without this the scanner loads an empty database
+    # and reports every scan clean — a false all-clear, worse than no
+    # scanner at all.
+    echo ""
+    echo "Fetching ClamAV signatures (first run downloads ~300 MB)..."
+    sudo freshclam || echo "  ⚠ freshclam failed — run 'sudo freshclam' before trusting a scan" >&2
+    sudo systemctl enable --now clamav-freshclam.service || echo "  ⚠ freshclam timer enable failed" >&2
+
+    # rkhunter's baseline. Without --propupd its first run reports every
+    # system binary as "changed" against an empty baseline.
+    sudo rkhunter --propupd --nocolors >/dev/null 2>&1 || true
+}
+
 section_personal() {
     echo ""
     echo "Configuring git..."
@@ -1047,6 +1173,12 @@ verify_packages() {
 
 # ── Main ──────────────────────────────────────────────
 section_core_rice
+
+# Security Center (quick task 260827-np1) — inside the core set, not
+# behind --core-only: the shell ships a Settings → Security page, a
+# dashboard tab and a bar capsule, and all three render wrong without the
+# root-side helpers and the SMART snapshot timer this section installs.
+section_security
 
 if [[ "$CORE_ONLY" != "true" ]]; then
     section_hardware

@@ -1,0 +1,41 @@
+# smart-snapshot.service — quick task 260827-np1.
+#
+# Runs as root, writes one JSON snapshot of every SMART-capable device to
+# /var/lib/security-center/smart.json (world-readable), so the Quickshell
+# Security Center can render real disk health with ZERO runtime privilege
+# and ZERO password prompts.
+#
+# This is the "smartd.service" privilege strategy the operator chose:
+# a root-side producer, a file, an unprivileged reader. smartd.service
+# itself is ALSO enabled by install.sh -- it is the thing that actually
+# monitors and warns; this unit exists only to make smartd's subject
+# matter renderable, because `smartctl` still needs root even when smartd
+# is running.
+[Unit]
+Description=Snapshot SMART health for the Security Center
+Documentation=man:smartctl(8)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/security-center/smart-snapshot
+# The snapshot is a read-only probe of device health. Lock everything
+# else down -- this runs as root on a timer, so it gets the full
+# treatment rather than the default.
+ProtectSystem=strict
+ReadWritePaths=/var/lib/security-center
+ProtectHome=yes
+PrivateNetwork=yes
+PrivateTmp=yes
+NoNewPrivileges=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+CapabilityBoundingSet=CAP_SYS_RAWIO CAP_SYS_ADMIN CAP_DAC_OVERRIDE
+
+[Install]
+WantedBy=multi-user.target

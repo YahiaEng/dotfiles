@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# security/bin/smart-snapshot — quick task 260827-np1.
+#
+# Installed to /usr/local/lib/security-center/smart-snapshot and run as
+# root by smart-snapshot.timer. Writes one world-readable JSON document
+# describing every SMART-capable device, so the Quickshell Security
+# Center renders real disk health with no privilege and no prompt.
+#
+# Output contract (the shell's SecurityBackend.qml parses exactly this):
+#   { "generated": <epoch>, "devices": [ { ... }, ... ] }
+# Each device: node, model, serial_tail, kind, passed, temp_c,
+#              power_on_hours, percent_used, realloc, media_errors, capacity
+#
+# `serial_tail` is the LAST FOUR characters of the serial only. A full
+# serial is a hardware identifier that would otherwise sit in a
+# world-readable file for no benefit -- four characters is enough to tell
+# two identical SN850X drives apart, which is the only reason the UI
+# needs it at all.
+set -uo pipefail
+
+OUT_DIR=/var/lib/security-center
+OUT="$OUT_DIR/smart.json"
+TMP="$OUT.$$"
+
+mkdir -p "$OUT_DIR"
+
+if ! command -v smartctl >/dev/null 2>&1; then
+  printf '{"generated":%s,"error":"smartctl-missing","devices":[]}\n' "$(date +%s)" > "$TMP"
+  mv -f "$TMP" "$OUT"; chmod 0644 "$OUT"
+  exit 0
+fi
+
+# `smartctl --scan` emits one line per device: "/dev/sda -d scsi # ...".
+# Take the node and the -d type; passing the type back explicitly is what
+# makes NVMe vs SATA work without a second guess.
+mapfile -t SCAN < <(smartctl --scan 2>/dev/null)
+
+python3 - "$OUT" "$TMP" <<'PYEOF' "${SCAN[@]}"
+import json, os, subprocess, sys, time
+
+out, tmp = sys.argv[1], sys.argv[2]
+scan_lines = sys.argv[3:]
+devices = []
+
+for line in scan_lines:
+    line = line.split('#', 1)[0].strip()
+    if not line:
+        continue
+    parts = line.split()
+    node = parts[0]
+    dtype = None
+    if '-d' in parts:
+        i = parts.index('-d')
+        if i + 1 < len(parts):
+            dtype = parts[i + 1]
+
+    cmd = ['smartctl', '--json', '-H', '-A', '-i']
+    if dtype:
+        cmd += ['-d', dtype]
+    cmd.append(node)
+
+    try:
+        # smartctl uses its exit status as a BITMASK (bit 0 = command line
+        # parse error, bits 1-2 = device open/failure, bit 3 = disk
+        # failing). A non-zero exit is therefore normal and informative,
+        # never a reason to discard the payload -- so parse stdout
+        # regardless and let `passed` carry the verdict.
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        d = json.loads(p.stdout or '{}')
+    except Exception as e:
+        devices.append({'node': node, 'kind': dtype or 'unknown',
+                        'error': type(e).__name__})
+        continue
+
+    smart = d.get('smart_status') or {}
+    passed = smart.get('passed')
+
+    temp = (d.get('temperature') or {}).get('current')
+
+    # Power-on hours live in different places for ATA vs NVMe.
+    poh = (d.get('power_on_time') or {}).get('hours')
+
+    # NVMe health log
+    nvme = d.get('nvme_smart_health_information_log') or {}
+    percent_used = nvme.get('percentage_used')
+    media_errors = nvme.get('media_errors')
+    if poh is None:
+        poh = nvme.get('power_on_hours')
+    if temp is None:
+        temp = nvme.get('temperature')
+
+    # ATA reallocated-sector count (id 5) -- the single most predictive
+    # attribute for a spinning disk that is on its way out.
+    realloc = None
+    for a in ((d.get('ata_smart_attributes') or {}).get('table') or []):
+        if a.get('id') == 5:
+            realloc = (a.get('raw') or {}).get('value')
+            break
+
+    cap = (d.get('user_capacity') or {}).get('bytes')
+
+    serial = d.get('serial_number') or ''
+    devices.append({
+        'node': node,
+        'kind': dtype or 'unknown',
+        'model': d.get('model_name') or d.get('scsi_model_name') or node,
+        'serial_tail': serial[-4:] if serial else '',
+        'passed': passed,
+        'temp_c': temp,
+        'power_on_hours': poh,
+        'percent_used': percent_used,
+        'media_errors': media_errors,
+        'realloc': realloc,
+        'capacity': cap,
+    })
+
+with open(tmp, 'w') as f:
+    json.dump({'generated': int(time.time()), 'devices': devices}, f)
+os.replace(tmp, out)
+os.chmod(out, 0o644)
+PYEOF
+
+exit 0

@@ -1,0 +1,1391 @@
+<title>Security Center Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@600;700;800&family=Public+Sans:wght@400;500;600&family=Fira+Code:wght@400;500;600&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────────
+   TOKENS — complete light palette on bare :root, redefined for
+   the two dark states. No colour is ever declared only inside a
+   media/[data-theme] block.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --paper:        #eceef3;
+  --paper-raised: #f6f7fa;
+  --paper-sunk:   #e0e3ea;
+  --ink:          #14161d;
+  --ink-soft:     #464b5c;
+  --ink-faint:    #767c90;
+  --rule:         #cdd2dd;
+  --rule-strong:  #aeb5c5;
+
+  --accent:       #0d7d8c;
+  --accent-deep:  #095a66;
+  --accent-wash:  #d8eaed;
+
+  --sev-crit:     #b4302a;
+  --sev-warn:     #9a6410;
+  --sev-ok:       #226b46;
+  --sev-absent:   #6b7080;
+  --sev-crit-bg:  #f6dedc;
+  --sev-warn-bg:  #f6ebd6;
+  --sev-ok-bg:    #d9ecdf;
+  --sev-absent-bg:#e2e4ea;
+
+  /* Dracula — the operator's LIVE palette, read from
+     ~/.local/state/theme/palette.json. Fixed in both themes:
+     these are the shell's colours, not the page's. */
+  --d-surface:    #282a36;
+  --d-surfvar:    #44475a;
+  --d-on:         #f8f8f2;
+  --d-onvar:      #bfbfbf;
+  --d-outline:    #6272a4;
+  --d-primary:    #ff79c6;
+  --d-secondary:  #bd93f9;
+  --d-tertiary:   #8be9fd;
+  --d-error:      #ff5555;
+  --d-onprimary:  #282a36;
+
+  --shadow: 0 1px 2px rgba(20,22,29,.06), 0 6px 20px rgba(20,22,29,.07);
+
+  --f-display: "Chivo", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --f-mono: "Fira Code", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:        #14161d;
+    --paper-raised: #1c1f28;
+    --paper-sunk:   #101219;
+    --ink:          #e7e9f0;
+    --ink-soft:     #a8adbe;
+    --ink-faint:    #767c90;
+    --rule:         #2b2f3b;
+    --rule-strong:  #3c4152;
+
+    --accent:       #45b8c6;
+    --accent-deep:  #7fd6e0;
+    --accent-wash:  #12333a;
+
+    --sev-crit:     #f0776f;
+    --sev-warn:     #e0aa52;
+    --sev-ok:       #63c391;
+    --sev-absent:   #868ca0;
+    --sev-crit-bg:  #3a1e1d;
+    --sev-warn-bg:  #362a15;
+    --sev-ok-bg:    #14301f;
+    --sev-absent-bg:#23262f;
+
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper:        #14161d;
+  --paper-raised: #1c1f28;
+  --paper-sunk:   #101219;
+  --ink:          #e7e9f0;
+  --ink-soft:     #a8adbe;
+  --ink-faint:    #767c90;
+  --rule:         #2b2f3b;
+  --rule-strong:  #3c4152;
+
+  --accent:       #45b8c6;
+  --accent-deep:  #7fd6e0;
+  --accent-wash:  #12333a;
+
+  --sev-crit:     #f0776f;
+  --sev-warn:     #e0aa52;
+  --sev-ok:       #63c391;
+  --sev-absent:   #868ca0;
+  --sev-crit-bg:  #3a1e1d;
+  --sev-warn-bg:  #362a15;
+  --sev-ok-bg:    #14301f;
+  --sev-absent-bg:#23262f;
+
+  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 6px 20px rgba(0,0,0,.35);
+}
+
+/* ───────────────────────────── base ───────────────────────────── */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 16px;
+  line-height: 1.62;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px 120px; }
+.col  { max-width: 68ch; }
+
+h1, h2, h3, h4 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+code, .mono { font-family: var(--f-mono); font-variant-ligatures: none; }
+
+p code, li code, td code {
+  font-size: .86em;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: .08em .34em;
+  white-space: nowrap;
+}
+
+a { color: var(--accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+
+/* ───────────────────────────── masthead ───────────────────────────── */
+.masthead {
+  border-bottom: 2px solid var(--ink);
+  padding: 72px 0 26px;
+  margin-bottom: 46px;
+}
+.masthead h1 {
+  font-size: clamp(38px, 6.4vw, 68px);
+  font-weight: 800;
+  letter-spacing: -.035em;
+  line-height: .98;
+  margin: 14px 0 0;
+}
+.masthead .lede {
+  font-size: 19px;
+  color: var(--ink-soft);
+  margin: 20px 0 0;
+  max-width: 62ch;
+}
+.stamp {
+  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  font-family: var(--f-mono); font-size: 11.5px;
+  color: var(--ink-faint); margin-top: 26px;
+}
+.stamp b { color: var(--ink-soft); font-weight: 500; }
+
+/* ───────────────────────────── sections ───────────────────────────── */
+.section { margin: 84px 0 0; }
+.section > h2 {
+  font-size: clamp(26px, 3.4vw, 36px);
+  font-weight: 700;
+  letter-spacing: -.022em;
+  margin: 10px 0 0;
+}
+.section > .sub {
+  color: var(--ink-soft);
+  margin: 14px 0 0;
+  max-width: 68ch;
+}
+
+/* ───────────────────────────── constraint cards ───────────────────────────── */
+.findings { display: grid; gap: 14px; margin-top: 34px; }
+.finding {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 0 20px;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  padding: 20px 24px 22px;
+}
+.finding.kills { border-left-color: var(--sev-crit); }
+.finding .num {
+  font-family: var(--f-mono); font-size: 13px; font-weight: 600;
+  color: var(--accent); padding-top: 3px;
+}
+.finding.kills .num { color: var(--sev-crit); }
+.finding h3 { font-size: 17.5px; font-weight: 700; letter-spacing: -.012em; line-height: 1.34; }
+.finding p { margin: 9px 0 0; color: var(--ink-soft); font-size: 15px; }
+.finding .grid-span { grid-column: 2; }
+
+pre.term {
+  grid-column: 2;
+  font-family: var(--f-mono); font-size: 12.5px; line-height: 1.72;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 12px 15px;
+  margin: 14px 0 0;
+  overflow-x: auto;
+  color: var(--ink-soft);
+}
+pre.term b { color: var(--sev-crit); font-weight: 500; }
+pre.term i { color: var(--ink-faint); font-style: normal; }
+
+/* ───────────────────────────── tables ───────────────────────────── */
+.tablewrap { overflow-x: auto; margin-top: 26px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 11px 16px 11px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th {
+  font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-faint); font-weight: 500;
+  border-bottom: 1px solid var(--rule-strong); white-space: nowrap;
+}
+td.num, td .n { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+tr:last-child td { border-bottom: none; }
+
+.tag {
+  display: inline-block; font-family: var(--f-mono); font-size: 10.5px;
+  font-weight: 500; letter-spacing: .06em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 3px; white-space: nowrap;
+}
+.tag.crit   { color: var(--sev-crit);   background: var(--sev-crit-bg); }
+.tag.warn   { color: var(--sev-warn);   background: var(--sev-warn-bg); }
+.tag.ok     { color: var(--sev-ok);     background: var(--sev-ok-bg); }
+.tag.absent { color: var(--sev-absent); background: var(--sev-absent-bg); }
+
+/* ───────────────────────────── ramp demo ───────────────────────────── */
+.ramp { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 26px; }
+.ramp .swatch {
+  flex: 1 1 130px; border-radius: 3px; padding: 13px 14px 15px;
+  border: 1px solid rgba(128,128,128,.28);
+}
+.ramp .swatch .lbl {
+  font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; font-weight: 600;
+}
+.ramp .swatch .expr {
+  font-family: var(--f-mono); font-size: 11px; margin-top: 7px; opacity: .82;
+  word-break: break-all;
+}
+
+/* ───────────────────────────── plates ───────────────────────────── */
+.plate { margin: 76px 0 0; }
+.plate-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; }
+.plate-head .id {
+  font-family: var(--f-mono); font-size: 12px; font-weight: 600;
+  letter-spacing: .1em; color: var(--paper); background: var(--ink);
+  padding: 4px 9px; border-radius: 3px;
+}
+.plate-head h3 { font-size: clamp(23px, 2.9vw, 30px); font-weight: 700; letter-spacing: -.02em; }
+.plate .thesis { font-size: 17px; color: var(--ink-soft); margin: 16px 0 0; max-width: 66ch; }
+
+.stage {
+  margin-top: 30px;
+  background: var(--paper-sunk);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 26px;
+  overflow-x: auto;
+}
+.stage .scalebar {
+  font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; color: var(--ink-faint);
+  margin-bottom: 16px; display: flex; gap: 18px; flex-wrap: wrap;
+}
+.shrink { transform-origin: top left; }
+.shrinkbox { position: relative; }
+
+.plate-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 28px; }
+@media (max-width: 760px) { .plate-notes { grid-template-columns: 1fr; } }
+.plate-notes h4 {
+  font-family: var(--f-mono); font-size: 10.5px; letter-spacing: .12em;
+  text-transform: uppercase; font-weight: 500; color: var(--ink-faint);
+  padding-bottom: 8px; border-bottom: 1px solid var(--rule); margin-bottom: 12px;
+}
+.plate-notes ul { margin: 0; padding-left: 18px; font-size: 14.8px; color: var(--ink-soft); }
+.plate-notes li { margin-bottom: 8px; }
+.plate-notes li::marker { color: var(--accent); }
+.plate-notes .cost li::marker { color: var(--sev-warn); }
+
+/* ─────────────────────────────────────────────────────────────
+   MOCKUP CHROME — everything below draws the Quickshell surface
+   at TRUE PIXELS in the live dracula palette. One shared scale.
+   ───────────────────────────────────────────────────────────── */
+.qs {
+  font-family: var(--f-mono);
+  background: var(--d-surface);
+  color: var(--d-on);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 18px 44px rgba(0,0,0,.34);
+  position: relative;
+}
+.qs * { box-sizing: border-box; }
+
+/* settings-page shell: nav rail + 800px capped content */
+.qs-settings { width: 1080px; display: flex; }
+.qs-rail {
+  width: 236px; flex: 0 0 236px; background: #21232e;
+  padding: 22px 14px; display: flex; flex-direction: column; gap: 3px;
+}
+.qs-rail .rail-title {
+  font-size: 19px; font-weight: 600; color: var(--d-on);
+  padding: 4px 12px 16px; letter-spacing: -.01em;
+}
+.qs-rail .rail-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; border-radius: 9px; font-size: 13.5px; color: var(--d-onvar);
+}
+.qs-rail .rail-item .ico { width: 17px; height: 17px; border-radius: 4px; background: #3a3d4d; flex: 0 0 17px; }
+.qs-rail .rail-item.on { background: var(--d-surfvar); color: var(--d-on); }
+.qs-rail .rail-item.on .ico { background: var(--d-primary); }
+.qs-rail .rail-item.new { color: var(--d-on); }
+.qs-rail .rail-item.new .ico { background: var(--d-tertiary); }
+.qs-rail .rail-gap { height: 13px; }
+
+.qs-body { flex: 1; padding: 30px 34px 34px; min-width: 0; }
+.qs-h1 { font-size: 24px; font-weight: 600; letter-spacing: -.015em; margin-bottom: 4px; }
+.qs-sub { font-size: 13px; color: var(--d-onvar); }
+
+/* generic section block */
+.qs-sec { margin-top: 24px; }
+.qs-sec > .sec-label {
+  font-size: 11.5px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--d-outline); margin-bottom: 9px; font-weight: 600;
+}
+.qs-card {
+  background: var(--d-surfvar); border-radius: 14px; overflow: hidden;
+}
+.qs-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 13px 17px; border-bottom: 1px solid rgba(40,42,54,.55);
+}
+.qs-row:last-child { border-bottom: none; }
+.qs-row .r-ico {
+  width: 28px; height: 28px; border-radius: 8px; flex: 0 0 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 600;
+}
+.qs-row .r-main { flex: 1; min-width: 0; }
+.qs-row .r-title { font-size: 15px; color: var(--d-on); }
+.qs-row .r-sub { font-size: 12px; color: var(--d-onvar); margin-top: 2px; }
+.qs-row .r-val { font-size: 13px; color: var(--d-onvar); font-variant-numeric: tabular-nums; }
+
+.qs-btn {
+  font-family: var(--f-mono); font-size: 12.5px; font-weight: 500;
+  padding: 7px 15px; border-radius: 999px; white-space: nowrap;
+  background: var(--d-primary); color: var(--d-onprimary);
+}
+.qs-btn.ghost { background: transparent; color: var(--d-tertiary); box-shadow: inset 0 0 0 1px var(--d-outline); }
+
+/* severity pips — derived, never literal */
+.pip {
+  font-size: 11px; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
+  letter-spacing: .04em; font-weight: 500;
+}
+.pip.crit   { color: var(--d-error);     background: rgba(255,85,85,.17); }
+.pip.high   { color: #ff9d7a;            background: rgba(255,157,122,.15); }
+.pip.med    { color: var(--d-secondary); background: rgba(189,147,249,.17); }
+.pip.low    { color: var(--d-tertiary);  background: rgba(139,233,253,.14); }
+.pip.ok     { color: #6fe0a8;            background: rgba(111,224,168,.15); }
+.pip.absent { color: var(--d-onvar);     background: rgba(98,114,164,.22); }
+
+.ico-crit   { background: rgba(255,85,85,.2);      color: var(--d-error); }
+.ico-warn   { background: rgba(255,157,122,.18);   color: #ff9d7a; }
+.ico-ok     { background: rgba(111,224,168,.18);   color: #6fe0a8; }
+.ico-absent { background: rgba(98,114,164,.26);    color: var(--d-onvar); }
+.ico-scan   { background: rgba(139,233,253,.18);   color: var(--d-tertiary); }
+
+/* posture header (S2 / H1) */
+.posture {
+  border-radius: 16px; padding: 20px 22px; display: flex; align-items: center; gap: 20px;
+  background: linear-gradient(100deg, rgba(255,85,85,.16), rgba(255,121,198,.07));
+  box-shadow: inset 0 0 0 1px rgba(255,85,85,.3);
+}
+.posture .shield {
+  width: 54px; height: 54px; flex: 0 0 54px; border-radius: 16px;
+  background: rgba(255,85,85,.2); color: var(--d-error);
+  display: flex; align-items: center; justify-content: center; font-size: 25px;
+}
+.posture .p-main { flex: 1; min-width: 0; }
+.posture .p-title { font-size: 19px; font-weight: 600; color: var(--d-on); letter-spacing: -.01em; }
+.posture .p-sub { font-size: 12.5px; color: var(--d-onvar); margin-top: 3px; }
+.posture .p-counts { display: flex; gap: 8px; margin-top: 10px; }
+
+/* domain chips on a findings row */
+.chip {
+  font-size: 10.5px; padding: 1px 7px; border-radius: 4px;
+  background: rgba(98,114,164,.26); color: var(--d-onvar);
+  letter-spacing: .05em; text-transform: uppercase;
+}
+
+/* progress (running scan) */
+.qs-prog { height: 4px; border-radius: 999px; background: rgba(98,114,164,.32); overflow: hidden; margin-top: 9px; }
+.qs-prog > i { display: block; height: 100%; background: var(--d-tertiary); border-radius: 999px; }
+
+/* dashboard drawer (D1) */
+.qs-drawer { width: 760px; padding: 22px; }
+.qs-tabs { display: flex; gap: 5px; margin-bottom: 18px; }
+.qs-tab {
+  flex: 1; text-align: center; font-size: 12.5px; padding: 8px 4px;
+  border-radius: 10px; color: var(--d-onvar); background: rgba(68,71,90,.5);
+}
+.qs-tab.on { background: var(--d-primary); color: var(--d-onprimary); font-weight: 600; }
+.bento { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.bento .cell { background: var(--d-surfvar); border-radius: 16px; padding: 16px 17px; }
+.bento .cell.wide { grid-column: 1 / -1; }
+.bento .c-head { display: flex; align-items: center; gap: 9px; }
+.bento .c-name { font-size: 12.5px; color: var(--d-onvar); letter-spacing: .05em; text-transform: uppercase; }
+.bento .c-big { font-size: 27px; font-weight: 600; margin-top: 9px; letter-spacing: -.02em; line-height: 1.1; }
+.bento .c-note { font-size: 12px; color: var(--d-onvar); margin-top: 4px; }
+
+/* bar capsule (H1) */
+.qs-bar {
+  width: 1080px; height: 44px; background: var(--d-surface); border-radius: 14px;
+  display: flex; align-items: center; padding: 0 14px; gap: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.32);
+}
+.qs-bar .cap {
+  display: flex; align-items: center; gap: 8px; height: 30px;
+  padding: 0 13px; border-radius: 999px; background: var(--d-surfvar);
+  font-size: 12.5px; color: var(--d-onvar);
+}
+.qs-bar .cap.alert { background: rgba(255,85,85,.2); color: var(--d-error); box-shadow: inset 0 0 0 1px rgba(255,85,85,.4); }
+.qs-bar .cap.scanning { background: rgba(139,233,253,.16); color: var(--d-tertiary); box-shadow: inset 0 0 0 1px rgba(139,233,253,.34); }
+.qs-bar .spacer { flex: 1; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 7px; }
+
+.callout {
+  margin-top: 30px; border: 1px solid var(--rule); border-left: 3px solid var(--accent);
+  background: var(--paper-raised); border-radius: 3px; padding: 20px 24px;
+}
+.callout h4 { font-family: var(--f-display); font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.callout p { margin: 0; color: var(--ink-soft); font-size: 15px; }
+.callout p + p { margin-top: 11px; }
+
+.rec { border-left-color: var(--sev-ok); }
+.rec h4 { color: var(--sev-ok); }
+
+ol.asks { counter-reset: a; list-style: none; padding: 0; margin: 30px 0 0; }
+ol.asks li {
+  counter-increment: a; position: relative; padding: 0 0 20px 46px;
+  border-bottom: 1px solid var(--rule); margin-bottom: 20px;
+}
+ol.asks li:last-child { border-bottom: none; }
+ol.asks li::before {
+  content: counter(a); position: absolute; left: 0; top: 1px;
+  font-family: var(--f-mono); font-size: 12px; font-weight: 600;
+  color: var(--accent); background: var(--accent-wash);
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+ol.asks b { font-family: var(--f-display); font-size: 16.5px; }
+ol.asks p { margin: 5px 0 0; color: var(--ink-soft); font-size: 15px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+<header class="masthead">
+  <div class="eyebrow">Quick task 260827-np1 · design study</div>
+  <h1>Security Center Studies</h1>
+  <p class="lede">
+    Four ways to build virus scanning, vulnerability audit, network posture and device
+    health into the Quickshell shell. Every plate is drawn at true pixels in the live
+    dracula palette. No QML has been touched — this study ends at a decision.
+  </p>
+  <div class="stamp">
+    <span><b>Host</b> aorus · Arch + Hyprland</span>
+    <span><b>Theme</b> dracula</span>
+    <span><b>Shell font</b> FiraCode Nerd Font</span>
+    <span><b>Measured</b> 2026-08-27</span>
+  </div>
+</header>
+
+<!-- ══════════════════ CONSTRAINTS ══════════════════ -->
+<section class="section">
+  <div class="eyebrow">Measured first</div>
+  <h2>Five findings decide what is buildable</h2>
+  <p class="sub">
+    Each of these came from a command on this machine, not from inference. Two of them
+    change what the pane must show; one of them changes where the code is allowed to live.
+  </p>
+
+  <div class="findings">
+
+    <div class="finding">
+      <div class="num">01</div>
+      <div>
+        <h3>None of the scanners are installed — so “absent” is a state, not an error</h3>
+        <p>
+          Every capability this pane would report on is missing today. All four packages
+          are in official <code>extra</code>, so this is a pacman line in
+          <code>install.sh</code> — no AUR helper, no new mechanism.
+        </p>
+      </div>
+      <pre class="term">clamav      <b>NOT INSTALLED</b>   extra 1.5.3-1   30.65 MiB
+arch-audit  <b>NOT INSTALLED</b>   extra 0.2.0-5    1.91 MiB
+rkhunter    <b>NOT INSTALLED</b>   extra 1.4.6-4    0.22 MiB
+lynis       <b>NOT INSTALLED</b>   extra 3.1.7-1    0.26 MiB
+<i>smartmontools 7.5-1 · lm_sensors 3.6.2 · nftables 1.1.6  — present</i></pre>
+      <p class="grid-span" style="margin-top:14px">
+        On a fresh install — the project's whole reproducibility premise — every scanner
+        tile opens absent. <b>A design that only draws clean-or-threat is wrong on day
+        one.</b> Each capability needs a first-class “not installed, install it” state
+        carrying its own download size.
+      </p>
+    </div>
+
+    <div class="finding kills">
+      <div class="num">02</div>
+      <div>
+        <h3>A real scan outlives the page that started it</h3>
+        <p>
+          <code>UpdatesPage.qml</code>'s own header states the rule that kills the naive
+          build: <i>“a page is destroyed when the user navigates away
+          (<code>Pages.qml:_swapTo</code> destroys before incubating the next), so a
+          page-scoped Process's lifetime is naturally capped.”</i>
+        </p>
+      </div>
+      <p class="grid-span" style="margin-top:12px">
+        Every probe in the shell today is sub-second — <code>checkupdates</code>,
+        <code>paru -Qua</code>. A <code>clamscan</code> over a home directory runs for
+        <b>minutes</b>. A page-scoped <code>Process</code> is killed the instant you
+        navigate away, mid-scan, silently. This is the same class as the standing launcher
+        rule: work that must outlive its surface belongs on a <b>singleton</b>, never on a
+        component-scoped <code>Process</code>.
+      </p>
+      <p class="grid-span" style="margin-top:11px">
+        <b>This is the finding that separates the four plates.</b> The Security Center is
+        the first surface here that needs progress, cancel, and survive-navigation — so
+        “where is a running scan visible from?” is a layout question, not just an
+        architecture one.
+      </p>
+    </div>
+
+    <div class="finding kills">
+      <div class="num">03</div>
+      <div>
+        <h3>The host has no firewall running right now</h3>
+        <p>
+          The only ruleset present was created by Docker. Both packet-filter services are
+          disabled and neither front-end is installed.
+        </p>
+      </div>
+      <pre class="term">systemctl is-enabled nftables  -> <b>disabled</b>
+systemctl is-enabled iptables  -> <b>disabled</b>
+firewalld / ufw                -> <b>not-found</b>
+nft list ruleset               -> <i>table ip nat { chain DOCKER … }  (Docker's own)</i></pre>
+      <p class="grid-span" style="margin-top:14px">
+        This is a genuine finding the pane reports the first time it opens — not a
+        hypothetical used to fill a mockup. Every plate below shows it.
+      </p>
+    </div>
+
+    <div class="finding">
+      <div class="num">04</div>
+      <div>
+        <h3>SMART needs root; temperatures do not</h3>
+        <p>
+          Device enumeration and sensors are free; the actual health attributes are
+          privileged. Two escalation paths already exist in this repo.
+        </p>
+      </div>
+      <pre class="term">smartctl --scan       -> ok, 3 devices
+smartctl -H /dev/sda  -> <b>Permission denied</b>
+smartctl -H /dev/nvme0-> <b>Permission denied</b>
+sensors               -> ok  <i>(Tctl +53.9°C · nvme Composite +50.9°C)</i></pre>
+      <p class="grid-span" style="margin-top:14px">
+        <code>polkit-gnome-authentication-agent-1</code> is <b>already autostarted</b>
+        (<code>autostart.lua:191</code>), so <code>pkexec</code> pops a real GUI prompt.
+        Alternatively <code>smartd.service</code> ships with smartmontools and is currently
+        <b>disabled</b> — enabling it in <code>install.sh</code> puts SMART in the journal
+        with <b>zero runtime privilege in the shell</b>. Three disks to cover: one SATA
+        <span class="mono">ST2000DM008</span> and two <span class="mono">WD_BLACK SN850X</span>.
+      </p>
+    </div>
+
+    <div class="finding">
+      <div class="num">05</div>
+      <div>
+        <h3>The palette has <code>error</code> but no severity ramp</h3>
+        <p>
+          <code>Colours.qml</code> exposes 19 roles and not one of them is a warning or a
+          success. A CVE list needs four steps; an AV verdict needs two more.
+        </p>
+      </div>
+      <p class="grid-span" style="margin-top:12px">
+        And a repeat trap, already paid for once on the screensaver: the roles are
+        <code>property string</code>, so <code>.r/.g/.b</code> are <code>undefined</code>
+        and <code>Qt.rgba(role.r, …)</code> renders <b>pure black</b> at the right alpha.
+        Severity must be <b>derived</b> from the roles that exist —
+        <code>colour-lint</code> rejects hardcoded colours, so a literal ramp is not
+        available even as a shortcut.
+      </p>
+      <div class="grid-span ramp">
+        <div class="swatch" style="background:var(--sev-crit-bg);color:var(--sev-crit)">
+          <div class="lbl">Critical</div>
+          <div class="expr">Colours.error</div>
+        </div>
+        <div class="swatch" style="background:var(--sev-warn-bg);color:var(--sev-warn)">
+          <div class="lbl">High</div>
+          <div class="expr">Qt.tint(error, alpha(primary,.35))</div>
+        </div>
+        <div class="swatch" style="background:rgba(189,147,249,.18);color:#7c5cbf">
+          <div class="lbl">Medium</div>
+          <div class="expr">Colours.secondary</div>
+        </div>
+        <div class="swatch" style="background:rgba(139,233,253,.2);color:#2b7f92">
+          <div class="lbl">Low</div>
+          <div class="expr">Colours.tertiary</div>
+        </div>
+        <div class="swatch" style="background:var(--sev-absent-bg);color:var(--sev-absent)">
+          <div class="lbl">Absent</div>
+          <div class="expr">Colours.outline</div>
+        </div>
+      </div>
+      <p class="grid-span" style="margin-top:16px;font-size:14.5px;color:var(--ink-faint)">
+        One caveat worth stating before you pick: on dracula, <code>surfaceVariant</code>,
+        <code>primaryContainer</code> and <code>secondaryContainer</code> are
+        <b>byte-identical <span class="mono">#44475a</span></b>. There is exactly one
+        container tint above surface, so severity has to read from the <i>foreground</i>
+        and a thin rim — a tinted card back will not separate.
+      </p>
+    </div>
+
+  </div>
+</section>
+
+<!-- ══════════════════ PLATES ══════════════════ -->
+<section class="section">
+  <div class="eyebrow">The directions</div>
+  <h2>Four plates, one shared scale</h2>
+  <p class="sub">
+    Each plate is authored at true pixels and scaled once, so the numbers on the page are
+    the numbers in the code — and a 760-wide drawer visibly differs from an 800-wide
+    settings page. All four are drawn in <b>first-open state</b>: firewall down, scanners
+    absent, disks readable. That is what you would actually see today.
+  </p>
+
+  <!-- ── S1 ── -->
+  <article class="plate">
+    <div class="plate-head">
+      <span class="id">S1</span>
+      <h3>Four Sections</h3>
+    </div>
+    <p class="thesis">
+      A settings page that mirrors <code>UpdatesPage.qml</code> exactly: four
+      <code>SettingsSection</code> blocks, one per domain, built entirely from components
+      that already exist. The conservative build.
+    </p>
+
+    <div class="stage">
+      <div class="scalebar">
+        <span>Settings page · 1080 × 908 true px</span>
+        <span>rail 236 · content capped 800 (PageBase.qml:46)</span>
+        <span>scale 0.72</span>
+      </div>
+      <div class="shrinkbox"><div class="shrink" data-scale=".72">
+        <div class="qs qs-settings">
+          <nav class="qs-rail">
+            <div class="rail-title">Settings</div>
+            <div class="rail-item"><span class="ico"></span>Appearance</div>
+            <div class="rail-item"><span class="ico"></span>Wallpaper</div>
+            <div class="rail-item"><span class="ico"></span>Bar</div>
+            <div class="rail-gap"></div>
+            <div class="rail-item"><span class="ico"></span>Audio</div>
+            <div class="rail-item"><span class="ico"></span>Network</div>
+            <div class="rail-item"><span class="ico"></span>Connected devices</div>
+            <div class="rail-gap"></div>
+            <div class="rail-item"><span class="ico"></span>Display</div>
+            <div class="rail-item"><span class="ico"></span>Input</div>
+            <div class="rail-gap"></div>
+            <div class="rail-item"><span class="ico"></span>Updates</div>
+            <div class="rail-item on"><span class="ico"></span>Security</div>
+            <div class="rail-item"><span class="ico"></span>About</div>
+          </nav>
+          <div class="qs-body">
+            <div class="qs-h1">Security</div>
+            <div class="qs-sub">Malware, vulnerabilities, network posture, device health</div>
+
+            <div class="qs-sec">
+              <div class="sec-label">Malware</div>
+              <div class="qs-card">
+                <div class="qs-row">
+                  <div class="r-ico ico-absent">◇</div>
+                  <div class="r-main">
+                    <div class="r-title">Virus scanner</div>
+                    <div class="r-sub">clamav is not installed · 30.7 MiB</div>
+                  </div>
+                  <div class="qs-btn">Install</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-absent">◇</div>
+                  <div class="r-main">
+                    <div class="r-title">Rootkit scan</div>
+                    <div class="r-sub">rkhunter is not installed · 0.2 MiB</div>
+                  </div>
+                  <div class="qs-btn">Install</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="qs-sec">
+              <div class="sec-label">Vulnerabilities</div>
+              <div class="qs-card">
+                <div class="qs-row">
+                  <div class="r-ico ico-absent">◇</div>
+                  <div class="r-main">
+                    <div class="r-title">Package CVE audit</div>
+                    <div class="r-sub">arch-audit is not installed · 1.9 MiB</div>
+                  </div>
+                  <div class="qs-btn">Install</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="qs-sec">
+              <div class="sec-label">Network</div>
+              <div class="qs-card">
+                <div class="qs-row">
+                  <div class="r-ico ico-crit">!</div>
+                  <div class="r-main">
+                    <div class="r-title">Firewall</div>
+                    <div class="r-sub">nftables.service disabled · no rules but Docker's</div>
+                  </div>
+                  <div class="qs-btn">Enable</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-ok">✓</div>
+                  <div class="r-main">
+                    <div class="r-title">Listening ports</div>
+                    <div class="r-sub">4 local-only · 0 exposed to LAN</div>
+                  </div>
+                  <div class="r-val">Review</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="qs-sec">
+              <div class="sec-label">Device health</div>
+              <div class="qs-card">
+                <div class="qs-row">
+                  <div class="r-ico ico-ok">✓</div>
+                  <div class="r-main">
+                    <div class="r-title">WD_BLACK SN850X 4TB</div>
+                    <div class="r-sub">nvme0n1 · 2% used · 50.9 °C</div>
+                  </div>
+                  <div class="r-val">PASSED</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-ok">✓</div>
+                  <div class="r-main">
+                    <div class="r-title">WD_BLACK SN850X 2TB</div>
+                    <div class="r-sub">nvme1n1 · 1% used · 48.2 °C</div>
+                  </div>
+                  <div class="r-val">PASSED</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-warn">△</div>
+                  <div class="r-main">
+                    <div class="r-title">ST2000DM008-2FR102</div>
+                    <div class="r-sub">sda · 14 216 h powered on · 1 reallocated sector</div>
+                  </div>
+                  <div class="r-val">PASSED</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="plate-notes">
+      <div>
+        <h4>What it buys</h4>
+        <ul>
+          <li>Zero new primitives — <code>PageBase</code>, <code>SettingsSection</code>, <code>InfoRow</code> and <code>NavRow</code> already do all of it.</li>
+          <li>One new page, one <code>PageRegistry</code> row, one <code>qmldir</code> line. Nothing else in the shell is touched.</li>
+          <li>The install affordance sits exactly where the missing capability is, with its real download size.</li>
+          <li>Structurally identical to a page that already ships and works, so the failure modes are known.</li>
+        </ul>
+      </div>
+      <div class="cost">
+        <h4>What it costs</h4>
+        <ul>
+          <li><b>No verdict.</b> You must read four sections to learn whether anything is wrong — the one question the pane exists to answer.</li>
+          <li>Walks straight into finding 02: a scan started here dies when you click any other rail item.</li>
+          <li>On a fresh install the top half is three grey “Install” rows, which reads as broken rather than as ready.</li>
+          <li>Severity has nowhere to aggregate, so a critical firewall finding looks the same weight as a disk temperature.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
+  <!-- ── S2 ── -->
+  <article class="plate">
+    <div class="plate-head">
+      <span class="id">S2</span>
+      <h3>Posture &amp; Findings</h3>
+    </div>
+    <p class="thesis">
+      The same page, inverted: one verdict header, then a single severity-ordered feed in
+      which every finding carries a domain chip. “No firewall” and “3 CVEs in openssl”
+      compete on one list, worst first.
+    </p>
+
+    <div class="stage">
+      <div class="scalebar">
+        <span>Settings page · 1080 × 872 true px</span>
+        <span>posture header 54px shield · rows 60px</span>
+        <span>scale 0.72</span>
+      </div>
+      <div class="shrinkbox"><div class="shrink" data-scale=".72">
+        <div class="qs qs-settings">
+          <nav class="qs-rail">
+            <div class="rail-title">Settings</div>
+            <div class="rail-item"><span class="ico"></span>Appearance</div>
+            <div class="rail-item"><span class="ico"></span>Wallpaper</div>
+            <div class="rail-item"><span class="ico"></span>Bar</div>
+            <div class="rail-gap"></div>
+            <div class="rail-item"><span class="ico"></span>Audio</div>
+            <div class="rail-item"><span class="ico"></span>Network</div>
+            <div class="rail-item"><span class="ico"></span>Connected devices</div>
+            <div class="rail-gap"></div>
+            <div class="rail-item"><span class="ico"></span>Display</div>
+            <div class="rail-item"><span class="ico"></span>Input</div>
+            <div class="rail-gap"></div>
+            <div class="rail-item"><span class="ico"></span>Updates</div>
+            <div class="rail-item on"><span class="ico"></span>Security</div>
+            <div class="rail-item"><span class="ico"></span>About</div>
+          </nav>
+          <div class="qs-body">
+            <div class="qs-h1">Security</div>
+            <div class="qs-sub">Last full check 4 minutes ago</div>
+
+            <div style="margin-top:20px">
+              <div class="posture">
+                <div class="shield">!</div>
+                <div class="p-main">
+                  <div class="p-title">1 issue needs attention</div>
+                  <div class="p-sub">Everything else on this machine is either healthy or not yet scanned.</div>
+                  <div class="p-counts">
+                    <span class="pip crit">1 critical</span>
+                    <span class="pip med">1 advisory</span>
+                    <span class="pip ok">3 healthy</span>
+                    <span class="pip absent">3 not scanned</span>
+                  </div>
+                </div>
+                <div class="qs-btn">Scan all</div>
+              </div>
+            </div>
+
+            <div class="qs-sec">
+              <div class="sec-label">Findings · worst first</div>
+              <div class="qs-card">
+                <div class="qs-row">
+                  <div class="r-ico ico-crit">!</div>
+                  <div class="r-main">
+                    <div class="r-title">No firewall is running</div>
+                    <div class="r-sub"><span class="chip">Network</span> &nbsp;nftables.service is disabled; the only rules loaded belong to Docker</div>
+                  </div>
+                  <div class="qs-btn">Enable</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-warn">△</div>
+                  <div class="r-main">
+                    <div class="r-title">Ageing drive — 1 reallocated sector</div>
+                    <div class="r-sub"><span class="chip">Devices</span> &nbsp;ST2000DM008 · 14 216 h powered on · still reports PASSED</div>
+                  </div>
+                  <div class="r-val">Details</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-absent">◇</div>
+                  <div class="r-main">
+                    <div class="r-title">Virus scanning is unavailable</div>
+                    <div class="r-sub"><span class="chip">Malware</span> &nbsp;clamav is not installed · 30.7 MiB from extra</div>
+                  </div>
+                  <div class="qs-btn ghost">Install</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-absent">◇</div>
+                  <div class="r-main">
+                    <div class="r-title">CVE audit is unavailable</div>
+                    <div class="r-sub"><span class="chip">Vulns</span> &nbsp;arch-audit is not installed · 1.9 MiB from extra</div>
+                  </div>
+                  <div class="qs-btn ghost">Install</div>
+                </div>
+                <div class="qs-row">
+                  <div class="r-ico ico-ok">✓</div>
+                  <div class="r-main">
+                    <div class="r-title">3 healthy items</div>
+                    <div class="r-sub"><span class="chip">Devices</span><span class="chip">Network</span> &nbsp;2 NVMe drives passing · no ports exposed to the LAN</div>
+                  </div>
+                  <div class="r-val">Show</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="plate-notes">
+      <div>
+        <h4>What it buys</h4>
+        <ul>
+          <li><b>Answers the question in one line.</b> “1 issue needs attention” is legible before you read anything else.</li>
+          <li>Absent tools stop reading as breakage — they become one low-priority finding among others, with the fix attached.</li>
+          <li>Severity is expressed as ordering, which survives finding 05: no ramp is strictly required for the list to be correct.</li>
+          <li>Collapsing three healthy items into one row keeps a good machine from looking empty.</li>
+        </ul>
+      </div>
+      <div class="cost">
+        <h4>What it costs</h4>
+        <ul>
+          <li>Loses the domain map — you can no longer ask “how are my disks?” without filtering.</li>
+          <li>Still a settings page, so finding 02 is unsolved: a running scan is invisible the moment you navigate away.</li>
+          <li>Needs a real merge-and-rank step across four unrelated data sources; that ranking is new logic with no precedent in the repo.</li>
+          <li>The severity ramp is genuinely wanted here even if not required, and it does not exist yet.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
+  <!-- ── D1 ── -->
+  <article class="plate">
+    <div class="plate-head">
+      <span class="id">D1</span>
+      <h3>Fifth Dashboard Tab</h3>
+    </div>
+    <p class="thesis">
+      Security as a bento tab beside Dashboard, Performance, Media and Weather — where you
+      already look, at a glance, without opening settings at all.
+    </p>
+
+    <div class="stage">
+      <div class="scalebar">
+        <span>Dashboard drawer · 760 × 556 true px</span>
+        <span>760 = Design.qml:891 dashboardMinWidth — the drawer's floor</span>
+        <span>scale 0.72</span>
+      </div>
+      <div class="shrinkbox"><div class="shrink" data-scale=".72">
+        <div class="qs qs-drawer">
+          <div class="qs-tabs">
+            <div class="qs-tab">Dashboard</div>
+            <div class="qs-tab">Performance</div>
+            <div class="qs-tab">Media</div>
+            <div class="qs-tab">Weather</div>
+            <div class="qs-tab on">Security</div>
+          </div>
+          <div class="bento">
+            <div class="cell wide" style="box-shadow:inset 0 0 0 1px rgba(255,85,85,.34)">
+              <div class="c-head">
+                <span class="dot" style="background:var(--d-error)"></span>
+                <span class="c-name">Posture</span>
+                <span style="flex:1"></span>
+                <span class="pip crit">1 critical</span>
+                <span class="pip absent">3 not scanned</span>
+              </div>
+              <div class="c-big" style="color:var(--d-error)">Firewall is off</div>
+              <div class="c-note">nftables.service disabled · only Docker's rules are loaded</div>
+            </div>
+
+            <div class="cell">
+              <div class="c-head">
+                <span class="dot" style="background:var(--d-outline)"></span>
+                <span class="c-name">Malware</span>
+              </div>
+              <div class="c-big" style="color:var(--d-onvar)">Not set up</div>
+              <div class="c-note">clamav absent · install 30.7 MiB</div>
+            </div>
+
+            <div class="cell">
+              <div class="c-head">
+                <span class="dot" style="background:var(--d-outline)"></span>
+                <span class="c-name">Vulnerabilities</span>
+              </div>
+              <div class="c-big" style="color:var(--d-onvar)">Not set up</div>
+              <div class="c-note">arch-audit absent · install 1.9 MiB</div>
+            </div>
+
+            <div class="cell">
+              <div class="c-head">
+                <span class="dot" style="background:#6fe0a8"></span>
+                <span class="c-name">Disks</span>
+              </div>
+              <div class="c-big">3 <span style="font-size:15px;color:var(--d-onvar);font-weight:400">passing</span></div>
+              <div class="c-note">1 ageing · warmest 50.9 °C</div>
+            </div>
+
+            <div class="cell">
+              <div class="c-head">
+                <span class="dot" style="background:#6fe0a8"></span>
+                <span class="c-name">Exposure</span>
+              </div>
+              <div class="c-big">0 <span style="font-size:15px;color:var(--d-onvar);font-weight:400">ports open</span></div>
+              <div class="c-note">4 services bound to loopback only</div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="plate-notes">
+      <div>
+        <h4>What it buys</h4>
+        <ul>
+          <li>Zero navigation. Posture is one Super+D away, in the surface you already open daily.</li>
+          <li>The bento maps cleanly onto four domains plus a verdict, and reuses <code>DashBento.qml</code>'s existing cell language.</li>
+          <li>Glance-legible: dot colour plus one number per cell answers “anything wrong?” without reading.</li>
+        </ul>
+      </div>
+      <div class="cost">
+        <h4>What it costs</h4>
+        <ul>
+          <li><b>Worsens a known defect.</b> The drawer already animates width between tabs because each tab declares its own <code>contentWidth</code>; a fifth width makes the 280px jump worse, not better.</li>
+          <li>Finding 02 at its sharpest — the drawer closes on focus loss, so a minutes-long scan started here is the most fragile placement available.</li>
+          <li>No room for detail. A CVE list, a quarantine table and per-drive SMART attributes cannot live in a 760-wide bento cell, so this needs a settings page anyway.</li>
+          <li>A fifth tab pushes the tab strip toward crowding at the drawer's 760 floor.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+
+  <!-- ── H1 ── -->
+  <article class="plate">
+    <div class="plate-head">
+      <span class="id">H1</span>
+      <h3>Capsule &amp; Page</h3>
+    </div>
+    <p class="thesis">
+      Split by job. A singleton owns the scans and a bar capsule reports them from
+      anywhere; the settings page is where you read results and act. The only direction
+      that actually answers finding 02.
+    </p>
+
+    <div class="stage">
+      <div class="scalebar">
+        <span>Bar capsule 1080 × 44 · Settings page 1080 × 872 true px</span>
+        <span>capsule states: idle / alert / scanning</span>
+        <span>scale 0.72</span>
+      </div>
+      <div class="shrinkbox"><div class="shrink" data-scale=".72">
+        <div style="display:flex;flex-direction:column;gap:20px">
+
+          <div class="qs-bar">
+            <div class="cap"><span class="dot" style="background:var(--d-tertiary)"></span>Workspace 2</div>
+            <div class="spacer"></div>
+            <div class="cap scanning">
+              <span class="dot" style="background:var(--d-tertiary)"></span>
+              Scanning&nbsp; 41%
+            </div>
+            <div class="cap alert">
+              <span class="dot" style="background:var(--d-error)"></span>
+              1
+            </div>
+            <div class="cap">21:04</div>
+          </div>
+
+          <div class="qs qs-settings">
+            <nav class="qs-rail">
+              <div class="rail-title">Settings</div>
+              <div class="rail-item"><span class="ico"></span>Appearance</div>
+              <div class="rail-item"><span class="ico"></span>Wallpaper</div>
+              <div class="rail-item"><span class="ico"></span>Bar</div>
+              <div class="rail-gap"></div>
+              <div class="rail-item"><span class="ico"></span>Audio</div>
+              <div class="rail-item"><span class="ico"></span>Network</div>
+              <div class="rail-item"><span class="ico"></span>Connected devices</div>
+              <div class="rail-gap"></div>
+              <div class="rail-item"><span class="ico"></span>Display</div>
+              <div class="rail-item"><span class="ico"></span>Input</div>
+              <div class="rail-gap"></div>
+              <div class="rail-item"><span class="ico"></span>Updates</div>
+              <div class="rail-item on"><span class="ico"></span>Security</div>
+              <div class="rail-item"><span class="ico"></span>About</div>
+            </nav>
+            <div class="qs-body">
+              <div class="qs-h1">Security</div>
+              <div class="qs-sub">Scanning home directory — you can leave this page</div>
+
+              <div style="margin-top:20px">
+                <div class="posture">
+                  <div class="shield">!</div>
+                  <div class="p-main">
+                    <div class="p-title">1 issue needs attention</div>
+                    <div class="p-sub">Virus scan running · 41% · 18 402 files · est. 2 min left</div>
+                    <div class="qs-prog"><i style="width:41%"></i></div>
+                  </div>
+                  <div class="qs-btn ghost">Cancel</div>
+                </div>
+              </div>
+
+              <div class="qs-sec">
+                <div class="sec-label">Findings · worst first</div>
+                <div class="qs-card">
+                  <div class="qs-row">
+                    <div class="r-ico ico-crit">!</div>
+                    <div class="r-main">
+                      <div class="r-title">No firewall is running</div>
+                      <div class="r-sub"><span class="chip">Network</span> &nbsp;nftables.service is disabled; the only rules loaded belong to Docker</div>
+                    </div>
+                    <div class="qs-btn">Enable</div>
+                  </div>
+                  <div class="qs-row">
+                    <div class="r-ico ico-scan">◐</div>
+                    <div class="r-main">
+                      <div class="r-title">Virus scan in progress</div>
+                      <div class="r-sub"><span class="chip">Malware</span> &nbsp;0 threats so far · signatures updated today</div>
+                    </div>
+                    <div class="r-val">41%</div>
+                  </div>
+                  <div class="qs-row">
+                    <div class="r-ico ico-warn">△</div>
+                    <div class="r-main">
+                      <div class="r-title">Ageing drive — 1 reallocated sector</div>
+                      <div class="r-sub"><span class="chip">Devices</span> &nbsp;ST2000DM008 · 14 216 h powered on · still reports PASSED</div>
+                    </div>
+                    <div class="r-val">Details</div>
+                  </div>
+                  <div class="qs-row">
+                    <div class="r-ico ico-absent">◇</div>
+                    <div class="r-main">
+                      <div class="r-title">CVE audit is unavailable</div>
+                      <div class="r-sub"><span class="chip">Vulns</span> &nbsp;arch-audit is not installed · 1.9 MiB from extra</div>
+                    </div>
+                    <div class="qs-btn ghost">Install</div>
+                  </div>
+                  <div class="qs-row">
+                    <div class="r-ico ico-ok">✓</div>
+                    <div class="r-main">
+                      <div class="r-title">3 healthy items</div>
+                      <div class="r-sub"><span class="chip">Devices</span><span class="chip">Network</span> &nbsp;2 NVMe drives passing · no ports exposed to the LAN</div>
+                    </div>
+                    <div class="r-val">Show</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div></div>
+    </div>
+
+    <div class="plate-notes">
+      <div>
+        <h4>What it buys</h4>
+        <ul>
+          <li><b>Solves finding 02 by construction.</b> The scan lives on a singleton, so navigating away — or closing settings entirely — cannot kill it.</li>
+          <li>A running scan stays visible from anywhere in the session, which is the only way a minutes-long job is honest about itself.</li>
+          <li>The capsule carries posture at all times, so you get D1's glanceability without a fifth drawer tab or a fifth content width.</li>
+          <li>The page keeps S2's verdict-first ordering and has full width for detail — CVE lists, quarantine, per-drive attributes.</li>
+        </ul>
+      </div>
+      <div class="cost">
+        <h4>What it costs</h4>
+        <ul>
+          <li>The most work of the four: a new singleton, a new bar capsule, a new page, plus <code>install.sh</code> and prefs.</li>
+          <li>Touches <code>Bar.qml</code>, which nothing else in this task would otherwise need to.</li>
+          <li>Needs a capsule visibility rule — a permanent security chip on a healthy machine is clutter, so it has to know when to hide.</li>
+          <li>Capsule state is the one thing here that cannot be verified from an agent shell; it needs an operator look.</li>
+        </ul>
+      </div>
+    </div>
+  </article>
+</section>
+
+<!-- ══════════════════ COMPARISON ══════════════════ -->
+<section class="section">
+  <div class="eyebrow">Side by side</div>
+  <h2>How the four answer the findings</h2>
+  <p class="sub">
+    Findings 02 and 03 are the ones that discriminate. Everything else is work, not risk.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>&nbsp;</th>
+          <th>S1 · Four Sections</th>
+          <th>S2 · Posture &amp; Findings</th>
+          <th>D1 · Dashboard Tab</th>
+          <th>H1 · Capsule &amp; Page</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Answers “am I OK?” at a glance</b></td>
+          <td><span class="tag crit">no</span></td>
+          <td><span class="tag ok">yes</span></td>
+          <td><span class="tag ok">yes</span></td>
+          <td><span class="tag ok">yes</span></td>
+        </tr>
+        <tr>
+          <td><b>Scan survives navigation <span class="n">(02)</span></b></td>
+          <td><span class="tag crit">no</span></td>
+          <td><span class="tag crit">no</span></td>
+          <td><span class="tag crit">worst</span></td>
+          <td><span class="tag ok">by design</span></td>
+        </tr>
+        <tr>
+          <td><b>Room for detail (CVE list, SMART attrs)</b></td>
+          <td><span class="tag ok">yes</span></td>
+          <td><span class="tag ok">yes</span></td>
+          <td><span class="tag crit">no</span></td>
+          <td><span class="tag ok">yes</span></td>
+        </tr>
+        <tr>
+          <td><b>Fresh install reads as ready, not broken <span class="n">(01)</span></b></td>
+          <td><span class="tag crit">no</span></td>
+          <td><span class="tag ok">yes</span></td>
+          <td><span class="tag warn">partly</span></td>
+          <td><span class="tag ok">yes</span></td>
+        </tr>
+        <tr>
+          <td><b>Needs the severity ramp <span class="n">(05)</span></b></td>
+          <td><span class="tag ok">no</span></td>
+          <td><span class="tag warn">wanted</span></td>
+          <td><span class="tag warn">wanted</span></td>
+          <td><span class="tag warn">wanted</span></td>
+        </tr>
+        <tr>
+          <td><b>Worsens the drawer width jump</b></td>
+          <td><span class="tag ok">no</span></td>
+          <td><span class="tag ok">no</span></td>
+          <td><span class="tag crit">yes</span></td>
+          <td><span class="tag ok">no</span></td>
+        </tr>
+        <tr>
+          <td><b>Files touched</b></td>
+          <td class="num">3</td>
+          <td class="num">3</td>
+          <td class="num">4</td>
+          <td class="num">7</td>
+        </tr>
+        <tr>
+          <td><b>New singletons / primitives</b></td>
+          <td class="num">0</td>
+          <td class="num">1 backend</td>
+          <td class="num">1 backend</td>
+          <td class="num">1 backend, 1 capsule</td>
+        </tr>
+        <tr>
+          <td><b>Verifiable from an agent shell</b></td>
+          <td><span class="tag ok">fully</span></td>
+          <td><span class="tag ok">fully</span></td>
+          <td><span class="tag warn">no IPC verb</span></td>
+          <td><span class="tag warn">page yes, capsule no</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout rec">
+    <h4>Recommendation — build H1, in two stages</h4>
+    <p>
+      <b>Stage one is S2</b>: the settings page with the posture header and the ranked
+      findings feed, backed by a <code>SecurityBackend</code> singleton rather than
+      page-scoped processes. That single decision is what makes stage two additive instead
+      of a rewrite — the page reads the singleton, so the capsule can read the same
+      singleton later without the page changing at all.
+    </p>
+    <p>
+      <b>Stage two is the capsule</b>, once you have seen the page work. It is the half
+      that touches <code>Bar.qml</code> and the half I cannot verify without you, so it
+      should not ride along with the part that is verifiable.
+    </p>
+    <p>
+      D1 is the one I would not build. It is the most fragile home for a long scan, it has
+      no room for the detail this subject needs, and it makes an existing drawer defect
+      worse — and everything it offers, the capsule offers without a fifth tab.
+    </p>
+  </div>
+</section>
+
+<!-- ══════════════════ ASKS ══════════════════ -->
+<section class="section">
+  <div class="eyebrow">Before I write QML</div>
+  <h2>Four things only you can decide</h2>
+
+  <ol class="asks">
+    <li>
+      <b>Which plate — and do you want it staged?</b>
+      <p>
+        My recommendation is H1 built as S2 first. Picking S2 alone is a complete,
+        shippable answer; picking H1 commits to the capsule as well.
+      </p>
+    </li>
+    <li>
+      <b>Which scanners go into <code>install.sh</code>?</b>
+      <p>
+        <code>arch-audit</code> (1.9 MiB) and <code>smartmontools</code> (already present)
+        are cheap and I would default them on. <code>clamav</code> is 30.7 MiB plus a
+        signature database and a daily <code>freshclam</code> — real weight on every fresh
+        install. <code>rkhunter</code> and <code>lynis</code> are optional extras. Say
+        which set, and whether they should be installed by default or offered from the page.
+      </p>
+    </li>
+    <li>
+      <b>How should SMART get its privilege?</b>
+      <p>
+        Enabling <code>smartd.service</code> in <code>install.sh</code> means zero
+        privilege in the shell — the data comes from the journal, and it works on a fresh
+        machine with no prompts. <code>pkexec</code> means a GUI password prompt every
+        time you open the page, using the polkit agent that is already running. I lean
+        <code>smartd</code>; it is the only one that stays true to the reproducibility
+        constraint.
+      </p>
+    </li>
+    <li>
+      <b>May the page act, or only report?</b>
+      <p>
+        “Enable firewall” and “Install clamav” are both privileged, state-changing actions
+        on your live system. I can build them as real buttons, or the page can name the
+        exact command and let you run it. Nothing here decides itself — a security pane
+        that silently changes your firewall is worse than one that tells you to.
+      </p>
+    </li>
+  </ol>
+
+  <div class="callout">
+    <h4>What this study is not</h4>
+    <p>
+      Nothing has been installed and no QML has been written. The four packages are still
+      absent, <code>nftables.service</code> is still disabled, and the shell is untouched.
+      The mockups are HTML drawn to the shell's measurements — they are a proposal, not a
+      screenshot of anything running.
+    </p>
+  </div>
+</section>
+
+</div>
+
+<script>
+// Scale each plate to the shared factor and give its wrapper the correct
+// height, measured rather than hand-computed. Re-measures once webfonts land
+// and on any resize, so a late font swap cannot leave a gap or a clipped edge.
+(function () {
+  var plates = Array.prototype.slice.call(document.querySelectorAll('.shrink'));
+
+  function fit() {
+    plates.forEach(function (el) {
+      var s = parseFloat(el.dataset.scale) || 1;
+      el.style.transform = 'scale(' + s + ')';
+      var box = el.parentElement;
+      var h = Math.ceil(el.offsetHeight * s) + 'px';
+      var w = Math.ceil(el.offsetWidth * s) + 'px';
+      // Write only on change — an unconditional write inside a
+      // ResizeObserver callback is how these turn into feedback loops.
+      if (box.style.height !== h) box.style.height = h;
+      if (box.style.width !== w) box.style.width = w;
+    });
+  }
+
+  fit();
+  window.addEventListener('resize', fit);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(fit);
+    plates.forEach(function (el) { ro.observe(el); });
+  }
+})();
+</script>

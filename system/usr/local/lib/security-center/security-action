@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# security/bin/security-action — quick task 260827-np1.
+#
+# Installed to /usr/local/lib/security-center/security-action, owned
+# root:root mode 0755, and invoked ONLY as:
+#
+#     pkexec /usr/local/lib/security-center/security-action <VERB>
+#
+# ── THE SECURITY BOUNDARY IS THIS FILE'S ALLOWLIST ────────────────────
+# The operator chose "act and report" -- the Security Center runs real
+# privileged actions rather than printing commands to copy. That makes
+# THIS script the most security-sensitive thing the task ships: it is a
+# root shell entry point reachable from a GUI.
+#
+# So it obeys three rules, and any future edit must keep all three:
+#
+#   1. EXACTLY ONE argument, matched against a hardcoded `case`. There is
+#      no parameter, no package name, no path, no unit name taken from
+#      the caller. A verb either matches a literal branch or is refused.
+#      This is why `install-clamav` is its own verb instead of a generic
+#      `install <pkg>` -- a generic form would make the caller able to
+#      install anything, and the caller is a GUI.
+#   2. No argument is ever interpolated into a command. Grep this file
+#      for "$1" outside the `case` line: there are no other uses.
+#   3. It must never be writable by the invoking user. install.sh places
+#      it under /usr/local/lib (root-owned), NOT in the stow tree -- a
+#      pkexec target inside a user-writable dotfiles directory is a
+#      local privilege escalation, not a feature.
+#
+# Every branch is idempotent and every state-changing branch is
+# reversible by another branch, because a security pane that can only
+# turn things on is a trap.
+set -euo pipefail
+
+RULES=/etc/nftables.conf
+
+usage() {
+  cat >&2 <<'USAGE'
+security-action — privileged actions for the Quickshell Security Center.
+
+Verbs:
+  firewall-enable      load /etc/nftables.conf and enable nftables.service
+  firewall-disable     stop and disable nftables.service
+  firewall-check       validate /etc/nftables.conf without loading it
+  install-clamav       pacman -S clamav, then enable freshclam
+  install-arch-audit   pacman -S arch-audit
+  install-rkhunter     pacman -S rkhunter
+  install-lynis        pacman -S lynis
+  signatures-update    run freshclam once
+  smart-refresh        run smart-snapshot.service now
+USAGE
+  exit 64
+}
+
+[ $# -eq 1 ] || usage
+
+case "$1" in
+
+  firewall-check)
+    # -c is a dry run: parse and check, never load. Run this before
+    # enable so a broken ruleset is a refusal, not a lockout.
+    exec nft -c -f "$RULES"
+    ;;
+
+  firewall-enable)
+    if [ ! -f "$RULES" ]; then
+      echo "security-action: $RULES is missing; run install.sh" >&2
+      exit 1
+    fi
+    # Validate BEFORE loading. Loading a ruleset with `input policy drop`
+    # and a syntax error partway through is how a machine loses its
+    # network mid-command.
+    if ! nft -c -f "$RULES"; then
+      echo "security-action: $RULES failed validation; refusing to load" >&2
+      exit 1
+    fi
+    systemctl enable --now nftables.service
+    ;;
+
+  firewall-disable)
+    systemctl disable --now nftables.service
+    # `nftables.service` stopping does not by itself flush a loaded
+    # table on every version, so flush explicitly -- otherwise "disabled"
+    # in the UI and "still filtering" on the host disagree, and the
+    # operator debugs a firewall they were told was off.
+    nft flush ruleset 2>/dev/null || true
+    # Docker rebuilds its own chains on demand, but nudging it means the
+    # container networks come back without a manual restart.
+    systemctl is-active --quiet docker && systemctl restart docker || true
+    ;;
+
+  install-clamav)
+    pacman -S --needed --noconfirm clamav
+    # A clamav with no signature database silently scans nothing and
+    # reports clean -- the worst possible failure for this pane. Fetch
+    # signatures once, then keep them fresh.
+    freshclam || true
+    systemctl enable --now clamav-freshclam.service || true
+    ;;
+
+  install-arch-audit)
+    pacman -S --needed --noconfirm arch-audit
+    ;;
+
+  install-rkhunter)
+    pacman -S --needed --noconfirm rkhunter
+    rkhunter --propupd --nocolors >/dev/null 2>&1 || true
+    ;;
+
+  install-lynis)
+    pacman -S --needed --noconfirm lynis
+    ;;
+
+  signatures-update)
+    freshclam
+    ;;
+
+  smart-refresh)
+    systemctl start smart-snapshot.service
+    ;;
+
+  *)
+    usage
+    ;;
+esac
