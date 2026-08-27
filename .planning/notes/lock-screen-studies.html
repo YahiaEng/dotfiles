@@ -1,0 +1,1208 @@
+<title>Lock Screen Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Public+Sans:ital,wght@0,300..700;1,400&family=Fira+Code:wght@300..700&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────
+   TOKENS — light is the complete base set
+   ───────────────────────────────────────────────────────── */
+:root {
+  /* page chrome — cool neutrals biased toward the desktop's violet */
+  --ground:      #f4f4f7;
+  --raised:      #ffffff;
+  --sunken:      #eaeaf0;
+  --ink:         #1b1c24;
+  --ink-soft:    #4d4f60;
+  --ink-faint:   #7b7e92;
+  --rule:        #d9d9e3;
+  --rule-strong: #bcbcca;
+
+  --accent:      #7b3fa8;   /* violet, from the desktop's #bd93f9 pulled to work on paper */
+  --accent-soft: #f0e6f8;
+  --accent-ink:  #ffffff;
+
+  --yes:         #1d7a4f;
+  --yes-soft:    #e2f4ea;
+  --warn:        #9a5b00;
+  --warn-soft:   #fdf0dc;
+  --stop:        #ad2b2b;
+  --stop-soft:   #fbe6e6;
+
+  --shadow:      0 1px 2px rgba(27,28,36,.06), 0 8px 24px -12px rgba(27,28,36,.18);
+  --shadow-lift: 0 2px 4px rgba(27,28,36,.08), 0 20px 44px -18px rgba(27,28,36,.26);
+
+  /* type */
+  --display: "Bricolage Grotesque", "Trebuchet MS", sans-serif;
+  --body:    "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --mono:    "Fira Code", ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* ── mockup palette — FIXED in both themes.
+        These are the live Dracula values read from
+        ~/.local/state/theme/palette.json. A mockup is a photograph of a
+        dark screen; it must not invert when the page theme flips. ── */
+  --d-surface:   #282a36;
+  --d-variant:   #44475a;
+  --d-ink:       #f8f8f2;
+  --d-muted:     #bfbfbf;
+  --d-primary:   #ff79c6;
+  --d-secondary: #bd93f9;
+  --d-tertiary:  #8be9fd;
+  --d-outline:   #6272a4;
+  --d-error:     #ff5555;
+  --d-deep:      #15161d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:      #16171e;
+    --raised:      #1e2028;
+    --sunken:      #101117;
+    --ink:         #ececf2;
+    --ink-soft:    #a8aabb;
+    --ink-faint:   #71748a;
+    --rule:        #2c2e3a;
+    --rule-strong: #3d4052;
+
+    --accent:      #c9a4f0;
+    --accent-soft: #2a2140;
+    --accent-ink:  #16171e;
+
+    --yes:         #6ddba0;
+    --yes-soft:    #16301f;
+    --warn:        #e8b45f;
+    --warn-soft:   #33260f;
+    --stop:        #ff8a8a;
+    --stop-soft:   #3a1c1c;
+
+    --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+    --shadow-lift: 0 2px 4px rgba(0,0,0,.45), 0 20px 44px -18px rgba(0,0,0,.7);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:      #16171e;
+  --raised:      #1e2028;
+  --sunken:      #101117;
+  --ink:         #ececf2;
+  --ink-soft:    #a8aabb;
+  --ink-faint:   #71748a;
+  --rule:        #2c2e3a;
+  --rule-strong: #3d4052;
+
+  --accent:      #c9a4f0;
+  --accent-soft: #2a2140;
+  --accent-ink:  #16171e;
+
+  --yes:         #6ddba0;
+  --yes-soft:    #16301f;
+  --warn:        #e8b45f;
+  --warn-soft:   #33260f;
+  --stop:        #ff8a8a;
+  --stop-soft:   #3a1c1c;
+
+  --shadow:      0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.6);
+  --shadow-lift: 0 2px 4px rgba(0,0,0,.45), 0 20px 44px -18px rgba(0,0,0,.7);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 28px 120px;
+}
+
+/* ── masthead ───────────────────────────────────────────── */
+.masthead {
+  padding: 72px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+.eyebrow b { color: var(--accent); font-weight: 600; }
+h1 {
+  font-family: var(--display);
+  font-optical-sizing: auto;
+  font-weight: 700;
+  font-size: clamp(2.6rem, 6.2vw, 4.4rem);
+  line-height: .98;
+  letter-spacing: -.028em;
+  margin: 0;
+  text-wrap: balance;
+}
+.standfirst {
+  font-size: 1.16rem;
+  line-height: 1.62;
+  color: var(--ink-soft);
+  max-width: 62ch;
+  margin: 0;
+}
+.standfirst strong { color: var(--ink); font-weight: 600; }
+
+/* ── verdict ────────────────────────────────────────────── */
+.verdict {
+  margin: 44px 0 0;
+  border: 1px solid var(--rule);
+  border-left: 4px solid var(--yes);
+  border-radius: 4px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  padding: 28px 32px;
+  display: grid;
+  gap: 14px;
+}
+.verdict-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.verdict-head .tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--yes);
+  background: var(--yes-soft);
+  border-radius: 3px;
+  padding: 4px 9px;
+  font-weight: 600;
+}
+.verdict-head h2 {
+  font-family: var(--display);
+  font-size: 1.62rem;
+  font-weight: 600;
+  letter-spacing: -.018em;
+  margin: 0;
+  line-height: 1.2;
+}
+.verdict p { margin: 0; color: var(--ink-soft); max-width: 74ch; }
+.verdict p strong { color: var(--ink); font-weight: 600; }
+
+/* ── section furniture ──────────────────────────────────── */
+section { margin-top: 84px; }
+.sec-head {
+  border-top: 1px solid var(--rule-strong);
+  padding-top: 18px;
+  margin-bottom: 30px;
+  display: grid;
+  gap: 9px;
+}
+.sec-head .num {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .16em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.sec-head h2 {
+  font-family: var(--display);
+  font-size: clamp(1.5rem, 3.2vw, 2.05rem);
+  font-weight: 600;
+  letter-spacing: -.022em;
+  margin: 0;
+  line-height: 1.14;
+}
+.sec-head p { margin: 0; color: var(--ink-soft); max-width: 68ch; }
+
+/* ── evidence table ─────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 4px; background: var(--raised); }
+table { border-collapse: collapse; width: 100%; min-width: 660px; }
+th, td { text-align: left; padding: 13px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; font-size: .93rem; }
+th {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+  background: var(--sunken);
+}
+tr:last-child td { border-bottom: none; }
+td code, .ic {
+  font-family: var(--mono);
+  font-size: .85em;
+  background: var(--sunken);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+td.verdict-cell { white-space: nowrap; font-weight: 600; }
+.ok  { color: var(--yes); }
+.no  { color: var(--stop); }
+
+/* ── gallery ────────────────────────────────────────────── */
+.gallery { display: grid; gap: 56px; }
+
+.study {
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: var(--raised);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: box-shadow .22s ease, border-color .22s ease;
+}
+.study[data-picked="1"] { border-color: var(--accent); box-shadow: var(--shadow-lift); }
+
+.study-head {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 24px 26px 20px;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+.study-id {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .12em;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-radius: 3px;
+  padding: 5px 9px;
+  font-weight: 600;
+  flex: none;
+  margin-top: 4px;
+}
+.study-title { flex: 1 1 300px; display: grid; gap: 5px; min-width: 0; }
+.study-title h3 {
+  font-family: var(--display);
+  font-size: 1.42rem;
+  font-weight: 600;
+  letter-spacing: -.02em;
+  margin: 0;
+  line-height: 1.16;
+}
+.study-title p { margin: 0; color: var(--ink-soft); font-size: .95rem; max-width: 66ch; }
+
+/* pick control */
+.pick {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--ink-soft);
+  border: 1px solid var(--rule-strong);
+  background: var(--ground);
+  border-radius: 999px;
+  padding: 8px 15px 8px 12px;
+  cursor: pointer;
+  transition: all .18s ease;
+  margin-top: 2px;
+}
+.pick:hover { border-color: var(--accent); color: var(--ink); }
+.pick:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pick .box {
+  width: 15px; height: 15px;
+  border: 1.5px solid var(--rule-strong);
+  border-radius: 3px;
+  display: grid; place-items: center;
+  transition: all .18s ease;
+}
+.pick .box::after {
+  content: "";
+  width: 7px; height: 4px;
+  border-left: 2px solid var(--accent-ink);
+  border-bottom: 2px solid var(--accent-ink);
+  transform: rotate(-45deg) scale(0);
+  transition: transform .18s cubic-bezier(.2,.9,.3,1.3);
+  margin-top: -2px;
+}
+.study[data-picked="1"] .pick { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+.study[data-picked="1"] .pick .box { background: var(--accent); border-color: var(--accent); }
+.study[data-picked="1"] .pick .box::after { transform: rotate(-45deg) scale(1); }
+
+.study-body { padding: 26px; display: grid; gap: 22px; }
+
+/* ── the screen mockups ─────────────────────────────────── */
+.screen {
+  container-type: inline-size;
+  aspect-ratio: 2560 / 1440;
+  width: 100%;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  background: var(--d-deep);
+  border: 1px solid var(--rule-strong);
+  font-family: var(--mono);
+  color: var(--d-ink);
+  user-select: none;
+}
+/* the blurred wallpaper/screencopy ground every direction sits on */
+.wall {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 90% at 22% 18%, rgba(189,147,249,.34), transparent 58%),
+    radial-gradient(100% 80% at 82% 76%, rgba(255,121,198,.26), transparent 60%),
+    radial-gradient(90% 70% at 60% 40%, rgba(139,233,253,.13), transparent 62%),
+    linear-gradient(150deg, #23242f 0%, #1a1b23 52%, #101117 100%);
+}
+.wall::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: rgba(20,21,27,.42);
+}
+.scale-note {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .07em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+/* generic mockup atoms, all sized in cqw so 1cqw = 25.6 real px @2560w */
+.card {
+  position: absolute;
+  background: rgba(40,42,54,.86);
+  border: .08cqw solid rgba(98,114,164,.4);
+  border-radius: 1.1cqw;
+}
+.col { display: flex; flex-direction: column; }
+.tile {
+  background: rgba(68,71,90,.62);
+  border-radius: .8cqw;
+  padding: .9cqw 1.1cqw;
+  display: flex;
+  flex-direction: column;
+  gap: .45cqw;
+}
+.tile-label {
+  font-size: .62cqw;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+  color: var(--d-muted);
+}
+.tile-value { font-size: 1.05cqw; color: var(--d-ink); font-weight: 500; }
+.bar-track {
+  height: .34cqw;
+  background: rgba(98,114,164,.42);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.bar-fill { height: 100%; background: var(--d-secondary); border-radius: 999px; }
+.dot-row { display: flex; gap: .4cqw; align-items: center; }
+.avatar {
+  border-radius: 50%;
+  background: linear-gradient(150deg, var(--d-secondary), var(--d-primary));
+  border: .14cqw solid rgba(248,248,242,.22);
+}
+.field {
+  border-radius: 999px;
+  background: rgba(68,71,90,.9);
+  border: .1cqw solid var(--d-outline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5cqw;
+  color: var(--d-muted);
+}
+.field .caret {
+  width: .12cqw;
+  background: var(--d-primary);
+  border-radius: 1px;
+  animation: blink 1.15s steps(1) infinite;
+}
+@keyframes blink { 0%,49% { opacity: 1 } 50%,100% { opacity: 0 } }
+@media (prefers-reduced-motion: reduce) {
+  .field .caret { animation: none; }
+}
+
+/* clock treatments */
+.clock { display: flex; align-items: baseline; line-height: .82; font-weight: 700; letter-spacing: -.03em; }
+.clock .hh { color: var(--d-primary); }
+.clock .mm { color: var(--d-secondary); }
+
+/* ── notes grid under each mockup ───────────────────────── */
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(215px, 1fr)); gap: 18px; }
+.note { display: grid; gap: 5px; align-content: start; }
+.note h4 {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: .13em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0;
+  font-weight: 600;
+}
+.note p { margin: 0; font-size: .9rem; color: var(--ink-soft); line-height: 1.55; }
+.note p strong { color: var(--ink); font-weight: 600; }
+
+.effort {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; font-weight: 600;
+}
+.pips { display: inline-flex; gap: 3px; }
+.pip { width: 7px; height: 7px; border-radius: 2px; background: var(--rule-strong); }
+.pip.on { background: var(--accent); }
+
+/* ── risk cards ─────────────────────────────────────────── */
+.risks { display: grid; gap: 16px; }
+.risk {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--warn);
+  border-radius: 4px;
+  background: var(--raised);
+  padding: 20px 24px;
+  display: grid;
+  gap: 8px;
+}
+.risk.hard { border-left-color: var(--stop); }
+.risk h3 {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -.012em;
+}
+.risk p { margin: 0; color: var(--ink-soft); font-size: .94rem; max-width: 76ch; }
+.risk p strong { color: var(--ink); font-weight: 600; }
+.risk .sev {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .14em;
+  text-transform: uppercase; font-weight: 600;
+  color: var(--warn); background: var(--warn-soft);
+  border-radius: 3px; padding: 3px 8px; justify-self: start;
+}
+.risk.hard .sev { color: var(--stop); background: var(--stop-soft); }
+
+/* ── picks summary (sticky) ─────────────────────────────── */
+.summary {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  margin-top: 64px;
+  background: var(--raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: 5px;
+  box-shadow: var(--shadow-lift);
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.summary .lab {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
+}
+.summary .val {
+  font-family: var(--display); font-size: 1.05rem; font-weight: 600;
+  color: var(--ink); flex: 1 1 240px; letter-spacing: -.01em;
+}
+.summary .val.none { color: var(--ink-faint); font-weight: 400; font-family: var(--body); font-size: .95rem; }
+.summary button.clear {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
+  text-transform: uppercase; font-weight: 600;
+  background: none; border: 1px solid var(--rule-strong); color: var(--ink-soft);
+  border-radius: 999px; padding: 7px 14px; cursor: pointer; transition: all .18s ease;
+}
+.summary button.clear:hover { border-color: var(--stop); color: var(--stop); }
+.summary button.clear:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+footer {
+  margin-top: 72px;
+  padding-top: 22px;
+  border-top: 1px solid var(--rule);
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: .06em;
+  color: var(--ink-faint);
+  line-height: 1.8;
+}
+
+@media (max-width: 640px) {
+  .wrap { padding: 0 18px 90px; }
+  .masthead { padding-top: 48px; }
+  .study-head { padding: 20px; }
+  .study-body { padding: 18px; }
+  .verdict { padding: 22px 20px; }
+}
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow">
+      <span>Arch + Hyprland Dotfiles</span>
+      <span>·</span>
+      <span>Design study</span>
+      <span>·</span>
+      <span>2026-08-27</span>
+      <span>·</span>
+      <b>five directions, pick any number</b>
+    </div>
+    <h1>Retiring hyprlock</h1>
+    <p class="standfirst">
+      Whether the lock screen can move into the Quickshell process alongside the bar,
+      the notification centre and the launcher — and if so, what it should look like.
+      Every mockup below is rendered at <strong>2560×1440</strong>, this monitor's real
+      geometry, in the live Dracula palette.
+    </p>
+  </header>
+
+  <div class="verdict">
+    <div class="verdict-head">
+      <span class="tag">Yes</span>
+      <h2>Quickshell can replace hyprlock outright — and Caelestia already did it</h2>
+    </div>
+    <p>
+      Quickshell 0.3.1 ships <code class="ic">WlSessionLock</code> and
+      <code class="ic">WlSessionLockSurface</code> in <code class="ic">Quickshell.Wayland</code>,
+      plus a complete <code class="ic">PamContext</code> in <code class="ic">Quickshell.Services.Pam</code>.
+      Both <code class="ic">/usr/bin/quickshell</code> and <code class="ic">/usr/bin/Hyprland</code>
+      carry the <code class="ic">ext_session_lock_v1</code> symbols, so client and compositor
+      agree on the protocol. <strong>Caelestia does not use hyprlock at all</strong> — it
+      ships its own QML lock at <code class="ic">modules/lock/</code>, sixteen files deep,
+      which is what Direction A reproduces.
+    </p>
+  </div>
+
+  <!-- ══════════════ EVIDENCE ══════════════ -->
+  <section>
+    <div class="sec-head">
+      <div class="num">Evidence</div>
+      <h2>What was measured, not assumed</h2>
+      <p>Every row below was read off this machine or off Caelestia's source at a pinned SHA. Nothing here is inferred from documentation.</p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Question</th><th>Verdict</th><th>How it was measured</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Does Quickshell expose a session lock?</td>
+            <td class="verdict-cell ok">Yes</td>
+            <td><code>WlSessionLock</code> (<code>locked</code>, <code>secure</code>, <code>surface</code>, <code>unlock()</code>) and <code>WlSessionLockSurface</code>, both exported as <code>Quickshell.Wayland/… 0.0</code> in <code>quickshell-wayland.qmltypes</code></td>
+          </tr>
+          <tr>
+            <td>Can it authenticate?</td>
+            <td class="verdict-cell ok">Yes</td>
+            <td><code>PamContext</code> in <code>quickshell-service-pam.qmltypes</code> — <code>start()</code>, <code>respond()</code>, <code>abort()</code>, <code>message</code>, <code>messageIsError</code>, <code>responseRequired</code>, and <code>PamResult</code> = <code>Success / Failed / Error / MaxTries</code></td>
+          </tr>
+          <tr>
+            <td>Does the compositor support it?</td>
+            <td class="verdict-cell ok">Yes</td>
+            <td>Hyprland 0.56.2 binary carries <code>ext_session_lock_manager_v1</code>, <code>ext_session_lock_surface_v1</code>, <code>ext_session_lock_v1</code></td>
+          </tr>
+          <tr>
+            <td>Does the client link the protocol?</td>
+            <td class="verdict-cell ok">Yes</td>
+            <td><code>/usr/bin/quickshell</code> carries <code>QtWayland::ext_session_lock_v1</code></td>
+          </tr>
+          <tr>
+            <td>Can it draw the desktop behind the lock?</td>
+            <td class="verdict-cell ok">Yes</td>
+            <td><code>Quickshell/Wayland/_Screencopy</code> is installed; this repo already uses it for the workspace overview</td>
+          </tr>
+          <tr>
+            <td>What does Caelestia use?</td>
+            <td class="verdict-cell ok">Its own</td>
+            <td><code>modules/lock/</code> @ <code>a788c432</code> — <code>Lock.qml</code>, <code>LockSurface.qml</code>, <code>Pam.qml</code>, <code>Content.qml</code>, <code>Center.qml</code>, <code>Fetch</code>, <code>Media</code>, <code>NotifDock</code>, <code>NotifGroup</code>, <code>Resources</code>, <code>WeatherInfo</code>, plus <code>center/{Clock,InputField,PasswordInput,ProfilePic,StateMessage}.qml</code></td>
+          </tr>
+          <tr>
+            <td>Fingerprint / face unlock?</td>
+            <td class="verdict-cell ok">Upstream has it</td>
+            <td>Caelestia's <code>lockconfig.hpp</code> declares <code>enableFprint</code>, <code>maxFprintTries</code>, <code>enableHowdy</code>, <code>maxHowdyTries</code>, <code>triggerHowdyOnWake</code> — all reachable through the same PAM stack</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ GALLERY ══════════════ -->
+  <section>
+    <div class="sec-head">
+      <div class="num">Directions</div>
+      <h2>Five compositions, drawn to scale</h2>
+      <p>
+        Direction A is measured from Caelestia's source. B reproduces what is on screen today.
+        C–E are proposals. Tick as many as you want to see built — the picks collect at the
+        bottom of the page.
+      </p>
+    </div>
+
+    <div class="gallery">
+
+      <!-- ─────────── A · CAELESTIA THREE-COLUMN ─────────── -->
+      <article class="study" id="s-a" data-picked="0">
+        <div class="study-head">
+          <span class="study-id">A</span>
+          <div class="study-title">
+            <h3>Caelestia Three-Column</h3>
+            <p>The reference, reproduced from its source. A 16:9 card at 70% of screen height, holding three columns: ambient data left, authentication centre, system state right.</p>
+          </div>
+          <button class="pick" data-for="s-a" aria-pressed="false"><span class="box" aria-hidden="true"></span><span class="pick-t">Pick</span></button>
+        </div>
+        <div class="study-body">
+          <div class="screen">
+            <div class="wall"></div>
+            <!-- card: heightMult 0.7 → 1008px tall; ratio 16/9 → 1792px wide -->
+            <div class="card" style="left:12.5%; top:15%; width:70%; height:70%; display:flex; gap:1.6cqw; padding:1.6cqw;">
+
+              <!-- LEFT: weather, fetch, media -->
+              <div class="col" style="flex:1; gap:1cqw; min-width:0;">
+                <div class="tile" style="flex:none;">
+                  <div class="tile-label">Cairo</div>
+                  <div style="display:flex; align-items:baseline; gap:.6cqw;">
+                    <span style="font-size:2cqw; color:var(--d-tertiary); font-weight:600;">31°</span>
+                    <span style="font-size:.72cqw; color:var(--d-muted);">Clear · feels 34°</span>
+                  </div>
+                </div>
+                <div class="tile" style="flex:none;">
+                  <div class="tile-label">System</div>
+                  <div style="display:grid; gap:.28cqw; font-size:.68cqw; color:var(--d-muted);">
+                    <span><span style="color:var(--d-primary);">os</span> &nbsp;Arch Linux x86_64</span>
+                    <span><span style="color:var(--d-primary);">wm</span> &nbsp;Hyprland 0.56.2</span>
+                    <span><span style="color:var(--d-primary);">up</span> &nbsp;6h 12m</span>
+                    <span><span style="color:var(--d-primary);">sh</span> &nbsp;fish 4.0</span>
+                  </div>
+                </div>
+                <div class="tile" style="flex:1; justify-content:flex-end;">
+                  <div class="tile-label">Now playing</div>
+                  <div style="display:flex; gap:.8cqw; align-items:center;">
+                    <div style="width:3.2cqw; height:3.2cqw; border-radius:.6cqw; background:linear-gradient(140deg,var(--d-primary),var(--d-secondary)); flex:none;"></div>
+                    <div style="display:grid; gap:.25cqw; min-width:0;">
+                      <span style="font-size:.82cqw; color:var(--d-ink); font-weight:500;">Bloom</span>
+                      <span style="font-size:.66cqw; color:var(--d-muted);">Radiohead</span>
+                    </div>
+                  </div>
+                  <div class="bar-track" style="margin-top:.5cqw;"><div class="bar-fill" style="width:42%; background:var(--d-primary);"></div></div>
+                </div>
+              </div>
+
+              <!-- CENTRE: 600px fixed -->
+              <div class="col" style="width:23.4%; flex:none; align-items:center; gap:1cqw;">
+                <div class="clock" style="font-size:6.6cqw; margin-top:.4cqw;">
+                  <span class="hh">09</span><span style="width:.5cqw"></span><span class="mm">41</span>
+                </div>
+                <div style="font-size:.82cqw; letter-spacing:.14em; color:var(--d-ink); font-weight:600;">THURSDAY • 27 AUG</div>
+                <div class="avatar" style="width:6.4cqw; height:6.4cqw; margin-top:1.6cqw;"></div>
+                <div class="field" style="width:88%; height:2.5cqw; margin-top:1.2cqw; font-size:.78cqw;">
+                  <span style="letter-spacing:.3em;">••••••••</span><span class="caret" style="height:1.1cqw;"></span>
+                </div>
+                <div style="font-size:.7cqw; color:var(--d-muted); margin-top:.3cqw;">Enter password</div>
+              </div>
+
+              <!-- RIGHT: resources + notif dock -->
+              <div class="col" style="flex:1; gap:1cqw; min-width:0;">
+                <div class="tile" style="flex:none; gap:.65cqw;">
+                  <div class="tile-label">Resources</div>
+                  <div style="display:grid; gap:.5cqw;">
+                    <div><div style="display:flex; justify-content:space-between; font-size:.64cqw; color:var(--d-muted); margin-bottom:.2cqw;"><span>CPU</span><span>18%</span></div><div class="bar-track"><div class="bar-fill" style="width:18%;"></div></div></div>
+                    <div><div style="display:flex; justify-content:space-between; font-size:.64cqw; color:var(--d-muted); margin-bottom:.2cqw;"><span>MEM</span><span>41%</span></div><div class="bar-track"><div class="bar-fill" style="width:41%; background:var(--d-tertiary);"></div></div></div>
+                    <div><div style="display:flex; justify-content:space-between; font-size:.64cqw; color:var(--d-muted); margin-bottom:.2cqw;"><span>GPU</span><span>7%</span></div><div class="bar-track"><div class="bar-fill" style="width:7%; background:var(--d-primary);"></div></div></div>
+                  </div>
+                </div>
+                <div class="tile" style="flex:1; gap:.6cqw;">
+                  <div class="tile-label">Notifications · 3</div>
+                  <div style="display:grid; gap:.5cqw;">
+                    <div style="background:rgba(40,42,54,.72); border-radius:.5cqw; padding:.55cqw .7cqw; display:grid; gap:.18cqw;">
+                      <span style="font-size:.66cqw; color:var(--d-secondary);">Thunderbird</span>
+                      <span style="font-size:.62cqw; color:var(--d-muted);">2 new messages</span>
+                    </div>
+                    <div style="background:rgba(40,42,54,.72); border-radius:.5cqw; padding:.55cqw .7cqw; display:grid; gap:.18cqw;">
+                      <span style="font-size:.66cqw; color:var(--d-secondary);">System</span>
+                      <span style="font-size:.62cqw; color:var(--d-muted);">Snapshot completed</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="scale-note">
+            <span>Card 1792 × 1008 px · centre column 600 px</span>
+            <span>heightMult 0.7 · ratio 16 ∶ 9 · measured from tokens.hpp</span>
+          </div>
+
+          <div class="notes">
+            <div class="note">
+              <h4>Why this one</h4>
+              <p>It is the <strong>reference</strong>, not an interpretation — the column order, the centre width and the card ratio are read off Caelestia's own source.</p>
+            </div>
+            <div class="note">
+              <h4>Signature move</h4>
+              <p>Locking starts as a small rounded tile with a lock glyph that <strong>spins 360° and expands</strong> into the full card. Unlocking plays it in reverse.</p>
+            </div>
+            <div class="note">
+              <h4>What it costs</h4>
+              <p>The widest surface here. Weather, fetch, media, resources and a notification dock all need lock-side bindings.</p>
+            </div>
+            <div class="note">
+              <h4>Effort</h4>
+              <p><span class="effort"><span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip"></span></span></span><br>Most of the data already exists in the dashboard's backends.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ─────────── B · CONTINUITY ─────────── -->
+      <article class="study" id="s-b" data-picked="0">
+        <div class="study-head">
+          <span class="study-id">B</span>
+          <div class="study-title">
+            <h3>Continuity</h3>
+            <p>What is on this screen today, rebuilt in QML. Same centred stack — clock, date, now-playing, greeting, input — so the replacement can be judged like-for-like against hyprlock.</p>
+          </div>
+          <button class="pick" data-for="s-b" aria-pressed="false"><span class="box" aria-hidden="true"></span><span class="pick-t">Pick</span></button>
+        </div>
+        <div class="study-body">
+          <div class="screen">
+            <div class="wall"></div>
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:0;">
+              <div class="clock" style="font-size:3.75cqw; text-shadow:0 .12cqw .3cqw rgba(0,0,0,.55);">
+                <span class="hh">9</span><span class="hh">:</span><span class="hh">41</span>
+                <span style="font-size:1.5cqw; margin-left:.5cqw; color:var(--d-primary);">AM</span>
+              </div>
+              <div style="font-size:.86cqw; color:var(--d-ink); margin-top:1.5cqw;">Thursday, August 27</div>
+              <div style="font-size:.55cqw; color:var(--d-muted); margin-top:1.4cqw;">Radiohead — Bloom</div>
+              <div style="font-size:.7cqw; color:var(--d-secondary); margin-top:2.6cqw;">Hi, aorus</div>
+              <div class="field" style="width:19%; height:2.2cqw; margin-top:1.6cqw; font-size:.7cqw;">
+                <span style="letter-spacing:.3em;">••••••</span><span class="caret" style="height:1cqw;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="scale-note">
+            <span>Clock 96 px · date 22 px · greeting 18 px — current hyprlock.conf values</span>
+            <span>Composition unchanged</span>
+          </div>
+
+          <div class="notes">
+            <div class="note">
+              <h4>Why this one</h4>
+              <p>The only direction that keeps the <strong>old-vs-new equivalence check</strong> the v4.0 redesigns deliberately gave up. A regression is mechanical to spot.</p>
+            </div>
+            <div class="note">
+              <h4>What it gains anyway</h4>
+              <p>Shell motion language, live palette from <code class="ic">Colours.qml</code>, and a real media widget instead of a <code class="ic">playerctl</code> shell-out polled every 2 s.</p>
+            </div>
+            <div class="note">
+              <h4>What it costs</h4>
+              <p>Nothing visually new. If the point of the move is a redesign, this direction does not deliver one.</p>
+            </div>
+            <div class="note">
+              <h4>Effort</h4>
+              <p><span class="effort"><span class="pips"><span class="pip on"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></span></span><br>Smallest possible surface. Good first cut regardless of final direction.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ─────────── C · EDGE RAIL ─────────── -->
+      <article class="study" id="s-c" data-picked="0">
+        <div class="study-head">
+          <span class="study-id">C</span>
+          <div class="study-title">
+            <h3>Edge Rail</h3>
+            <p>Everything collapses to a single vertical rail on the left, leaving the wallpaper almost entirely unobstructed. The lock screen speaks the same language as the edge bar.</p>
+          </div>
+          <button class="pick" data-for="s-c" aria-pressed="false"><span class="box" aria-hidden="true"></span><span class="pick-t">Pick</span></button>
+        </div>
+        <div class="study-body">
+          <div class="screen">
+            <div class="wall" style="filter:none;"></div>
+            <div class="card" style="left:3.2%; top:6%; width:23%; height:88%; display:flex; flex-direction:column; padding:1.6cqw; gap:1.1cqw; border-radius:1.4cqw;">
+              <div class="clock" style="font-size:3.4cqw; flex-direction:column; align-items:flex-start; line-height:.86;">
+                <span class="hh">09</span><span class="mm">41</span>
+              </div>
+              <div style="font-size:.66cqw; letter-spacing:.16em; color:var(--d-muted);">THU · 27 AUGUST</div>
+
+              <div style="height:.06cqw; background:rgba(98,114,164,.35); margin:.5cqw 0;"></div>
+
+              <div style="display:flex; gap:.8cqw; align-items:center;">
+                <div class="avatar" style="width:2.6cqw; height:2.6cqw; flex:none;"></div>
+                <div style="display:grid; gap:.18cqw;">
+                  <span style="font-size:.78cqw; color:var(--d-ink); font-weight:500;">aorus</span>
+                  <span style="font-size:.6cqw; color:var(--d-muted);">Arch · Hyprland</span>
+                </div>
+              </div>
+
+              <div class="field" style="width:100%; height:2.3cqw; font-size:.72cqw;">
+                <span style="letter-spacing:.3em;">•••••••</span><span class="caret" style="height:1cqw;"></span>
+              </div>
+
+              <div style="flex:1;"></div>
+
+              <div style="display:grid; gap:.55cqw;">
+                <div><div style="display:flex; justify-content:space-between; font-size:.6cqw; color:var(--d-muted); margin-bottom:.2cqw;"><span>CPU</span><span>18%</span></div><div class="bar-track"><div class="bar-fill" style="width:18%;"></div></div></div>
+                <div><div style="display:flex; justify-content:space-between; font-size:.6cqw; color:var(--d-muted); margin-bottom:.2cqw;"><span>MEM</span><span>41%</span></div><div class="bar-track"><div class="bar-fill" style="width:41%; background:var(--d-tertiary);"></div></div></div>
+              </div>
+
+              <div style="display:flex; gap:.8cqw; align-items:center; background:rgba(68,71,90,.55); border-radius:.7cqw; padding:.6cqw .7cqw;">
+                <div style="width:2cqw; height:2cqw; border-radius:.4cqw; background:linear-gradient(140deg,var(--d-primary),var(--d-secondary)); flex:none;"></div>
+                <div style="display:grid; gap:.15cqw; min-width:0;">
+                  <span style="font-size:.66cqw; color:var(--d-ink);">Bloom</span>
+                  <span style="font-size:.58cqw; color:var(--d-muted);">Radiohead</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="scale-note">
+            <span>Rail 590 × 1267 px · 3.2% inset from the output edge</span>
+            <span>Wallpaper unblurred — 77% of the screen stays visible</span>
+          </div>
+
+          <div class="notes">
+            <div class="note">
+              <h4>Why this one</h4>
+              <p>It reuses the <strong>edge-rail vocabulary</strong> already explored for the bar, so lock and bar read as one system rather than two unrelated surfaces.</p>
+            </div>
+            <div class="note">
+              <h4>Signature move</h4>
+              <p>The rail slides in from the edge it is anchored to. No blur on the wallpaper — the image is the point, the rail is the interruption.</p>
+            </div>
+            <div class="note">
+              <h4>What it costs</h4>
+              <p>Legibility rests entirely on the rail's own ground, since there is no dimming pass to lean on. Needs a real contrast check against a bright wallpaper.</p>
+            </div>
+            <div class="note">
+              <h4>Effort</h4>
+              <p><span class="effort"><span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></span></span><br>Narrow surface, fewer widgets than A.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ─────────── D · SPLIT CANVAS ─────────── -->
+      <article class="study" id="s-d" data-picked="0">
+        <div class="study-head">
+          <span class="study-id">D</span>
+          <div class="study-title">
+            <h3>Split Canvas</h3>
+            <p>A hard vertical split. Two thirds is untouched wallpaper; one third is an opaque panel carrying the clock, the field and everything else. Poster composition, no floating card.</p>
+          </div>
+          <button class="pick" data-for="s-d" aria-pressed="false"><span class="box" aria-hidden="true"></span><span class="pick-t">Pick</span></button>
+        </div>
+        <div class="study-body">
+          <div class="screen">
+            <div class="wall" style="right:38%;"></div>
+            <div style="position:absolute; right:0; top:0; bottom:0; width:38%; background:var(--d-surface); display:flex; flex-direction:column; justify-content:center; padding:3.4cqw 3cqw; gap:0;">
+              <div style="font-size:.66cqw; letter-spacing:.2em; color:var(--d-primary); font-weight:600;">LOCKED</div>
+              <div class="clock" style="font-size:5.6cqw; margin-top:1cqw; line-height:.84;">
+                <span class="hh">09</span><span style="width:.4cqw"></span><span class="mm">41</span>
+              </div>
+              <div style="font-size:.86cqw; color:var(--d-muted); margin-top:1.1cqw; letter-spacing:.05em;">Thursday, 27 August</div>
+
+              <div style="height:.08cqw; background:var(--d-outline); margin:2.6cqw 0; width:38%;"></div>
+
+              <div style="display:flex; gap:1cqw; align-items:center;">
+                <div class="avatar" style="width:3.2cqw; height:3.2cqw; flex:none;"></div>
+                <div style="display:grid; gap:.2cqw;">
+                  <span style="font-size:1cqw; color:var(--d-ink); font-weight:500;">aorus</span>
+                  <span style="font-size:.66cqw; color:var(--d-muted);">Enter password to unlock</span>
+                </div>
+              </div>
+
+              <div class="field" style="width:100%; height:2.6cqw; margin-top:1.6cqw; font-size:.78cqw; border-radius:.7cqw; justify-content:flex-start; padding-left:1.1cqw;">
+                <span style="letter-spacing:.32em;">••••••••</span><span class="caret" style="height:1.1cqw;"></span>
+              </div>
+
+              <div style="flex:0 0 auto; margin-top:3.4cqw; display:flex; gap:1.4cqw; align-items:center; font-size:.62cqw; color:var(--d-muted);">
+                <span><span style="color:var(--d-tertiary);">◈</span> 31° Clear</span>
+                <span><span style="color:var(--d-secondary);">▲</span> CPU 18%</span>
+                <span><span style="color:var(--d-primary);">♪</span> Bloom</span>
+              </div>
+            </div>
+          </div>
+          <div class="scale-note">
+            <span>Panel 973 × 1440 px · full-bleed to three edges</span>
+            <span>No rounding, no blur — the split is the whole idea</span>
+          </div>
+
+          <div class="notes">
+            <div class="note">
+              <h4>Why this one</h4>
+              <p>The <strong>only direction with a real point of view.</strong> Nothing floats; the panel is architecture, not a widget resting on a photograph.</p>
+            </div>
+            <div class="note">
+              <h4>Signature move</h4>
+              <p>The panel wipes in from the right edge; the clock's hour and minute settle a beat apart. One orchestrated moment, nothing else animates.</p>
+            </div>
+            <div class="note">
+              <h4>What it costs</h4>
+              <p>Ambient data is demoted to a single status line. If you want weather forecasts and a notification dock on the lock screen, this is the wrong direction.</p>
+            </div>
+            <div class="note">
+              <h4>Effort</h4>
+              <p><span class="effort"><span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip"></span><span class="pip"></span><span class="pip"></span></span></span><br>Simple layout; the craft is in the type and the entrance.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- ─────────── E · QUIET FOCUS ─────────── -->
+      <article class="study" id="s-e" data-picked="0">
+        <div class="study-head">
+          <span class="study-id">E</span>
+          <div class="study-title">
+            <h3>Quiet Focus</h3>
+            <p>An oversized clock and nothing else. The field, the avatar and the state message fade in only once a key is pressed, then fade back out after a few idle seconds.</p>
+          </div>
+          <button class="pick" data-for="s-e" aria-pressed="false"><span class="box" aria-hidden="true"></span><span class="pick-t">Pick</span></button>
+        </div>
+        <div class="study-body">
+          <div class="screen">
+            <div class="wall"></div>
+            <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+              <div class="clock" style="font-size:13cqw; line-height:.8;">
+                <span class="hh">09</span><span style="width:.9cqw"></span><span class="mm">41</span>
+              </div>
+              <div style="font-size:.78cqw; letter-spacing:.34em; color:var(--d-muted); margin-top:2.2cqw;">THURSDAY 27 AUGUST</div>
+            </div>
+            <!-- the reveal state, shown ghosted to indicate it is conditional -->
+            <div style="position:absolute; left:0; right:0; bottom:7%; display:flex; flex-direction:column; align-items:center; gap:.8cqw; opacity:.42;">
+              <div class="field" style="width:16%; height:2.1cqw; font-size:.7cqw;">
+                <span style="letter-spacing:.3em;">•••••</span><span class="caret" style="height:.95cqw;"></span>
+              </div>
+              <div style="font-size:.58cqw; letter-spacing:.14em; color:var(--d-muted);">APPEARS ON FIRST KEYPRESS</div>
+            </div>
+          </div>
+          <div class="scale-note">
+            <span>Clock ≈ 333 px cap height · field 410 px wide</span>
+            <span>Ghosted element below is the reveal state, not the resting state</span>
+          </div>
+
+          <div class="notes">
+            <div class="note">
+              <h4>Why this one</h4>
+              <p>A lock screen is looked at far more than it is typed into. This direction optimises for the <strong>glance</strong>, not the login.</p>
+            </div>
+            <div class="note">
+              <h4>Signature move</h4>
+              <p>Idle → the clock alone. Any keypress → the field rises and the clock shrinks up. Idle again → it all recedes. The surface has two states, not one.</p>
+            </div>
+            <div class="note">
+              <h4>What it costs</h4>
+              <p>A hidden password field is a real usability risk on a machine you hand to someone else. Needs a visible affordance the ghosted mockup does not yet show.</p>
+            </div>
+            <div class="note">
+              <h4>Effort</h4>
+              <p><span class="effort"><span class="pips"><span class="pip on"></span><span class="pip on"></span><span class="pip on"></span><span class="pip"></span><span class="pip"></span></span></span><br>Least content, most state machine.</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- ══════════════ WIRING ══════════════ -->
+  <section>
+    <div class="sec-head">
+      <div class="num">Migration</div>
+      <h2>What hyprlock is wired into today</h2>
+      <p>Seven touchpoints, all found by grep. Whichever direction wins, this is the same list.</p>
+    </div>
+
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>Where</th><th>Today</th><th>After</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>hypr/config/keybinds.lua:55</code></td>
+            <td><code>uwsm app -- hyprlock</code></td>
+            <td><code>qs ipc call lock lock</code>, matching this repo's existing IPC contract</td>
+          </tr>
+          <tr>
+            <td><code>hypr/hypridle.conf:35</code></td>
+            <td><code>pidof hyprlock || hyprlock</code></td>
+            <td>Same IPC call — the <code>pidof</code> guard is no longer needed, since <code>locked</code> is idempotent</td>
+          </tr>
+          <tr>
+            <td><code>hypr/config/permissions.lua:129</code></td>
+            <td><code>screencopy allow</code> for <code>/usr/bin/hyprlock</code></td>
+            <td>Moves to the quickshell binary — which already holds screencopy permission for the overview</td>
+          </tr>
+          <tr>
+            <td><code>matugen/config.toml:124</code></td>
+            <td><code>[templates.hyprlock]</code> render target</td>
+            <td>Retired. Colours come live from <code>Colours.qml</code>, so the lock re-themes without a regeneration step</td>
+          </tr>
+          <tr>
+            <td><code>theme-engine/contract.json</code></td>
+            <td><code>hyprlock.conf</code> contract entry</td>
+            <td>Dropped <strong>in the same commit</strong> as the package — the <code>eww.scss</code> precedent</td>
+          </tr>
+          <tr>
+            <td><code>hypr/hyprlock.conf</code></td>
+            <td>242 lines of config + workaround notes</td>
+            <td>Deleted. Replaced by QML under <code>modules/lock/</code></td>
+          </tr>
+          <tr>
+            <td><code>install.sh:62</code></td>
+            <td><code>hyprlock</code> package</td>
+            <td>Removed once zero consumers remain — the same audit the <code>hyprshutdown</code> removal used</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════════ RISKS ══════════════ -->
+  <section>
+    <div class="sec-head">
+      <div class="num">Before committing</div>
+      <h2>Three things that are genuinely different about a lock screen</h2>
+      <p>Not generic caution — each of these is specific to putting the lock inside the shell process, and each has bitten this project or Caelestia already.</p>
+    </div>
+
+    <div class="risks">
+
+      <div class="risk hard">
+        <span class="sev">Hard constraint</span>
+        <h3>A shell restart while locked strands the session</h3>
+        <p>
+          The lock would live in the same process as the bar. <strong>The protocol protects the secret:</strong>
+          if the lock client dies, <code class="ic">ext-session-lock-v1</code> requires the compositor to keep
+          the session locked and paint a blank surface — the desktop is never exposed. But the unlock UI dies
+          with the process, so recovery is a VT switch, exactly the <code class="ic">--vt N</code> escape hatch
+          that came out of the hyprshutdown work. This upgrades an existing house rule
+          — <em>never restart quickshell from the agent shell</em> — from an annoyance into a lockout.
+          Caelestia accepts this same trade.
+        </p>
+      </div>
+
+      <div class="risk">
+        <span class="sev">Known gotcha</span>
+        <h3>Screencopy must be warmed before the lock engages</h3>
+        <p>
+          Caelestia carries a deliberate hack for this: a <code class="ic">Loader</code> that instantiates one
+          throwaway <code class="ic">ScreencopyView</code> at startup and immediately deactivates itself, with the
+          comment <em>"Force a load of a screencopy so the one in the lock works."</em> The compositor refuses
+          capture once locked, so if the lock is the <strong>first</strong> screencopy request, the backend is
+          still loading asynchronously and the capture fails. Any direction that blurs the live desktop
+          rather than the wallpaper inherits this. <strong>Directions C and D sidestep it</strong> — they show the
+          wallpaper, not a screencopy.
+        </p>
+      </div>
+
+      <div class="risk">
+        <span class="sev">Verification gap</span>
+        <h3>No gate on this host can prove a lock screen works</h3>
+        <p>
+          There is no input-injection tool here, and a wrong PAM wiring is not visible to
+          <code class="ic">colour-lint</code>, <code class="ic">quickshell-doctor</code> or any static check —
+          they would go green over a lock screen that cannot be unlocked. This is the surface where
+          <strong>the operator checklist has to carry the verification</strong>, the pattern that has now
+          outperformed gate reruns on three consecutive tasks. Minimum: lock, fail once deliberately,
+          succeed, then lock again after a suspend cycle.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="summary" id="summary">
+    <span class="lab">Your picks</span>
+    <span class="val none" id="picks-out">Nothing picked yet — tick any direction above</span>
+    <button class="clear" id="clear-btn" type="button">Clear</button>
+  </div>
+
+  <footer>
+    Measured on DP-1, 2560 × 1440 @ 165 Hz · Hyprland 0.56.2 · quickshell 0.3.1 · hyprlock 0.9.6 · theme <b>dracula</b><br>
+    Caelestia source pinned at <b>a788c432d9274a123c113eed6d28a241ddfc2cdd</b>, vendored to <b>.planning/notes/caelestia-lock/</b><br>
+    Directions A and B are drawn from measured values; C, D and E are proposals.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  var KEY = "lock-studies-picks-v1";
+  var NAMES = { "s-a": "A · Caelestia Three-Column", "s-b": "B · Continuity", "s-c": "C · Edge Rail", "s-d": "D · Split Canvas", "s-e": "E · Quiet Focus" };
+  var ORDER = ["s-a", "s-b", "s-c", "s-d", "s-e"];
+  var picks = {};
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) picks = JSON.parse(raw) || {};
+    } catch (e) { picks = {}; }
+    if (typeof picks !== "object" || picks === null) picks = {};
+  }
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(picks)); } catch (e) { /* private window, blocked storage */ }
+  }
+
+  function render() {
+    ORDER.forEach(function (id) {
+      var card = document.getElementById(id);
+      if (!card) return;
+      var on = !!picks[id];
+      card.setAttribute("data-picked", on ? "1" : "0");
+      var btn = card.querySelector(".pick");
+      if (btn) {
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+        var t = btn.querySelector(".pick-t");
+        if (t) t.textContent = on ? "Picked" : "Pick";
+      }
+    });
+
+    var chosen = ORDER.filter(function (id) { return picks[id]; }).map(function (id) { return NAMES[id]; });
+    var out = document.getElementById("picks-out");
+    if (!out) return;
+    if (chosen.length === 0) {
+      out.className = "val none";
+      out.textContent = "Nothing picked yet — tick any direction above";
+    } else {
+      out.className = "val";
+      out.textContent = chosen.join("  ·  ");
+    }
+  }
+
+  document.querySelectorAll(".pick").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var id = btn.getAttribute("data-for");
+      if (!id) return;
+      if (picks[id]) { delete picks[id]; } else { picks[id] = true; }
+      save();
+      render();
+    });
+  });
+
+  var clear = document.getElementById("clear-btn");
+  if (clear) {
+    clear.addEventListener("click", function () { picks = {}; save(); render(); });
+  }
+
+  load();
+  render();
+})();
+</script>
