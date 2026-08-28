@@ -6,8 +6,9 @@
     "_comment_260829_micro": "quick task 260829-rhy. M3's own duration scale starts at short1 (50ms), which is coarser than a STAGGER OFFSET needs: with only 50/100/150 available, five styles cannot hold five distinct cascade rhythms. These four sit below short1 on the same naming convention and exist for the stagger-offset channel. 45 rather than 40 for the tightest: floor_ms IS 40 and every duration is clamped UP to it (`if $scaled < $floor then $floor else $scaled end`), so a 40ms token would be indistinguishable from the floor itself and would stop scaling under the accessibility multiplier. extra-long5 extends the other end for `ambient`, a LOOP PERIOD where 1000ms was previously the ceiling and every style sat on it.",
     "micro1": 45,
     "micro2": 60,
-    "micro3": 80,
-    "micro4": 100,
+    "micro3": 70,
+    "micro4": 80,
+    "micro5": 100,
     "short1": 50,
     "short2": 100,
     "short3": 150,
@@ -24,7 +25,8 @@
     "extra-long2": 800,
     "extra-long3": 900,
     "extra-long4": 1000,
-    "extra-long5": 1200
+    "extra-long5": 1100,
+    "extra-long6": 1200
   },
   "_comment_spatial_easings": "spatial-in/spatial-out/spatial-move (R-2) are the ONLY three easing names a style may ever push a control-point Y above 1.0 on — every other name below stays monotonic within [0,1] in every style, forever, so a fade or a colour can never be given overshoot by construction. Seeded here identical to emphasized-decelerate/emphasized-accelerate/standard so this task's Task 1 restructure moves nothing on screen; Task 2 gives each non-md3 style its own points for these three names only.",
   "_comment_multi_segment_easings": "An easing is normally FOUR numbers - one cubic's two control points, with the (1,1) endpoint appended at render time. `emphasized` is the exception: TEN numbers, which render to twelve, which is Qt's BezierSpline layout of SIX numbers per cubic SEGMENT (c1x,c1y,c2x,c2y,endX,endY) and therefore TWO segments. That is Material 3's real emphasized easing and it cannot be expressed as a single cubic. IT IS A QML-ONLY EASING BY NECESSITY: Hyprland's hl.curve takes exactly two control points, so lib/motion.sh SKIPS any easing that is not four numbers when registering Hyprland curves and when writing CSS cubic-bezier(), rather than truncating it into a plausible-looking wrong curve. No hypr_leaves entry in any style may name it - register_hypr_leaf would find no registered curve and would drop the leaf entirely.",
@@ -171,7 +173,7 @@
         "effects": [0.3, 0, 0.5, 1]
       },
       "semantic": {
-        "stagger-offset": { "duration": "micro3", "easing": "standard" },
+        "stagger-offset": { "duration": "micro4", "easing": "standard" },
         "ambient": { "duration": "extra-long2", "easing": "linear" },
         "standard": { "duration": "short4", "easing": "standard" },
         "standard-slow": { "duration": "long2", "easing": "standard" },
@@ -213,8 +215,8 @@
         "effects": [0.5, 0, 0.4, 1]
       },
       "semantic": {
-        "stagger-offset": { "duration": "micro4", "easing": "standard" },
-        "ambient": { "duration": "extra-long5", "easing": "linear" },
+        "stagger-offset": { "duration": "micro5", "easing": "standard" },
+        "ambient": { "duration": "extra-long6", "easing": "linear" },
         "standard": { "duration": "medium2", "easing": "standard" },
         "standard-slow": { "duration": "extra-long1", "easing": "standard" },
         "emphasized-in": { "duration": "long3", "easing": "emphasized-decelerate" },
@@ -238,6 +240,48 @@
         "fade_switch": { "curve": "standard", "speed_key": "leaf-long2" },
         "fade_shadow": { "curve": "standard", "speed_key": "leaf-long2" },
         "fade_dim": { "curve": "standard", "speed_key": "leaf-long2" }
+      }
+    },
+    "precise": {
+      "label": "Precise",
+      "description": "Constant velocity, symmetric in and out — no easing anywhere, nothing decorated.",
+      "_comment_260829_axis": "quick task 260829-prc. Chosen the same way `gravity` was: by measuring which axis the set left empty. TWO were empty here. (1) SHAPE — every other style is a curve that decelerates; not one moves at a constant speed, so `linear`/`css-linear` sat in the base easings table used by exactly zero styles. This style covers 10% of the distance in the first 10% of the time, where the others cover 32-62% (or gravity's 1%). (2) SYMMETRY — every other style is slow-in/fast-out, ratios 1.43 to 3.00. This one is exactly 1.00: entering and leaving take the same time, which nothing else in the set does. [0.12, 0.12, 0.88, 0.88] rather than a true linear [0,0,1,1] because a true linear starts and stops with an infinite jerk and reads as cheap rather than deliberate; this keeps constant velocity across the middle and just rounds the two ends.",
+      "_comment_260829_uniformity": "Every easing name below is the SAME curve and every Hyprland leaf the same speed, and that is the identity rather than laziness: the statement is that no channel is treated more dramatically than another. It is also why the emphasized pair needs no separate thought — the 260829-wvy derivation (emphasized = the style's spatial pair clamped into [0,1]) returns the same curve here because there is no overshoot to clamp. The leaves deliberately carry NO `style` key: a style's leaf entry replaces the base entry wholesale, so omitting it drops base's `popin 60%` and takes Hyprland's own plain default, which is the undecorated behaviour this style is about.",
+      "easings": {
+        "spatial-in": [0.12, 0.12, 0.88, 0.88],
+        "spatial-out": [0.12, 0.12, 0.88, 0.88],
+        "spatial-move": [0.12, 0.12, 0.88, 0.88],
+        "emphasized-decelerate": [0.12, 0.12, 0.88, 0.88],
+        "emphasized-accelerate": [0.12, 0.12, 0.88, 0.88],
+        "standard": [0.12, 0.12, 0.88, 0.88],
+        "effects": [0.12, 0.12, 0.88, 0.88]
+      },
+      "semantic": {
+        "stagger-offset": { "duration": "micro3", "easing": "standard" },
+        "ambient": { "duration": "extra-long5", "easing": "linear" },
+        "standard": { "duration": "short4", "easing": "standard" },
+        "standard-slow": { "duration": "medium4", "easing": "standard" },
+        "emphasized-in": { "duration": "medium1", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "medium1", "easing": "emphasized-accelerate" },
+        "colour": { "duration": "short4", "easing": "effects" },
+        "spatial-in": { "duration": "medium1", "easing": "spatial-in" },
+        "spatial-out": { "duration": "medium1", "easing": "spatial-out" },
+        "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
+      },
+      "hypr_leaves": {
+        "windows_in": { "curve": "spatial-in", "speed_key": "leaf-medium1" },
+        "windows_out": { "curve": "spatial-out", "speed_key": "leaf-medium1" },
+        "windows_move": { "curve": "spatial-move", "speed_key": "leaf-medium1" },
+        "workspaces": { "curve": "spatial-move", "speed_key": "leaf-medium1" },
+        "special_workspace": { "curve": "spatial-in", "speed_key": "leaf-medium1" },
+        "layers": { "curve": "spatial-move", "speed_key": "leaf-medium1" },
+        "layers_in": { "curve": "spatial-in", "speed_key": "leaf-medium1" },
+        "layers_out": { "curve": "spatial-out", "speed_key": "leaf-medium1" },
+        "fade_in": { "curve": "standard", "speed_key": "leaf-medium1" },
+        "fade_out": { "curve": "standard", "speed_key": "leaf-medium1" },
+        "fade_switch": { "curve": "standard", "speed_key": "leaf-medium1" },
+        "fade_shadow": { "curve": "standard", "speed_key": "leaf-medium1" },
+        "fade_dim": { "curve": "standard", "speed_key": "leaf-medium1" }
       }
     },
     "zen": {
