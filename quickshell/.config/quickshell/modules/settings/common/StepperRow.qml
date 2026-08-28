@@ -76,20 +76,18 @@ Control {
         id: rowHover
     }
 
-    background: Rectangle {
-        radius: 12
-        color: "transparent"
-        border.width: 2
-        border.color: (root.rowFocused || rowHover.hovered) ? Colours.primary : Qt.alpha(Colours.primary, 0)
+    // Round 5, item 2 — same passive-observer idiom as `rowHover`: never
+    // grabs the point, so the `−`/`+` pill's own MouseAreas still get
+    // every click.
+    TapHandler {
+        id: rowPress
+        gesturePolicy: TapHandler.PassiveOnly
+    }
 
-        Behavior on border.color {
-            enabled: Motion.motionEnabled
-            ColorAnimation {
-                duration: Motion.colourDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.colourEasing
-            }
-        }
+    background: RowSurface {
+        focused: root.rowFocused
+        hovered: rowHover.hovered
+        pressed: rowPress.pressed
     }
 
     // Never anchor `contentItem` itself (MEMORY

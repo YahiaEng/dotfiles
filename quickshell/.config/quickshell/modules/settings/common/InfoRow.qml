@@ -43,21 +43,12 @@ Item {
     implicitHeight: contentCol.implicitHeight + Design.spacingMd * 2
     width: parent ? parent.width : 400
 
-    Rectangle {
+    // No `pressed:` wire — this row is explicitly non-interactive (see
+    // this file's own header: "does nothing when clicked"), so the shared
+    // surface's press fill is simply never driven true here.
+    RowSurface {
         anchors.fill: parent
-        radius: 12
-        color: "transparent"
-        border.width: 2
-        border.color: root.rowFocused ? Colours.primary : Qt.alpha(Colours.primary, 0)
-
-        Behavior on border.color {
-            enabled: Motion.motionEnabled
-            ColorAnimation {
-                duration: Motion.colourDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.colourEasing
-            }
-        }
+        focused: root.rowFocused
     }
 
     Column {

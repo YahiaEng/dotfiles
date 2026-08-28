@@ -108,20 +108,13 @@ Control {
     // shows when EITHER `rowFocused` (keyboard) OR `hoverArea.containsMouse`
     // is true — one shared visual, matching the operator's own request
     // that hover look like keyboard selection rather than a second style.
-    background: Rectangle {
-        color: "transparent"
-        radius: 12
-        border.width: 2
-        border.color: (root.rowFocused || hoverArea.containsMouse) ? Colours.primary : Qt.alpha(Colours.primary, 0)
-
-        Behavior on border.color {
-            enabled: Motion.motionEnabled
-            ColorAnimation {
-                duration: Motion.colourDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.colourEasing
-            }
-        }
+    // `hoverArea` already spans the whole row and is the row's one click
+    // target — its own built-in `pressed` drives the shared surface's
+    // immediate press fill directly, no new handler needed.
+    background: RowSurface {
+        focused: root.rowFocused
+        hovered: hoverArea.containsMouse
+        pressed: hoverArea.pressed
     }
 
     MouseArea {

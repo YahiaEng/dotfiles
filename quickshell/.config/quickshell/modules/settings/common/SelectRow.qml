@@ -90,20 +90,20 @@ Control {
         id: rowHover
     }
 
-    background: Rectangle {
-        radius: 12
-        color: "transparent"
-        border.width: 2
-        border.color: (root.rowFocused || rowHover.hovered) ? Colours.primary : Qt.alpha(Colours.primary, 0)
+    // Round 5, item 2 — passive, same reasoning as `rowHover` above: a
+    // `PassiveOnly` TapHandler observes press/release without grabbing the
+    // point, so it never competes with `dropdownPill`'s own MouseArea
+    // underneath it for click delivery, exactly like `rowHover` doesn't
+    // compete for hover.
+    TapHandler {
+        id: rowPress
+        gesturePolicy: TapHandler.PassiveOnly
+    }
 
-        Behavior on border.color {
-            enabled: Motion.motionEnabled
-            ColorAnimation {
-                duration: Motion.colourDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.colourEasing
-            }
-        }
+    background: RowSurface {
+        focused: root.rowFocused
+        hovered: rowHover.hovered
+        pressed: rowPress.pressed
     }
 
     contentItem: Item {

@@ -5,6 +5,10 @@
 # directory MUST be declared in the same commit that creates it.
 module qs.modules.settings.common
 PageBase 1.0 PageBase.qml
+# RowSurface (operator round 5, item 2) — shared rest/hover/focus/press
+# background for the row primitives below. Declared here in the same
+# commit that creates it, per this file's own standing instruction.
+RowSurface 1.0 RowSurface.qml
 SettingsSection 1.0 SettingsSection.qml
 SelectRow 1.0 SelectRow.qml
 NavRow 1.0 NavRow.qml

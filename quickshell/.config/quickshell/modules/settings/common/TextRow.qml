@@ -86,20 +86,12 @@ Control {
             textField.text = root.text;
     }
 
-    background: Rectangle {
-        color: "transparent"
-        radius: 12
-        border.width: 2
-        border.color: (root.rowFocused || textField.activeFocus) ? Colours.primary : Qt.alpha(Colours.primary, 0)
-
-        Behavior on border.color {
-            enabled: Motion.motionEnabled
-            ColorAnimation {
-                duration: Motion.colourDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.colourEasing
-            }
-        }
+    // No `pressed:` wire — this row's click target is the inner TextField,
+    // which already paints its own background/state; the shared surface's
+    // press fill is simply never driven true here, matching the prior
+    // rest/hover/focus-only behaviour exactly.
+    background: RowSurface {
+        focused: root.rowFocused || textField.activeFocus
     }
 
     contentItem: Item {

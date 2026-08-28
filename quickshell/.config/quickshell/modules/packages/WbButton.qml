@@ -92,6 +92,27 @@ Rectangle {
         }
     }
 
+    // Round 5, item 2 — press feedback. Same `selectFill`/`hoverFill`
+    // split round 4 used to fix the Atelier: `root`'s own `color` above
+    // stays the animated rest/hover fill (`Behavior on color`, unchanged),
+    // and this layers an INSTANT, un-animated deepening on top while
+    // pressed — no `Behavior`, so it reads as an immediate response
+    // rather than a fade. One step deeper than each tone's own hover
+    // alpha, same restrained neutral/tone-matched language, never a new
+    // colour.
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        color: {
+            if (root.tone === "primary")
+                return Qt.alpha(Colours.primary, 0.38);
+            if (root.tone === "danger")
+                return Qt.alpha(Colours.error, 0.28);
+            return Qt.alpha(Colours.onSurface, 0.16);
+        }
+        opacity: (area.pressed && root._live) ? 1 : 0
+    }
+
     Text {
         id: labelText
         anchors.centerIn: parent

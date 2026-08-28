@@ -313,6 +313,20 @@ Item {
                     }
                 }
             }
+
+            // Round 5, item 2 — this tile's own layered-overlay structure
+            // (image, badges, active ring, hover tint above) doesn't fit
+            // RowSurface's `background:`-slot pattern the other 7 row
+            // primitives share, so the SAME idiom is applied directly:
+            // immediate, un-animated (no Behavior), a deeper neutral tint
+            // over the existing animated hover tint. `hover`'s own native
+            // `pressed` needs no new handler — it already spans the tile.
+            Rectangle {
+                anchors.fill: parent
+                radius: parent.radius
+                color: Colours.onSurface
+                opacity: hover.pressed ? 0.16 : 0
+            }
         }
 
         Text {
