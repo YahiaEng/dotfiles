@@ -85,9 +85,13 @@ PageBase {
 
         ToggleRow {
             label: "Security capsule in the bar"
-            subtext: "Shows posture at a glance, and is the only place a running scan stays visible once this window is closed."
-            checked: Prefs.getValue("security.showCapsule")
-            onToggled: value => Prefs.setValue("security.showCapsule", value)
+            // Writes the BAR's own key, not a second security-side one:
+            // BarEntryModel.capsulesForZone() is the single filter point
+            // every capsule already goes through, and a parallel pref
+            // would be a second way to hide the same thing.
+            subtext: "Shows posture at a glance, and is the only place a running scan stays visible once this window is closed. Same switch as Bar → Capsules → Security."
+            checked: Prefs.getValue("bar.capsules.security")
+            onToggled: value => Prefs.setValue("bar.capsules.security", value)
         }
 
         ToggleRow {

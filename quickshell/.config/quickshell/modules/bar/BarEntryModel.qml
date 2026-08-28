@@ -197,12 +197,13 @@ Singleton {
             // thread down and nothing for requiresBackend() to keep
             // alive on its behalf.
             //
-            // It carries its own `bar.capsules.security` toggle like
-            // every other capsule, AND its own `security.showCapsule`
-            // pref. Those are not redundant: the bar toggle is "may this
-            // capsule exist", the security pref is "does this feature
-            // use the bar at all", and the capsule additionally
-            // self-hides whenever it has nothing to report.
+            // It carries `bar.capsules.security` like every other
+            // capsule, and that is the ONLY switch — Settings -> Security's
+            // own capsule row writes this same key rather than a parallel
+            // one. The capsule is a constant-size chip that never
+            // collapses on its own: collapsing changed endZone's height,
+            // which re-centred centerZone and shifted every centre capsule
+            // by 23px (measured; see SecurityCapsule.qml's header).
             id: "security",
             zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
             entries: [

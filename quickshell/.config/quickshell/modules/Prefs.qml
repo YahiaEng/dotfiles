@@ -76,8 +76,10 @@ Singleton {
         "bar.capsules.idleInhibitor",
         // Security capsule (quick task 260827-np1). A PARENT row like
         // systemTray rather than a per-entry toggle: its single entry has
-        // no independent children, and the capsule already self-hides
-        // whenever it has nothing to report.
+        // no independent children. This is the ONLY key that hides the
+        // capsule — it is a constant-size chip that never collapses on
+        // its own, because collapsing shifted the whole bar (measured;
+        // see SecurityCapsule.qml's header).
         "bar.capsules.security",
         // bar.capsules.mediaConnectivity RETIRED 2026-08-25 (operator, quick
         // task 260825-v3u), on exactly the precedent clockActions/system set
@@ -227,8 +229,13 @@ Singleton {
         // choose between them: one layout pick for the settings page
         // (S1/S2) and one visibility toggle each for the bar capsule
         // (H1) and the dashboard tab (D1).
+        // security.showCapsule is deliberately ABSENT: the bar already has
+        // its own filter point (`bar.capsules.security`, consumed at
+        // BarEntryModel.capsulesForZone()), and two prefs hiding the same
+        // capsule is the redundant-parent-row shape mediaConnectivity was
+        // retired for on 2026-08-25. Settings -> Security's capsule toggle
+        // writes bar.capsules.security directly.
         "security.pageLayout",
-        "security.showCapsule",
         "security.showDashboardTab",
         // Quick task 260826-1n9 Task 7 — the weather location's
         // automatic/manual toggle and its three data fields. Consumer:
@@ -279,8 +286,8 @@ Singleton {
         // 260827-np1). This is "may it exist", not "is it drawn": the
         // capsule self-hides unless a scan is running or there is a
         // finding at Low or worse, so on a healthy machine it costs no
-        // bar space. `security.showCapsule` is the feature-level switch
-        // above it.
+        // bar space when it has nothing to say. Settings -> Security's
+        // capsule toggle writes THIS key, so there is one switch, not two.
         "bar.capsules.security": true,
         "bar.capsules.systemTray": true,
         "bar.tray.iconTint": "desaturate",
@@ -352,11 +359,11 @@ Singleton {
         // is answering "am I OK?" in one line; "sections" is the way
         // back out if that layout ever fails to render.
         //
-        // The capsule defaults ON but hides itself whenever the machine
-        // is healthy AND no scan is running (see SecurityCapsule.qml) —
-        // so on a clean system it costs no bar space, and the operator
-        // is not asked to opt in to the one surface that makes a
-        // minutes-long scan visible.
+        // The capsule is a CONSTANT-SIZE chip and is always present while
+        // bar.capsules.security is true. It used to collapse to zero when
+        // it had nothing to report, which shifted every centre capsule by
+        // 23px — measured, see SecurityCapsule.qml's header. It draws its
+        // quietest state instead of vanishing.
         //
         // The dashboard tab defaults OFF. It is the one plate that
         // WORSENS an existing defect: each drawer tab declares its own
@@ -364,7 +371,6 @@ Singleton {
         // width makes that jump worse. Shipped because the operator
         // asked for all four, defaulted off because it costs something.
         "security.pageLayout": "findings",
-        "security.showCapsule": true,
         "security.showDashboardTab": false,
         // Quick task 260826-1n9 Task 7 — "auto" keeps an existing
         // hand-edited weather.json fully authoritative (D-8), exactly the

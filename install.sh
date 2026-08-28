@@ -451,7 +451,18 @@ AUR_PKGS=(
     spotify
     discord
     1password
-    octopi
+    # octopi-git, NOT octopi (fixed 2026-08-27, quick task 260827-np1).
+    # `octopi` depends on `alpm_octopi_utils`, which CONFLICTS with the
+    # `alpm_octopi_utils-git` this host already has installed. pacman
+    # cannot resolve a conflict under --noconfirm, so the whole
+    # section_core_rice transaction aborts with:
+    #     :: Conflicts found:
+    #         octopi: alpm_octopi_utils-git (alpm_octopi_utils)
+    #     error: can not install conflicting packages with --noconfirm
+    # That halted install.sh before section_security ever ran.
+    # `octopi-git` is the same program and depends on the -git utils
+    # package that is already present, so it resolves cleanly.
+    octopi-git
 
     # Icon themes (D-16 — human package-legitimacy checkpoint approved).
     # tela-icon-theme and colloid-icon-theme-git moved to AUR_PKGS_HOST
