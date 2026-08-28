@@ -38,3 +38,10 @@ WbDetail 1.0 WbDetail.qml
 # One button shape for all three panes, so a disabled action explains
 # itself the same way everywhere.
 WbButton 1.0 WbButton.qml
+
+# D5's popout. Lives here rather than in modules/bar/ because that
+# directory has no explicit qmldir — it relies on Quickshell's
+# directory-scanner synthesis, and a new type added there did not resolve
+# on hot reload, taking the bar down until it was moved. Declared here, it
+# resolves through this manifest like every other type in this directory.
+UpdatesPopout 1.0 UpdatesPopout.qml

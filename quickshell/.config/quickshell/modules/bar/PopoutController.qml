@@ -49,7 +49,7 @@ Singleton {
     // is a visible act, and no GATE-03 row is needed since
     // `quickshell-bar-tray` already matches the same `quickshell-bar-`
     // pattern prefix.
-    readonly property var sections: ["audio", "wifi", "bluetooth", "clock", "resources", "media", "ethernet", "tray"]
+    readonly property var sections: ["audio", "wifi", "bluetooth", "clock", "resources", "media", "ethernet", "tray", "updates"]
 
     function isValidSection(id) {
         return root.sections.indexOf(id) !== -1;

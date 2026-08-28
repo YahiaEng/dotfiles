@@ -1390,6 +1390,22 @@ ShellRoot {
         id: packagesWorkbench
     }
 
+    // Every other surface (the bar popout, the launcher's `pkg` route, the
+    // Settings page) asks for the workbench by raising a signal on the
+    // backend singleton they all already hold — nothing else in the tree
+    // can reach this instance, and threading a handle through three
+    // subtrees to avoid one Connections block would be worse.
+    Connections {
+        target: PackagesBackend
+
+        function onOpenWorkbenchRequested(focusName) {
+            if (focusName && focusName.length > 0)
+                packagesWorkbench.openOn(focusName);
+            else
+                packagesWorkbench.open();
+        }
+    }
+
     IpcHandler {
         target: "packages-window"
 

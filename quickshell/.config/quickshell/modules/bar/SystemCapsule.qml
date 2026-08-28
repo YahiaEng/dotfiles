@@ -505,27 +505,51 @@ BarCapsule {
     // order (it is declared first inside Readout, content Grid second)
     // while inheriting this instance's own visible: pendingUpdatesCount
     // > 0 gate for free — no separate condition to keep in sync.
-    Readout {
-        glyph: "deployed_code_update"
-        maxValueText: "999"
-        visible: root.pendingUpdatesCount > 0 && BarEntryModel.entryVisible("updates")
-        populated: true
-        errored: false
-        clickable: true
-        filled: true
-        // Fixed on-fill colour (D-12), not a threshold tint: warnThreshold/
-        // dangerThreshold are left at their inert -1 default, so
-        // severityColour's threshold branches never fire for this
-        // instance and it falls straight to the override below.
-        useContentOverride: true
-        contentOverride: BarRoles.fillUpdatesFg
-        valueText: root.pendingUpdatesCount.toString()
-        onActivated: root.launchUpgrade()
-        // The only tooltip in this capsule — see the tooltipText seam's own
-        // comment for why cpu/ram/disk deliberately have none. Names the
-        // action the click performs, not the glyph.
-        tooltipText: "Update System"
-        tooltipId: "systemUpdates"
+    // ── Wrapped in a PopoutTrigger (quick task 260828-75k) ───────────
+    // `clickable` is now FALSE, and that is the mechanism, not an
+    // oversight: the Readout's own MouseArea is `enabled`/`visible` only
+    // while `clickable || valueToggleable`, so with both false the click
+    // falls through to the trigger below and summons the card instead of
+    // starting an upgrade. The upgrade moved onto a button INSIDE that
+    // card, under the list of what it will change — the pill used to run
+    // `paru -Syu` on first click with nothing shown first.
+    //
+    // PopoutTrigger is size-neutral (`implicitWidth: contentHost.
+    // implicitWidth`, contentHost being childrenRect), so wrapping does
+    // not disturb this capsule's tuned `contentGap` — the 4px pill bleed
+    // that comment depends on is a property of the Readout, which is
+    // unchanged.
+    PopoutTrigger {
+        id: updatesPopoutTrigger
+        sectionId: "updates"
+        popoutComponent: Component {
+            UpdatesPopout {
+                onUpgrade: root.launchUpgrade()
+            }
+        }
+
+        Readout {
+            glyph: "deployed_code_update"
+            maxValueText: "999"
+            visible: root.pendingUpdatesCount > 0 && BarEntryModel.entryVisible("updates")
+            populated: true
+            errored: false
+            clickable: false
+            filled: true
+            // Fixed on-fill colour (D-12), not a threshold tint: warnThreshold/
+            // dangerThreshold are left at their inert -1 default, so
+            // severityColour's threshold branches never fire for this
+            // instance and it falls straight to the override below.
+            useContentOverride: true
+            contentOverride: BarRoles.fillUpdatesFg
+            valueText: root.pendingUpdatesCount.toString()
+            onActivated: root.launchUpgrade()
+            // The only tooltip in this capsule — see the tooltipText seam's own
+            // comment for why cpu/ram/disk deliberately have none. Names the
+            // action the click performs, not the glyph.
+            tooltipText: "Pending updates"
+            tooltipId: "systemUpdates"
+        }
     }
 
     // The probe, its single-flight guard and its 30-minute Timer are gone

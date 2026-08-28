@@ -124,6 +124,19 @@ Singleton {
 
     signal transactionLaunched(string kind)
 
+    // ── How every surface asks for the workbench ──────────────────────
+    // The workbench is a TYPE mounted once in shell.qml, not a singleton,
+    // so no other file can reach it directly. Rather than thread a handle
+    // through the bar, the launcher and the settings tree, each of them
+    // raises this on the backend they all already hold, and shell.qml —
+    // which owns the one instance — connects it. `focusName` may be empty,
+    // meaning "just open".
+    signal openWorkbenchRequested(string focusName)
+
+    function openWorkbench(name: string): void {
+        root.openWorkbenchRequested(name || "");
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  Derived — declared before anything that reads them at
     //  construction time (this tree's declare-before-use discipline).
