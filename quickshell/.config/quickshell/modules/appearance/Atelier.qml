@@ -135,6 +135,18 @@ LazyLoader {
             onCleared: loader.activeAsync = false
         }
 
+        // A grab is EXCLUSIVE (Workbench.qml's own recorded finding): a
+        // terminal launched while it is held is input-dead. Task 3's
+        // catalogue install hands off to a terminal, so the grab must be
+        // released — closing the window — the instant that happens.
+        Connections {
+            target: AppearanceBackend
+
+            function onTransactionLaunched(kind) {
+                loader.activeAsync = false;
+            }
+        }
+
         Column {
             anchors.fill: parent
             anchors.margins: Design.spacingMd
@@ -177,17 +189,10 @@ LazyLoader {
                 }
             }
 
-            // Task 3 replaces this with the real `AtCatalogueTab {}`.
             Component {
                 id: catalogueComponent
 
-                Item {
-                    Text {
-                        anchors.centerIn: parent
-                        text: "Catalogue — lands in Task 3"
-                        color: Colours.onSurfaceVariant
-                        font.pixelSize: Design.settingsFontSub
-                    }
+                AtCatalogueTab {
                 }
             }
         }

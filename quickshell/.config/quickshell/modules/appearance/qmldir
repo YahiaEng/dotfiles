@@ -33,5 +33,5 @@ AtTabBar 1.0 AtTabBar.qml
 AtIconsTab 1.0 AtIconsTab.qml
 AtFontsTab 1.0 AtFontsTab.qml
 
-# AtCatalogueTab lands in Task 3 (the third pane, browse + install) —
-# declared in the SAME commit that creates that file, not here.
+# AtCatalogueTab (Task 3, D-04) — the third pane, browse + install.
+AtCatalogueTab 1.0 AtCatalogueTab.qml

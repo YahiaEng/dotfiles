@@ -58,6 +58,13 @@ Singleton {
         root.openAtelierRequested(tab || "");
     }
 
+    // Raised the instant a catalogue install (Task 3) hands off to a
+    // terminal — `Atelier.qml` listens and releases its
+    // HyprlandFocusGrab, exactly mirroring
+    // `PackagesBackend.transactionLaunched`: a grab is exclusive, so the
+    // terminal launched while it is held would be input-dead.
+    signal transactionLaunched(string kind)
+
     // ═══════════════════════════════════════════════════════════════
     //  Icon themes — observable state
     // ═══════════════════════════════════════════════════════════════
@@ -382,6 +389,378 @@ Singleton {
                 });
         }
         return rows.concat(passthroughRows);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Catalogue — browse and install new icon themes (Task 3, D-04).
+    //
+    //  ── PRIVILEGE: NONE HERE, SAME POSTURE AS PackagesBackend ─────────
+    //  No `pkexec`, no polkit action, no in-process `sudo`, no
+    //  auto-confirm flag. `installCatalogue` charset-checks the name,
+    //  re-validates it against the catalogue this backend itself
+    //  enumerated, checks the pacman db lock, confirms the package is
+    //  real via `pacman -Si`/`<helper> -Si` (the package manager's own
+    //  exit code is authoritative — never a bespoke legitimacy
+    //  heuristic), snapshots the installed theme-directory set, then
+    //  hands the actual install to a terminal with a fixed argv array —
+    //  the exact mechanism `PackagesBackend.runTransaction`-shaped calls
+    //  use, so pacman/paru print what they will do and ask. The
+    //  privileged step is the terminal's, never this process's.
+    // ═══════════════════════════════════════════════════════════════
+
+    readonly property string dbLockPath: "/var/lib/pacman/db.lck"
+    readonly property var _NAME_RE: /^[a-zA-Z0-9@._+-]+$/
+
+    property var catalogue: []
+    property bool catalogueProbed: false
+    property bool catalogueRunning: false
+
+    property string _aurHelper: ""
+    property bool _aurHelperProbed: false
+    property string _repoSearchText: ""
+    property string _aurSearchText: ""
+    property bool _repoSearchDone: false
+    property bool _aurSearchDone: false
+
+    // An append-only log — lives on THIS singleton (not the Atelier
+    // window), so it survives the window closing. Reopening the Atelier
+    // shows the whole history, per Task 3's own instruction.
+    property var installLog: []
+
+    function logLine(level: string, text: string): void {
+        var next = root.installLog.slice();
+        next.push({
+            at: Date.now(),
+            level: level,
+            text: text
+        });
+        root.installLog = next;
+    }
+
+    function _terminal() {
+        return Prefs.getValue("apps.terminal");
+    }
+
+    // Ported from icon-theme-picker.sh's own `parse_search_output`
+    // grammar verbatim: a `repo/pkgname version [markers]` header line
+    // followed by a 4-space-indented description line. `[installed]`
+    // (pacman) or `[Installed` (paru) marks installed state.
+    function _parseCatalogueBlock(text, sourceKind) {
+        var out = [];
+        var lines = (text || "").split("\n");
+        var pkgname = "";
+        var repoToken = "";
+        var installed = false;
+        for (var i = 0; i < lines.length; ++i) {
+            var line = lines[i];
+            var m = line.match(/^(\S+)\/(\S+)\s/);
+            if (m) {
+                repoToken = m[1];
+                pkgname = m[2];
+                installed = (line.indexOf("[installed") >= 0) || (line.indexOf("[Installed") >= 0);
+            } else if (line.indexOf("    ") === 0 && pkgname.length > 0) {
+                out.push({
+                    name: pkgname,
+                    repo: sourceKind === "aur" ? "AUR" : repoToken,
+                    description: line.slice(4).trim(),
+                    installed: installed,
+                    source: sourceKind
+                });
+                pkgname = "";
+            }
+        }
+        return out;
+    }
+
+    // Dedupe by package name, repo winning over AUR, then sort by name —
+    // the exact rule the retired script's own awk pipeline enforced.
+    function _mergeCatalogue(repoRows, aurRows) {
+        var byName = {};
+        var order = [];
+        var all = repoRows.concat(aurRows);
+        for (var i = 0; i < all.length; ++i) {
+            var row = all[i];
+            var existing = byName[row.name];
+            if (!existing) {
+                byName[row.name] = row;
+                order.push(row.name);
+            } else if (row.source === "repo" && existing.source !== "repo") {
+                byName[row.name] = row;
+            }
+        }
+        var out = [];
+        for (var j = 0; j < order.length; ++j)
+            out.push(byName[order[j]]);
+        out.sort(function (a, b) {
+            return a.name < b.name ? -1 : (a.name > b.name ? 1 : 0);
+        });
+        return out;
+    }
+
+    // Fetched on demand when the Catalogue tab is first opened, never at
+    // startup — the repos filter in Workbench sets that precedent for a
+    // large on-demand list.
+    function refreshCatalogue(): void {
+        if (root.catalogueRunning)
+            return;
+        root.catalogueRunning = true;
+        root._repoSearchDone = false;
+        root._aurSearchDone = false;
+        catalogueWatchdog.restart();
+        if (!root._aurHelperProbed) {
+            aurHelperProc.running = true;
+        } else {
+            root._startCatalogueSearches();
+        }
+    }
+
+    function _startCatalogueSearches() {
+        repoSearchProc.running = true;
+        if (root._aurHelper.length > 0) {
+            aurSearchProc.command = [root._aurHelper, "-Ss", "-a", "icon-theme"];
+            aurSearchProc.running = true;
+        } else {
+            // Absence of an AUR helper is a note in the log, not an
+            // error — the same posture icon-theme-picker.sh's own
+            // interactive path took.
+            root._aurSearchText = "";
+            root._aurSearchDone = true;
+            root.logLine("info", "No AUR helper (paru/yay) found — showing official-repo results only.");
+            root._maybeFinishCatalogue();
+        }
+    }
+
+    function _maybeFinishCatalogue() {
+        if (!root._repoSearchDone || !root._aurSearchDone)
+            return;
+        catalogueWatchdog.stop();
+        var repoRows = root._parseCatalogueBlock(root._repoSearchText, "repo");
+        var aurRows = root._aurHelper.length > 0 ? root._parseCatalogueBlock(root._aurSearchText, "aur") : [];
+        root.catalogue = root._mergeCatalogue(repoRows, aurRows);
+        root.catalogueProbed = true;
+        root.catalogueRunning = false;
+    }
+
+    Timer {
+        id: catalogueWatchdog
+        interval: 20000
+        onTriggered: {
+            if (repoSearchProc.running)
+                repoSearchProc.running = false;
+            if (aurSearchProc.running)
+                aurSearchProc.running = false;
+        }
+    }
+
+    Process {
+        id: aurHelperProc
+        running: false
+        command: ["sh", "-c", "command -v paru 2>/dev/null || command -v yay 2>/dev/null || true"]
+        stdout: StdioCollector {
+            id: aurHelperCollector
+        }
+        onExited: (code, status) => {
+            var path = (aurHelperCollector.text || "").trim();
+            if (path.length > 0) {
+                var parts = path.split("/");
+                root._aurHelper = parts[parts.length - 1];
+            } else {
+                root._aurHelper = "";
+            }
+            root._aurHelperProbed = true;
+            root._startCatalogueSearches();
+        }
+    }
+
+    Process {
+        id: repoSearchProc
+        running: false
+        command: ["pacman", "-Ss", "icon-theme"]
+        stdout: StdioCollector {
+            id: repoSearchCollector
+        }
+        onExited: (code, status) => {
+            root._repoSearchText = code === 0 ? (repoSearchCollector.text || "") : "";
+            root._repoSearchDone = true;
+            root._maybeFinishCatalogue();
+        }
+    }
+
+    Process {
+        id: aurSearchProc
+        running: false
+        command: ["true"]
+        stdout: StdioCollector {
+            id: aurSearchCollector
+        }
+        onExited: (code, status) => {
+            root._aurSearchText = code === 0 ? (aurSearchCollector.text || "") : "";
+            root._aurSearchDone = true;
+            root._maybeFinishCatalogue();
+        }
+    }
+
+    // ── Install ─────────────────────────────────────────────────────
+    property string _pendingInstallName: ""
+    property string _pendingInstallSource: ""
+    property var _installBefore: []
+    property bool _hasInstallSnapshot: false
+
+    function installCatalogue(name: string, source: string): void {
+        if (root._pendingInstallName.length > 0) {
+            root.logLine("error", "An install is already in progress — wait for it to finish before starting another.");
+            return;
+        }
+        root.logLine("info", "Install requested: " + name + " (" + source + ")");
+        // 1. Charset check — defence in depth (the argv arrays below
+        //    cannot be shell-injected, no shell is invoked, but a name
+        //    that fails this means the parse went wrong).
+        if (!root._NAME_RE.test(name)) {
+            root.logLine("error", "Refusing to install — '" + name + "' is not a valid package name.");
+            return;
+        }
+        // 2. Re-validate against the catalogue THIS backend actually
+        //    enumerated — never free text before a package-manager
+        //    invocation.
+        var entry = null;
+        for (var i = 0; i < root.catalogue.length; ++i) {
+            if (root.catalogue[i].name === name && root.catalogue[i].source === source) {
+                entry = root.catalogue[i];
+                break;
+            }
+        }
+        if (!entry) {
+            root.logLine("error", "Refusing to install — '" + name + "' did not resolve to an enumerated catalogue entry.");
+            return;
+        }
+        // Every install — repo or AUR — goes through the resolved AUR
+        // helper (`paru`/`yay`), the exact same posture
+        // `PackagesBackend.install()` already uses: a helper installs a
+        // repo package fine, and this backend never constructs a bespoke
+        // `sudo pacman` invocation of its own. If no helper is present,
+        // there is nothing this backend can install (PackagesBackend has
+        // the identical limitation) — refuse rather than reach for
+        // `sudo` as a fallback.
+        if (root._aurHelper.length === 0) {
+            root.logLine("error", "No AUR helper (paru/yay) available — cannot install any package from here.");
+            return;
+        }
+        root._pendingInstallName = name;
+        root._pendingInstallSource = source;
+        root.logLine("info", "Checking for a running pacman transaction…");
+        dbLockCheckProc.running = true;
+    }
+
+    // 3. Refuse if a transaction is already running — starting a second
+    //    one is how you get a wall of lock errors in a terminal that
+    //    then closes.
+    Process {
+        id: dbLockCheckProc
+        running: false
+        command: ["test", "-e", root.dbLockPath]
+        onExited: (code, status) => {
+            if (code === 0) {
+                root.logLine("error", "Refusing to install — a pacman transaction is already running (db lock present).");
+                root._pendingInstallName = "";
+                root._pendingInstallSource = "";
+                return;
+            }
+            root.logLine("info", "Confirming " + root._pendingInstallName + " in the authoritative database…");
+            if (root._pendingInstallSource === "repo")
+                existsCheckProc.command = ["pacman", "-Si", root._pendingInstallName];
+            else
+                existsCheckProc.command = [root._aurHelper, "-Si", root._pendingInstallName];
+            existsCheckProc.running = true;
+        }
+    }
+
+    // 4. Confirm existence in the authoritative database. The package
+    //    manager's exit code is authoritative — never a bespoke
+    //    legitimacy heuristic.
+    Process {
+        id: existsCheckProc
+        running: false
+        command: ["true"]
+        onExited: (code, status) => {
+            if (code !== 0) {
+                root.logLine("error", root._pendingInstallName + " did not resolve to a real " + (root._pendingInstallSource === "repo" ? "repo" : "AUR") + " package.");
+                root._pendingInstallName = "";
+                root._pendingInstallSource = "";
+                return;
+            }
+            root.logLine("info", "Snapshotting the installed theme-directory set…");
+            installSnapshotProc.running = true;
+        }
+    }
+
+    // 5. Snapshot before the install so the newly-appeared directory can
+    //    be diffed out afterward — package name != theme directory name.
+    Process {
+        id: installSnapshotProc
+        running: false
+        command: [root._iconScript, "--list"]
+        stdout: StdioCollector {
+            id: installSnapshotCollector
+        }
+        onExited: (code, status) => {
+            root._installBefore = (installSnapshotCollector.text || "").split("\n").map(l => l.trim()).filter(l => l.length > 0);
+            root._hasInstallSnapshot = true;
+            var name = root._pendingInstallName;
+            var source = root._pendingInstallSource;
+            root._pendingInstallName = "";
+            root._pendingInstallSource = "";
+            // 6. Hand off to a terminal with a fixed argv array — the
+            //    IDENTICAL shape PackagesBackend.install() uses
+            //    (`[helper, "-S", "--needed", name]`), one code path for
+            //    both repo and AUR sources since the helper handles a
+            //    repo package fine on its own. Never an auto-confirm
+            //    flag: the package manager prints what it will do and
+            //    asks.
+            var pmArgs = [root._aurHelper, "-S", "--needed", name];
+            root.logLine("info", "Handing off to a terminal: " + pmArgs.join(" "));
+            Quickshell.execDetached([root._terminal(), "-e"].concat(pmArgs));
+            root.transactionLaunched("install-icon-theme");
+        }
+    }
+
+    // 7. Reconciliation — re-runs --list, diffs against the last
+    //    snapshot, and logs the outcome. Called when the Atelier next
+    //    opens (AtCatalogueTab.qml's Component.onCompleted) and from a
+    //    manual "Re-check" action; a no-op before any install has ever
+    //    been attempted this session (nothing to reconcile against).
+    function reconcileInstall(): void {
+        if (!root._hasInstallSnapshot)
+            return;
+        reconcileProc.running = true;
+    }
+
+    Process {
+        id: reconcileProc
+        running: false
+        command: [root._iconScript, "--list"]
+        stdout: StdioCollector {
+            id: reconcileCollector
+        }
+        onExited: (code, status) => {
+            var after = (reconcileCollector.text || "").split("\n").map(l => l.trim()).filter(l => l.length > 0);
+            var beforeSet = {};
+            for (var i = 0; i < root._installBefore.length; ++i)
+                beforeSet[root._installBefore[i]] = true;
+            var added = [];
+            for (var j = 0; j < after.length; ++j)
+                if (!beforeSet[after[j]])
+                    added.push(after[j]);
+            if (added.length === 0) {
+                root.logLine("warn", "No new icon-theme directory appeared — installed, but shipped no icon-theme directory.");
+            } else if (added.length === 1) {
+                root.logLine("success", "New theme detected: " + added[0] + ". Applying it from the Icons tab is one click away.");
+            } else {
+                root.logLine("info", "Multiple new theme directories appeared: " + added.join(", ") + ". Pick one from the Icons tab.");
+            }
+            root.iconThemes = after;
+            root.iconThemesProbed = true;
+            root._installBefore = after;
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
