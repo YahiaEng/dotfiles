@@ -591,5 +591,11 @@ v5.0 is unscoped. Standing candidates:
 - **Per-screen surface fan-out (QS-03)** — dropped one-way under D-13; revisit
   only if a second monitor arrives *and* upstream fixes it.
 
-- **ICON-BROWSE** — browse/install *new* icon themes from the picker (repo/AUR
-  discovery); v2.0 shipped apply-only.
+- ~~**ICON-BROWSE**~~ — **STRUCK 2026-08-28 (quick task 260828-ah9): already
+  done, this candidate describes finished work.** Repo/AUR icon-theme
+  discovery and install now ships as the Atelier's Catalogue tab (D-04) —
+  `quickshell/.config/quickshell/modules/appearance/AtCatalogueTab.qml`,
+  backed by `AppearanceBackend.qml`'s `refreshCatalogue()`/
+  `installCatalogue()`. Reached via `Super+I` (Atelier, Icons tab) then the
+  Catalogue tab, or `qs ipc call appearance-window open catalogue`. Leaving
+  this row live would have put shipped work back into a v5.0 scope.

@@ -152,11 +152,23 @@ Singleton {
                 },
                 {
                     text: "  Icon theme",
-                    command: `~/.config/hypr/scripts/icon-theme-switch.sh`
+                    // Superseded by the Atelier (quick task
+                    // 260828-ah9, D-01) — `appearance` wins over
+                    // `command` in MenuMode.qml's activate(), the
+                    // same wins-over-stale-command precedent
+                    // Theme/Bar orientation set above with `mode`.
+                    // `command` names the shim this leaf used to
+                    // launch; that file is deleted now, kept here
+                    // only as the record of what this leaf used to
+                    // do.
+                    command: `~/.config/hypr/scripts/icon-theme-switch.sh`,
+                    appearance: "icons"
                 },
                 {
                     text: "  Font",
-                    command: `~/.config/hypr/scripts/font-switch.sh`
+                    // Same precedent as Icon theme above.
+                    command: `~/.config/hypr/scripts/font-switch.sh`,
+                    appearance: "fonts"
                 },
                 {
                     text: "  Bar orientation",

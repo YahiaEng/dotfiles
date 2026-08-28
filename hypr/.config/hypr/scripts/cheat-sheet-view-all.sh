@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ╔══════════════════════════════════════════════════════╗
 # ║      CHEAT-SHEET — "View all" kitty card (D-29b)      ║
-# ║  Launcher shim (icon-theme-switch.sh's exact shape)     ║
+# ║  Launcher shim (fastfetch-logo-switch.sh's exact shape) ║
 # ║  PLUS the card renderer, in one file: a bare            ║
 # ║  invocation opens a floating kitty window that          ║
 # ║  re-invokes this same script with --render, which        ║

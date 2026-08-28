@@ -4,7 +4,7 @@
 # ║  Opens a floating kitty running nmtui                ║
 # ╚══════════════════════════════════════════════════════╝
 # D-17: no new GUI package — NetworkManager already manages the network
-# and nmtui ships with it. Follows icon-theme-switch.sh's exact
+# and nmtui ships with it. Follows fastfetch-logo-switch.sh's exact
 # launcher-shim shape; --class/--title values are locked by 07-UI-SPEC.md.
 
 uwsm app -- kitty \

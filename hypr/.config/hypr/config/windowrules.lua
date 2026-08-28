@@ -109,24 +109,6 @@ hl.window_rule({
 })
 
 hl.window_rule({
-    name = "icon-theme-picker",
-    match = { class = [[^(icon-theme-picker)$]] },
-    float = true,
-    size = "85% 85%",
-    center = true,
-    animation = "popin",
-})
-
-hl.window_rule({
-    name = "font-switcher",
-    match = { class = [[^(font-switcher)$]] },
-    float = true,
-    size = "85% 85%",
-    center = true,
-    animation = "popin",
-})
-
-hl.window_rule({
     name = "network-manager",
     match = { class = [[^(network-manager)$]] },
     float = true,

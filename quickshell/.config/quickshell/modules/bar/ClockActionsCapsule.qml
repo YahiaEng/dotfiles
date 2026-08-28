@@ -676,30 +676,45 @@ BarCapsule {
     //    Task 2's drawer shape verbatim. Promoting that shape to a
     //    shared type is a named follow-on, not a licence to edit the
     //    frozen manifest here. ──────────────────────────────────────────
-    // "theme" and "orientation" carry `launcherMode` instead of `script`
-    // (quick task 260822-sht): both of their pickers now live in the native
-    // QML launcher and are reached the same way Super+C reaches
-    // ClipboardMode.qml — `qs ipc call launcher open <mode>`. See
-    // SettingsAxisCell below for how the two shapes are dispatched.
+    // "theme", "orientation", "font" and "icons" carry `launcherMode`
+    // instead of `script` — their pickers all live in the native QML
+    // launcher now and are reached the same way Super+C reaches
+    // ClipboardMode.qml: `qs ipc call launcher open <mode>`. A
+    // `launcherMode` axis skips the `script`-axis presence probe
+    // entirely, which is why repointing an axis needs no new plumbing.
+    // See SettingsAxisCell below for how the two shapes are dispatched.
     //
-    // theme (Task 12): theme-switch.sh is retired outright, so the
-    // launcher's Style ▸ Theme picker (PickerMode.qml) is the sole
-    // theme-picker surface.
+    // theme (quick task 260822-sht, Task 12): theme-switch.sh is retired
+    // outright, so the launcher's Style ▸ Theme picker (PickerMode.qml)
+    // is the sole theme-picker surface.
     //
-    // orientation (fixed after Stage 3): bar-orientation.sh still EXISTS and
-    // still applies an orientation, but Task 5 removed its interactive
-    // `_pick()` path when PickerMode took over the choosing. This axis kept
-    // invoking it with NO argument, and the script's no-arg branch prints a
-    // usage line and exits 0 — so the cell probed as available, the click
-    // dispatched, nothing happened, and nothing errored. A silent no-op
-    // since Task 5. The three remaining `script` axes are unaffected:
-    // font-switch.sh, icon-theme-switch.sh and wallpaper-switch.sh are all
-    // present and all still own their own interactive path.
+    // orientation (fixed after Stage 3): bar-orientation.sh still EXISTS
+    // and still applies an orientation, but Task 5 removed its
+    // interactive `_pick()` path when PickerMode took over the choosing.
+    // This axis kept invoking it with NO argument, and the script's
+    // no-arg branch prints a usage line and exits 0 — so the cell probed
+    // as available, the click dispatched, nothing happened, and nothing
+    // errored. A silent no-op since Task 5.
+    //
+    // font/icons (quick task 260828-ah9, D-01/D-03): font-switch.sh and
+    // icon-theme-switch.sh are DELETED — both scripts' interactive halves
+    // were retired for the QML Atelier/launcher surfaces this task built.
+    // These two axes carried a `script:` presence probe against those
+    // exact filenames, which is EXACTLY the failure class the
+    // "orientation" note above already documents: a probe that keeps
+    // reporting "available" against a target that no longer does anything
+    // (or, after the delete, no longer exists at all) turns the cell
+    // silently unavailable. Repointed to the `font`/`icon` launcherMode
+    // values below — the two real launcher word routes Task 4 created —
+    // rather than repeating that defect a second time. Every axis in
+    // this array is now a `launcherMode` axis except "wallpaper", which
+    // still owns its own interactive script surface (wallpaper-switch.sh,
+    // unaffected by this task).
     readonly property var settingsAxes: [
         { id: "theme", glyph: "contrast", label: "Theme", launcherMode: "theme" },
         { id: "orientation", glyph: "screen_rotation", label: "Bar Orientation", launcherMode: "barorientation" },
-        { id: "font", glyph: "text_fields", label: "Font", script: "font-switch.sh" },
-        { id: "icons", glyph: "palette", label: "Icon Theme", script: "icon-theme-switch.sh" },
+        { id: "font", glyph: "text_fields", label: "Font", launcherMode: "font" },
+        { id: "icons", glyph: "palette", label: "Icon Theme", launcherMode: "icon" },
         { id: "wallpaper", glyph: "wallpaper", label: "Wallpaper", script: "wallpaper-switch.sh" }
     ]
 
@@ -805,11 +820,12 @@ BarCapsule {
     // One axis cell — an ActionCell that also owns its own script-present
     // probe and its own detached launcher, keyed off its own `axis` data
     // rather than a second literal script name. An axis with a
-    // `launcherMode` (currently just "theme", quick task 260822-sht
-    // Task 12) skips the script-present probe entirely — the launcher is
-    // always available in-process, so `available` stays at ActionCell's
-    // own `true` default — and dispatches through `qs ipc call` instead
-    // of a bare script path.
+    // `launcherMode` (theme/orientation since quick task 260822-sht
+    // Task 12; font/icons since quick task 260828-ah9) skips the
+    // script-present probe entirely — the launcher is always available
+    // in-process, so `available` stays at ActionCell's own `true`
+    // default — and dispatches through `qs ipc call` instead of a bare
+    // script path. Only "wallpaper" is still a `script` axis.
     component SettingsAxisCell: ActionCell {
         id: axisCell
         property var axis: ({})

@@ -13,9 +13,9 @@
 #        motion-switch.sh --list-accessibility
 #        motion-switch.sh --help
 #
-# Unlike font-switch.sh/icon-theme-switch.sh (thin kitty+fzf launchers),
-# this script IS the axis's whole interface this phase (D-07) — it writes
-# the state file directly and triggers exactly one theme-apply re-render,
+# Unlike fastfetch-logo-switch.sh (a thin kitty+fzf launcher), this
+# script IS the axis's whole interface this phase (D-07) — it writes the
+# state file directly and triggers exactly one theme-apply re-render,
 # never a second entrypoint.
 #
 # quick-260821-swp: this script used to hand-duplicate lib/motion.sh's own

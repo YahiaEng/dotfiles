@@ -40,6 +40,7 @@ import Quickshell
 import ".."
 import "."
 import "../packages"
+import "../appearance"
 import "fuzzy.js" as Fuzzy
 
 Item {
@@ -127,6 +128,18 @@ Item {
         // through `sh -c`, which this leaf has no need of.
         if (row.workbench) {
             PackagesBackend.openWorkbench("", row.workbench);
+            if (typeof root.dismissCallback === "function")
+                root.dismissCallback();
+            return;
+        }
+
+        // Style ▸ Icon theme / Style ▸ Font (quick task 260828-ah9, D-01)
+        // — same direct-call shape `row.workbench` already established
+        // above: the launcher already resolves AppearanceBackend, so
+        // asking the shell to talk to itself over `qs ipc call` would be
+        // pure cost.
+        if (row.appearance) {
+            AppearanceBackend.openAtelier(row.appearance);
             if (typeof root.dismissCallback === "function")
                 root.dismissCallback();
             return;
