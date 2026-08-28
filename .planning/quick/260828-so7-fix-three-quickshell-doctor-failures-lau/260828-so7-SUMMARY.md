@@ -110,9 +110,22 @@ The trap is kept; the diagnosis is corrected.
 
 **Import resolution proven, not assumed.** No lint can see a QML import error.
 `SystemCapsule.qml` — same directory, identical import block, the very file that
-instantiates this popout — already resolves `BarRoles` five times. Then verified
-on the live reload *by line position*: last `Configuration Loaded` at line 7199
-of 7209, with 0 errors after it.
+instantiates this popout — already resolves `BarRoles` five times.
+
+> **CORRECTION, 2026-08-28 (quick task 260828-t22).** This section originally
+> added: "Then verified on the live reload *by line position*: last
+> `Configuration Loaded` at line 7199 of 7209, with 0 errors after it." **That
+> was not evidence for this change.** Measured afterwards: quickshell watches
+> only files it has actually LOADED — a comment touch on the loaded
+> `SystemCapsule.qml` produces a reload, the same touch on the lazily-loaded
+> `UpdatesPopout.qml` produces zero log lines. That file has never been loaded
+> this session, so the reload never exercised it; the `Configuration Loaded`
+> lines cited came from other activity. The static gates were real and stand.
+> The runtime claim did not, and is withdrawn.
+>
+> The gap it exposed is now closed by `singleton-prop-check` (260828-t22),
+> which resolves every `BarRoles.<member>` reference statically and therefore
+> *does* cover lazily-loaded surfaces. Re-run against this file: clean.
 
 ## Not done / out of scope
 
