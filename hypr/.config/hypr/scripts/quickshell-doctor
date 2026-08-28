@@ -142,7 +142,12 @@ SHORTCUTS_MANIFEST="$HOME/.config/quickshell/shortcuts.json"
 KEYBINDS_LUA="$HOME/.config/hypr/config/keybinds.lua"
 PERMISSIONS_LUA="$HOME/.config/hypr/config/permissions.lua"
 QUICKSHELL_CONFIG_DIR="$HOME/.config/quickshell"
-LAUNCHER_LOG="$HOME/.cache/quickshell.log"
+# QSD_FIXTURE_LAUNCHER_LOG (quick task 260828-so7): the launcher-log seam,
+# added so checks 3/3b become poison-testable at all — they were the only
+# checks in this file reading a live path with no fixture substitution, which
+# is exactly why the `grep -a` bug below survived unnoticed. Inert when unset,
+# like every sibling seam.
+LAUNCHER_LOG="${QSD_FIXTURE_LAUNCHER_LOG:-$HOME/.cache/quickshell.log}"
 STATE_DIR="$HOME/.local/state/quickshell"
 BASELINE_FILE="$STATE_DIR/doctor-baseline.json"
 KEYBIND_DOCTOR="$SCRIPT_DIR/keybind-doctor"
@@ -182,7 +187,7 @@ done
 # shell profile, CI environment, or copied invocation that names a
 # nonexistent path is a hard error before this script does anything
 # else, never a silent fall-through to live (T-15-08).
-for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAYERS_JSON QSD_FIXTURE_SHORTCUTS_MANIFEST QSD_FIXTURE_KEYBINDS_LUA QSD_FIXTURE_HYPRCTL_GETOPTION QSD_FIXTURE_PERMISSIONS_LUA QSD_FIXTURE_OVERVIEW_STATUS QSD_FIXTURE_MONITORS_JSON QSD_FIXTURE_DESIGN_QML QSD_FIXTURE_WINDOWRULES_LUA; do
+for _qsd_fv in QSD_FIXTURE_BUSCTL_LIST QSD_FIXTURE_HYPRCTL_BINDS QSD_FIXTURE_LAYERS_JSON QSD_FIXTURE_SHORTCUTS_MANIFEST QSD_FIXTURE_KEYBINDS_LUA QSD_FIXTURE_HYPRCTL_GETOPTION QSD_FIXTURE_PERMISSIONS_LUA QSD_FIXTURE_OVERVIEW_STATUS QSD_FIXTURE_MONITORS_JSON QSD_FIXTURE_DESIGN_QML QSD_FIXTURE_WINDOWRULES_LUA QSD_FIXTURE_LAUNCHER_LOG; do
     _qsd_fv_val="${!_qsd_fv:-}"
     if [[ -n "$_qsd_fv_val" && ! -f "$_qsd_fv_val" ]]; then
         echo "FATAL: $_qsd_fv names a nonexistent file: $_qsd_fv_val" >&2
@@ -484,6 +489,31 @@ check() {
         printf '  [FAIL] %s\n' "$desc"
         FAIL=$((FAIL + 1))
     fi
+}
+
+_qsd_launcher_log_verdict() {
+    local log="$1" last_start_line_no tail_since_start crash_hits
+    if [[ ! -f "$log" ]]; then
+        printf 'exists=0 startline=0 crash-markers=0'
+        return 1
+    fi
+    # `-a` IS LOAD-BEARING. The live ~/.cache/quickshell.log carries NUL bytes
+    # — `file` reports it as `data`, not text — so without -a GNU grep
+    # short-circuits to "binary file matches" and prints NO lines at all. That
+    # did not merely fail this check falsely (3 healthy startup lines were
+    # present on the run that found this); it left the line number empty, so
+    # the crash-marker branch never ran and THE ASSERTION THIS BLOCK EXISTS TO
+    # MAKE WAS SILENTLY SKIPPED. A check that cannot run is worse than one that
+    # fails. Both greps here need it, for the same reason.
+    last_start_line_no=$(grep -an 'quickshell-launch\.sh: starting' "$log" | tail -1 | cut -d: -f1)
+    if [[ -z "$last_start_line_no" ]]; then
+        printf 'exists=1 startline=0 crash-markers=0'
+        return 1
+    fi
+    tail_since_start=$(tail -n +"$last_start_line_no" "$log")
+    crash_hits=$(printf '%s\n' "$tail_since_start" | grep -aciE 'fatal|panic|segmentation fault|core dumped|\babort(ed)?\b')
+    printf 'exists=1 startline=%s crash-markers=%s' "$last_start_line_no" "$crash_hits"
+    [[ "$crash_hits" -eq 0 ]]
 }
 
 # V5 input-validation control (matches keybind-doctor's own discipline,
@@ -2540,6 +2570,27 @@ run_self_test() {
         return 1
     fi
 
+    # launcher-log health (2 fixtures, quick task 260828-so7). BOTH fixtures
+    # contain real NUL bytes, which is the entire point: they are byte-for-byte
+    # the shape of the live ~/.cache/quickshell.log that made this check report
+    # a false FAIL while silently skipping its own crash-marker assertion.
+    # The compliant fixture is the REGRESSION guard — it fails without `grep -a`
+    # even though its startup line is plainly present. The poisoned fixture is
+    # the guard on the assertion that was being skipped: it can only go red if
+    # the crash-marker branch is actually reached.
+    #
+    # DO NOT DELETE THE COMPLIANT FIXTURE AS REDUNDANT. Measured 2026-08-28 by
+    # reverting the `-a` and re-running: the compliant fixture went RED (60/1)
+    # but the POISONED ONE STILL PASSED — without -a it returns 1 for the wrong
+    # reason (no-startup-line, never reaching the crash branch) and a test that
+    # only asserts "rc != 0" cannot tell the two apart. The poison alone would
+    # have shipped this bug a second time. The compliant fixture is the
+    # load-bearing half here; the poison is the pair that gives it meaning.
+    _qsd_launcher_log_verdict "$FIXTURES_DIR/compliant-nul-bytes-launcher.log" >/dev/null 2>&1
+    _qsd_st "compliant-nul-bytes-launcher.log -> launcher-log health PASSES despite NUL bytes (the -a regression guard: without grep -a the startup line is invisible and this fixture reports no-startup-line)" "$([[ $? -eq 0 ]] && echo 0 || echo 1)"
+    _qsd_launcher_log_verdict "$FIXTURES_DIR/poisoned-crash-after-start-launcher.log" >/dev/null 2>&1
+    _qsd_st "poisoned-crash-after-start-launcher.log -> launcher-log health FAILS (a 'Segmentation fault (core dumped)' after the last startup line — this assertion was UNREACHABLE before the -a fix, so this poison proves the branch now runs)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+
     # panel-namespace-conformance — layers half (4 fixtures). The
     # compliant fixture is the DURING-summon shape (one panel, correct
     # namespace, level 3, shell-owned pid) — a real 2026-08-02 capture
@@ -2999,22 +3050,24 @@ pgrep -f 'quickshell -p' >/dev/null 2>&1
 check "quickshell shell process alive (matches the launcher's exec'd invocation)" "$?"
 
 # ── 3. Launcher log healthy ──────────────────────────────────────────
-if [[ ! -f "$LAUNCHER_LOG" ]]; then
-    check "launcher log exists with a healthy last startup ($LAUNCHER_LOG)" "1"
-else
-    LAST_START_LINE_NO=$(grep -n 'quickshell-launch\.sh: starting' "$LAUNCHER_LOG" | tail -1 | cut -d: -f1)
-    if [[ -z "$LAST_START_LINE_NO" ]]; then
-        check "launcher log exists with a healthy last startup ($LAUNCHER_LOG)" "1"
-        echo "    no 'quickshell-launch.sh: starting' line found in $LAUNCHER_LOG" >&2
-    else
-        TAIL_SINCE_START=$(tail -n +"$LAST_START_LINE_NO" "$LAUNCHER_LOG")
-        CRASH_HITS=$(printf '%s\n' "$TAIL_SINCE_START" | grep -ciE 'fatal|panic|segmentation fault|core dumped|\babort(ed)?\b')
-        check "launcher log's last startup line ($LAUNCHER_LOG:$LAST_START_LINE_NO) has no crash/abort marker after it" "$([[ "$CRASH_HITS" -eq 0 ]] && echo 0 || echo 1)"
-        if [[ "$CRASH_HITS" -gt 0 ]]; then
-            echo "    last lines since startup:" >&2
-            printf '%s\n' "$TAIL_SINCE_START" | tail -10 | sed 's/^/    /' >&2
-        fi
-    fi
+# Extracted into a function (quick task 260828-so7) for one reason: as an
+# inline block it was the ONLY check in this file with no callable seam, so
+# --self-test could not replay a fixture through it and the `grep` bug below
+# survived every self-test run this file has ever had. The live path and the
+# self-test now enter through the same door.
+#
+# Prints a machine-readable report and returns 0 (healthy) / 1 (not), so a
+# caller can assert on the verdict AND show the numbers. Never exits.
+QSD_LAUNCHER_LOG_REPORT=$(_qsd_launcher_log_verdict "$LAUNCHER_LOG")
+QSD_LAUNCHER_LOG_RC=$?
+check "launcher log exists, has a readable last startup line, and no crash/abort marker after it ($LAUNCHER_LOG): ${QSD_LAUNCHER_LOG_REPORT}" "$QSD_LAUNCHER_LOG_RC"
+if [[ "$QSD_LAUNCHER_LOG_RC" -ne 0 ]]; then
+    case "$QSD_LAUNCHER_LOG_REPORT" in
+        exists=0*) echo "    launcher log not found at $LAUNCHER_LOG" >&2 ;;
+        *startline=0*) echo "    no 'quickshell-launch.sh: starting' line found in $LAUNCHER_LOG (if the file is non-empty, check for NUL bytes — grep needs -a)" >&2 ;;
+        *) echo "    last lines since startup:" >&2
+           tail -n +"$(printf '%s' "$QSD_LAUNCHER_LOG_REPORT" | sed -E 's/.*startline=([0-9]+).*/\1/')" "$LAUNCHER_LOG" | tail -10 | sed 's/^/    /' >&2 ;;
+    esac
 fi
 
 # ── 4. Namespace discipline (D-21, corrected 18-17) — every quickshell-*
