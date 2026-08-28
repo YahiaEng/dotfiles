@@ -7,7 +7,16 @@ commits:
   - 8dc0693d  # root-side foundation
   - 92943ca6  # backend singleton, severity ramp, settings page S1+S2
   - 7ea695a2  # dashboard tab D1, bar capsule H1
+  - 244196ca  # docs
+  - dd8fd318  # r1: constant-size capsule, octopi conflict
+  - 071bc42d  # r2: capsule beside the bell, flat tint
+  - 192da2ca  # r2: !debug for AUR builds (tela "hang")
+  - aa800ef1  # r3: error surfacing, one layout, sudo keepalive, SMART SATA
+  - 8af9df97  # r5: stable section order
+  - 45496386  # r5: collapse unfixable CVEs, rank actionable first
+  - 777b63e2  # r6: folder picker for the scan target
 artifact: https://claude.ai/code/artifact/ce5483c7-7f64-454d-8262-e7d99a330ba2
+operator_status: ALL CONFIRMED — task closed 2026-08-28
 ---
 
 # Security Center — shipped, all four plates
@@ -86,7 +95,7 @@ of "the gates cannot see a QML load error."
 Positive control run on colour-lint and motion-lint: 15 checks each name a
 `modules/security/` file, so the pass is not a skipped directory.
 
-## NOT verified by me — needs the operator
+## NOT verified by me — needs the operator  (ALL FOUR CLOSED, see rounds below)
 
 1. **`install.sh` has not been run.** No package installed, no unit
    enabled, no ruleset placed. Until then the pane correctly shows four
@@ -99,3 +108,83 @@ Positive control run on colour-lint and motion-lint: 15 checks each name a
    installed anything — every one of those needs a real polkit prompt.
 4. **`quickshell-doctor` not run** — it restarts the shell from inside,
    which is forbidden from an agent shell.
+
+> **Resolved 2026-08-28.** install.sh ran and placed everything (helper,
+> polkit action, ruleset, units, snapshot); all four surfaces were rendered
+> and operator-confirmed; the firewall was enabled through a real polkit
+> prompt. `quickshell-doctor` remains unrun — still an operator-only tool.
+> Item 1 is kept verbatim as the point-in-time record of the build phase.
+
+
+---
+
+# Operator rounds 1-6 (2026-08-27 → 08-28)
+
+The build above shipped; everything below came from the operator using it.
+**All confirmed; task closed.**
+
+## What the six rounds actually taught
+
+**Four of my defects made WORKING things look broken.** That is the pattern
+worth carrying, not the individual bugs:
+
+| Reported | Real cause |
+|---|---|
+| "Enable does nothing, button resets" | It worked. `pkexec` exit **127** (missing helper) was treated as "user cancelled", and nothing displayed `actionError` at all |
+| "Firewall still shows off after enabling" | It was on. `nftables.service` is `Type=oneshot` with no `RemainAfterExit`, so `systemctl is-active` reports `inactive` forever |
+| "Scan is hanging" | It was scanning. With `-i`, clamscan prints NOTHING until the summary, so the counter sat at 0; plus ~6.7s of silent signature loading first |
+| "Weird dashboard icons" | Not my code at all. `ttf-material-symbols-variable-git` upgraded at 03:50:41; quickshell started 03:34:38 and `/proc/1440/maps` still showed the font `(deleted)` |
+
+In every case the mechanism was found by **measuring, not reasoning** —
+`journalctl`, `/proc/<pid>/maps`, `systemctl show`, a real `pkexec` exit code.
+
+## Round-by-round
+
+- **r1** — Bar capsule shifted the whole bar. Measured by A/B grim capture:
+  centre landmarks moved exactly 23px = `(30 + 16)/2`, because endZone is
+  bottom-anchored and centerZone is centred *in the gap*. Also found that
+  collapsing to zero never removed the footprint anyway — a zero-height Grid
+  child still consumes `spacing`. Fixed to a constant-size chip.
+  Separately: `octopi` → `octopi-git` (conflicted with the installed
+  `alpm_octopi_utils-git`, aborting install.sh before section_security).
+- **r2** — Capsule was mispositioned and "too glowy". The notification pill is
+  an ENTRY on `clockActions`, not a capsule, so security became an `ActionCell`
+  beside the bell. Colour switched from a Material wash+rim to the bar's own
+  flat `BarRoles` tint. `filled` was tried, screenshotted, and rejected: a
+  security finding can stand for weeks, and a permanently solid glyph among
+  four outline ones is what "out of place" meant.
+  Also: AUR builds now run `!debug` — Arch ships `debug` in OPTIONS, so makepkg
+  was copying 1.3 GB of icon-theme sources into `/usr/src/debug/` for a package
+  with no binaries, which read as a hang.
+- **r3** — pkexec 126/127 split + an error banner + helper pre-flight; the two
+  layouts merged into one `SecurityOverview`; duplicate bar toggle removed;
+  sudo keepalive (47 sudo calls, 5-min timeout, 20+ min build between them).
+- **r4** — Focus grab released for EXTERNAL dialogs (the polkit prompt was
+  measured as already floating — it was the exclusive grab, not a windowrule);
+  oneshot-aware firewall probe; progress bar rewritten to derive x from live
+  width; `Scan target` made interactive; clamscan `-v` for live progress.
+- **r5** — Section order made FIXED after ordering-by-severity relocated whole
+  sections on a state change. Unfixable CVEs collapsed behind one disclosure
+  row; fixable ones ranked first at equal severity.
+- **r6** — `FilePicker` gained a generic `selectDirectories` mode rather than a
+  second picker being written; scan target became a real path.
+
+## Facts about this host, established here
+
+- All 17 affected packages report `status: "Vulnerable"` with `fixed: None`, and
+  `arch-audit -u` returns nothing — nothing is fixable today. `AVG-2701` flags
+  `linux-lts` with 21 CVEs from **2022** while the installed 6.18.47-1 is
+  current: stale tracker bookkeeping, not a live exposure.
+- The firewall is enabled and loaded; every listener is on loopback.
+- All three drives healthy: `sda` 20705h/45°C, `nvme0` 3960h/53°C,
+  `nvme1` 11538h/54°C. The SATA drive needed `smartctl` auto-detection —
+  `--scan` reports it as `-d scsi`, which returned no verdict at all.
+
+## Memory written
+
+- [[probe-the-right-signal-for-privileged-actions]] — new
+- [[second-toplevel-needs-the-focus-grab]] — extended with the external-process
+  (polkit) case
+- [[qml-configured-after-construction]] — extended with the animation
+  `from`/`to` variant
+- [[qml-syntax-tools-are-blind-here]] — extended with `top` being FINAL on `Item`
