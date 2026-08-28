@@ -548,29 +548,39 @@ Singleton {
     // Ported from icon-theme-picker.sh's own `parse_search_output`
     // grammar verbatim: a `repo/pkgname version [markers]` header line
     // followed by a 4-space-indented description line. `[installed]`
-    // (pacman) or `[Installed` (paru) marks installed state.
+    // (pacman) or `[Installed` (paru) marks installed state. Operator
+    // round 4, item 2 — the version token (verified live against both
+    // `pacman -Ss` — "extra/papirus-icon-theme 20260801-1 [installed]" —
+    // and `paru -Ss -a` — "aur/numix-icon-theme-git
+    // 21.10.31.r0.g7a28092dd-1 [+437 ~0.26]") is now captured too, for the
+    // Catalogue tab's row-selection detail pane. Empty string, never
+    // undefined, when a header line genuinely carries no third token.
     function _parseCatalogueBlock(text, sourceKind) {
         var out = [];
         var lines = (text || "").split("\n");
         var pkgname = "";
         var repoToken = "";
+        var pkgversion = "";
         var installed = false;
         for (var i = 0; i < lines.length; ++i) {
             var line = lines[i];
-            var m = line.match(/^(\S+)\/(\S+)\s/);
+            var m = line.match(/^(\S+)\/(\S+)\s+(\S+)/);
             if (m) {
                 repoToken = m[1];
                 pkgname = m[2];
+                pkgversion = m[3];
                 installed = (line.indexOf("[installed") >= 0) || (line.indexOf("[Installed") >= 0);
             } else if (line.indexOf("    ") === 0 && pkgname.length > 0) {
                 out.push({
                     name: pkgname,
                     repo: sourceKind === "aur" ? "AUR" : repoToken,
+                    version: pkgversion,
                     description: line.slice(4).trim(),
                     installed: installed,
                     source: sourceKind
                 });
                 pkgname = "";
+                pkgversion = "";
             }
         }
         return out;

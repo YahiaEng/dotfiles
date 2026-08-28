@@ -42,6 +42,24 @@ Item {
         return Colours.onSurfaceVariant;
     }
 
+    // Operator round 4, item 2 — catalogue rows were hover-only (no
+    // `onClicked` at all), so nothing could ever be selected. Tracked by
+    // `name`, which `_mergeCatalogue()` already dedupes to unique across
+    // the whole catalogue. A selection surviving a re-search (the list
+    // reference changes but names don't) is intentional — re-selecting
+    // after every keystroke would be its own defect.
+    property string selectedName: ""
+
+    readonly property var _selectedEntry: {
+        if (root.selectedName.length === 0)
+            return null;
+        var all = AppearanceBackend.catalogue;
+        for (var i = 0; i < all.length; ++i)
+            if (all[i].name === root.selectedName)
+                return all[i];
+        return null;
+    }
+
     // Resizable left-pane width (defect 2c), persisted like
     // `packages.sidebarWidth`/`packages.detailWidth`. Wider bounds than
     // the Icons/Fonts rails — this pane holds a search box and full
@@ -167,10 +185,18 @@ Item {
                     id: resultRow
                     required property var modelData
 
+                    // Operator round 4, item 2 — rows were hover-only;
+                    // this is the same primaryContainer/hover-tint
+                    // treatment the Icons/Fonts rails and the tab strip
+                    // already carry (WbSidebar.qml:117's shape), on the
+                    // SAME `Qt.alpha(Colours.surface, 0.55)` backdrop
+                    // `leftPane` already draws behind this list.
+                    readonly property bool selected: resultRow.modelData.name === root.selectedName
+
                     width: resultsList.width
                     height: 56
                     radius: 10
-                    color: rowArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.05) : "transparent"
+                    color: resultRow.selected ? Colours.primaryContainer : (rowArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
 
                     Behavior on color {
                         enabled: Motion.motionEnabled
@@ -185,6 +211,7 @@ Item {
                         id: rowArea
                         anchors.fill: parent
                         hoverEnabled: true
+                        onClicked: root.selectedName = resultRow.modelData.name
                     }
 
                     Row {
@@ -203,7 +230,7 @@ Item {
                                 Text {
                                     text: resultRow.modelData.name
                                     font.pixelSize: Design.settingsFontSub
-                                    color: Colours.onSurface
+                                    color: resultRow.selected ? Colours.onPrimaryContainer : Colours.onSurface
                                     elide: Text.ElideRight
                                 }
 
@@ -225,7 +252,7 @@ Item {
                                 width: parent.width
                                 text: resultRow.modelData.description
                                 font.pixelSize: Design.fontLabel
-                                color: Colours.onSurfaceVariant
+                                color: resultRow.selected ? Colours.onPrimaryContainer : Colours.onSurfaceVariant
                                 elide: Text.ElideRight
                             }
                         }
@@ -299,9 +326,74 @@ Item {
                 }
             }
 
+            // Operator round 4, item 2 — a selection that only changed a
+            // row's colour was the same defect in a new costume; this
+            // card is where selecting a row actually SHOWS something.
+            // Exactly the four fields the brief named: name, source
+            // (repo/AUR), version (when the parsed header line carried
+            // one), installed state.
+            Rectangle {
+                id: detailCard
+                width: parent.width
+                height: 64
+                radius: 12
+                color: Qt.alpha(Colours.onSurface, 0.05)
+
+                Text {
+                    anchors.centerIn: parent
+                    visible: root._selectedEntry === null
+                    text: "Select a package to see its details"
+                    font.pixelSize: Design.fontLabel
+                    color: Colours.outline
+                    textFormat: Text.PlainText
+                }
+
+                Column {
+                    anchors.fill: parent
+                    anchors.margins: Design.spacingSm
+                    spacing: 2
+                    visible: root._selectedEntry !== null
+
+                    Row {
+                        spacing: Design.spacingXs
+
+                        Text {
+                            text: root._selectedEntry ? root._selectedEntry.name : ""
+                            font.pixelSize: Design.settingsFontRow
+                            font.bold: true
+                            color: Colours.onSurface
+                            elide: Text.ElideRight
+                            textFormat: Text.PlainText
+                        }
+
+                        Text {
+                            text: root._selectedEntry ? (root._selectedEntry.source === "aur" ? "AUR" : root._selectedEntry.repo) : ""
+                            font.pixelSize: 11
+                            color: root._selectedEntry && root._selectedEntry.source === "aur" ? Colours.tertiary : Colours.outline
+                            textFormat: Text.PlainText
+                        }
+
+                        Text {
+                            visible: !!root._selectedEntry && root._selectedEntry.version.length > 0
+                            text: root._selectedEntry ? root._selectedEntry.version : ""
+                            font.pixelSize: Design.fontLabel
+                            color: Colours.onSurfaceVariant
+                            textFormat: Text.PlainText
+                        }
+                    }
+
+                    Text {
+                        text: root._selectedEntry ? (root._selectedEntry.installed ? "Installed" : "Not installed") : ""
+                        font.pixelSize: Design.fontLabel
+                        color: root._selectedEntry && root._selectedEntry.installed ? Colours.primary : Colours.onSurfaceVariant
+                        textFormat: Text.PlainText
+                    }
+                }
+            }
+
             Rectangle {
                 width: parent.width
-                height: parent.height - 30
+                height: parent.height - 30 - detailCard.height - Design.spacingSm
                 radius: 12
                 color: Qt.alpha(Colours.onSurface, 0.05)
 
