@@ -544,11 +544,14 @@ BarCapsule {
             contentOverride: BarRoles.fillUpdatesFg
             valueText: root.pendingUpdatesCount.toString()
             onActivated: root.launchUpgrade()
-            // The only tooltip in this capsule — see the tooltipText seam's own
-            // comment for why cpu/ram/disk deliberately have none. Names the
-            // action the click performs, not the glyph.
-            tooltipText: "Pending updates"
-            tooltipId: "systemUpdates"
+            // Tooltip removed on operator request (2026-08-28). The updates
+            // readout used to be the ONE instance in this capsule that set
+            // `tooltipText`; it now matches cpu/ram/disk, which never had one.
+            // The seam at the top of Readout is deliberately left in place
+            // rather than deleted with its last consumer — its empty default
+            // is what keeps the hover handler disabled, and that gating is
+            // load-bearing for QBAR-09's dwell path (see the seam's own
+            // comment). It currently has no consumer.
         }
     }
 
