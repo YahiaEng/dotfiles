@@ -1,0 +1,343 @@
+// modules/security/SecurityOverview.qml — the Security Center's one
+// settings layout (quick task 260827-np1, operator round 3).
+//
+// ── WHY ONE LAYOUT AND NOT TWO ────────────────────────────────────────
+// This ships as a MERGE of the two plates the operator originally picked,
+// because in use they turned out to be redundant rather than
+// complementary — operator round 3: "both security layouts feel
+// redundant, they should be combined".
+//
+// What each contributed, and what survived:
+//   * S2 "Findings feed"    — the verdict header, and RANKING. Kept.
+//   * S1 "Four sections"    — domain grouping. Kept.
+//
+// The merge orders DOMAINS by their own worst finding, and rows WITHIN a
+// domain worst-first. So the thing that needs attention is still the
+// first thing you read (S2's whole point), while "how are my disks?"
+// stays answerable without filtering a mixed list (S1's whole point).
+// Neither layout's value is lost, and there is no picker to maintain.
+//
+// Ordering still comes from SecurityBackend.findings and is NEVER
+// re-derived here — one ordering truth, so this page, the dashboard tab
+// and the bar glyph cannot disagree about what is worst.
+//
+// A plain Column, not a PageBase: SecurityPage.qml owns the page chrome.
+import QtQuick
+import ".."
+import "../dashboard"
+
+Column {
+    id: root
+
+    width: parent ? parent.width : 400
+    spacing: Design.spacingLg
+
+    // Domains present in the findings, ordered by their own worst rank.
+    // Derived, never a fixed list: a domain with nothing to say does not
+    // earn a heading.
+    readonly property var orderedDomains: {
+        var seen = {};
+        var out = [];
+        var f = SecurityBackend.findings;
+        for (var i = 0; i < f.length; ++i) {
+            if (!seen[f[i].domain]) {
+                seen[f[i].domain] = true;
+                // findings is already sorted worst-first, so first
+                // sighting of a domain IS its worst rank.
+                out.push(f[i].domain);
+            }
+        }
+        return out;
+    }
+
+    function _findingsIn(domain) {
+        return SecurityBackend.findings.filter(f => f.domain === domain);
+    }
+
+    function _iconFor(domain) {
+        switch (domain) {
+        case "Malware":
+            return "coronavirus";
+        case "Vulnerabilities":
+            return "shield_question";
+        case "Network":
+            return "lan";
+        default:
+            return "hard_drive";
+        }
+    }
+
+    // ── Posture header ─────────────────────────────────────────────
+    Rectangle {
+        width: parent.width
+        height: postureCol.implicitHeight + Design.spacingLg * 2
+        radius: 16
+        color: Colours.surfaceVariant
+        border.width: 1
+        border.color: Severity.rim(SecurityBackend.worstRank)
+
+        Behavior on border.color {
+            enabled: Motion.motionEnabled
+            ColorAnimation {
+                duration: Motion.colourDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.colourEasing
+            }
+        }
+
+        Row {
+            anchors.fill: parent
+            anchors.margins: Design.spacingLg
+            spacing: Design.spacingLg
+
+            Rectangle {
+                id: shield
+                width: 54
+                height: 54
+                radius: 16
+                anchors.verticalCenter: parent.verticalCenter
+                color: Severity.back(SecurityBackend.worstRank)
+
+                Text {
+                    anchors.centerIn: parent
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: 28
+                    text: Severity.glyph(SecurityBackend.worstRank)
+                    color: Severity.fg(SecurityBackend.worstRank)
+                }
+            }
+
+            Column {
+                id: postureCol
+                width: parent.width - shield.width - scanBtn.width - parent.spacing * 2
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Design.spacingXs
+
+                Text {
+                    width: parent.width
+                    text: {
+                        if (!SecurityBackend.everythingProbed)
+                            return "Checking this machine…";
+                        var n = SecurityBackend.actionableCount;
+                        if (n === 0)
+                            return "Nothing needs attention";
+                        return n === 1 ? "1 issue needs attention" : n + " issues need attention";
+                    }
+                    font.pixelSize: Design.settingsFontTitle - 2
+                    font.weight: Design.weightEmphasis
+                    color: Colours.onSurface
+                    elide: Text.ElideRight
+                }
+
+                Text {
+                    width: parent.width
+                    text: SecurityBackend.scanRunning ? "Virus scan running · " + SecurityBackend.scanThreats + " threat(s) so far · you can leave this page" : (SecurityBackend.absentCount > 0 ? SecurityBackend.absentCount + " capability not set up · " + SecurityBackend.healthyCount + " healthy" : SecurityBackend.healthyCount + " healthy")
+                    font.pixelSize: Design.settingsFontSub
+                    color: Colours.onSurfaceVariant
+                    wrapMode: Text.WordWrap
+                }
+
+                Rectangle {
+                    visible: SecurityBackend.scanRunning
+                    width: parent.width
+                    height: 4
+                    radius: 999
+                    color: Qt.alpha(Colours.outline, 0.35)
+
+                    Rectangle {
+                        id: progressBead
+                        width: parent.width * 0.28
+                        height: parent.height
+                        radius: 999
+                        color: Severity.scanning
+
+                        XAnimator on x {
+                            running: SecurityBackend.scanRunning && Motion.motionEnabled
+                            loops: Animation.Infinite
+                            from: 0
+                            to: progressBead.parent.width - progressBead.width
+                            duration: Motion.ambientDuration
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+                }
+            }
+
+            Rectangle {
+                id: scanBtn
+                anchors.verticalCenter: parent.verticalCenter
+                width: scanLabel.implicitWidth + Design.spacingLg * 2
+                height: 36
+                radius: 999
+                color: SecurityBackend.scanRunning ? Qt.alpha(Colours.outline, 0.4) : Colours.primary
+                visible: SecurityBackend.hasTool("clamav")
+
+                Text {
+                    id: scanLabel
+                    anchors.centerIn: parent
+                    text: SecurityBackend.scanRunning ? "Cancel" : "Scan now"
+                    font.pixelSize: Design.settingsFontSub
+                    font.weight: Design.weightEmphasis
+                    color: SecurityBackend.scanRunning ? Colours.onSurface : Colours.onPrimary
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (SecurityBackend.scanRunning)
+                            SecurityBackend.cancelScan();
+                        else
+                            SecurityBackend.startVirusScan();
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Error banner ───────────────────────────────────────────────
+    // Operator round 3: pressing Enable on the firewall did nothing and
+    // the button silently reset. The cause was a pkexec exit-code
+    // misread (127 treated as "cancelled"), but the reason it was
+    // INVISIBLE is that nothing ever displayed actionError. A privileged
+    // action that fails must say so.
+    Rectangle {
+        width: parent.width
+        visible: SecurityBackend.actionError.length > 0 || SecurityBackend.helperMissing
+        height: errCol.implicitHeight + Design.spacingMd * 2
+        radius: 14
+        color: Severity.back(Severity.rankCritical)
+        border.width: 1
+        border.color: Severity.rim(Severity.rankCritical)
+
+        Row {
+            anchors.fill: parent
+            anchors.margins: Design.spacingMd
+            spacing: Design.spacingMd
+
+            Text {
+                id: errGlyph
+                anchors.verticalCenter: parent.verticalCenter
+                font.family: Design.symbolFontFamily
+                font.pixelSize: Design.iconSizeMd
+                text: "error"
+                color: Severity.fg(Severity.rankCritical)
+            }
+
+            Column {
+                id: errCol
+                width: parent.width - errGlyph.width - dismissBtn.width - parent.spacing * 2
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+
+                Text {
+                    width: parent.width
+                    text: SecurityBackend.actionError.length > 0 ? "That action did not run" : "Privileged actions are unavailable"
+                    font.pixelSize: Design.settingsFontRow
+                    color: Colours.onSurface
+                    elide: Text.ElideRight
+                }
+                Text {
+                    width: parent.width
+                    text: SecurityBackend.actionError.length > 0 ? SecurityBackend.actionError : "The helper at " + SecurityBackend.helperPath + " is not installed. Run install.sh to place it; until then Enable and Install cannot work."
+                    font.pixelSize: Design.settingsFontSub
+                    color: Colours.onSurfaceVariant
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            Item {
+                id: dismissBtn
+                width: SecurityBackend.actionError.length > 0 ? dismissText.implicitWidth + Design.spacingMd : 0
+                height: parent.height
+                visible: SecurityBackend.actionError.length > 0
+
+                Text {
+                    id: dismissText
+                    anchors.centerIn: parent
+                    text: "Dismiss"
+                    font.pixelSize: Design.settingsFontSub
+                    color: Colours.onSurfaceVariant
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: SecurityBackend.actionError = ""
+                }
+            }
+        }
+    }
+
+    // ── Findings, grouped by domain, worst domain first ────────────
+    Repeater {
+        model: root.orderedDomains
+
+        Column {
+            id: section
+
+            required property var modelData
+
+            width: root.width
+            spacing: Design.spacingSm
+
+            readonly property var rows: root._findingsIn(section.modelData)
+
+            Row {
+                spacing: Design.spacingSm
+
+                Text {
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.iconSizeMd
+                    text: root._iconFor(section.modelData)
+                    color: Colours.onSurfaceVariant
+                }
+                Text {
+                    text: section.modelData
+                    font.pixelSize: Design.settingsFontRow
+                    font.weight: Design.weightEmphasis
+                    color: Colours.onSurfaceVariant
+                }
+            }
+
+            Rectangle {
+                width: parent.width
+                height: sectionCol.implicitHeight
+                radius: 14
+                color: Colours.surfaceVariant
+
+                Column {
+                    id: sectionCol
+                    width: parent.width
+
+                    Repeater {
+                        model: section.rows
+
+                        FindingRow {
+                            required property var modelData
+
+                            width: sectionCol.width
+                            finding: modelData
+                            // The heading already names the domain.
+                            showDomain: false
+                            indexLabel: modelData ? modelData.id : ""
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // A machine with nothing to report must not render an empty page.
+    Item {
+        width: parent.width
+        height: root.orderedDomains.length === 0 ? 88 : 0
+        visible: root.orderedDomains.length === 0
+
+        Text {
+            anchors.centerIn: parent
+            text: SecurityBackend.everythingProbed ? "Nothing to report." : "Checking…"
+            font.pixelSize: Design.settingsFontSub
+            color: Colours.onSurfaceVariant
+        }
+    }
+}

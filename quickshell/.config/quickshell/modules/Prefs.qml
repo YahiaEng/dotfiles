@@ -224,7 +224,9 @@ Singleton {
         // Quick task 260827-np1 — Security Center. The operator picked
         // "all plates", so all four surfaces ship and these three keys
         // choose between them: one layout pick for the settings page
-        // (S1/S2) and one visibility toggle for the dashboard tab (D1).
+        // one visibility toggle for the dashboard tab (D1). The two
+        // settings layouts were MERGED in operator round 3, so there is
+        // no layout pref any more.
         //
         // There is deliberately NO security-side key for the bar glyph:
         // after operator round 2 it is an ENTRY on the clockActions
@@ -233,7 +235,6 @@ Singleton {
         // Settings -> Security's row writes THAT key — one switch, not
         // two, avoiding the redundant-parent-row shape mediaConnectivity
         // was retired for on 2026-08-25.
-        "security.pageLayout",
         "security.showDashboardTab",
         // Quick task 260826-1n9 Task 7 — the weather location's
         // automatic/manual toggle and its three data fields. Consumer:
@@ -346,10 +347,6 @@ Singleton {
         "region.unitsPrecip": "auto",
         // Quick task 260827-np1 — Security Center defaults.
         //
-        // "findings" is the default layout because the pane's whole job
-        // is answering "am I OK?" in one line; "sections" is the way
-        // back out if that layout ever fails to render.
-        //
         // The bar glyph is a fixed-pitch ActionCell beside the bell, with
         // NO badge: ActionCell grows when `badgeVisible` flips, and a
         // count that comes and goes would reflow the bar — the defect
@@ -360,7 +357,6 @@ Singleton {
         // contentWidth and the drawer animates between them, so a fifth
         // width makes that jump worse. Shipped because the operator
         // asked for all four, defaulted off because it costs something.
-        "security.pageLayout": "findings",
         "security.showDashboardTab": false,
         // Quick task 260826-1n9 Task 7 — "auto" keeps an existing
         // hand-edited weather.json fully authoritative (D-8), exactly the

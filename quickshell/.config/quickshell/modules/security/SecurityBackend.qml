@@ -106,6 +106,13 @@ Singleton {
     property string actionVerb: ""
     property string actionError: ""
 
+    // Whether the root-side helper is actually on disk. Probed up front so
+    // the pane can say so BEFORE an action is attempted, rather than
+    // letting every button fail at click time — the failure mode the
+    // operator hit when install.sh had not finished.
+    property bool helperMissing: false
+    property bool helperProbed: false
+
     signal actionFinished(string verb, bool ok, string message)
     signal scanFinished(bool ok, int threats)
 
@@ -265,7 +272,11 @@ Singleton {
                     id: "cve-" + c.pkg,
                     rank: c.rank,
                     domain: "Vulnerabilities",
-                    title: c.pkg + " — " + c.severity.toLowerCase() + " severity",
+                    // arch-audit's %s already reads "High risk"/"Medium
+                    // risk", so appending "severity" produced the
+                    // operator-visible "pam — high risk severity". Use it
+                    // verbatim.
+                    title: c.pkg + " — " + c.severity,
                     detail: c.detail,
                     actionVerb: "",
                     actionLabel: ""
@@ -374,6 +385,7 @@ Singleton {
     // ═══════════════════════════════════════════════════════════════
 
     function refreshAll() {
+        helperProc.running = true;
         toolsProc.running = true;
         fwEnabledProc.running = true;
         fwActiveProc.running = true;
@@ -381,6 +393,19 @@ Singleton {
         smartFile.reload();
         if (root.hasTool("arch-audit"))
             cveProc.running = true;
+    }
+
+    // `test -x` rather than a FileView: this asks the question that
+    // actually matters (can pkexec execute it), not merely whether a path
+    // exists.
+    Process {
+        id: helperProc
+        running: false
+        command: ["test", "-x", root.helperPath]
+        onExited: (code, status) => {
+            root.helperMissing = (code !== 0);
+            root.helperProbed = true;
+        }
     }
 
     Process {
@@ -514,7 +539,11 @@ Singleton {
     Process {
         id: cveProc
         running: false
-        command: ["arch-audit", "--format", "%n|%s"]
+        // %n pkgname | %s severity | %c CVEs | %v fixed version.
+        // `%v` is the one that matters most and is easy to miss: it is
+        // EMPTY when no fixed version exists yet, which is the difference
+        // between "run an update" and "there is nothing you can do today".
+        command: ["arch-audit", "--format", "%n|%s|%c|%v"]
         stdout: StdioCollector {
             id: cveCollector
         }
@@ -526,13 +555,30 @@ Singleton {
                 if (line.length === 0)
                     continue;
                 var bits = line.split("|");
-                var pkg = bits[0] || line;
+                var pkg = (bits[0] || line).trim();
                 var sev = (bits[1] || "unknown").trim();
+                var cveList = (bits[2] || "").split(",").map(c => c.trim()).filter(c => c.length > 0);
+                var fixedIn = (bits[3] || "").trim();
+
+                // Name at most two CVEs — linux-lts alone reports 21 and
+                // a wall of identifiers is not readable in a settings row.
+                var cveText = "";
+                if (cveList.length === 1)
+                    cveText = cveList[0];
+                else if (cveList.length === 2)
+                    cveText = cveList[0] + ", " + cveList[1];
+                else if (cveList.length > 2)
+                    cveText = cveList[0] + " and " + (cveList.length - 1) + " more";
+
+                var fixText = fixedIn.length > 0 ? "fixed in " + fixedIn : "no fix available yet";
+
                 out.push({
                     pkg: pkg,
                     severity: sev,
                     rank: root._cveRank(sev),
-                    detail: line
+                    cves: cveList,
+                    fixedIn: fixedIn,
+                    detail: cveText.length > 0 ? cveText + " · " + fixText : fixText
                 });
             }
             root.cves = out;
@@ -640,6 +686,11 @@ Singleton {
             root.actionFinished(verb, false, root.actionError);
             return;
         }
+        if (root.helperMissing) {
+            root.actionError = "The privileged helper is not installed. Run install.sh (or its section_security) to place /usr/local/lib/security-center/security-action.";
+            root.actionFinished(verb, false, root.actionError);
+            return;
+        }
         root.actionVerb = verb;
         root.actionError = "";
         root.actionRunning = true;
@@ -658,14 +709,28 @@ Singleton {
         onExited: (code, status) => {
             var verb = root._pendingVerb;
             root.actionRunning = false;
-            // pkexec exits 126 when the dialog is dismissed and 127 when
-            // authorisation is refused. Neither is a failure of the
-            // ACTION and neither should be reported as one — the
-            // operator simply said no.
-            var cancelled = (code === 126 || code === 127);
+            // ── 126 vs 127 ARE NOT THE SAME THING ────────────────────
+            // I originally treated BOTH as "cancelled". Measured on this
+            // host: `pkexec <missing-path>` exits **127**, printing
+            // "Error accessing …: No such file or directory". So with the
+            // helper not yet installed, a real failure was reported as a
+            // user cancellation and shown NOWHERE — the operator pressed
+            // Enable, then Confirm, and the button silently reset. That
+            // is exactly what was reported.
+            //
+            // pkexec(1): 126 = authorisation could not be obtained (the
+            // dialog was dismissed, or the user is not authorised) — that
+            // genuinely is not a failure. 127 = an error occurred, e.g.
+            // the program could not be found. Only 126 is a cancel.
+            var cancelled = (code === 126);
             var ok = (code === 0);
-            if (!ok && !cancelled)
-                root.actionError = (actionErrCollector.text || "").trim() || ("Exit " + code);
+            if (!ok && !cancelled) {
+                var stderrText = (actionErrCollector.text || "").trim();
+                if (code === 127)
+                    root.actionError = root.helperMissing ? "The privileged helper is not installed. Run install.sh (or its section_security) to place it." : (stderrText || "pkexec could not run the helper (exit 127).");
+                else
+                    root.actionError = stderrText || ("The helper failed with exit " + code + ".");
+            }
             root.actionFinished(verb, ok, cancelled ? "Cancelled" : (ok ? "Done" : root.actionError));
             root._pendingVerb = "";
             root.actionVerb = "";

@@ -54,28 +54,54 @@ for line in scan_lines:
         if i + 1 < len(parts):
             dtype = parts[i + 1]
 
-    cmd = ['smartctl', '--json', '-H', '-A', '-i']
+    # TWO ATTEMPTS, auto-detect FIRST. `smartctl --scan` reported this
+    # host's SATA drive as `-d scsi`, and that type returned a payload
+    # with no model_name, no smart_status and a bogus temperature of 0 --
+    # measured 2026-08-28, the drive rendered as "health is unknown" in
+    # the UI while both NVMe drives parsed fine. smartctl's own
+    # auto-detection (no -d at all) handles SAT/AHCI correctly, so try
+    # that first and fall back to the scanned type only if it yields
+    # nothing usable.
+    attempts = [['smartctl', '--json', '-H', '-A', '-i', node]]
     if dtype:
-        cmd += ['-d', dtype]
-    cmd.append(node)
+        attempts.append(['smartctl', '--json', '-H', '-A', '-i', '-d', dtype, node])
 
-    try:
-        # smartctl uses its exit status as a BITMASK (bit 0 = command line
-        # parse error, bits 1-2 = device open/failure, bit 3 = disk
-        # failing). A non-zero exit is therefore normal and informative,
-        # never a reason to discard the payload -- so parse stdout
-        # regardless and let `passed` carry the verdict.
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
-        d = json.loads(p.stdout or '{}')
-    except Exception as e:
+    d = {}
+    err = None
+    for cmd in attempts:
+        try:
+            # smartctl uses its exit status as a BITMASK (bit 0 = command
+            # line parse error, bits 1-2 = device open/failure, bit 3 =
+            # disk failing). A non-zero exit is therefore normal and
+            # informative, never a reason to discard the payload -- so
+            # parse stdout regardless and let `passed` carry the verdict.
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            cand = json.loads(r.stdout or '{}')
+        except Exception as e:
+            err = type(e).__name__
+            continue
+        # "Usable" means it actually answered the health question. A
+        # payload that parses but carries no verdict is what the wrong
+        # -d type produced, and taking it would mask the good attempt.
+        if (cand.get('smart_status') or {}).get('passed') is not None:
+            d = cand
+            err = None
+            break
+        if not d:
+            d = cand          # keep the first as a fallback
+    if not d:
         devices.append({'node': node, 'kind': dtype or 'unknown',
-                        'error': type(e).__name__})
+                        'error': err or 'no-payload'})
         continue
 
     smart = d.get('smart_status') or {}
     passed = smart.get('passed')
 
+    # 0 C is what a failed read reports here, not a real temperature --
+    # normalise it away rather than rendering "0 °C" in the UI.
     temp = (d.get('temperature') or {}).get('current')
+    if temp == 0:
+        temp = None
 
     # Power-on hours live in different places for ATA vs NVMe.
     poh = (d.get('power_on_time') or {}).get('hours')

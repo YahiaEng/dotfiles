@@ -15,12 +15,13 @@
 //   into this file and it dies the instant the operator clicks another
 //   rail item, silently.
 //
-// ── THE LAYOUT SWITCH LIVES HERE, NOT INSIDE THE LAYOUTS ──────────────
-// Same shape `Dashboard.qml`'s two tab Loaders already ship: this page
-// resolves the pref and picks a Component, so SecuritySections and
-// SecurityFindings each know nothing about being one of several. Adding
-// a third layout later is one new file, one qmldir line and one branch —
-// no edit to a sibling.
+// ── ONE LAYOUT ────────────────────────────────────────────────────────
+// This shipped with an S1/S2 picker behind `security.pageLayout`.
+// Operator round 3 merged them ("both security layouts feel redundant,
+// they should be combined"), so the Loader, the pref and both layout
+// files are gone and `SecurityOverview` is mounted directly. It keeps
+// S2's verdict header and ranking AND S1's domain grouping — see its own
+// header for how the merge orders things.
 import QtQuick
 import ".."
 import "../common"
@@ -42,57 +43,14 @@ PageBase {
         title: "Overview"
         icon: "security"
 
-        Loader {
-            width: parent ? parent.width : 0
-            // `active` rather than a conditional sourceComponent: an
-            // inactive Loader has null item and zero height, which is the
-            // correct empty state if a layout name is ever unrecognised.
-            active: true
-            sourceComponent: Prefs.getValue("security.pageLayout") === "sections" ? sectionsComp : findingsComp
-        }
-
-        Component {
-            id: findingsComp
-            SecurityFindings {}
-        }
-
-        Component {
-            id: sectionsComp
-            SecuritySections {}
-        }
+        // ONE layout (operator round 3). The S1/S2 picker is gone and
+        // SecurityOverview merges both — see its header.
+        SecurityOverview {}
     }
 
     SettingsSection {
-        title: "Layout"
+        title: "Dashboard"
         icon: "tune"
-
-        SelectRow {
-            label: "Security page layout"
-            subtext: "Findings puts one ranked list behind a verdict. Sections groups by domain."
-            model: [
-                {
-                    value: "findings",
-                    display: "Findings feed"
-                },
-                {
-                    value: "sections",
-                    display: "Four sections"
-                }
-            ]
-            currentValue: Prefs.getValue("security.pageLayout")
-            onSelected: value => Prefs.setValue("security.pageLayout", value)
-        }
-
-        ToggleRow {
-            label: "Security glyph in the bar"
-            // Writes the BAR's own key, not a second security-side one:
-            // BarEntryModel.capsulesForZone() is the single filter point
-            // every capsule already goes through, and a parallel pref
-            // would be a second way to hide the same thing.
-            subtext: "A status glyph next to the notification bell, and the only place a running scan stays visible once this window is closed."
-            checked: Prefs.getValue("bar.entries.security")
-            onToggled: value => Prefs.setValue("bar.entries.security", value)
-        }
 
         ToggleRow {
             label: "Security tab on the dashboard"
@@ -100,6 +58,9 @@ PageBase {
             checked: Prefs.getValue("security.showDashboardTab")
             onToggled: value => Prefs.setValue("security.showDashboardTab", value)
         }
+        // The bar glyph's toggle deliberately lives ONLY on the Bar page,
+        // next to the other capsule entries (operator round 3: the
+        // duplicate here was redundant). One switch, one home.
     }
 
     SettingsSection {

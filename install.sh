@@ -55,6 +55,32 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# ── Sudo keepalive (2026-08-27) ───────────────────────────────────────
+# This script makes 47 sudo calls, and the AUR build sits between them —
+# AUR_PKGS_HOST's own comment measures tela-icon-theme at 21min and
+# colloid-icon-theme-git at 22min. sudo's default timestamp_timeout is 5
+# minutes and this host sets no override, so the cached credential
+# ALWAYS expires during that build and the next sudo re-prompts. The
+# operator hit exactly this, mid-run, right after the hyprpm step:
+#     [sudo] password for aorus:
+# An install that stops for a password 40 minutes in, unattended, is a
+# failed install.
+#
+# Prime once up front (so the password is asked for at the START, where
+# someone is still watching), then refresh in the background until this
+# script exits. `kill -0 $$` makes the refresher die with its parent
+# rather than outliving it as a stray root-capable loop, and the trap
+# closes the window where the script exits between refreshes.
+sudo -v
+while true; do
+    sudo -n true 2>/dev/null || exit
+    sleep 50
+    kill -0 "$$" 2>/dev/null || exit
+done &
+SUDO_KEEPALIVE_PID=$!
+# shellcheck disable=SC2064  # expand SUDO_KEEPALIVE_PID now, not at trap time
+trap "kill $SUDO_KEEPALIVE_PID 2>/dev/null || true" EXIT
+
 # makepkg OPTIONS with `debug` turned off, derived from the SYSTEM config
 # rather than hardcoded — if Arch changes its defaults, this follows them
 # and only flips the one option we care about. See the AUR install call in

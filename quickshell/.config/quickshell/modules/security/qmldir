@@ -25,14 +25,12 @@ singleton Severity 1.0 Severity.qml
 singleton SecurityBackend 1.0 SecurityBackend.qml
 
 # ── Surfaces ──
-# The two settings-page layouts the operator picked (plates S1 and S2),
-# switched by SecurityPage.qml's Loader on the `security.pageLayout`
-# pref. Both are kept selectable rather than one replacing the other:
-# a layout Loader whose component fails leaves an empty pane rather than
-# a dead shell, so the other layout is the way back out of a bad render —
-# the same reasoning DashLanes/DashboardTab already ship under.
-SecuritySections 1.0 SecuritySections.qml
-SecurityFindings 1.0 SecurityFindings.qml
+SecurityOverview 1.0 SecurityOverview.qml
+# ONE settings layout. Plates S1 and S2 shipped as a picker and were
+# merged in operator round 3 ("both security layouts feel redundant, they
+# should be combined") — SecurityOverview keeps S2's verdict header and
+# ranking AND S1's domain grouping, ordering domains by their own worst
+# finding. There is no `security.pageLayout` pref any more.
 
 # Plate D1 — the dashboard drawer tab.
 SecurityTab 1.0 SecurityTab.qml

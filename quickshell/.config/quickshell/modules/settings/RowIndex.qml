@@ -280,9 +280,7 @@ Singleton {
         // feed's rows are `FindingRow`s built from live probe data — they
         // have no stable label to jump to and are deliberately not a
         // row primitive settings-index-check scans.
-        { pageIdx: 15, section: "Layout", label: "Security page layout", keywords: "security layout findings sections plate posture domain" },
-        { pageIdx: 15, section: "Layout", label: "Security glyph in the bar", keywords: "security glyph bar posture scan visible glance bell notification" },
-        { pageIdx: 15, section: "Layout", label: "Security tab on the dashboard", keywords: "security dashboard tab drawer bento fifth" },
+        { pageIdx: 15, section: "Dashboard", label: "Security tab on the dashboard", keywords: "security dashboard tab drawer bento fifth" },
         { pageIdx: 15, section: "Scanning", label: "Scan target", keywords: "security scan target path home directory clamav virus" },
         { pageIdx: 15, section: "Scanning", label: "Virus signatures", keywords: "security virus signatures clamav freshclam database malware" },
         { pageIdx: 15, section: "Scanning", label: "Disk health source", keywords: "security disk health smart smartd snapshot drive nvme" },
