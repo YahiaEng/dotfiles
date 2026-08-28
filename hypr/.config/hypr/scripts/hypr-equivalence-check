@@ -777,6 +777,21 @@ ACCEPTED_ADDITIONS = {
     # half of the same move and must be kept in step with it.
     ("", 64, "Tab", False):
         "2026-08-25 overview rebound O -> Tab (keybinds.lua:262)",
+    # Quick task 260828-ah9 (D-02, keybind package B): the code editor
+    # relocated off Super+I, which now opens the Atelier's Icons tab
+    # (keybinds.lua:76-77). Super+Shift+I is absent from both the
+    # baseline and the pre-task live set — measured free via
+    # `hyprctl -j binds` on 2026-08-28.
+    ("", 65, "I", False):
+        "Quick task 260828-ah9 code editor moved to Super+Shift+I, freed by Super+I -> Atelier Icons (keybinds.lua:77)",
+    # Quick task 260828-ah9: maximize relocated off Super+Shift+F, which
+    # now opens the Atelier's Fonts tab (keybinds.lua:86-87). Super+Shift+M
+    # is absent from both the baseline and the pre-task live set —
+    # `Super+M` alone (modmask 64) IS live and stays untouched (the media
+    # dashboard, keybinds.lua:316) — measured free via `hyprctl -j binds`
+    # on 2026-08-28.
+    ("", 65, "M", False):
+        "Quick task 260828-ah9 maximize moved to Super+Shift+M, freed by Super+Shift+F -> Atelier Fonts (keybinds.lua:87)",
 }
 
 # The mirror of ACCEPTED_ADDITIONS for baseline binds that were DELIBERATELY
@@ -794,6 +809,26 @@ ACCEPTED_REMOVALS = {
     ("", 64, "O", False):
         "2026-08-25 overview rebound O -> Tab; O deliberately released "
         "and left unbound (see the matching ACCEPTED_ADDITIONS entry)",
+    # Quick task 260828-ah9 (D-02/D-03): the icon-theme picker's script
+    # surface is gone (icon-theme-switch.sh deleted, the retired
+    # interactive half of icon-theme-picker.sh stripped) — Super+Shift+Z
+    # is deliberately released and left unbound. Its replacement is
+    # Super+I (Atelier, Icons tab; see the matching ACCEPTED_ADDITIONS
+    # entry for ("", 65, "I", False)).
+    ("", 65, "Z", False):
+        "Quick task 260828-ah9 icon-theme picker script surface retired; "
+        "deliberately released, replacement is Super+I -> Atelier Icons",
+    # Quick task 260828-ah9: the font switcher's script surface is gone
+    # (font-switch.sh deleted, the retired interactive half of
+    # font-switcher.sh stripped) — Super+Shift+X is deliberately released
+    # and left unbound. Its replacement is Super+Shift+F (Atelier, Fonts
+    # tab; see the matching ACCEPTED_ADDITIONS entry for
+    # ("", 65, "M", False) — maximize, not this one — Fonts itself
+    # already lived at Super+Shift+F in the baseline, so no new-chord
+    # entry is needed for it).
+    ("", 65, "X", False):
+        "Quick task 260828-ah9 font switcher script surface retired; "
+        "deliberately released, replacement is Super+Shift+F -> Atelier Fonts",
 }
 
 for ident in live_by_id.keys() - base_by_id.keys():
@@ -1812,6 +1847,19 @@ for rf in binds.json animations.json options.jsonl; do
         # separately, at the source level, by keybind-source-equivalence.
         if diff_out="$(_compare_binds_structural "$baseline_file" "$live_file")"; then
             echo "  [PASS] $rf: matches baseline on every structural field (dispatcher/arg excluded — proven separately by keybind-source-equivalence)"
+            # Quick task 260828-ah9: this branch used to swallow $diff_out
+            # entirely on a PASS, unlike the options.jsonl branch above
+            # (which already echoes it via the identical
+            # `[[ -n "$diff_out" ]] && echo "$diff_out"` guard). Every
+            # ACCEPTED_ADDITIONS/ACCEPTED_REMOVALS note the Python
+            # comparator prints (`. <note>` lines) was therefore silently
+            # discarded whenever the gate passed — including every prior
+            # accepted rebind, not just this task's four. That defeats the
+            # gate's own stated guarantee ("a stale entry that does not
+            # fire is itself reported, so a mis-typed identity cannot pass
+            # silently") on the one path where it actually matters: the
+            # green run. Printing here, mirroring options.jsonl exactly.
+            [[ -n "$diff_out" ]] && echo "$diff_out"
             PASS=$((PASS + 1))
         else
             echo "  [FAIL] $rf: differs from baseline (structural comparison)"

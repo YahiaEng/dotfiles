@@ -67,12 +67,24 @@ local codeEditor = "uwsm app -- codium.desktop --enable-features=UseOzonePlatfor
 hl.bind(mainMod .. " + Return", hl.dsp.exec_cmd(terminal)) -- Open terminal
 hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileExplorer)) -- Open file manager
 hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(tui)) -- Open file manager (TUI)
-hl.bind(mainMod .. " + I", hl.dsp.exec_cmd(codeEditor)) -- Open code editor
+-- Quick task 260828-ah9 (D-02, keybind package B): Super+I now opens the
+-- Atelier on its Icons tab — `qs ipc call appearance-window open <tab>`,
+-- the same `exec_cmd`-on-IPC-verb shape Super+P already uses for the
+-- package workbench. The code editor it displaced moves to
+-- Super+SHIFT+I, which was free. `Super+F` (below) is UNCHANGED — it
+-- never moved, and it is the most reflexive bind on the machine.
+hl.bind(mainMod .. " + I", hl.dsp.exec_cmd("qs ipc call appearance-window open icons")) -- Open Appearance (Icons)
+hl.bind(mainMod .. " + SHIFT + I", hl.dsp.exec_cmd(codeEditor)) -- Open code editor
 hl.bind(mainMod .. " + Q", hl.dsp.window.kill()) -- Close active window
 hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.global("quickshell:power-menu")) -- Open power menu
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" })) -- Toggle floating
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(0)) -- Toggle fullscreen
-hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen(1)) -- Toggle maximize
+-- Quick task 260828-ah9 (D-02): Super+SHIFT+F now opens the Atelier on
+-- its Fonts tab. The maximize dispatch it displaced moves to
+-- Super+SHIFT+M, which was free (`Super+M` alone stays the media
+-- dashboard, `keybinds.lua` line ~303, untouched).
+hl.bind(mainMod .. " + SHIFT + F", hl.dsp.exec_cmd("qs ipc call appearance-window open fonts")) -- Open Appearance (Fonts)
+hl.bind(mainMod .. " + SHIFT + M", hl.dsp.window.fullscreen(1)) -- Toggle maximize
 hl.bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo()) -- Toggle pseudotiling
 -- bind = $mainMod, J, togglesplit
 
@@ -228,18 +240,19 @@ hl.bind("CTRL + code:107", hl.dsp.exec_cmd("~/.config/hypr/scripts/capture-full.
 hl.bind("ALT + code:107", hl.dsp.exec_cmd("~/.config/hypr/scripts/record-toggle.sh")) -- Toggle screen recording
 
 -- ── Utilities (D-32 — freed X/Z family, MENU-07 cheat-sheet source) ──
--- Chord assignments (no strong mnemonic fit across all four — documented
--- explicitly here for Phase 7's keybind cheat-sheet, per UI-SPEC
--- Interaction Contract):
---   Super+Z       -> emoji picker (UTIL-01)
---   Super+Shift+Z -> icon-theme picker (UTIL-04)
---   Super+X       -> color picker (UTIL-02)
---   Super+Shift+X -> font switcher (UTIL-05)
+-- Chord assignments, documented explicitly here for Phase 7's keybind
+-- cheat-sheet, per UI-SPEC Interaction Contract:
+--   Super+Z -> emoji picker (UTIL-01)
+--   Super+X -> color picker (UTIL-02)
 --   Super+C stays the fifth utility (clipboard, already bound above)
+--
+-- Super+Shift+Z (icon-theme picker, UTIL-04) and Super+Shift+X (font
+-- switcher, UTIL-05) are RETIRED as of quick task 260828-ah9 (D-02/D-03)
+-- — both scripts' interactive halves are gone, and their surfaces moved
+-- to the Atelier: Super+I (Icons tab) and Super+SHIFT+F (Fonts tab). Both
+-- chords are unbound now, deliberately.
 hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd("~/.config/hypr/scripts/emoji-picker.sh")) -- Emoji picker
-hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.exec_cmd("~/.config/hypr/scripts/icon-theme-switch.sh")) -- Icon theme picker
 hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("~/.config/hypr/scripts/color-picker.sh")) -- Color picker
-hl.bind(mainMod .. " + SHIFT + X", hl.dsp.exec_cmd("~/.config/hypr/scripts/font-switch.sh")) -- Font switcher
 
 -- ── Quickshell probe (QS-02 viability gate, D-01/D-21) ──
 -- Summons the instrumentation probe (click-counter/text-field/state-label/
