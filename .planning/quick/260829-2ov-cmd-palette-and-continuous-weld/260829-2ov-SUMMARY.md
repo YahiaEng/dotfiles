@@ -7,6 +7,8 @@ commits:
   - 7350ce2e feat — the `cmd` command-palette route
   - b6cfc7b7 feat — weld end-glyph inset, and the horizontal weld
   - 306e47c5 fix — CommandMode needs the `../dashboard` import
+  - 50d93b5f fix — icon strip clips, and loads in ~0 instead of 27.7s (round 2)
+  - fb0ab0b8 feat — horizontal Continuous is a three-sided frame (round 2)
 ---
 
 # 260829-2ov — SUMMARY
@@ -156,3 +158,107 @@ demonstrably saw the new file) · `motion-lint` 814/0 · `transparent-lint`
 3. **Nothing else is owed from this task.** The `icon`/`font` routes are still
    missing from the `;` provider list — pre-existing since 260828-ah9, noted in
    code, deliberately not fixed here.
+
+
+---
+
+# ROUND 2 — operator feedback on the round-1 result
+
+Three items. Two were defects I introduced or missed; one was already-shipped
+behaviour that the new frame made conspicuous.
+
+## R2-1 — "horizontal bar only appears when I hover over it"
+
+**Not a regression, and measured before answering.** With
+`bar status` at `hidden-idle` the slab IS painted — dumped at x300/x1280/x2300
+it reads rim 6–10, core 10–52, rim 52–62 — and only the CONTENT (glyphs) is
+hidden, by `opacity: 0` plus the hide translate. The vertical bar does exactly
+the same thing and has since long before this task; it was captured that way
+in this session's very first screenshot.
+
+So this is `bar.autoHideOnIdle`, which is `true` in prefs. What changed is
+only that it became obvious: the vertical hidden state is a 44px column at the
+screen's right, while the horizontal one is a full-width band across the top
+with a permanent gradient frame around it. **Left as-is and handed back as a
+choice**, because turning it off changes both orientations and the operator
+has lived happily with it in vertical. One command either way:
+`qs ipc call prefs set bar.autoHideOnIdle false`.
+
+## R2-2 — the design was a three-sided frame, not a wrapped band
+
+Round 1 asked the wrong question and got a correct answer to it. The right
+framing turned out to be one rule, and the rest fell out:
+
+> Continuous draws THREE runs, the bar is one of them, and the fourth side is
+> left open.
+
+  vertical bar   → top + bottom rails, bar on the RIGHT, left open (unchanged)
+  horizontal bar → right + bottom rails, bar on the TOP, left open (new)
+
+That makes the right rail's mount and the top strip's UNmount the same
+decision, not two. **Round 1's "keep the top strip" was wrong on measurement,
+not on taste:** with a horizontal bar that strip lands at y=56, *under* the
+bar, as a second parallel band — and at the open left end the two capped
+differently (25px pill vs 3px), so the strip protruded ~25px past the slab's
+curve. Two parallel bands cannot share one silhouette.
+
+The flare is `Design.edgeBarWeldFlareRadius` (20), the vertical weld's own
+token. Its vertical derivation does not transfer — that band's right end is
+square, not capped, so a quarter arc is tangent at any radius and the value is
+free — but reusing the token is precisely what makes the two orientations look
+the same, which is what was asked. **The sweep flag was derived numerically
+before being written** (`_arcCentre` gives centre (X,0) for sweepPositive and
+(X−F,F) against it; `_shoulderSweep` maps true→1, so flag 0), because the
+recorded trap is that the wrong flag draws a convex lump that looks
+deliberate.
+
+Cost stated rather than left to be discovered: the top strip carried the
+dashboard's bulge and its dwell-hover summon, so in this orientation the
+dashboard spawns unattached and is reached by Super+D or the clock. `brackets`
+already has no bulge on any edge, so that state is not new.
+
+Verified on pixels at all four corners and restored; vertical came back
+byte-identical (`reserved [0,6,50,6]`, bar `2478,0 76x1440`).
+
+## R2-3 — the `icon` strip clipped, and took 27.7 seconds
+
+Both real, both arithmetic rather than opinion.
+
+**Clipping:** the launcher panel is 640 wide with 16px margins → a 608px box;
+eight themes at 132px + 7×8 spacing need 1112px. The container was a bare
+`Row` — a positioner, so anchoring it left+right sets where it starts, never
+how wide its children may be — with no `clip`, so tiles 5–8 painted over the
+desktop. Now a horizontal `ListView`, which also fixes something a `Row` never
+could: Left/Right past tile 4 used to walk the selection off the panel.
+Enumerated rather than assumed: `FontMode` already used a clipped ListView;
+`IconMode` was the only one of the pair with an unbounded positioner.
+
+**The 27.7 seconds was not the cache.** `_find_icon_at_size` ran one `find -L`
+PER NAME PER TIER — up to 60 tree walks per theme, over a Papirus tree holding
+**305,764 files** where one bare walk costs 164ms. One traversal now harvests
+all names and ranks by the same unchanged five-tier ladder: **3,862ms, a 7.2×
+cut, byte-identical on all eight installed themes.**
+
+The cache existed but was in-memory only. It is on disk now, served instantly
+with one real probe per theme per session behind it so a dangling path
+self-corrects — deliberately no validity fingerprint, because a theme list or
+an index.theme mtime is right about some updates and wrong about others.
+
+**Two bugs I introduced and caught by measuring**, both now carrying the
+comment that explains them: a binding loop (`previewFor()` is called from
+bindings and my refresh latch read and wrote a property inside it — Qt said
+`Binding loop detected for property "_rows"` out loud), and the cache eating
+itself (FileView reads ASYNCHRONOUSLY, so `text()` from
+`Component.onCompleted` returned "" against a good 8KB file and the first
+probe saved a cache holding only what it had probed — 7 themes became 4).
+
+## What round 2 could not check
+
+1. **The `cmd` palette's and the icon strip's rendered rows.** Established
+   this session as a hard limit, not a missing effort: the launcher's surface
+   maps and stays mapped (`alpha 1`, verified at 0.15/0.5/1.0/2.0s) but paints
+   nothing once the pointer is elsewhere, `hyprctl dispatch movecursor` does
+   not exist on this Lua-parser build, and there is no injection path. Load,
+   activation and absence-of-errors are verified; **layout is not.**
+2. **The horizontal frame in daily use.** Every corner is measured and
+   captured, but it was flipped to and back rather than lived in.
