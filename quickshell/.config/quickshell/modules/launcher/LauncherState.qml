@@ -150,19 +150,31 @@ Singleton {
     }
 
     function _routeQuery() {
-        if (root._stickyModes[root.mode] === true)
-            return;
+        // Operator round 3, item 4 — word routes are checked BEFORE the
+        // sticky bail. Without this, typing "icon"/"font"/"pkg" from
+        // Super-tap menu mode (a sticky mode) never routed anywhere: the
+        // sticky guard above returned first, and the query only ever
+        // fuzzy-filtered the current menu level's leaves. The exact same
+        // match test `_routeQuery` already used below (whole-query
+        // equality or a "<word> " prefix) still gates it, so an ordinary
+        // menu-filter keystroke ("c", "col", "settings") can never
+        // collide with a route word by accident.
         const q = root.query;
-        if (q.length === 0) {
-            root.mode = root.modeApps;
-            return;
-        }
         const lower = q.toLowerCase();
         for (const word in root._wordRoutes) {
             if (lower === word || lower.indexOf(word + " ") === 0) {
                 root.mode = root._wordRoutes[word];
                 return;
             }
+        }
+        // Sticky modes keep their own behaviour for everything else — a
+        // submenu's typed input still filters its OWN leaves rather than
+        // bouncing back to apps mode or a prefix route.
+        if (root._stickyModes[root.mode] === true)
+            return;
+        if (q.length === 0) {
+            root.mode = root.modeApps;
+            return;
         }
         const routed = root._prefixRoutes[q.charAt(0)];
         root.mode = routed !== undefined ? routed : root.modeApps;
