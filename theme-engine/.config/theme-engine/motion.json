@@ -99,9 +99,12 @@
       "label": "Smooth",
       "description": "Critically damped, longest, no overshoot.",
       "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
+      "_comment_260829_emphasized": "quick task 260829-wvy: the emphasized pair is DERIVED, not chosen. In the base table `emphasized-decelerate` is byte-identical to `spatial-in` and `emphasized-accelerate` to `spatial-out` — the emphasized curves ARE the monotonic form of the spatial ones. Before this, only zen overrode an emphasized easing, so five of six styles shared one curve and the channel carried no style character at all. Each style now takes its OWN spatial pair clamped into [0,1]. The clamp is what keeps the file invariant (only spatial-in/out/move may leave [0,1]) intact, and it is why bouncy's 1.85 crest lands at 1.0 here while staying 1.85 in spatial-in. md3 needs no override: it overrides no spatial easing, so the base pair is already correct for it by construction.",
       "easings": {
         "spatial-in": [0.16, 0.85, 0.3, 1.0],
         "spatial-out": [0.35, 0, 0.7, 1],
+        "emphasized-decelerate": [0.16, 0.85, 0.3, 1.0],
+        "emphasized-accelerate": [0.35, 0, 0.7, 1],
         "spatial-move": [0.35, 0, 0.25, 1],
         "standard": [0.4, 0, 0.6, 1],
         "effects": [0.4, 0, 0.6, 1]
@@ -136,9 +139,12 @@
       "label": "Snappy",
       "description": "Short, fast rise, a barely-there overshoot.",
       "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
+      "_comment_260829_emphasized": "quick task 260829-wvy: the emphasized pair is DERIVED, not chosen. In the base table `emphasized-decelerate` is byte-identical to `spatial-in` and `emphasized-accelerate` to `spatial-out` — the emphasized curves ARE the monotonic form of the spatial ones. Before this, only zen overrode an emphasized easing, so five of six styles shared one curve and the channel carried no style character at all. Each style now takes its OWN spatial pair clamped into [0,1]. The clamp is what keeps the file invariant (only spatial-in/out/move may leave [0,1]) intact, and it is why bouncy's 1.85 crest lands at 1.0 here while staying 1.85 in spatial-in. md3 needs no override: it overrides no spatial easing, so the base pair is already correct for it by construction.",
       "easings": {
         "spatial-in": [0.1, 0.9, 0.4, 1.12],
         "spatial-out": [0.3, 0, 0.8, 1],
+        "emphasized-decelerate": [0.1, 0.9, 0.4, 1.0],
+        "emphasized-accelerate": [0.3, 0, 0.8, 1],
         "spatial-move": [0.1, 0.9, 0.4, 1.06],
         "standard": [0.05, 0.5, 0.1, 1],
         "effects": [0.05, 0.5, 0.1, 1]
@@ -173,9 +179,12 @@
       "label": "Bouncy",
       "description": "Crests past the target, drops back through it, then settles — the snap-back of a bounce.",
       "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
+      "_comment_260829_emphasized": "quick task 260829-wvy: the emphasized pair is DERIVED, not chosen. In the base table `emphasized-decelerate` is byte-identical to `spatial-in` and `emphasized-accelerate` to `spatial-out` — the emphasized curves ARE the monotonic form of the spatial ones. Before this, only zen overrode an emphasized easing, so five of six styles shared one curve and the channel carried no style character at all. Each style now takes its OWN spatial pair clamped into [0,1]. The clamp is what keeps the file invariant (only spatial-in/out/move may leave [0,1]) intact, and it is why bouncy's 1.85 crest lands at 1.0 here while staying 1.85 in spatial-in. md3 needs no override: it overrides no spatial easing, so the base pair is already correct for it by construction.",
       "easings": {
         "spatial-in": [0.4, 1.85, 0.75, 0.74],
         "spatial-out": [0.45, 0, 0.6, 1.15],
+        "emphasized-decelerate": [0.4, 1.0, 0.75, 0.74],
+        "emphasized-accelerate": [0.45, 0, 0.6, 1],
         "spatial-move": [0.4, 1.5, 0.6, 0.9],
         "effects": [0.3, 0, 0.5, 1]
       },
@@ -203,42 +212,6 @@
         "fade_switch": { "curve": "standard", "speed_key": "leaf-medium2" },
         "fade_shadow": { "curve": "standard", "speed_key": "leaf-medium2" },
         "fade_dim": { "curve": "standard", "speed_key": "leaf-medium2" }
-      }
-    },
-    "wavy": {
-      "label": "Wavy",
-      "description": "One smooth swell past the target, settling from above — never doubles back.",
-      "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
-      "easings": {
-        "spatial-in": [0.1, 0.9, 0.4, 1.254],
-        "spatial-out": [0.35, 0, 0.7, 1.06],
-        "spatial-move": [0.1, 0.9, 0.4, 1.15],
-        "effects": [0.25, 0, 0.5, 1]
-      },
-      "semantic": {
-        "standard": { "duration": "medium1", "easing": "standard" },
-        "standard-slow": { "duration": "long2", "easing": "standard" },
-        "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
-        "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
-        "colour": { "duration": "medium1", "easing": "effects" },
-        "spatial-in": { "duration": "medium3", "easing": "spatial-in" },
-        "spatial-out": { "duration": "short4", "easing": "spatial-out" },
-        "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
-      },
-      "hypr_leaves": {
-        "windows_in": { "curve": "spatial-in", "speed_key": "leaf-medium4", "style": "popin 0%" },
-        "windows_out": { "curve": "spatial-out", "speed_key": "leaf-medium1", "style": "popin 0%" },
-        "windows_move": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slide" },
-        "workspaces": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidefadevert" },
-        "special_workspace": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidefadevert" },
-        "layers": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidefade" },
-        "layers_in": { "curve": "spatial-in", "speed_key": "leaf-medium4", "style": "slidefade" },
-        "layers_out": { "curve": "spatial-out", "speed_key": "leaf-medium1", "style": "slidefade" },
-        "fade_in": { "curve": "standard", "speed_key": "leaf-medium4" },
-        "fade_out": { "curve": "standard", "speed_key": "leaf-medium1" },
-        "fade_switch": { "curve": "standard", "speed_key": "leaf-medium4" },
-        "fade_shadow": { "curve": "standard", "speed_key": "leaf-medium4" },
-        "fade_dim": { "curve": "standard", "speed_key": "leaf-medium4" }
       }
     },
     "zen": {
