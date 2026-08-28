@@ -387,6 +387,33 @@ Item {
                         onClicked: detail.compareOn = !detail.compareOn
                     }
                 }
+
+                // Operator round 1, defect 1 — proposes a plan; nothing
+                // is removed until the confirmation overlay's own
+                // explicit Uninstall button is clicked.
+                Rectangle {
+                    id: uninstallChip
+                    radius: 99
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Qt.alpha(Colours.error, 0.5)
+                    width: uninstallLabel.implicitWidth + Design.spacingMd
+                    height: uninstallLabel.implicitHeight + Design.spacingSm
+
+                    Text {
+                        id: uninstallLabel
+                        anchors.centerIn: parent
+                        text: "Uninstall"
+                        color: Colours.error
+                        font.pixelSize: Design.fontLabel
+                        textFormat: Text.PlainText
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: AppearanceBackend.proposeUninstallIconTheme(root._effectiveSelected)
+                    }
+                }
             }
         }
     }

@@ -39,3 +39,7 @@ AtCatalogueTab 1.0 AtCatalogueTab.qml
 # Operator round 1 (2c/2e) — the shared resizable-rail grip, reused by
 # AtIconsTab/AtFontsTab/AtCatalogueTab rather than three divergent copies.
 AtRailGrip 1.0 AtRailGrip.qml
+
+# Operator round 1, defect 1 — the shared uninstall-confirmation overlay,
+# mounted once in Atelier.qml and driven off AppearanceBackend.uninstallPlan.
+AtUninstallConfirm 1.0 AtUninstallConfirm.qml

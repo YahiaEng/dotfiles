@@ -322,6 +322,37 @@ Item {
                         textFormat: Text.PlainText
                     }
                 }
+
+                // Operator round 1, defect 1 — resolves ownership of the
+                // currently previewed variant's own file via `fc-match`;
+                // proposes a plan, never removes on this click alone.
+                Rectangle {
+                    id: uninstallChip
+                    visible: specimen._activeVariant !== null
+                    radius: 99
+                    color: "transparent"
+                    border.width: 1
+                    border.color: Qt.alpha(Colours.error, 0.5)
+                    width: uninstallLabel.implicitWidth + Design.spacingMd
+                    height: uninstallLabel.implicitHeight + Design.spacingSm
+
+                    Text {
+                        id: uninstallLabel
+                        anchors.centerIn: parent
+                        text: "Uninstall"
+                        color: Colours.error
+                        font.pixelSize: Design.fontLabel
+                        textFormat: Text.PlainText
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (specimen._activeVariant)
+                                AppearanceBackend.proposeUninstallFont(specimen._activeVariant.rawName);
+                        }
+                    }
+                }
             }
         }
     }

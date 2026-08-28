@@ -764,6 +764,220 @@ Singleton {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  Uninstall — icon themes and fonts (operator round 1, defect 1).
+    //
+    //  ── PRIVILEGE: NONE HERE, IDENTICAL POSTURE TO INSTALL ABOVE ──────
+    //  No pkexec, no polkit action, no in-process sudo, no --noconfirm.
+    //  Ownership is resolved via `pacman -Qoq <path>` BEFORE anything is
+    //  proposed, so the operator sees every package that will be
+    //  affected (the Adwaita two-package case — `adwaita-cursors` AND
+    //  `adwaita-icon-theme` — is shown, never auto-picked down to one).
+    //  Removal is a literal argv handed to a terminal: `paru -Rs` for an
+    //  owned theme/font (mirrors `PackagesBackend.remove()` exactly),
+    //  `rm -rvI` for an UNOWNED user-dir copy — `rm`'s own `-I` prompts
+    //  once before a recursive removal and keeps the terminal open for
+    //  that answer, the same "the tool itself asks" posture pacman/paru
+    //  already carry. Never auto-deletes: `confirmUninstall()` only runs
+    //  from an explicit operator action on the resolved plan below.
+    // ═══════════════════════════════════════════════════════════════
+
+    readonly property string _iconSystemDir: "/usr/share/icons/"
+    readonly property string _iconUserDir: Quickshell.env("HOME") + "/.local/share/icons/"
+
+    // The current uninstall PROPOSAL. `null` until a `propose*` call
+    // resolves; the UI renders a "Resolving…" state for
+    // `kind === "resolving"` so it never shows a stale plan for a
+    // different target. Shape: `{ kind, target, forFonts, packages?,
+    // path?, active? }` — `kind` is one of `resolving`, `packages`,
+    // `userdir`, `missing`, `error`.
+    property var uninstallPlan: null
+
+    property string _pendingUninstallIconName: ""
+    property string _pendingUninstallFontRaw: ""
+    property string _pendingUninstallDirPath: ""
+
+    function proposeUninstallIconTheme(name: string): void {
+        if (root._pendingUninstallIconName.length > 0 || root._pendingUninstallFontRaw.length > 0)
+            return;
+        if (!root._NAME_RE.test(name)) {
+            root.uninstallPlan = {
+                kind: "error",
+                target: name,
+                forFonts: false,
+                message: "Refused — '" + name + "' is not a safe theme name."
+            };
+            return;
+        }
+        root._pendingUninstallIconName = name;
+        root.uninstallPlan = {
+            kind: "resolving",
+            target: name,
+            forFonts: false
+        };
+        iconSystemDirCheckProc.command = ["test", "-d", root._iconSystemDir + name];
+        iconSystemDirCheckProc.running = true;
+    }
+
+    Process {
+        id: iconSystemDirCheckProc
+        running: false
+        command: ["true"]
+        onExited: (code, status) => {
+            if (root._pendingUninstallIconName.length === 0)
+                return;
+            if (code === 0) {
+                root._resolveOwnership(root._iconSystemDir + root._pendingUninstallIconName, false);
+            } else {
+                iconUserDirCheckProc.command = ["test", "-d", root._iconUserDir + root._pendingUninstallIconName];
+                iconUserDirCheckProc.running = true;
+            }
+        }
+    }
+
+    Process {
+        id: iconUserDirCheckProc
+        running: false
+        command: ["true"]
+        onExited: (code, status) => {
+            if (root._pendingUninstallIconName.length === 0)
+                return;
+            if (code === 0) {
+                root._resolveOwnership(root._iconUserDir + root._pendingUninstallIconName, false);
+            } else {
+                // Neither system nor user dir exists any more — the
+                // theme vanished between the rail rendering it and the
+                // operator clicking Uninstall.
+                root.uninstallPlan = {
+                    kind: "missing",
+                    target: root._pendingUninstallIconName,
+                    forFonts: false
+                };
+                root._pendingUninstallIconName = "";
+            }
+        }
+    }
+
+    // Fonts resolve through the installed FILE, via `fc-match` — the
+    // same fontconfig name this backend already applies through
+    // `--set`, never a guessed path.
+    function proposeUninstallFont(rawName: string): void {
+        if (!rawName || rawName.length === 0)
+            return;
+        if (root._pendingUninstallIconName.length > 0 || root._pendingUninstallFontRaw.length > 0)
+            return;
+        root._pendingUninstallFontRaw = rawName;
+        root.uninstallPlan = {
+            kind: "resolving",
+            target: rawName,
+            forFonts: true
+        };
+        fontFileResolveProc.command = ["fc-match", "-f", "%{file}", rawName];
+        fontFileResolveProc.running = true;
+    }
+
+    Process {
+        id: fontFileResolveProc
+        running: false
+        command: ["true"]
+        stdout: StdioCollector {
+            id: fontFileResolveCollector
+        }
+        onExited: (code, status) => {
+            if (root._pendingUninstallFontRaw.length === 0)
+                return;
+            var filePath = (fontFileResolveCollector.text || "").trim();
+            if (code !== 0 || filePath.length === 0) {
+                root.uninstallPlan = {
+                    kind: "missing",
+                    target: root._pendingUninstallFontRaw,
+                    forFonts: true
+                };
+                root._pendingUninstallFontRaw = "";
+                return;
+            }
+            root._resolveOwnership(filePath, true);
+        }
+    }
+
+    function _resolveOwnership(path, isFont) {
+        root._pendingUninstallDirPath = path;
+        ownerResolveProc.command = ["pacman", "-Qoq", path];
+        ownerResolveProc._forFonts = isFont;
+        ownerResolveProc.running = true;
+    }
+
+    Process {
+        id: ownerResolveProc
+        running: false
+        command: ["true"]
+        property bool _forFonts: false
+        stdout: StdioCollector {
+            id: ownerResolveCollector
+        }
+        onExited: (code, status) => {
+            var forFonts = ownerResolveProc._forFonts;
+            var target = forFonts ? root._pendingUninstallFontRaw : root._pendingUninstallIconName;
+            var path = root._pendingUninstallDirPath;
+            var active = forFonts ? (target === root.activeFontRaw) : (target === root.iconThemeName);
+            if (code === 0) {
+                var pkgs = (ownerResolveCollector.text || "").split("\n").map(l => l.trim()).filter(l => l.length > 0);
+                root.uninstallPlan = {
+                    kind: "packages",
+                    target: target,
+                    forFonts: forFonts,
+                    packages: pkgs,
+                    active: active
+                };
+            } else {
+                // Unowned — a user-dir copy (measured: ~/.local/share/
+                // icons/Papirus and Papirus-Dark are both unowned on
+                // this host, shadowing the system ones).
+                root.uninstallPlan = {
+                    kind: "userdir",
+                    target: target,
+                    forFonts: forFonts,
+                    path: path,
+                    active: active
+                };
+            }
+            root._pendingUninstallIconName = "";
+            root._pendingUninstallFontRaw = "";
+        }
+    }
+
+    function cancelUninstall(): void {
+        root.uninstallPlan = null;
+    }
+
+    // Only ever called from an explicit operator confirm on the RESOLVED
+    // plan above — never from a propose* call directly.
+    function confirmUninstall(): void {
+        var plan = root.uninstallPlan;
+        if (!plan)
+            return;
+        var kind = plan.forFonts ? "font" : "icon theme";
+        if (plan.kind === "packages") {
+            if (root._aurHelper.length === 0) {
+                root.logLine("error", "No AUR helper (paru/yay) available — cannot remove any package from here.");
+                root.uninstallPlan = null;
+                return;
+            }
+            if (plan.active)
+                root.logLine("warn", "Removing the ACTIVE " + kind + " (" + plan.target + ") — the desktop falls back once it is gone.");
+            root.logLine("info", "Handing off to a terminal: " + root._aurHelper + " -Rs " + plan.packages.join(" "));
+            Quickshell.execDetached([root._terminal(), "-e", root._aurHelper, "-Rs"].concat(plan.packages));
+            root.transactionLaunched(plan.forFonts ? "uninstall-font" : "uninstall-icon-theme");
+        } else if (plan.kind === "userdir") {
+            if (plan.active)
+                root.logLine("warn", "Deleting the ACTIVE " + kind + "'s user-dir copy (" + plan.target + ") — the desktop falls back once it is gone.");
+            root.logLine("info", "Handing off to a terminal: rm -rvI " + plan.path);
+            Quickshell.execDetached([root._terminal(), "-e", "rm", "-rvI", plan.path]);
+            root.transactionLaunched(plan.forFonts ? "uninstall-font" : "uninstall-icon-theme");
+        }
+        root.uninstallPlan = null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     Component.onCompleted: {
         root.refreshIconThemes();
         root.refreshFonts();

@@ -188,7 +188,17 @@ LazyLoader {
             id: focusCatcher
             anchors.fill: parent
             focus: true
-            Keys.onEscapePressed: loader.activeAsync = false
+            // Operator round 1, defect 1: while the uninstall-confirm
+            // overlay is showing, Escape cancels THAT (never applies a
+            // destructive action by accident) rather than closing the
+            // whole window underneath it.
+            Keys.onEscapePressed: {
+                if (AppearanceBackend.uninstallPlan !== null) {
+                    AppearanceBackend.cancelUninstall();
+                    return;
+                }
+                loader.activeAsync = false;
+            }
             Component.onCompleted: forceActiveFocus()
         }
 
@@ -323,6 +333,15 @@ LazyLoader {
 
                 AtCatalogueTab {
                 }
+            }
+
+            // Operator round 1, defect 1 — the uninstall-confirmation
+            // overlay. Declared LAST so it paints above the header, tab
+            // strip and whichever tab is loaded; `AtUninstallConfirm`
+            // itself is invisible whenever `AppearanceBackend.
+            // uninstallPlan` is null, so this costs nothing the rest of
+            // the time.
+            AtUninstallConfirm {
             }
         }
     }
