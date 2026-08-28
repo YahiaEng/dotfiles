@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "260828-75k COMPLETE AND OPERATOR-CONFIRMED (2026-08-28). An Octopi replacement in four surfaces over ONE PackagesBackend singleton: the D4 workbench window (sortable ledger, multi-select, removal-cascade preview), a thin Settings > Packages page, a `pkg` launcher route painted in the accent colour, and a repaired bar pill with a popout. Octopi is off the host. NOTHING IS OWED. The feature request uncovered a DEFECT first: the bar pill polled checkupdates alone and read 3 while 4 were pending, blind to the AUR. Measurements that decided the design: `pacman -Qi` returns all 1420 records with every field in 0.20s/1.33MB (so no cache, no daemon), and `pacman -Rs --print --print-format` resolves the FULL removal cascade WITHOUT root (6 orphans -> 11 real removals) which is the one capability that justified a whole window. Retired UpdatesPage.qml and UpdatesMode.qml, absorbing the per-package armed update. SIX TRAPS RECORDED IN THE SUMMARY, three of them mine: `find | head` truncated a survey and I drew an architectural conclusion from it TWICE (every module dir has a qmldir; the failures were undeclared types) which misfiled two files; menu leaf labels carry invisible Nerd Font glyphs so an edit matched on the visible label silently no-ops; `follow_mouse=1` makes Qt Window.active a HOVER signal so click-outside needs HyprlandFocusGrab; a drag delta measured in the dragged thing's own frame drifts with speed, anchor on scene coords at press; pacman writes the error summary to stderr but the reasons to stdout; qmllint is blind here (rc=0 on a truncated file, positive-control verified). NEXT REAL DECISION, unchanged: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog."
+stopped_at: "SEVEN OPERATOR QUICK TASKS SHIPPED 2026-08-28 (03081056..ecf00c54, pushed, tree clean at handover) AND THREE NEW ITEMS ARE OPEN AND UNSTARTED. READ '▶ RESUME HERE' IN THIS FILE FIRST. (1) ENVIRONMENT: the operator completed 260828-zsh by running chsh to fish and `pacman -Rs zsh` — which KILLED THE AGENT'S BASH TOOL, because this session's harness reported `Shell: zsh` and had resolved /usr/bin/zsh at process start. Read/Write/Edit still worked; every Bash call exited 1 with no output. A `/clear` does NOT fix it (same process, same dead shell) — a full CLI restart does. Nothing is wrong with the system: login shell is fish, prompt works. LESSON: the handover checklist correctly ordered chsh before removal for the OPERATOR's shell, but never asked whether the agent's own tooling ran zsh. (2) SHIPPED: palette 19->33 colour roles; settings nav sections made visible (they had been computed since they were written but unselected rows were painted fully transparent, and a corner radius needs a fill to be seen); ThemedScrollBar across 19 surfaces; motion parity for the four non-zen styles; zsh removed; update tooltip removed; three pre-existing defects fixed, the real one being the icon picker reading 0/0 forever for all three Papirus themes because the probe takes 6.4-6.9s against a 5000ms watchdog and a non-zero exit cached [] permanently. Full gate suite green. (3) THREE OPEN ITEMS, NO MEASUREMENT TAKEN ON ANY — do not treat the recorded hypotheses as findings: are the new colour roles actually consumed (expect mostly not); the settings nav scrollbar clips the menu items (probably overlays instead of reserving width); and several motion styles are too similar (wavy and snappy share a spatial-in curve family) so redundant ones should be cut — a taste call needing operator approval before deleting anything. PRIOR CONTEXT: 260828-75k was an Octopi replacement in four surfaces over ONE PackagesBackend singleton: the D4 workbench window (sortable ledger, multi-select, removal-cascade preview), a thin Settings > Packages page, a `pkg` launcher route painted in the accent colour, and a repaired bar pill with a popout. Octopi is off the host. NOTHING IS OWED. The feature request uncovered a DEFECT first: the bar pill polled checkupdates alone and read 3 while 4 were pending, blind to the AUR. Measurements that decided the design: `pacman -Qi` returns all 1420 records with every field in 0.20s/1.33MB (so no cache, no daemon), and `pacman -Rs --print --print-format` resolves the FULL removal cascade WITHOUT root (6 orphans -> 11 real removals) which is the one capability that justified a whole window. Retired UpdatesPage.qml and UpdatesMode.qml, absorbing the per-package armed update. SIX TRAPS RECORDED IN THE SUMMARY, three of them mine: `find | head` truncated a survey and I drew an architectural conclusion from it TWICE (every module dir has a qmldir; the failures were undeclared types) which misfiled two files; menu leaf labels carry invisible Nerd Font glyphs so an edit matched on the visible label silently no-ops; `follow_mouse=1` makes Qt Window.active a HOVER signal so click-outside needs HyprlandFocusGrab; a drag delta measured in the dragged thing's own frame drifts with speed, anchor on scene coords at press; pacman writes the error summary to stderr but the reasons to stdout; qmllint is blind here (rc=0 on a truncated file, positive-control verified). NEXT REAL DECISION, unchanged: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog."
 last_updated: "2026-08-28T19:05:00.000Z"
 last_activity: 2026-08-28
 last_activity_desc: "Seven operator quick tasks in one session: palette 19->33 roles, settings nav sections made visible (they existed but were painted transparent), ThemedScrollBar across 19 surfaces, motion parity for the four non-zen styles, zsh removed entirely, update tooltip removed, and three pre-existing defects fixed including the icon picker reading 0/0 for all three Papirus themes. OPERATOR OWES: chsh to fish, then pacman -Rs zsh."
@@ -1409,7 +1409,74 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — 260828-so7 + 260828-t22 CLOSED, operator-approved. Nothing is owed.
+### ▶ RESUME HERE — seven quick tasks shipped; THREE NEW ITEMS OPEN; agent shell was broken by the zsh removal
+
+**FIRST, THE ENVIRONMENT.** The operator ran `chsh -s /usr/bin/fish` and
+`sudo pacman -Rs zsh`, completing quick task 260828-zsh. **That killed the
+agent's Bash tool**: this session's harness reported `Shell: zsh` and had
+resolved `/usr/bin/zsh` at process start, so every command — including
+`echo test` — began exiting 1 with no output. Read/Write/Edit were unaffected,
+which is how this block got written.
+
+Not a system fault. Login shell is fish, the prompt works, the repo is clean.
+The fix is a **full CLI restart** (a `/clear` alone keeps the same process and
+the same dead shell). If Bash still fails after a restart, `sudo pacman -S zsh`
+restores the agent's shell without touching the login shell — but that
+partially undoes "remove zsh entirely", so if it is taken, add zsh back to
+`install.sh` as an explicit TOOLING dependency with the reason recorded rather
+than leaving the repo claiming zsh is gone while the host has it.
+
+**Lesson worth keeping:** the handover checklist correctly ordered `chsh`
+before `pacman -Rs` so the operator's login shell never pointed at a missing
+binary — but it only ever reasoned about the OPERATOR's shell. The agent
+harness resolves its own shell independently at startup and does not follow a
+`chsh`. Retiring any package must ask "does my own tooling run this?"
+(cf. [[retiring-package-takes-its-config]], which asks the same question about
+system paths).
+
+**WHAT SHIPPED (all committed and pushed, `03081056`..`ecf00c54`, tree clean at
+handover).** Seven operator quick tasks: palette 19 -> 33 colour roles
+(260828-u0r); settings nav sections made visible + ThemedScrollBar + smooth
+scrolling (260828-nav); update glyph tooltip removed; motion parity for the
+four non-zen styles (260828-mot); zsh removed (260828-zsh); scroll indicators
+across 18 more files and three pre-existing defects fixed (260828-pol). Full
+gate suite green: quickshell-doctor 28/0, theme-doctor 1575/0, theme-parity
+1897/0, keybind-doctor 13/0, hypr-equivalence 3/0, plus seven QML gates.
+Details in the two SUMMARYs and the Quick Tasks table above.
+
+**THREE NEW OPERATOR ITEMS — OPEN, NOT STARTED.** No measurement was taken on
+any of them; the shell died first. Do not carry forward the guesses below as
+findings — they are stated only so the next session knows where to point its
+instruments.
+
+1. **"Are we utilizing the new generated colors?"** The 33-role palette
+   shipped, but adoption was never swept. Expectation to VERIFY, not assume:
+   only `surfaceContainerHigh`/`Highest` (settings rail) and
+   `onSurfaceVariant` (ThemedScrollBar) have consumers, leaving ~12 of the 14
+   new roles unused while components still fake elevation with alpha tints
+   over `surface`. Count real `Colours.<role>` references per role (excluding
+   `Colours.qml`'s own declarations and `Probe.qml`'s swatch list, which would
+   both false-positive), then decide what to route where.
+
+2. **"The scrollbar on the left side of the settings menu is clipping with the
+   menu items."** Likely cause to CONFIRM BY SCREENSHOT FIRST:
+   `ThemedScrollBar` is anchored inside `flickHost` at `rightMargin: 2` with
+   `z: 100`, so it OVERLAYS the rows rather than reserving space beside them.
+   Probable fix is to inset the row content by the bar's width. Measure before
+   editing — see [[measure-with-screenshots-not-assumptions]].
+
+3. **"Some animation styles are too similar — remove redundant ones and make
+   the rest truly unique."** Partly corroborated already: `wavy` and `snappy`
+   both use a `spatial-in` of shape `[0.1, 0.9, 0.4, ~1.1-1.25]` — the same
+   curve family differing only in overshoot magnitude. 260828-mot expanded
+   every style's COVERAGE without ever checking the styles were DISTINCT to
+   begin with, which is the real gap. Plot each style's curves and durations,
+   show the operator which collapse into each other, and get approval before
+   cutting any — this is a taste call, not a measurement call. Deleting a
+   style also means `motion.json`'s `styles` table, the settings picker, and
+   any persisted `motion_style` value naming a removed style.
+
+### Previous checkpoint — 260828-so7 + 260828-t22 CLOSED, operator-approved.
 
 **Both quick tasks OPERATOR-APPROVED 2026-08-28.** 11 commits total,
 `334064e9`..`292bc493`, all pushed, tree clean. **The full gate suite is green
