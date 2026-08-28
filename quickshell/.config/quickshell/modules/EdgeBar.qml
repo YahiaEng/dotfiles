@@ -147,6 +147,13 @@ PanelWindow {
     // shell.qml's single resolution point (root.edgeBarStyle).
     property string style: "continuous"
 
+    // Whether the bar's own body continues this run past the strip's far
+    // end (quick task 260829-2ov). Threaded in from shell.qml for the same
+    // reason `style` is, and kept as a plain fact rather than an
+    // orientation: this file has no orientation, only an `edge`. Consumed
+    // by `squareEnd` in the path call below — see the note there.
+    property bool runsIntoBar: false
+
     // ── Which instances carry a bulge (Task 4) ──────────────────────────
     // Only the horizontal pair. The measured attachment map is: top =
     // dashboard, bottom = launcher, right = the bar, left = nothing — so
@@ -590,7 +597,18 @@ PanelWindow {
         // Continuous is the one style where this strip does NOT end at its
         // own surface edge — Bar.qml carries the run on through the bar's
         // body. Cap it there and the joint reads as a rounded lump.
-        squareEnd: edgeBarWindow.style === "continuous",
+        //
+        // ── ONLY WHEN SOMETHING ACTUALLY CARRIES IT ON (quick task
+        //    260829-2ov) ──────────────────────────────────────────────────
+        // That is true of a VERTICAL bar, which stands at the far end of
+        // both horizontal runs. A horizontal bar lies parallel to them and
+        // is nowhere near their far ends, so the butt end had nothing
+        // continuing it and read as a blunt stop 10px short of the screen
+        // edge, against a rounded cap at the other end of the same rail.
+        // `runsIntoBar` is threaded in from shell.qml rather than read off
+        // `BarEntryModel.isVertical` here, because this file has no
+        // orientation of its own — only an edge (this file's own header).
+        squareEnd: edgeBarWindow.style === "continuous" && edgeBarWindow.runsIntoBar,
         // Halo's two vertical rails are plain runs (see `_hasBulge`).
         bulge: edgeBarWindow._hasBulge,
         xl: edgeBarWindow._xl,

@@ -827,6 +827,12 @@ ShellRoot {
             id: edgeBarTop
             edge: "top"
             style: root.edgeBarStyle
+            // Only a VERTICAL bar stands at the far end of this run and
+            // carries it on (quick task 260829-2ov) — a horizontal one lies
+            // parallel to it. Resolved here, where the bar's orientation is
+            // already knowable, rather than inside EdgeBar.qml, which has no
+            // orientation of its own.
+            runsIntoBar: BarEntryModel.isVertical
             // Sized to whichever surface is actually spawning from this
             // strip (quick task 260825-pyf, operator request). It was fixed
             // at the dashboard's own width; the three config panels spawn
@@ -856,6 +862,8 @@ ShellRoot {
             id: edgeBarBottom
             edge: "bottom"
             style: root.edgeBarStyle
+            // Same reasoning as the top strip above.
+            runsIntoBar: BarEntryModel.isVertical
             // Matches the launcher, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthBottom
             animatedBulge: root.edgeBarAnimatedBulgeEffective

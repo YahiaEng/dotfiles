@@ -98,8 +98,37 @@ PanelWindow {
     // orthogonal to a horizontal bar's own edge), so this collapses to
     // false and the bar renders exactly as it does today — the strips
     // simply end at their own right edge, no weld, no error.
+    //
+    // ── THE PARAGRAPH ABOVE IS NOW HALF-TRUE (quick task 260829-2ov) ────
+    // The operator asked for the horizontal orientation to share the
+    // vertical one's identity, and picked the shape: the rail's gradient
+    // WRAPS the bar's body, and the top strip STAYS MOUNTED so the
+    // dashboard keeps spawning from the rail it spawns from today. The
+    // alternative — unmount `edgeBarTop`, let the bar BE the top rail, and
+    // re-root the dashboard's bulge onto it — was put to them and declined.
+    //
+    // So there are now two welds, and `_continuousWeld` keeps its EXACT
+    // previous meaning rather than being widened. That is deliberate: it
+    // gates six things that must stay vertical-only, and every one of them
+    // is wrong or meaningless on a horizontal bar —
+    //
+    //   margins.top/bottom -> 0     (the run axis is the other one)
+    //   the implicitWidth growth    (ditto)
+    //   both weld stubs             (they bridge PERPENDICULAR rails; the
+    //                                top strip is PARALLEL to a horizontal
+    //                                bar, so there is no joint to close)
+    //   the vertical slab
+    //   popoutBulgeDepth            (a shelf grown on the bar's own edge)
+    //   PopoutController.rootAttached / rootInset
+    //
+    // Widening the predicate would have quietly switched all six on. The
+    // horizontal weld gets its own name, and only the two genuinely shared
+    // pieces (the core, and barContent's insets) read `_welded`.
     property string edgeBarStyle: "off"
-    readonly property bool _continuousWeld: barWindow.edgeBarStyle === "continuous" && barWindow.vertical
+    readonly property bool _continuousStyle: barWindow.edgeBarStyle === "continuous"
+    readonly property bool _continuousWeld: barWindow._continuousStyle && barWindow.vertical
+    readonly property bool _continuousWeldH: barWindow._continuousStyle && !barWindow.vertical
+    readonly property bool _welded: barWindow._continuousWeld || barWindow._continuousWeldH
 
     // ── Anchors — each a boolean binding off `vertical`, no branch. These
     //    are PanelWindow's own bool anchor flags (layer-shell edge
@@ -126,9 +155,24 @@ PanelWindow {
     // (`margins.<edge> + exclusiveZone`) — so `reserved` cannot move; this
     // file has shipped the double-count version of that bug twice, hence
     // the explicit note.
+    //
+    // Horizontal weld (quick task 260829-2ov): margins.left/right go to 0
+    // for the transposed reason — the slab spans the FULL screen width, the
+    // way the vertical weld's slab spans the full height. Neither is the
+    // anchored edge that carries the reservation (that is `margins.top`
+    // here), so `reserved` cannot move on this axis either.
+    //
+    // It matters that the slab reaches the screen's own corners rather than
+    // stopping at `barSideMargin`. The top strip is inset by
+    // `edgeBarSideMargin` (10, the same number), and the slab's pill cap has
+    // radius `_weldSlabDepth / 2` (25). Ending the slab level with the strip
+    // would put the cap's widest point 25px inboard of the strip's own end,
+    // leaving a 25px wedge of nothing under the last stretch of rail. Run to
+    // the corner instead and the strip's end sits 10px inside the cap, where
+    // the slab has already climbed to within ~5px of it.
     margins.top: barWindow.vertical ? (barWindow._continuousWeld ? 0 : Design.barSideMargin) : Design.barEdgeMargin
-    margins.right: barWindow.vertical ? Design.barEdgeMargin : Design.barSideMargin
-    margins.left: barWindow.vertical ? 0 : Design.barSideMargin
+    margins.right: barWindow.vertical ? Design.barEdgeMargin : (barWindow._continuousWeldH ? 0 : Design.barSideMargin)
+    margins.left: barWindow.vertical ? 0 : (barWindow._continuousWeldH ? 0 : Design.barSideMargin)
     margins.bottom: barWindow.vertical ? (barWindow._continuousWeld ? 0 : Design.barSideMargin) : 0
 
     // ── Extent — the free axis is the one both opposite edges anchor, so
@@ -148,7 +192,17 @@ PanelWindow {
     // idiom the edge bar's own bulge already uses. `reserved` must still
     // measure `[0, 6, 50, 6]` afterwards; measured, not asserted (see the
     // SUMMARY).
-    implicitHeight: barWindow.vertical ? 0 : Design.barHeight
+    //
+    // Horizontal weld (quick task 260829-2ov): the surface grows DOWNWARD by
+    // `2 * edgeBarWeldRim` so it can hold a slab that is one rim deeper than
+    // the bar's body on each face. `margins.top` and `exclusiveZone` are both
+    // untouched, so the reservation stays `Design.barEdgeMargin +
+    // Design.barHeight` = 48 and the extra 8px hangs into the client area —
+    // the same non-reserving overhang the vertical weld's leftward widening
+    // already relies on, and the same one the strips' own bulges use.
+    implicitHeight: barWindow.vertical
+        ? 0
+        : Design.barHeight + (barWindow._continuousWeldH ? 2 * Design.edgeBarWeldRim : 0)
     implicitWidth: barWindow.vertical
         ? Design.barColumnWidth + (barWindow._continuousWeld ? (Design.edgeBarSideMargin + Design.barColumnWidth / 2) : 0)
         : 0
@@ -189,7 +243,32 @@ PanelWindow {
     //    The right-hand side is the EXACT expression this property held
     //    before this plan — moved, not re-derived; see the property's own
     //    trailing comment for why it must stay content-only. ────────────
-    readonly property int reservedZoneExtent: barWindow.vertical ? Design.barColumnWidth : Design.barHeight // content only — margins.<edge> above independently carries the single Design.barEdgeMargin; never add it here too, or the reservation doubles
+    //
+    // ── THE HORIZONTAL WELD RESERVES ITS RIM (quick task 260829-2ov) ────
+    // MEASURED, and it corrected the assumption this task was planned on.
+    // `hyprctl layers` puts `quickshell-baredge-top` at **y=48** with a
+    // horizontal bar up — BELOW the bar, not above it. A layer surface with
+    // a non-negative exclusive zone is positioned inside every existing
+    // zone, and the bar's own 48 (6 + 42) is what it lands under. So the
+    // "top rail" is really the bar's UNDERSIDE rail in this orientation.
+    //
+    // With the plain 42 the strip's 6px run (48..54) and the slab's bottom
+    // rim (52..56) then OVERLAPPED, and near the ends the strip's straight
+    // band poked out past the slab's rounded cap — visibly unintentional.
+    // Reserving the whole slab instead lands the strip at 56, flush under
+    // the slab's bottom edge, and because both surfaces paint through the
+    // SAME `_stripGradX1`/`_stripPeriod` mapping the seam is invisible: rim
+    // and rail read as one 10px gradient edge, which is exactly the outcome
+    // the operator's chosen sketch describes.
+    //
+    // This is NOT the double-count this comment warns about. `margins.top`
+    // carries `barEdgeMargin` and this carries the surface's own extent —
+    // still one edge margin plus one content extent, the extent simply
+    // being the slab rather than the bar body, because the rim is opaque
+    // chrome and not an overhanging bulge.
+    readonly property int reservedZoneExtent: barWindow.vertical
+        ? Design.barColumnWidth
+        : (barWindow._continuousWeldH ? Design.barHeight + 2 * Design.edgeBarWeldRim : Design.barHeight) // content only — margins.<edge> above independently carries the single Design.barEdgeMargin; never add it here too, or the reservation doubles
     exclusiveZone: barWindow.zoneReserved ? barWindow.reservedZoneExtent : 0
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
@@ -433,6 +512,48 @@ PanelWindow {
     // they are one quantity, not two that happen to match.
     readonly property real _weldCapDepth: Design.edgeBarThickness + Design.edgeBarWeldRim
 
+    // ── ORIENTATION-NEUTRAL WELD GEOMETRY (quick task 260829-2ov) ───────
+    // The four quantities both welds need, named once in along/depth terms
+    // so the horizontal weld is a transposition rather than a second set of
+    // numbers. `_weldSlabWidth` above is the vertical weld's own name for
+    // `_weldSlabDepth` and is left alone — the stubs and the vertical slab
+    // still read it, and renaming a value four consumers already use buys
+    // nothing here.
+    //
+    // DEPTH = across the bar (the axis the rim runs on). RUN = along it
+    // (the axis the pill caps sit on).
+    readonly property real _weldCoreDepth: barWindow.vertical ? Design.barColumnWidth : Design.barHeight
+    readonly property real _weldSlabDepth: barWindow._weldCoreDepth + 2 * Design.edgeBarWeldRim
+
+    // How far the CORE is inset from the slab along the RUN axis.
+    //
+    // Vertical keeps `_weldCapDepth` (10) because that inset exists to
+    // swallow the two perpendicular rail runs — its own comment below spells
+    // out the 8px dark bite a uniform rim produced there. A horizontal bar
+    // has no perpendicular run to swallow, so it takes a uniform
+    // `edgeBarWeldRim` on both axes, which is both the correct value and
+    // literally what "wrap the rail around the bar" describes: a pill inset
+    // by 4 in every direction inside a pill, rim constant all the way round.
+    readonly property real _weldCoreRunInset: barWindow.vertical ? barWindow._weldCapDepth : Design.edgeBarWeldRim
+
+    // ── WHERE THE END CAPSULES MAY START (quick task 260829-2ov) ────────
+    // Operator: "App drawer and power menu glyphs are too close to the
+    // edge." MEASURED on the live vertical bar (grim + raw per-pixel dump
+    // at x2500-2560, this repo's standing rule for any visual claim): the
+    // core spans x2506-2550 — 44px, `barColumnWidth` exactly — and its pill
+    // cap is centred at y=32 with radius 22, core top at y=10. `barContent`
+    // was inset by `_weldCapDepth` alone, so the first capsule's box began
+    // at y=10: THE CAP'S APEX, where the pill has zero width. The app-drawer
+    // glyph read at y16-27, entirely inside the narrowing cap.
+    //
+    // The fix is derived rather than tuned, and the derivation is one line:
+    // a capsule box is `_weldCoreDepth` wide and the core is
+    // `_weldCoreDepth` wide, so the box first fits inside the pill at the
+    // CAP TANGENT — one cap radius past the core's own end. 10 + 22 = 32.
+    // Anything less leaves the box's two corners outside the shape, which is
+    // exactly what "too close to the edge" looks like.
+    readonly property real _weldContentRunInset: barWindow._weldCoreRunInset + barWindow._weldCoreDepth / 2
+
     // ── Gradient continuity with the strip ──────────────────────────────
     // Phase comes from the shared clock (GradientPhase.qml) so this cannot
     // drift against the strip. PERIOD and ORIGIN are the other half, and
@@ -446,11 +567,34 @@ PanelWindow {
     //     absX = u + _barSurfaceX      strip-local s = absX - edgeBarSideMargin
     // so an x1 of `phase * period - (_barSurfaceX - edgeBarSideMargin)`
     // makes the colour at any absolute x identical on both surfaces.
+    //
+    // BOTH TERMS ARE ORIENTATION-DEPENDENT (quick task 260829-2ov), and the
+    // horizontal readings are simpler rather than harder:
+    //
+    //   surface x — a vertical bar hangs off the right edge, so its own x is
+    //     derived by subtraction. A horizontal one is left-anchored, so its x
+    //     IS its left margin: 0 while welded (see the margins block above),
+    //     `barSideMargin` otherwise.
+    //   strip period — the top strip's width, which is what the strip itself
+    //     uses as its period (`EdgeBar.qml`'s `_gradientPeriod: _ww`). A
+    //     vertical bar reserves 50 off that strip's right end; a horizontal
+    //     one reserves on the TOP edge instead, so it takes nothing off the
+    //     strip's width and the period is just the screen less both side
+    //     margins.
+    //
+    // Getting the period wrong is not subtle and has shipped here before: a
+    // stub with its own 54px period compressed the whole spectrum into the
+    // joint and read as a rainbow band against a strip spreading the same
+    // three colours over 2490px.
     readonly property real _barSurfaceX: barWindow.screen
-        ? barWindow.screen.width - Design.barEdgeMargin - barWindow.width
+        ? (barWindow.vertical
+            ? barWindow.screen.width - Design.barEdgeMargin - barWindow.width
+            : (barWindow._continuousWeldH ? 0 : Design.barSideMargin))
         : 0
     readonly property real _stripPeriod: barWindow.screen
-        ? Math.max(1, barWindow.screen.width - 2 * Design.edgeBarSideMargin - (Design.barColumnWidth + Design.barEdgeMargin))
+        ? Math.max(1, barWindow.vertical
+            ? barWindow.screen.width - 2 * Design.edgeBarSideMargin - (Design.barColumnWidth + Design.barEdgeMargin)
+            : barWindow.screen.width - 2 * Design.edgeBarSideMargin)
         : 1
     readonly property real _stripGradX1: GradientPhase.phase * barWindow._stripPeriod - (barWindow._barSurfaceX - Design.edgeBarSideMargin)
 
@@ -1012,26 +1156,116 @@ PanelWindow {
         }
     }
 
+    // 1b. The horizontal weld's slab (quick task 260829-2ov) — the same
+    //     object as `weldSlab` above with along and depth exchanged, and
+    //     with two things it does NOT have.
+    //
+    //     NO BULGE. `bulge: false` is an explicit branch in the path
+    //     builder and not "pass b = 0" — that file's own note: a zero-depth
+    //     bulge still emits four zero-radius arcs and a backwards face
+    //     segment, and self-intersects silently. The popout shelf stays a
+    //     vertical-only affordance (`popoutBulgeDepth` is gated on
+    //     `_continuousWeld`), so there is nothing to grow here.
+    //
+    //     NO STUBS. The weld stubs exist to close the joint where a
+    //     PERPENDICULAR rail meets the bar. The top strip is PARALLEL to a
+    //     horizontal bar and sits directly on this slab's top edge, so the
+    //     two already share a boundary — there is no joint to bridge.
+    //
+    //     The gradient is the STRIP's, through the same `_stripGradX1` /
+    //     `_stripPeriod` mapping the stubs use (both now orientation-aware).
+    //     That is what makes the rim colour-continuous with the rail
+    //     immediately above it at every x, rather than merely similar.
+    Shape {
+        id: weldSlabH
+        visible: barWindow._continuousWeldH
+        x: 0
+        y: 0
+        width: barWindow.width
+        height: barWindow._weldSlabDepth
+        preferredRendererType: Shape.CurveRenderer
+
+        ShapePath {
+            strokeWidth: -1
+            strokeColor: "transparent"
+            fillGradient: LinearGradient {
+                x1: barWindow._stripGradX1
+                y1: 0
+                x2: barWindow._stripGradX1 + barWindow._stripPeriod
+                y2: 0
+                spread: ShapeGradient.RepeatSpread
+                GradientStop {
+                    position: 0.0
+                    color: Colours.primary
+                }
+                GradientStop {
+                    position: 0.33
+                    color: Colours.secondary
+                }
+                GradientStop {
+                    position: 0.66
+                    color: Colours.tertiary
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Colours.primary
+                }
+            }
+            PathSvg {
+                // `re == t / 2` is the builder's stated pill-cap
+                // precondition and it holds exactly: 25 == 50 / 2. `flip`
+                // is false because this slab's OUTER edge is its top — the
+                // side facing the rail — which is the unmirrored case.
+                path: EdgeBarPath.buildOutline({
+                    t: barWindow._weldSlabDepth,
+                    b: 0,
+                    re: barWindow._weldSlabDepth / 2,
+                    f: 0,
+                    rc: 0,
+                    along: Math.max(barWindow._weldSlabDepth, barWindow.width),
+                    alongStart: 0,
+                    xl: 0,
+                    xr: 0,
+                    bulge: false,
+                    surfaceDepth: barWindow._weldSlabDepth,
+                    flip: false,
+                    axis: "horizontal"
+                })
+            }
+        }
+    }
+
     // 2. The inset core — `rect{x:BAR.x+4, y:22, w:36, h:H-44, rx:18,
     //    fill:surface}` in the study. `Colours.surface` assigned straight
     //    to `color:` — never `Qt.rgba(Colours.surface.r, ...)`, since the
     //    roles are `property string`, not colour-typed, and that
     //    silently resolves to black.
+    //
+    //    ONE core for both welds (quick task 260829-2ov), written in the
+    //    along/depth vocabulary rather than duplicated per orientation —
+    //    the depth axis always takes `edgeBarWeldRim` and the run axis
+    //    always takes `_weldCoreRunInset`, which is the ONLY term that
+    //    differs between them (see that property for why).
     Rectangle {
-        visible: barWindow._continuousWeld
-        x: weldSlab.x + Design.edgeBarWeldRim
-        // The cap must be AT LEAST as deep as the rail it swallows, which
-        // is why this is not the plain rim. The weld run is
+        visible: barWindow._welded
+        // The vertical cap must be AT LEAST as deep as the rail it swallows,
+        // which is why its run inset is not the plain rim. The weld run is
         // `edgeBarThickness` deep and is drawn UNDER the slab so the slab
         // hides where the horizontal run becomes the vertical body. At a
         // uniform 4px inset the core's own rounded cap rises into those
         // same rows and punches a hole straight through the run — measured
         // as an 8px dark bite at y=4 dead on the bar's centre line, which
-        // is exactly where the joint is supposed to be solid.
-        y: barWindow._weldCapDepth
-        width: weldSlab.width - 2 * Design.edgeBarWeldRim
-        height: Math.max(0, barWindow.height - 2 * barWindow._weldCapDepth)
-        radius: (weldSlab.width - 2 * Design.edgeBarWeldRim) / 2
+        // is exactly where the joint is supposed to be solid. The
+        // horizontal weld swallows no run and so takes the plain rim.
+        x: barWindow.vertical ? (weldSlab.x + Design.edgeBarWeldRim) : barWindow._weldCoreRunInset
+        y: barWindow.vertical ? barWindow._weldCoreRunInset : Design.edgeBarWeldRim
+        width: barWindow.vertical
+            ? barWindow._weldCoreDepth
+            : Math.max(0, barWindow.width - 2 * barWindow._weldCoreRunInset)
+        height: barWindow.vertical
+            ? Math.max(0, barWindow.height - 2 * barWindow._weldCoreRunInset)
+            : barWindow._weldCoreDepth
+        radius: barWindow._weldCoreDepth / 2
         color: Colours.surface
     }
 
@@ -1044,9 +1278,22 @@ PanelWindow {
         // Confined to the slab's core when welded: the decoration and the
         // content must not share pixels. Round 1 let them, and the first
         // and last widgets rendered their glyphs on the gradient.
-        anchors.rightMargin: barWindow._continuousWeld ? Design.edgeBarWeldRim : 0
-        anchors.topMargin: barWindow._continuousWeld ? barWindow._weldCapDepth : 0
-        anchors.bottomMargin: barWindow._continuousWeld ? barWindow._weldCapDepth : 0
+        //
+        // Each margin is now DEPTH-axis or RUN-axis rather than
+        // vertical-specific (quick task 260829-2ov). The depth axis takes
+        // the rim; the run axis takes `_weldContentRunInset`, the cap
+        // tangent — the operator's "app drawer and power menu glyphs are
+        // too close to the edge", derived at that property rather than
+        // eyeballed here.
+        anchors.rightMargin: barWindow._welded
+            ? (barWindow.vertical ? Design.edgeBarWeldRim : barWindow._weldContentRunInset)
+            : 0
+        anchors.topMargin: barWindow._welded
+            ? (barWindow.vertical ? barWindow._weldContentRunInset : Design.edgeBarWeldRim)
+            : 0
+        anchors.bottomMargin: barWindow._welded
+            ? (barWindow.vertical ? barWindow._weldContentRunInset : Design.edgeBarWeldRim)
+            : 0
         // NEVER `: undefined` here. `vertical` is FALSE at construction
         // (BarEntryModel.isVertical settles later), so an undefined branch
         // is what QML actually evaluates first — and assigning undefined to
@@ -1057,7 +1304,19 @@ PanelWindow {
         // and clip to a sliver. Measured: barContent w=0, x=76, content
         // visible only across 2532-2553 of a 2510-2554 column. Right-anchor
         // plus a real width in BOTH branches has no undefined to trip over.
-        width: barWindow.vertical ? Design.barColumnWidth : barWindow.width
+        //
+        // The horizontal welded branch subtracts the run inset TWICE and
+        // keeps the right anchor, which lands the box on
+        // [inset, width - inset] — a left anchor would have been the
+        // obvious move and is the wrong one, because `left` + `right` +
+        // `width` makes Qt discard the width, and clearing an anchor line
+        // from inside a binding is exactly the idiom the note above says
+        // does not reliably work. Every branch is still a real number.
+        width: barWindow.vertical
+            ? Design.barColumnWidth
+            : (barWindow._continuousWeldH
+                ? Math.max(0, barWindow.width - 2 * barWindow._weldContentRunInset)
+                : barWindow.width)
 
         // ── Rendering the three-state model (Phase 18 Plan 15, QBAR-07)
         //    — boolean visibility plus a token-driven slide-and-fade.
