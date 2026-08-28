@@ -1,0 +1,1539 @@
+<title>Package Panel Studies</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+/* ─────────────────────────────────────────────────────────────────────
+   Package Panel Studies — design study for a pacman/AUR browser panel
+   in the Quickshell shell.
+
+   Palette note: the PAGE chrome is a cool graphite neutral with Arch's
+   own blue as the single accent. The SPECIMENS are the live dracula
+   palette read from ~/.local/state/theme/palette.json — they are
+   specimens, so they sit on a fixed dark stage in both page themes and
+   never inherit page tokens. That is deliberate: the shell is dark, and
+   a dracula surface recoloured for a light page would be a lie.
+   ───────────────────────────────────────────────────────────────────── */
+
+:root {
+  --ground:   #f4f5f8;
+  --surface:  #ffffff;
+  --sunken:   #eceef3;
+  --ink:      #14161d;
+  --ink-2:    #4a5162;
+  --ink-3:    #79808f;
+  --rule:     #dde1e9;
+  --rule-2:   #c9cfdb;
+  --accent:   #0f6ea6;
+  --accent-w: #e3f0f8;
+  --warn:     #92650f;
+  --crit:     #ab3b39;
+  --ok:       #2b7350;
+
+  /* Specimen stage — identical in every theme, see note above. */
+  --stage:      #0b0d12;
+  --stage-rule: #1e222c;
+  --stage-ink:  #8891a3;
+  --stage-ink2: #5b6376;
+
+  /* Live shell palette — ~/.local/state/theme/palette.json, dracula. */
+  --qs-primary:            #ff79c6;
+  --qs-onPrimary:          #282a36;
+  --qs-primaryContainer:   #44475a;
+  --qs-onPrimaryContainer: #f8f8f2;
+  --qs-secondary:          #bd93f9;
+  --qs-tertiary:           #8be9fd;
+  --qs-onTertiary:         #282a36;
+  --qs-surface:            #282a36;
+  --qs-onSurface:          #f8f8f2;
+  --qs-surfaceVariant:     #44475a;
+  --qs-onSurfaceVariant:   #bfbfbf;
+  --qs-outline:            #6272a4;
+  --qs-error:              #ff5555;
+
+  --sans: "IBM Plex Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", "Fira Code", Menlo, monospace;
+
+  --measure: 68ch;
+  --page: 1180px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:   #0e1015;
+    --surface:  #161922;
+    --sunken:   #1b1f29;
+    --ink:      #e8eaf1;
+    --ink-2:    #a3aabc;
+    --ink-3:    #6e7688;
+    --rule:     #242833;
+    --rule-2:   #333947;
+    --accent:   #58b8ef;
+    --accent-w: #16232e;
+    --warn:     #d7a444;
+    --crit:     #e5716e;
+    --ok:       #5cbd8a;
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:   #0e1015;
+  --surface:  #161922;
+  --sunken:   #1b1f29;
+  --ink:      #e8eaf1;
+  --ink-2:    #a3aabc;
+  --ink-3:    #6e7688;
+  --rule:     #242833;
+  --rule-2:   #333947;
+  --accent:   #58b8ef;
+  --accent-w: #16232e;
+  --warn:     #d7a444;
+  --crit:     #e5716e;
+  --ok:       #5cbd8a;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 28px; }
+.spine { max-width: var(--measure); }
+
+h1, h2, h3, h4 { text-wrap: balance; margin: 0; line-height: 1.2; font-weight: 600; }
+p { margin: 0; }
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* ── Masthead ─────────────────────────────────────────────────────── */
+
+.masthead {
+  border-bottom: 1px solid var(--rule);
+  background: var(--surface);
+  padding: 56px 0 0;
+}
+.masthead h1 {
+  font-size: clamp(34px, 5.2vw, 52px);
+  letter-spacing: -0.022em;
+  margin: 14px 0 16px;
+}
+.masthead .lede { color: var(--ink-2); font-size: 18px; max-width: 62ch; }
+.masthead .meta {
+  display: flex; flex-wrap: wrap; gap: 8px 22px;
+  font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+  margin-top: 22px; padding-bottom: 30px;
+}
+
+/* Measured-facts strip */
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+  border-top: 1px solid var(--rule);
+  background: var(--sunken);
+}
+.fact {
+  padding: 16px 18px;
+  border-right: 1px solid var(--rule);
+}
+.fact:last-child { border-right: 0; }
+.fact b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+.fact span { font-size: 12px; color: var(--ink-3); }
+.fact.hot b { color: var(--warn); }
+
+/* ── Sections ─────────────────────────────────────────────────────── */
+
+section { padding: 68px 0; border-bottom: 1px solid var(--rule); }
+section > .wrap > .eyebrow { margin-bottom: 12px; }
+section h2 { font-size: 30px; letter-spacing: -0.018em; margin-bottom: 18px; }
+section h3 { font-size: 20px; letter-spacing: -0.01em; }
+.stack { display: flex; flex-direction: column; gap: 18px; }
+.stack p { color: var(--ink-2); }
+
+/* Callout for the finding that reframes the task */
+.finding {
+  border: 1px solid var(--rule-2);
+  border-left: 4px solid var(--warn);
+  background: var(--surface);
+  border-radius: 4px;
+  padding: 26px 30px;
+  display: flex; flex-direction: column; gap: 14px;
+}
+.finding h3 { color: var(--ink); }
+.finding p { color: var(--ink-2); max-width: 74ch; }
+.finding code, .spine code, td code, .stack code {
+  font-family: var(--mono); font-size: 0.87em;
+  background: var(--sunken); color: var(--ink);
+  padding: 1px 5px; border-radius: 3px;
+  border: 1px solid var(--rule);
+}
+
+/* ── Specimen slabs ───────────────────────────────────────────────── */
+
+.study { padding: 0; border-bottom: 1px solid var(--rule); }
+
+.study-head {
+  display: grid;
+  grid-template-columns: 62px 1fr;
+  gap: 0 22px;
+  padding: 54px 0 30px;
+  align-items: start;
+}
+.study-num {
+  font-family: var(--mono);
+  font-size: 13px; font-weight: 600;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 4px 0;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.study-head h2 { font-size: 32px; margin-bottom: 10px; }
+.study-head .thesis { color: var(--ink-2); font-size: 17px; max-width: 66ch; }
+.study-head .where {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+  margin-top: 12px;
+}
+.study-head .where b { color: var(--accent); font-weight: 500; }
+
+/* The dark stage the mockups sit on */
+.stage {
+  background: var(--stage);
+  border-top: 1px solid var(--stage-rule);
+  border-bottom: 1px solid var(--stage-rule);
+  padding: 46px 0 20px;
+  overflow-x: auto;
+}
+.stage-inner { max-width: var(--page); margin: 0 auto; padding: 0 28px; min-width: min-content; }
+.stage-cap {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--stage-ink2);
+  padding: 18px 0 22px;
+  display: flex; gap: 20px; flex-wrap: wrap;
+}
+.stage-cap b { color: var(--stage-ink); font-weight: 500; }
+
+/* ── Shell specimen primitives — dracula, real tokens ─────────────── */
+
+.shell {
+  font-family: "FiraCode Nerd Font", var(--mono);
+  color: var(--qs-onSurface);
+  background: var(--qs-surface);
+  line-height: 1.35;
+}
+.shell * { box-sizing: border-box; }
+
+/* Settings-window frame: minimumSize 800×500 (Settings.qml:146-147) */
+.win {
+  width: 800px; height: 500px;
+  border-radius: 18px;
+  overflow: hidden;
+  display: flex;
+  box-shadow: 0 24px 60px rgba(0,0,0,.55);
+  border: 1px solid #363a4c;
+}
+.rail {
+  width: 266px;              /* min(600, width/3) = 266 at 800 wide */
+  background: #22242e;
+  border-right: 1px solid #363a4c;
+  padding: 16px 12px;
+  overflow: hidden;
+  flex: none;
+}
+.rail-title { font-size: 24px; font-weight: 600; padding: 6px 10px 14px; letter-spacing: -.01em; }
+.rail-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 10px; border-radius: 12px;
+  font-size: 15px; color: var(--qs-onSurfaceVariant);
+}
+.rail-row.on { background: var(--qs-primaryContainer); color: var(--qs-onPrimaryContainer); }
+.rail-row.new { color: var(--qs-primary); }
+.rail-ico { width: 20px; text-align: center; opacity: .85; font-size: 13px; }
+.rail-count {
+  margin-left: auto; font-size: 11px; color: var(--qs-outline);
+  font-variant-numeric: tabular-nums;
+}
+.pane { flex: 1; padding: 20px 22px; overflow: hidden; display: flex; flex-direction: column; gap: 16px; }
+.pane-title { font-size: 24px; font-weight: 600; letter-spacing: -.01em; }
+
+/* Filter chips */
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  font-size: 12px; padding: 5px 11px; border-radius: 9999px;
+  border: 1px solid var(--qs-outline); color: var(--qs-onSurfaceVariant);
+  white-space: nowrap;
+}
+.chip.on { background: var(--qs-primary); color: var(--qs-onPrimary); border-color: var(--qs-primary); font-weight: 600; }
+.chip.alert { border-color: var(--qs-error); color: var(--qs-error); }
+.chip b { font-variant-numeric: tabular-nums; }
+
+/* Search field */
+.search {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--qs-surfaceVariant);
+  border-radius: 18px; padding: 9px 14px; font-size: 14px;
+  color: var(--qs-onSurfaceVariant);
+}
+.search .caret { color: var(--qs-primary); }
+
+/* Package rows — treatment R1, terminal ledger */
+.led { display: flex; flex-direction: column; }
+.led-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 14px; align-items: baseline;
+  padding: 6px 10px; font-size: 13px;
+  border-radius: 6px;
+}
+.led-row.sel { background: var(--qs-primaryContainer); }
+.led-name { color: var(--qs-onSurface); }
+.led-ver { color: var(--qs-outline); font-variant-numeric: tabular-nums; }
+.led-size { color: var(--qs-onSurfaceVariant); font-variant-numeric: tabular-nums; text-align: right; min-width: 78px; }
+.tag-aur { color: var(--qs-tertiary); }
+.tag-orph { color: var(--qs-error); }
+.arrow { color: var(--qs-primary); }
+
+/* Detail pane */
+.detail {
+  background: var(--qs-surfaceVariant);
+  border-radius: 18px; padding: 16px 18px;
+  font-size: 12px; display: flex; flex-direction: column; gap: 5px;
+}
+.detail .dt-name { font-size: 18px; font-weight: 600; color: var(--qs-onSurface); margin-bottom: 6px; }
+.detail dl { display: grid; grid-template-columns: 104px 1fr; gap: 4px 12px; margin: 0; }
+.detail dt { color: var(--qs-outline); }
+.detail dd { margin: 0; color: var(--qs-onPrimaryContainer); }
+.detail .acts { display: flex; gap: 8px; margin-top: 12px; }
+.btn {
+  font-size: 12px; padding: 6px 14px; border-radius: 9999px;
+  background: var(--qs-primary); color: var(--qs-onPrimary); font-weight: 600;
+}
+.btn.ghost { background: transparent; border: 1px solid var(--qs-outline); color: var(--qs-onSurfaceVariant); font-weight: 400; }
+.btn.danger { background: transparent; border: 1px solid var(--qs-error); color: var(--qs-error); font-weight: 400; }
+
+/* Dashboard drawer frame: dashboardMinWidth 760 (Design.qml:891) */
+.drawer {
+  width: 760px;
+  border-radius: 28px;
+  background: var(--qs-surface);
+  border: 1px solid #363a4c;
+  box-shadow: 0 24px 60px rgba(0,0,0,.55);
+  overflow: hidden;
+}
+.drawer-tabs {
+  display: flex; gap: 4px; padding: 12px 16px 0;
+  border-bottom: 1px solid #363a4c;
+}
+.dtab {
+  font-size: 12px; padding: 8px 14px; border-radius: 12px 12px 0 0;
+  color: var(--qs-onSurfaceVariant);
+}
+.dtab.on { background: var(--qs-primaryContainer); color: var(--qs-onPrimaryContainer); font-weight: 600; }
+.bento {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 16px; padding: 16px;
+}
+.plate {
+  background: var(--qs-surfaceVariant);
+  border-radius: 18px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px; min-height: 128px;
+}
+.plate.span2 { grid-column: span 2; }
+.plate-h { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--qs-outline); }
+.plate-big { font-size: 30px; font-weight: 600; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.plate-sub { font-size: 11px; color: var(--qs-onSurfaceVariant); }
+.plate.warn .plate-big { color: var(--qs-primary); }
+.plate.crit .plate-big { color: var(--qs-error); }
+
+/* Footprint bars */
+.bars { display: flex; flex-direction: column; gap: 5px; }
+.bar-row { display: grid; grid-template-columns: 128px 1fr 62px; gap: 9px; align-items: center; font-size: 11px; }
+.bar-row .nm { color: var(--qs-onSurfaceVariant); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar-track { height: 7px; background: rgba(255,255,255,.07); border-radius: 4px; overflow: hidden; }
+.bar-fill { height: 100%; background: var(--qs-primary); border-radius: 4px; }
+.bar-fill.alt { background: var(--qs-secondary); }
+.bar-row .vl { text-align: right; color: var(--qs-outline); font-variant-numeric: tabular-nums; }
+
+/* Composition split */
+.split { display: flex; height: 9px; border-radius: 5px; overflow: hidden; }
+.split i { display: block; height: 100%; }
+.legend { display: flex; gap: 14px; font-size: 11px; color: var(--qs-onSurfaceVariant); flex-wrap: wrap; }
+.legend i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 5px; }
+
+/* Launcher panel */
+.launcher {
+  width: 620px; border-radius: 28px;
+  background: var(--qs-surface); border: 1px solid #363a4c;
+  box-shadow: 0 24px 60px rgba(0,0,0,.55);
+  overflow: hidden; padding: 14px;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.lq { display: flex; align-items: baseline; gap: 10px; font-size: 19px; padding: 6px 8px; }
+.lq .pfx { color: var(--qs-tertiary); font-weight: 600; }
+.lq .cur { width: 2px; height: 19px; background: var(--qs-primary); display: inline-block; transform: translateY(3px); }
+.lrow {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+  align-items: baseline; padding: 8px 10px; border-radius: 12px; font-size: 13px;
+}
+.lrow.sel { background: var(--qs-primaryContainer); }
+.lhint { font-size: 11px; color: var(--qs-outline); padding: 4px 8px 0; display: flex; gap: 16px; }
+
+/* Bar + popout */
+.bar {
+  height: 42px; width: 760px;
+  background: var(--qs-surface);
+  border-radius: 21px; border: 1px solid #363a4c;
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 10px;
+}
+.cap {
+  height: 34px; border-radius: 17px;
+  background: var(--qs-surfaceVariant);
+  display: flex; align-items: center; gap: 6px;
+  padding: 0 12px; font-size: 13px; color: var(--qs-onSurfaceVariant);
+}
+.cap.hi { background: var(--qs-primary); color: var(--qs-onPrimary); font-weight: 600; }
+.cap .badge {
+  background: var(--qs-error); color: #fff; font-size: 10px; font-weight: 700;
+  border-radius: 9999px; padding: 1px 6px; font-variant-numeric: tabular-nums;
+}
+.spacer { flex: 1; }
+.popout {
+  width: 340px; border-radius: 20px;
+  background: var(--qs-surface); border: 1px solid #363a4c;
+  box-shadow: 0 20px 48px rgba(0,0,0,.55);
+  overflow: hidden;
+}
+.pop-h {
+  height: 48px; display: flex; align-items: center; gap: 10px;
+  padding: 0 16px; border-bottom: 1px solid #363a4c; font-size: 14px; font-weight: 600;
+}
+.pop-b { padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.pop-f { padding: 10px 12px 12px; border-top: 1px solid #363a4c; }
+
+/* Workbench: 3-column toplevel */
+.bench {
+  width: 1000px; height: 520px;
+  border-radius: 18px; overflow: hidden; display: flex;
+  background: var(--qs-surface); border: 1px solid #363a4c;
+  box-shadow: 0 24px 60px rgba(0,0,0,.55);
+}
+.bench-rail { width: 190px; background: #22242e; border-right: 1px solid #363a4c; padding: 14px 10px; flex: none; }
+.bench-mid { flex: 1; display: flex; flex-direction: column; min-width: 0; border-right: 1px solid #363a4c; }
+.bench-side { width: 290px; padding: 14px; flex: none; overflow: hidden; }
+.thead {
+  display: grid; grid-template-columns: 1fr 96px 78px 62px;
+  gap: 12px; padding: 8px 14px;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--qs-outline); border-bottom: 1px solid #363a4c;
+}
+.trow {
+  display: grid; grid-template-columns: 1fr 96px 78px 62px;
+  gap: 12px; padding: 6px 14px; font-size: 12px; align-items: baseline;
+}
+.trow.sel { background: var(--qs-primaryContainer); }
+.trow .ck { color: var(--qs-primary); }
+.queue {
+  background: var(--qs-surfaceVariant); border-radius: 14px; padding: 12px;
+  display: flex; flex-direction: column; gap: 7px; font-size: 12px;
+}
+
+/* ── Spec strips (below each stage) ───────────────────────────────── */
+
+.spec {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0;
+  border-bottom: 1px solid var(--rule);
+}
+.spec > div {
+  padding: 20px 24px 22px;
+  border-right: 1px solid var(--rule);
+}
+.spec > div:last-child { border-right: 0; }
+.spec h4 {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ink-3); margin-bottom: 8px; font-weight: 500;
+}
+.spec p, .spec li { font-size: 13.5px; color: var(--ink-2); line-height: 1.5; }
+.spec ul { margin: 0; padding-left: 16px; }
+.spec .cost { font-family: var(--mono); font-size: 18px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.spec .cant { color: var(--crit); }
+
+/* ── Row-treatment comparison ─────────────────────────────────────── */
+
+.rowgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 22px; }
+.rowcard { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--stage-rule); border-radius: 8px; overflow: hidden; }
+.rowcard .rc-h { background: var(--stage); padding: 14px 16px 4px; }
+.rowcard .rc-h b { font-size: 14px; color: #e8eaf1; font-weight: 600; }
+.rowcard .rc-h span { display: block; font-family: var(--mono); font-size: 11px; color: var(--stage-ink2); margin-top: 3px; }
+.rowcard .rc-s { background: var(--stage); padding: 12px 16px 20px; }
+.rowcard .rc-n { padding: 14px 16px; background: var(--surface); font-size: 13px; color: var(--ink-2); border-top: 1px solid var(--rule); }
+
+/* Card cell treatment R2 */
+.cell {
+  border: 2px solid var(--qs-outline); border-radius: 10px;
+  padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;
+}
+.cell.hov { border-color: var(--qs-primary); }
+.cell-top { display: flex; align-items: center; gap: 6px; }
+.cell-nm { font-size: 14px; color: var(--qs-onSurface); }
+.pill {
+  font-size: 10px; border-radius: 9999px; padding: 1px 8px;
+  background: var(--qs-tertiary); color: var(--qs-onTertiary); font-weight: 600;
+}
+.cell-sub { font-size: 11px; color: var(--qs-onSurfaceVariant); }
+
+/* Data row treatment R3 */
+.drow { display: grid; grid-template-columns: 1fr 90px; gap: 12px; align-items: center; padding: 7px 4px; }
+.drow .dr-nm { font-size: 13px; color: var(--qs-onSurface); }
+.drow .dr-mt { font-size: 11px; color: var(--qs-outline); }
+.drow .dr-bar { height: 5px; background: rgba(255,255,255,.08); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+.drow .dr-bf { height: 100%; background: var(--qs-secondary); border-radius: 3px; }
+.drow .dr-sz { font-size: 12px; color: var(--qs-onSurfaceVariant); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ── Tables ───────────────────────────────────────────────────────── */
+
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 620px; }
+th, td { text-align: left; padding: 11px 16px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); font-weight: 500; background: var(--sunken);
+}
+td { color: var(--ink-2); }
+td:first-child { color: var(--ink); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.yes { color: var(--ok); font-weight: 600; }
+.no  { color: var(--crit); }
+.part { color: var(--warn); }
+
+/* ── Recommendation ───────────────────────────────────────────────── */
+
+.rec {
+  background: var(--surface);
+  border: 1px solid var(--rule-2);
+  border-radius: 6px;
+  padding: 32px 34px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.rec .verdict { font-size: 23px; font-weight: 600; letter-spacing: -.014em; line-height: 1.35; }
+.rec .verdict em { font-style: normal; color: var(--accent); }
+.rec p { color: var(--ink-2); max-width: 74ch; }
+.rec ol { margin: 0; padding-left: 22px; color: var(--ink-2); display: flex; flex-direction: column; gap: 9px; }
+.rec ol b { color: var(--ink); }
+
+/* ── Picker ───────────────────────────────────────────────────────── */
+
+.picker { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start; }
+@media (max-width: 900px) { .picker { grid-template-columns: 1fr; } }
+
+fieldset { border: 1px solid var(--rule); border-radius: 6px; padding: 18px 20px 20px; margin: 0 0 18px; background: var(--surface); }
+legend {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-3); padding: 0 8px;
+}
+.opt { display: flex; gap: 11px; align-items: flex-start; padding: 7px 0; cursor: pointer; }
+.opt input { margin: 4px 0 0; accent-color: var(--accent); width: 16px; height: 16px; flex: none; }
+.opt span { font-size: 14.5px; color: var(--ink-2); }
+.opt span b { color: var(--ink); font-weight: 600; }
+.opt:hover span b { color: var(--accent); }
+.opt input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+#out {
+  width: 100%; min-height: 260px; resize: vertical;
+  font-family: var(--mono); font-size: 12.5px; line-height: 1.65;
+  background: var(--sunken); color: var(--ink);
+  border: 1px solid var(--rule-2); border-radius: 6px; padding: 16px;
+}
+.copybar { display: flex; gap: 10px; align-items: center; margin-top: 12px; }
+button.copy {
+  font-family: var(--sans); font-size: 14px; font-weight: 600;
+  background: var(--accent); color: #fff; border: 0; border-radius: 6px;
+  padding: 10px 20px; cursor: pointer;
+}
+button.copy:hover { filter: brightness(1.08); }
+button.copy:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.copybar small { color: var(--ink-3); font-size: 12.5px; }
+
+footer { padding: 44px 0 70px; color: var(--ink-3); font-family: var(--mono); font-size: 12px; }
+footer p { margin-bottom: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<header class="masthead">
+  <div class="wrap">
+    <p class="eyebrow">Quick task 260828-75k · design study</p>
+    <h1>Package Panel Studies</h1>
+    <p class="lede">
+      Five ways to put pacman and the AUR inside the shell — a browser for the
+      1,420 packages already on this machine, not another update checker.
+      Every mockup below is drawn at real token values in the live dracula
+      palette, with real package names read off this host.
+    </p>
+    <p class="meta">
+      <span>host: aorus</span>
+      <span>read 2026-08-28</span>
+      <span>theme: dracula</span>
+      <span>motion: zen</span>
+      <span>paru 2.1.0 · libalpm 16.0.1</span>
+    </p>
+  </div>
+  <div class="facts">
+    <div class="fact"><b>1,420</b><span>installed</span></div>
+    <div class="fact"><b>186</b><span>explicit</span></div>
+    <div class="fact"><b>23</b><span>from the AUR</span></div>
+    <div class="fact hot"><b>6</b><span>orphans</span></div>
+    <div class="fact hot"><b>4</b><span>updates pending</span></div>
+    <div class="fact"><b>17.8<span style="font-size:13px"> GiB</span></b><span>on disk</span></div>
+    <div class="fact"><b>15,412</b><span>in the repos</span></div>
+  </div>
+</header>
+
+<!-- ── The finding that reframes the ask ──────────────────────────── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Read this first</p>
+    <h2>Updates already ship. This is a browser.</h2>
+    <div class="stack" style="max-width:78ch">
+      <div class="finding">
+        <h3>Settings → Updates has done this since quick task 260826-1n9</h3>
+        <p>
+          <code>modules/settings/pages/UpdatesPage.qml</code> is 347 lines that already run
+          <code>checkupdates</code> and <code>paru -Qua</code>, parse both into package records,
+          show a status line and a last-checked time, offer <b>Update all</b> through the terminal,
+          and support a two-click armed single-package update carrying an explicit
+          partial-upgrade warning. <code>modules/launcher/UpdatesMode.qml</code> shows the same
+          list under Super → System → Updates.
+        </p>
+        <p>
+          So updates are not the gap. The gap is everything else: <b>searching and browsing what is
+          installed</b>, seeing why a package is on the disk, what depends on it, what it costs
+          in space, and removing it. None of that exists anywhere in the shell today. Each
+          direction below is judged on that, and on what it does with the Updates page that
+          already exists — absorb it, link to it, or leave it alone.
+        </p>
+      </div>
+      <p>
+        Second thing worth naming: you installed <code>octopi-git</code>, <code>qt-sudo</code> and
+        <code>qtermwidget</code> at 03:50 this morning. Octopi is a Qt package manager, so this
+        panel is competing with something you already reached for a few hours ago. That is
+        useful — it means the direction you pick should be measured against Octopi, and if the
+        panel wins, Octopi and its two dependencies come back off the disk.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ── What the data costs ───────────────────────────────────────── -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Measured on this host, today</p>
+    <h2>Every query is cheap enough to run on open</h2>
+    <p class="spine" style="color:var(--ink-2); margin-bottom:22px">
+      This is the fact that unlocks the whole design: the complete local database — all 1,420
+      packages with every field — dumps in a fifth of a second. There is no need for incremental
+      loading, a cache file, or a background daemon. A backend singleton runs one command at
+      first open and holds 1.3 MB in memory.
+    </p>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Command</th><th>Time</th><th>Returns</th><th>What it gives the panel</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><code>pacman -Qi</code></td><td class="num">0.20 s</td><td class="num">1.33 MB · 1,420</td><td>Everything: version, size, deps, reverse-deps, install date, install reason, packager</td></tr>
+          <tr><td><code>pacman -Q</code></td><td class="num">0.01 s</td><td class="num">1,420</td><td>Name + version only — enough for a launcher match list</td></tr>
+          <tr><td><code>pacman -Qe</code></td><td class="num">0.03 s</td><td class="num">186</td><td>The packages you actually asked for</td></tr>
+          <tr><td><code>pacman -Qm</code></td><td class="num">0.16 s</td><td class="num">23</td><td>Foreign / AUR membership</td></tr>
+          <tr><td><code>pacman -Qdtq</code></td><td class="num">0.11 s</td><td class="num">6</td><td>Orphans — nothing depends on these</td></tr>
+          <tr><td><code>pacman -Slq</code></td><td class="num">0.17 s</td><td class="num">15,412</td><td>The repo catalogue, for install-side search</td></tr>
+          <tr><td><code>checkupdates</code></td><td class="num">0.81 s</td><td class="num">3</td><td>Repo updates — syncs a temp db, never touches the real one</td></tr>
+          <tr><td><code>paru -Qua</code></td><td class="num">0.90 s</td><td class="num">1</td><td>AUR updates</td></tr>
+          <tr><td><code>/var/log/pacman.log</code></td><td class="num">—</td><td class="num">678 KB</td><td>Full history: 1,554 installs, 2,743 upgrades, world-readable</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="spine" style="color:var(--ink-2); margin-top:20px">
+      No new package is needed for any of it. <code>expac</code> is <em>not</em> installed and none
+      of these directions require it — same discipline <code>UpdatesMode.qml</code> already
+      records in its own header.
+    </p>
+  </div>
+</section>
+
+<!-- ══ D1 — LEDGER ═══════════════════════════════════════════════════ -->
+<article class="study">
+  <div class="wrap">
+    <div class="study-head">
+      <div class="study-num">D1</div>
+      <div>
+        <h2>Ledger</h2>
+        <p class="thesis">
+          A Packages page in Settings, next to Updates. Filter chips across the top narrow 1,420
+          down; the list is the whole point; the pane underneath is <code>pacman -Qi</code> for
+          whatever is selected. It goes where every other system setting already lives.
+        </p>
+        <p class="where">
+          lives in <b>Settings → Packages</b> · new nav-rail entry, page 15 · sibling of
+          <b>SecurityPage.qml</b>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="shell win">
+        <div class="rail">
+          <div class="rail-title">Settings</div>
+          <div class="rail-row"><span class="rail-ico">◧</span>Appearance</div>
+          <div class="rail-row"><span class="rail-ico">▤</span>Bar</div>
+          <div class="rail-row"><span class="rail-ico">≋</span>Network</div>
+          <div class="rail-row"><span class="rail-ico">♪</span>Audio</div>
+          <div class="rail-row"><span class="rail-ico">⟳</span>Updates<span class="rail-count">4</span></div>
+          <div class="rail-row on new"><span class="rail-ico">▦</span>Packages<span class="rail-count">1420</span></div>
+          <div class="rail-row"><span class="rail-ico">⛨</span>Security</div>
+          <div class="rail-row"><span class="rail-ico">◔</span>Session</div>
+          <div class="rail-row"><span class="rail-ico">ⓘ</span>About</div>
+        </div>
+        <div class="pane">
+          <div class="pane-title">Packages</div>
+          <div class="search"><span class="caret">⌕</span><span>nvidia</span><span style="color:var(--qs-primary)">▏</span></div>
+          <div class="chips">
+            <span class="chip on">All <b>1420</b></span>
+            <span class="chip">Explicit <b>186</b></span>
+            <span class="chip">AUR <b>23</b></span>
+            <span class="chip alert">Orphans <b>6</b></span>
+            <span class="chip alert">Updates <b>4</b></span>
+            <span class="chip">Repos <b>15412</b></span>
+          </div>
+          <div class="led">
+            <div class="led-row sel"><span class="led-name">nvidia-utils</span><span class="led-ver">590.48.02-1</span><span class="led-size">885.66 MiB</span></div>
+            <div class="led-row"><span class="led-name">lib32-nvidia-utils</span><span class="led-ver">590.48.02-1</span><span class="led-size">546.07 MiB</span></div>
+            <div class="led-row"><span class="led-name">nvidia-open-dkms</span><span class="led-ver">590.48.02-1</span><span class="led-size">112.30 MiB</span></div>
+            <div class="led-row"><span class="led-name">nvidia-settings</span><span class="led-ver">590.48.02-1</span><span class="led-size">2.41 MiB</span></div>
+            <div class="led-row"><span class="led-name">egl-wayland</span><span class="led-ver">4:1.1.21-1</span><span class="led-size">0.10 MiB</span></div>
+          </div>
+          <div class="detail">
+            <div class="dt-name">nvidia-utils</div>
+            <dl>
+              <dt>Version</dt><dd>590.48.02-1</dd>
+              <dt>Repository</dt><dd>extra</dd>
+              <dt>Installed size</dt><dd>885.66 MiB &nbsp;<span style="color:var(--qs-primary)">4.9% of your 17.8 GiB</span></dd>
+              <dt>Install reason</dt><dd>Installed as a dependency</dd>
+              <dt>Required by</dt><dd>lib32-nvidia-utils, nvidia-open-dkms, egl-wayland, +6</dd>
+              <dt>Install date</dt><dd>Sun 15 Mar 2026 00:04</dd>
+            </dl>
+            <div class="acts">
+              <span class="btn ghost">Mark explicit</span>
+              <span class="btn ghost">Show dependency tree</span>
+              <span class="btn danger">Remove…</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="stage-cap">
+        <b>800 × 500</b> — Settings.qml minimumSize
+        <span>rail <b>266</b> = min(600, w/3)</span>
+        <span>radius <b>18</b> roundingSm</span>
+        <span>rows <b>14 px</b> settingsFontSub</span>
+        <span>title <b>24 px</b> settingsFontTitle</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="spec">
+      <div>
+        <h4>What it does best</h4>
+        <p>Answers “what is this and why is it here?” for any of 1,420 packages, in the place
+        you already go for system settings. The detail pane is the whole of <code>-Qi</code>,
+        which is more than Octopi shows without a second click.</p>
+      </div>
+      <div>
+        <h4>What it can't do</h4>
+        <p class="cant">No bulk selection, no transaction queue. Removing five orphans is five
+        separate confirmations. The Settings window is also modal to your attention — it isn't
+        a thing you leave open while working.</p>
+      </div>
+      <div>
+        <h4>Does it absorb Updates?</h4>
+        <p>Yes — an “Updates 4” chip is one more filter over the same list, and the existing
+        page's actions move onto the detail pane. That would retire
+        <code>UpdatesPage.qml</code>'s 347 lines rather than run two package surfaces side by
+        side.</p>
+      </div>
+      <div>
+        <h4>Rough cost</h4>
+        <p class="cost">≈ 800 lines</p>
+        <p style="margin-top:6px">A <code>PackagesBackend</code> singleton, the page, a row
+        component. Closest analog is SecurityPage + SecurityOverview at 548, plus a backend.</p>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══ D2 — SENTINEL ═════════════════════════════════════════════════ -->
+<article class="study">
+  <div class="wrap">
+    <div class="study-head">
+      <div class="study-num">D2</div>
+      <div>
+        <h2>Sentinel</h2>
+        <p class="thesis">
+          A sixth dashboard tab beside Security. Not a browser at all — four plates that answer
+          the questions you'd otherwise open a terminal for: is anything pending, where did
+          17.8 GiB go, how much of this did I actually ask for, and what is dead weight.
+        </p>
+        <p class="where">
+          lives in <b>the dashboard drawer</b> · 6th tab after Weather · sibling of
+          <b>SecurityTab.qml</b>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="shell drawer">
+        <div class="drawer-tabs">
+          <span class="dtab">Dashboard</span>
+          <span class="dtab">Media</span>
+          <span class="dtab">Performance</span>
+          <span class="dtab">Weather</span>
+          <span class="dtab">Security</span>
+          <span class="dtab on">Packages</span>
+        </div>
+        <div class="bento">
+          <div class="plate warn">
+            <div class="plate-h">Pending</div>
+            <div class="plate-big">4</div>
+            <div class="plate-sub">3 repo · 1 AUR</div>
+            <div class="plate-sub" style="color:var(--qs-outline)">harfbuzz, harfbuzz-icu,<br>pkgconf, python-steam</div>
+          </div>
+          <div class="plate crit">
+            <div class="plate-h">Orphans</div>
+            <div class="plate-big">6</div>
+            <div class="plate-sub">nothing depends on these</div>
+            <div class="plate-sub" style="color:var(--qs-outline)">docbook-xsl, glib2-docs,<br>gsfonts, gts, +2</div>
+          </div>
+          <div class="plate">
+            <div class="plate-h">Composition</div>
+            <div class="plate-big" style="font-size:26px">1,420</div>
+            <div class="split">
+              <i style="width:86.9%; background:var(--qs-secondary)"></i>
+              <i style="width:1.6%; background:var(--qs-tertiary)"></i>
+              <i style="width:11.5%; background:var(--qs-primary)"></i>
+            </div>
+            <div class="legend">
+              <span><i style="background:var(--qs-secondary)"></i>deps 1234</span>
+              <span><i style="background:var(--qs-primary)"></i>explicit 186</span>
+              <span><i style="background:var(--qs-tertiary)"></i>AUR 23</span>
+            </div>
+          </div>
+          <div class="plate span2">
+            <div class="plate-h">Footprint — 17.77 GiB across 1,420 packages</div>
+            <div class="bars">
+              <div class="bar-row"><span class="nm">ttf-iosevka-nerd</span><span class="bar-track"><i class="bar-fill" style="width:100%"></i></span><span class="vl">1.11 GiB</span></div>
+              <div class="bar-row"><span class="nm">nvidia-utils</span><span class="bar-track"><i class="bar-fill" style="width:77.6%"></i></span><span class="vl">885 MiB</span></div>
+              <div class="bar-row"><span class="nm">vscodium-bin</span><span class="bar-track"><i class="bar-fill alt" style="width:53.4%"></i></span><span class="vl">610 MiB</span></div>
+              <div class="bar-row"><span class="nm">jdk-openjdk</span><span class="bar-track"><i class="bar-fill" style="width:52.6%"></i></span><span class="vl">601 MiB</span></div>
+              <div class="bar-row"><span class="nm">1password</span><span class="bar-track"><i class="bar-fill alt" style="width:49.0%"></i></span><span class="vl">560 MiB</span></div>
+              <div class="bar-row"><span class="nm">lib32-nvidia-utils</span><span class="bar-track"><i class="bar-fill" style="width:47.8%"></i></span><span class="vl">546 MiB</span></div>
+            </div>
+            <div class="plate-sub" style="color:var(--qs-outline)">purple = from the AUR</div>
+          </div>
+          <div class="plate">
+            <div class="plate-h">Last transaction</div>
+            <div class="plate-sub" style="font-size:13px; color:var(--qs-onSurface)">28 Aug, 04:20</div>
+            <div class="plate-sub">removed 5 — kpackage, gtk-doc, graphviz, baloo, attica</div>
+            <div class="plate-sub" style="color:var(--qs-outline); margin-top:auto">from pacman.log</div>
+          </div>
+        </div>
+      </div>
+      <p class="stage-cap">
+        <b>760 wide</b> — Design.dashboardMinWidth
+        <span>radius <b>28</b> roundingMd</span>
+        <span>plates <b>18</b> roundingSm</span>
+        <span>gap <b>16</b> spacingMd</span>
+        <span>plate labels <b>11 px</b> uppercase</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="spec">
+      <div>
+        <h4>What it does best</h4>
+        <p>Turns package state into something you glance at rather than query. The footprint
+        plate in particular answers a question nothing on this machine answers today, and it
+        found a 1.1 GiB font while I was measuring for this study.</p>
+      </div>
+      <div>
+        <h4>What it can't do</h4>
+        <p class="cant">It is not a browser and shouldn't pretend to be. No search, no per-package
+        detail, no removal. On its own it does not satisfy the ask — it is a companion to D1 or
+        D4, not a replacement.</p>
+      </div>
+      <div>
+        <h4>Does it absorb Updates?</h4>
+        <p>No. The Pending plate duplicates the Updates page's headline number and should link
+        to it, not re-implement it. Two readers of <code>checkupdates</code> is fine; two
+        <em>owners</em> of the update action is not.</p>
+      </div>
+      <div>
+        <h4>Rough cost</h4>
+        <p class="cost">≈ 300 lines</p>
+        <p style="margin-top:6px">Cheapest real surface here if the backend already exists.
+        SecurityTab.qml is 196 lines over an existing backend.</p>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══ D3 — PREFIX ═══════════════════════════════════════════════════ -->
+<article class="study">
+  <div class="wrap">
+    <div class="study-head">
+      <div class="study-num">D3</div>
+      <div>
+        <h2>Prefix</h2>
+        <p class="thesis">
+          A seventh route on the launcher's prefix router. Type <code>pkg nvid</code> and the
+          fuzzy matcher already in the tree runs over 1,420 installed names — or 15,412 repo
+          names when you ask it to. No new window, no new chrome, no new place to remember.
+        </p>
+        <p class="where">
+          lives in <b>the launcher</b> · Super, then <code>pkg&nbsp;</code> · sibling of
+          <b>FilesMode.qml</b>, <b>UpdatesMode.qml</b>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="shell launcher">
+        <div class="lq"><span class="pfx">pkg</span><span>nvid</span><span class="cur"></span></div>
+        <div>
+          <div class="lrow sel"><span class="led-name">nvidia-utils</span><span class="led-ver">590.48.02-1</span><span class="led-size">885.66 MiB</span></div>
+          <div class="lrow"><span class="led-name">lib32-nvidia-utils</span><span class="led-ver">590.48.02-1</span><span class="led-size">546.07 MiB</span></div>
+          <div class="lrow"><span class="led-name">nvidia-open-dkms</span><span class="led-ver">590.48.02-1</span><span class="led-size">112.30 MiB</span></div>
+          <div class="lrow"><span class="led-name">nvidia-settings</span><span class="led-ver">590.48.02-1</span><span class="led-size">2.41 MiB</span></div>
+          <div class="lrow"><span class="led-name" style="color:var(--qs-outline)">nvidia-inst</span><span class="led-ver" style="color:var(--qs-tertiary)">not installed · extra</span><span class="led-size"></span></div>
+        </div>
+        <div class="lhint">
+          <span><b style="color:var(--qs-onSurfaceVariant)">↵</b> details</span>
+          <span><b style="color:var(--qs-onSurfaceVariant)">⇧↵</b> remove…</span>
+          <span><b style="color:var(--qs-onSurfaceVariant)">pkg!</b> search the repos</span>
+        </div>
+      </div>
+      <p class="stage-cap">
+        <b>620 wide</b> — launcher panel
+        <span>radius <b>28</b> roundingMd</span>
+        <span>query <b>19 px</b></span>
+        <span>rows <b>13 px</b></span>
+        <span>reuses the existing fuzzy matcher and 6-route router</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="spec">
+      <div>
+        <h4>What it does best</h4>
+        <p>Speed, and near-zero new surface area. “Is X installed, and what version?” goes from
+        opening a terminal to three keystrokes. It also inherits keyboard navigation and
+        dismissal for free.</p>
+      </div>
+      <div>
+        <h4>What it can't do</h4>
+        <p class="cant">A launcher row cannot hold <code>-Qi</code>. No sorting by size, no
+        orphan sweep, no comparison, no bulk anything. It answers lookups, not the browsing half
+        of the ask.</p>
+      </div>
+      <div>
+        <h4>Does it absorb Updates?</h4>
+        <p>It sits beside the existing System → Updates entry without touching it. If anything
+        it argues for folding that entry into the same route later.</p>
+      </div>
+      <div>
+        <h4>Rough cost</h4>
+        <p class="cost">≈ 180 lines</p>
+        <p style="margin-top:6px">One mode component plus a router entry.
+        <code>UpdatesMode.qml</code> is 132 lines and does strictly less.</p>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══ D4 — WORKBENCH ════════════════════════════════════════════════ -->
+<article class="study">
+  <div class="wrap">
+    <div class="study-head">
+      <div class="study-num">D4</div>
+      <div>
+        <h2>Workbench</h2>
+        <p class="thesis">
+          Its own window, the way the file picker is its own window. Three columns, a sortable
+          table, multi-select, and a transaction queue you build up and run once. This is the
+          direction that actually replaces Octopi rather than nibbling at it.
+        </p>
+        <p class="where">
+          lives in <b>its own FloatingWindow</b> · opened from the launcher or the bar ·
+          sibling of <b>FilePicker.qml</b>, <b>Settings.qml</b>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="shell bench">
+        <div class="bench-rail">
+          <div class="rail-title" style="font-size:18px; padding:4px 8px 12px">Packages</div>
+          <div class="rail-row" style="font-size:13px"><span class="rail-ico">▦</span>All<span class="rail-count">1420</span></div>
+          <div class="rail-row on" style="font-size:13px"><span class="rail-ico">★</span>Explicit<span class="rail-count">186</span></div>
+          <div class="rail-row" style="font-size:13px"><span class="rail-ico">▲</span>AUR<span class="rail-count">23</span></div>
+          <div class="rail-row" style="font-size:13px; color:var(--qs-error)"><span class="rail-ico">⊘</span>Orphans<span class="rail-count">6</span></div>
+          <div class="rail-row" style="font-size:13px; color:var(--qs-primary)"><span class="rail-ico">⟳</span>Updates<span class="rail-count">4</span></div>
+          <div class="rail-row" style="font-size:13px"><span class="rail-ico">⌕</span>Repos<span class="rail-count">15412</span></div>
+          <div style="height:1px; background:#363a4c; margin:12px 6px"></div>
+          <div class="rail-row" style="font-size:13px"><span class="rail-ico">⧗</span>History</div>
+        </div>
+        <div class="bench-mid">
+          <div style="padding:12px 14px 10px; border-bottom:1px solid #363a4c">
+            <div class="search" style="border-radius:14px; padding:7px 12px; font-size:13px"><span class="caret">⌕</span><span style="color:var(--qs-outline)">Filter 186 explicit packages…</span></div>
+          </div>
+          <div class="thead"><span>Package</span><span>Version</span><span>Size ↓</span><span>Source</span></div>
+          <div class="trow sel"><span><span class="ck">▣</span> ttf-iosevka-nerd</span><span>3.5.0-1</span><span style="text-align:right">1.11 GiB</span><span style="color:var(--qs-outline)">extra</span></div>
+          <div class="trow sel"><span><span class="ck">▣</span> jdk-openjdk</span><span>25.u2-1</span><span style="text-align:right">601 MiB</span><span style="color:var(--qs-outline)">extra</span></div>
+          <div class="trow"><span><span style="color:var(--qs-outline)">▢</span> 1password</span><span>8.12.34-34</span><span style="text-align:right">560 MiB</span><span style="color:var(--qs-tertiary)">AUR</span></div>
+          <div class="trow"><span><span style="color:var(--qs-outline)">▢</span> ansible</span><span>12.2.0-1</span><span style="text-align:right">505 MiB</span><span style="color:var(--qs-outline)">extra</span></div>
+          <div class="trow"><span><span style="color:var(--qs-outline)">▢</span> heroic-games-launcher-bin</span><span>2.22.1-1</span><span style="text-align:right">453 MiB</span><span style="color:var(--qs-tertiary)">AUR</span></div>
+          <div class="trow"><span><span style="color:var(--qs-outline)">▢</span> libreoffice-fresh</span><span>26.2.1-2</span><span style="text-align:right">421 MiB</span><span style="color:var(--qs-outline)">extra</span></div>
+          <div class="trow"><span><span style="color:var(--qs-outline)">▢</span> vault</span><span>1.21.2-1</span><span style="text-align:right">377 MiB</span><span style="color:var(--qs-outline)">extra</span></div>
+          <div class="trow"><span><span style="color:var(--qs-outline)">▢</span> octopi-git</span><span>0.19.0.r88-1</span><span style="text-align:right">18.4 MiB</span><span style="color:var(--qs-tertiary)">AUR</span></div>
+        </div>
+        <div class="bench-side">
+          <div class="plate-h" style="margin-bottom:10px">Queue · 2 selected</div>
+          <div class="queue">
+            <div style="display:flex; justify-content:space-between"><span>ttf-iosevka-nerd</span><span style="color:var(--qs-error)">remove</span></div>
+            <div style="display:flex; justify-content:space-between"><span>jdk-openjdk</span><span style="color:var(--qs-error)">remove</span></div>
+            <div style="height:1px; background:rgba(255,255,255,.09); margin:3px 0"></div>
+            <div style="display:flex; justify-content:space-between; color:var(--qs-onSurfaceVariant)"><span>Reclaims</span><span>1.70 GiB</span></div>
+            <div style="display:flex; justify-content:space-between; color:var(--qs-outline)"><span>Also removes</span><span>0 deps</span></div>
+          </div>
+          <div style="margin-top:14px; font-size:11px; color:var(--qs-outline); line-height:1.5">
+            Dependency preview from <span style="color:var(--qs-onSurfaceVariant)">pactree&nbsp;-r</span>.
+            Nothing runs until you press Review — and Review opens kitty with the real
+            <span style="color:var(--qs-onSurfaceVariant)">paru</span> command, so you always see
+            pacman's own prompt.
+          </div>
+          <div style="margin-top:14px; display:flex; gap:8px">
+            <span class="btn">Review in kitty</span>
+            <span class="btn ghost">Clear</span>
+          </div>
+        </div>
+      </div>
+      <p class="stage-cap">
+        <b>1000 × 520</b> — its own FloatingWindow
+        <span>radius <b>18</b></span>
+        <span>rail <b>190</b></span>
+        <span>detail <b>290</b></span>
+        <span>table rows <b>12 px</b> tabular</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="spec">
+      <div>
+        <h4>What it does best</h4>
+        <p>Everything the others can't: sort 1,420 by size, tick six orphans, see what removing
+        them drags along, and run it once. The dependency preview before a removal is the one
+        thing Octopi does that genuinely earns its place.</p>
+      </div>
+      <div>
+        <h4>What it can't do</h4>
+        <p class="cant">It is a second window that duplicates chrome Settings already has — nav
+        rail, search field, detail pane. Building it means maintaining a second window shell for
+        one feature.</p>
+      </div>
+      <div>
+        <h4>Does it absorb Updates?</h4>
+        <p>It would have to. Leaving a separate Updates page while a full package workbench
+        exists is exactly the redundancy that got the Security Center's two layouts merged in
+        operator round 3.</p>
+      </div>
+      <div>
+        <h4>Rough cost</h4>
+        <p class="cost">≈ 1,400 lines</p>
+        <p style="margin-top:6px">FilePicker is 938 across five files and does far less. Add a
+        backend, a queue model and <code>pactree</code> parsing.</p>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══ D5 — CAPSULE ══════════════════════════════════════════════════ -->
+<article class="study">
+  <div class="wrap">
+    <div class="study-head">
+      <div class="study-num">D5</div>
+      <div>
+        <h2>Capsule</h2>
+        <p class="thesis">
+          A bar glyph with a count, and a popout listing what's pending. Ambient only — it exists
+          so you notice 4 updates without going looking, and it hands off to whichever real
+          surface you pick.
+        </p>
+        <p class="where">
+          lives in <b>the bar</b> · beside the security glyph · sibling of
+          <b>MediaConnectivityCapsule.qml</b>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="stage-inner">
+      <div class="shell bar">
+        <span class="cap">1&nbsp;&nbsp;2&nbsp;&nbsp;3</span>
+        <span class="spacer"></span>
+        <span class="cap">14:32</span>
+        <span class="spacer"></span>
+        <span class="cap">⛨</span>
+        <span class="cap hi">▦ <span class="badge">4</span></span>
+        <span class="cap">🔔</span>
+      </div>
+      <div style="height:10px"></div>
+      <div class="shell popout" style="margin-left:520px">
+        <div class="pop-h"><span>▦</span><span>4 updates pending</span></div>
+        <div class="pop-b">
+          <div class="led-row"><span class="led-name">harfbuzz</span><span class="led-ver">14.3.1 <span class="arrow">→</span> 14.4.0</span><span class="led-size"></span></div>
+          <div class="led-row"><span class="led-name">harfbuzz-icu</span><span class="led-ver">14.3.1 <span class="arrow">→</span> 14.4.0</span><span class="led-size"></span></div>
+          <div class="led-row"><span class="led-name">pkgconf</span><span class="led-ver">3.0.5 <span class="arrow">→</span> 3.0.6</span><span class="led-size"></span></div>
+          <div class="led-row"><span class="led-name">python-steam <span class="tag-aur">AUR</span></span><span class="led-ver">α1-2 <span class="arrow">→</span> α1-3</span><span class="led-size"></span></div>
+        </div>
+        <div class="pop-f" style="display:flex; gap:8px">
+          <span class="btn">Update all</span>
+          <span class="btn ghost">Browse packages</span>
+        </div>
+      </div>
+      <p class="stage-cap">
+        <b>bar 42 high</b> — Design.barHeight
+        <span>capsule <b>34</b>, radius <b>17</b></span>
+        <span>popout <b>340</b> wide, radius <b>20</b></span>
+        <span>glyph <b>16 px</b> Material Symbols Rounded</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="spec">
+      <div>
+        <h4>What it does best</h4>
+        <p>Ambient awareness at zero cost of attention. The count is the whole feature; the
+        popout is a courtesy.</p>
+      </div>
+      <div>
+        <h4>What it can't do</h4>
+        <p class="cant">Nothing browsing-related. And it adds a fourth right-side capsule to a
+        bar that just gained the security glyph — the reflow you filed as a defect on
+        27 Aug is a live risk here.</p>
+      </div>
+      <div>
+        <h4>Does it absorb Updates?</h4>
+        <p>No, and it must not. It reads the same two commands and links out. If it also
+        <em>ran</em> upgrades there would be three owners of that action.</p>
+      </div>
+      <div>
+        <h4>Rough cost</h4>
+        <p class="cost">≈ 220 lines</p>
+        <p style="margin-top:6px">Capsule plus popout, over a backend that must exist already.
+        Meaningless on its own.</p>
+      </div>
+    </div>
+  </div>
+</article>
+
+<!-- ══ Row treatments ════════════════════════════════════════════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Second axis · independent of the above</p>
+    <h2>How one package row reads</h2>
+    <p class="spine" style="color:var(--ink-2); margin-bottom:26px">
+      Whichever surface you pick, it is mostly a list, and the row is the thing you'll look at
+      ten thousand times. These three are drawn at the same size with the same package so the
+      difference is only the treatment.
+    </p>
+    <div class="rowgrid">
+
+      <div class="rowcard">
+        <div class="rc-h"><b>R1 · Ledger</b><span>native to pacman</span></div>
+        <div class="rc-s shell">
+          <div class="led">
+            <div class="led-row sel"><span class="led-name">1password</span><span class="led-ver">8.12.34-34</span><span class="led-size">559.82 MiB</span></div>
+            <div class="led-row"><span class="led-name">matugen-bin <span class="tag-aur">AUR</span></span><span class="led-ver">4.2.0-1</span><span class="led-size">6.34 MiB</span></div>
+            <div class="led-row"><span class="led-name">gsfonts <span class="tag-orph">orphan</span></span><span class="led-ver">20200910-6</span><span class="led-size">10.18 MiB</span></div>
+            <div class="led-row"><span class="led-name">harfbuzz</span><span class="led-ver">14.3.1 <span class="arrow">→</span> 14.4.0</span><span class="led-size">3.10 MiB</span></div>
+          </div>
+        </div>
+        <div class="rc-n">Monospace, three columns, tabular figures. Densest — about 26 rows in
+        the space the others give 14. State is a coloured word, not a shape. Reads like
+        <code>pacman -Q</code>, which is either the point or the problem.</div>
+      </div>
+
+      <div class="rowcard">
+        <div class="rc-h"><b>R2 · Card cell</b><span>already shipping in this tree</span></div>
+        <div class="rc-s shell" style="display:flex; flex-direction:column; gap:10px">
+          <div class="cell hov">
+            <div class="cell-top"><span class="cell-nm">1password</span><span class="pill">AUR</span></div>
+            <div class="cell-sub">8.12.34-34 · 559.82 MiB · explicit</div>
+          </div>
+          <div class="cell">
+            <div class="cell-top"><span class="cell-nm">harfbuzz</span></div>
+            <div class="cell-sub">14.3.1 → 14.4.0 · update available</div>
+          </div>
+        </div>
+        <div class="rc-n">The exact <code>PackageCell</code> from
+        <code>UpdatesPage.qml</code> — 2px border that only changes colour on hover, so nothing
+        reflows. Proven, and free to reuse. Costs roughly twice the vertical space per row.</div>
+      </div>
+
+      <div class="rowcard">
+        <div class="rc-h"><b>R3 · Weighted</b><span>footprint at a glance</span></div>
+        <div class="rc-s shell">
+          <div class="drow">
+            <div><div class="dr-nm">1password <span class="pill" style="font-size:9px">AUR</span></div><div class="dr-mt">8.12.34-34 · explicit</div><div class="dr-bar"><i class="dr-bf" style="width:49%"></i></div></div>
+            <div class="dr-sz">559.82 MiB</div>
+          </div>
+          <div class="drow">
+            <div><div class="dr-nm">matugen-bin</div><div class="dr-mt">4.2.0-1 · explicit</div><div class="dr-bar"><i class="dr-bf" style="width:1%"></i></div></div>
+            <div class="dr-sz">6.34 MiB</div>
+          </div>
+          <div class="drow">
+            <div><div class="dr-nm">gsfonts</div><div class="dr-mt">orphan · nothing needs this</div><div class="dr-bar"><i class="dr-bf" style="width:1.5%; background:var(--qs-error)"></i></div></div>
+            <div class="dr-sz">10.18 MiB</div>
+          </div>
+        </div>
+        <div class="rc-n">Adds a size bar relative to the largest package. Makes “where did
+        17.8 GiB go” answerable by scrolling. Least dense of the three, and the bar is noise on
+        any list you're not sorting by size.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══ Privilege ═════════════════════════════════════════════════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Third axis · the one with a safety answer</p>
+    <h2>How anything that writes gets root</h2>
+    <p class="spine" style="color:var(--ink-2); margin-bottom:24px">
+      Browsing needs no privilege at all — every command in the table above runs as you. Removing
+      or installing does. There are two shapes in this repo already, and they were chosen for
+      different reasons.
+    </p>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Shape</th><th>Precedent here</th><th>What you see</th><th>New attack surface</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Terminal handoff</td>
+            <td><code>UpdatesPage.qml</code> — <code>execDetached([terminal, "-e", "paru", …])</code></td>
+            <td>pacman's own prompt, its own confirmation, its own output. You approve the real transaction.</td>
+            <td class="yes">None</td>
+          </tr>
+          <tr>
+            <td>pkexec helper</td>
+            <td><code>section_security</code> — hardcoded verb allowlist + polkit action</td>
+            <td>A polkit password dialog, then a spinner. The transaction happens where you can't see it.</td>
+            <td class="no">A new allowlisted verb that runs pacman as root</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="stack" style="max-width:78ch; margin-top:24px">
+      <p>
+        <b>Terminal handoff, for everything that writes.</b> The Security Center needed pkexec
+        because “enable the firewall” has no meaningful output to watch — it either worked or it
+        didn't. A package transaction is the opposite: the list of what will actually be removed
+        is the whole reason to pause, and pacman already prints it and already asks. Wrapping
+        that in a polkit dialog replaces a good confirmation with a worse one, and adds an
+        allowlist entry that runs pacman as root on arbitrary arguments.
+      </p>
+      <p>
+        It also means the panel can be built with <em>zero</em> root-side install — no addition
+        to <code>install.sh</code>, no polkit action, nothing in <code>section_security</code>'s
+        shape. That is a genuinely smaller thing to get wrong, and it survives a fresh install
+        for free.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Comparison ════════════════════════════════════════════════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Side by side</p>
+    <h2>What each direction actually buys</h2>
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Capability</th><th>D1 Ledger</th><th>D2 Sentinel</th><th>D3 Prefix</th><th>D4 Workbench</th><th>D5 Capsule</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Search installed</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>Search the repos</td><td class="yes">yes</td><td class="no">no</td><td class="part">opt-in</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>Full <code>-Qi</code> detail</td><td class="yes">yes</td><td class="no">no</td><td class="part">cramped</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>Sort by size</td><td class="part">column only</td><td class="part">top 6 only</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>Bulk select + queue</td><td class="no">no</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>Removal preview (<code>pactree</code>)</td><td class="part">one at a time</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>Notices updates unprompted</td><td class="no">no</td><td class="part">on open</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td></tr>
+          <tr><td>Answers “where did the disk go”</td><td class="part">by column</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>Replaces Octopi</td><td class="part">mostly</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
+          <tr><td>New window shell to maintain</td><td class="yes">none</td><td class="yes">none</td><td class="yes">none</td><td class="no">yes</td><td class="yes">none</td></tr>
+          <tr><td>Root-side install needed</td><td class="yes">none</td><td class="yes">none</td><td class="yes">none</td><td class="yes">none</td><td class="yes">none</td></tr>
+          <tr><td class="num">Rough size</td><td class="num">800</td><td class="num">300</td><td class="num">180</td><td class="num">1400</td><td class="num">220</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Recommendation ════════════════════════════════════════════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">If you want one answer</p>
+    <h2>Recommendation</h2>
+    <div class="rec">
+      <p class="verdict">
+        Build <em>D1 Ledger</em> with the <em>R1</em> row, absorbing the existing Updates page.
+        Add <em>D2 Sentinel</em> only if the footprint plate appeals. Skip D4, D5, and D3 for now.
+      </p>
+      <p>
+        D1 is the smallest thing that satisfies the actual ask. It gets the nav rail, the search
+        field, the window chrome and the page lifecycle free from Settings, which is the
+        difference between 800 lines and D4's 1,400 — and D4's extra 600 lines buy a second
+        window shell that duplicates what Settings already gives you. The two capabilities D4
+        genuinely adds that D1 can't fake are bulk selection and the <code>pactree</code>
+        removal preview. Both can be added to D1's detail pane later if you miss them; neither
+        is worth a second toplevel up front.
+      </p>
+      <p>
+        R1 because a package list is a table of names, versions and sizes, and the ledger is the
+        only one of the three that stays legible at 26 rows. R2 is proven but halves the density;
+        R3's size bar is genuinely useful, and belongs on D2's footprint plate where you are
+        actually asking about size — not on every row of a list you're scrolling to find one name.
+      </p>
+      <p>
+        Three things I'd hold you to whichever way you go:
+      </p>
+      <ol>
+        <li><b>One owner for the update action.</b> Whatever you pick either absorbs
+        <code>UpdatesPage.qml</code> or links to it. Two surfaces that both run
+        <code>paru -Syu</code> is the redundancy that got the Security Center's two layouts
+        merged.</li>
+        <li><b>Terminal handoff for every write.</b> No pkexec verb, no root-side install, no
+        <code>install.sh</code> change. Browsing is unprivileged and should stay that way.</li>
+        <li><b>Decide about Octopi explicitly.</b> If D1 or D4 ships and you're happy with it,
+        <code>octopi-git</code>, <code>qt-sudo</code> and <code>qtermwidget</code> come off the
+        disk in the same task. If you'd rather keep Octopi, that's an argument for D2 + D3 only
+        and against building a browser at all.</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ══ Picker ════════════════════════════════════════════════════════ -->
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Your call</p>
+    <h2>Pick, then paste the result back to me</h2>
+    <p class="spine" style="color:var(--ink-2); margin-bottom:28px">
+      Tick whatever you want built — directions combine, and the Security Center shipped as three
+      surfaces over one backend. The box on the right updates as you go.
+    </p>
+    <div class="picker">
+      <div>
+        <fieldset>
+          <legend>Surfaces — pick any</legend>
+          <label class="opt"><input type="checkbox" class="d" value="D1 Ledger — Settings → Packages, two-pane browser (~800 lines)" checked><span><b>D1 · Ledger</b> — a Packages page in Settings</span></label>
+          <label class="opt"><input type="checkbox" class="d" value="D2 Sentinel — dashboard tab, four plates (~300 lines)"><span><b>D2 · Sentinel</b> — a dashboard tab of plates</span></label>
+          <label class="opt"><input type="checkbox" class="d" value="D3 Prefix — launcher pkg route (~180 lines)"><span><b>D3 · Prefix</b> — a <code>pkg</code> route in the launcher</span></label>
+          <label class="opt"><input type="checkbox" class="d" value="D4 Workbench — standalone window, queue + pactree preview (~1400 lines)"><span><b>D4 · Workbench</b> — its own window with a queue</span></label>
+          <label class="opt"><input type="checkbox" class="d" value="D5 Capsule — bar glyph + popout (~220 lines)"><span><b>D5 · Capsule</b> — a bar glyph with a count</span></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Row treatment — pick one</legend>
+          <label class="opt"><input type="radio" name="row" class="r" value="R1 Ledger — monospace 3-column, densest" checked><span><b>R1 · Ledger</b> — monospace, densest</span></label>
+          <label class="opt"><input type="radio" name="row" class="r" value="R2 Card cell — reuse UpdatesPage PackageCell"><span><b>R2 · Card cell</b> — reuse what ships today</span></label>
+          <label class="opt"><input type="radio" name="row" class="r" value="R3 Weighted — size bar per row"><span><b>R3 · Weighted</b> — with a size bar</span></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Privilege — pick one</legend>
+          <label class="opt"><input type="radio" name="priv" class="p" value="Terminal handoff for all writes — no pkexec, no install.sh change" checked><span><b>Terminal handoff</b> — pacman prompts, you approve</span></label>
+          <label class="opt"><input type="radio" name="priv" class="p" value="pkexec helper — new allowlist verb, in-shell progress"><span><b>pkexec helper</b> — in-shell, needs a new verb</span></label>
+        </fieldset>
+
+        <fieldset>
+          <legend>Open questions</legend>
+          <label class="opt"><input type="checkbox" class="q" value="Absorb UpdatesPage.qml into the new surface (retire its 347 lines)" checked><span>Absorb the existing <b>Updates page</b> rather than link to it</span></label>
+          <label class="opt"><input type="checkbox" class="q" value="Remove octopi-git, qt-sudo, qtermwidget once this ships"><span>Retire <b>Octopi</b> once this ships</span></label>
+          <label class="opt"><input type="checkbox" class="q" value="Include repo catalogue search (15,412 packages) — install, not just browse"><span>Include <b>repo search</b> — install new packages too</span></label>
+          <label class="opt"><input type="checkbox" class="q" value="Include pactree dependency preview before any removal"><span>Include a <b>removal preview</b> via pactree</span></label>
+          <label class="opt"><input type="checkbox" class="q" value="Warn when a pacman transaction is already running (db.lck present)"><span>Warn when <b>pacman is already running</b></span></label>
+        </fieldset>
+      </div>
+
+      <div>
+        <label for="out" class="eyebrow" style="display:block; margin-bottom:8px">Paste this back</label>
+        <textarea id="out" readonly aria-live="polite"></textarea>
+        <div class="copybar">
+          <button class="copy" id="copyBtn" type="button">Copy to clipboard</button>
+          <small id="copyNote">Or select the text above.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>Quick task 260828-75k · study drafted 2026-08-28</p>
+    <p>Every number measured on this host; every mockup drawn at Design.qml token values in the live dracula palette.</p>
+    <p>Mockups are static HTML approximations of QML surfaces — they show layout, density and colour, not real rendering.</p>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var out = document.getElementById("out");
+  var KEY = "pkg-panel-studies-picks-v1";
+
+  function collect() {
+    var dirs = [].slice.call(document.querySelectorAll("input.d:checked")).map(function (i) { return i.value; });
+    var row  = document.querySelector("input.r:checked");
+    var priv = document.querySelector("input.p:checked");
+    var qs   = [].slice.call(document.querySelectorAll("input.q:checked")).map(function (i) { return i.value; });
+    return { dirs: dirs, row: row ? row.value : "", priv: priv ? priv.value : "", qs: qs };
+  }
+
+  function render() {
+    var s = collect();
+    var lines = [];
+    lines.push("Package panel — picks from the study (quick task 260828-75k)");
+    lines.push("");
+    lines.push("SURFACES:");
+    if (s.dirs.length === 0) {
+      lines.push("  (none picked yet)");
+    } else {
+      s.dirs.forEach(function (d) { lines.push("  - " + d); });
+    }
+    lines.push("");
+    lines.push("ROW TREATMENT:");
+    lines.push("  - " + (s.row || "(none)"));
+    lines.push("");
+    lines.push("PRIVILEGE:");
+    lines.push("  - " + (s.priv || "(none)"));
+    lines.push("");
+    lines.push("ALSO:");
+    if (s.qs.length === 0) {
+      lines.push("  (nothing extra)");
+    } else {
+      s.qs.forEach(function (q) { lines.push("  - " + q); });
+    }
+    out.value = lines.join("\n");
+    save(s);
+  }
+
+  function save(s) {
+    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* private window, blocked storage */ }
+  }
+
+  function restore() {
+    var raw = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { return; }
+    if (!raw) return;
+    var s;
+    try { s = JSON.parse(raw); } catch (e) { return; }
+    if (!s) return;
+    if (Array.isArray(s.dirs)) {
+      [].forEach.call(document.querySelectorAll("input.d"), function (i) { i.checked = s.dirs.indexOf(i.value) !== -1; });
+    }
+    if (Array.isArray(s.qs)) {
+      [].forEach.call(document.querySelectorAll("input.q"), function (i) { i.checked = s.qs.indexOf(i.value) !== -1; });
+    }
+    if (s.row) {
+      [].forEach.call(document.querySelectorAll("input.r"), function (i) { if (i.value === s.row) i.checked = true; });
+    }
+    if (s.priv) {
+      [].forEach.call(document.querySelectorAll("input.p"), function (i) { if (i.value === s.priv) i.checked = true; });
+    }
+  }
+
+  [].forEach.call(document.querySelectorAll("input.d, input.r, input.p, input.q"), function (i) {
+    i.addEventListener("change", render);
+  });
+
+  var btn = document.getElementById("copyBtn");
+  var note = document.getElementById("copyNote");
+  btn.addEventListener("click", function () {
+    var done = function () {
+      note.textContent = "Copied.";
+      setTimeout(function () { note.textContent = "Or select the text above."; }, 2400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(out.value).then(done, function () {
+        out.select();
+        note.textContent = "Press Ctrl+C to copy.";
+      });
+    } else {
+      out.select();
+      note.textContent = "Press Ctrl+C to copy.";
+    }
+  });
+
+  restore();
+  render();
+})();
+</script>
