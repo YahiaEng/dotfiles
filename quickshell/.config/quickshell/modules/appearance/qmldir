@@ -20,3 +20,18 @@
 module qs.modules.appearance
 
 singleton AppearanceBackend 1.0 AppearanceBackend.qml
+
+# ── Surfaces (Task 2) ──
+# The Atelier: its own FloatingWindow behind a LazyLoader, the Workbench
+# pattern. NOT a singleton — shell.qml mounts one instance, the same
+# posture Bar/Dashboard/Workbench have in the parent modules/qmldir.
+Atelier 1.0 Atelier.qml
+
+# The Atelier's tab strip and its Icons/Fonts panes, split the way
+# Workbench splits its own three panes rather than one long file.
+AtTabBar 1.0 AtTabBar.qml
+AtIconsTab 1.0 AtIconsTab.qml
+AtFontsTab 1.0 AtFontsTab.qml
+
+# AtCatalogueTab lands in Task 3 (the third pane, browse + install) —
+# declared in the SAME commit that creates that file, not here.

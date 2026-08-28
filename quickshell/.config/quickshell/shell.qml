@@ -47,6 +47,7 @@ import "modules/launcher"
 import "modules/lock"
 import "modules/screensaver"
 import "modules/packages"
+import "modules/appearance"
 
 ShellRoot {
     id: root
@@ -1428,6 +1429,47 @@ ShellRoot {
 
         function close(): void {
             packagesWorkbench.close();
+        }
+    }
+
+    // ── The Atelier (quick task 260828-ah9, D-01/D-02) ─────────────────
+    //    Its own toplevel behind a LazyLoader, the Workbench pattern:
+    //    constructed on first open, costs nothing until then. The BACKEND
+    //    deliberately lives outside this loader (it is a singleton), so
+    //    closing the window does not discard the icon-theme/font model.
+    Atelier {
+        id: appearanceAtelier
+    }
+
+    // Every other surface (the launcher's `icon`/`font` routes, the menu
+    // tree's Style leaves, a keybind) asks for the Atelier by raising a
+    // signal on the backend singleton they all already hold — nothing
+    // else in the tree can reach this instance, and threading a handle
+    // through three subtrees to avoid one Connections block would be
+    // worse (Workbench's own recorded rationale, mirrored here).
+    Connections {
+        target: AppearanceBackend
+
+        function onOpenAtelierRequested(tab) {
+            if (tab && tab.length > 0)
+                appearanceAtelier.openTab(tab);
+            else
+                appearanceAtelier.open();
+        }
+    }
+
+    IpcHandler {
+        target: "appearance-window"
+
+        function open(tab: string): void {
+            if (tab && tab.length > 0)
+                appearanceAtelier.openTab(tab);
+            else
+                appearanceAtelier.open();
+        }
+
+        function close(): void {
+            appearanceAtelier.close();
         }
     }
 

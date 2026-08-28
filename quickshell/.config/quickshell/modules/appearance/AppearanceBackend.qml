@@ -42,6 +42,23 @@ Singleton {
     readonly property var _PREVIEW_PROBES: ["folder", "user-home", "network-server", "drive-harddisk", "applications-system", "utilities-terminal", "text-x-generic", "image-x-generic", "audio-x-generic", "video-x-generic", "package-x-generic", "preferences-system"]
 
     // ═══════════════════════════════════════════════════════════════
+    //  How every surface asks for the Atelier — Task 2 (D-01). The
+    //  Atelier is a TYPE mounted once in shell.qml, not a singleton, so
+    //  no other file can reach it directly. Rather than thread a handle
+    //  through the launcher's menu tree and the bar's clock drawer, each
+    //  of them raises this on the backend they all already hold, and
+    //  shell.qml — which owns the one instance — connects it. `tab` may
+    //  be empty, meaning "just open on whatever tab was left open".
+    //  Mirrors PackagesBackend.openWorkbenchRequested's exact shape.
+    // ═══════════════════════════════════════════════════════════════
+
+    signal openAtelierRequested(string tab)
+
+    function openAtelier(tab: string): void {
+        root.openAtelierRequested(tab || "");
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  Icon themes — observable state
     // ═══════════════════════════════════════════════════════════════
 
