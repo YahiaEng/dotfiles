@@ -50,6 +50,13 @@ Singleton {
     // original reasoning was trying to avoid — added deliberately, with
     // the single-character vocabulary left exactly as it was.
     readonly property string modePkg: "pkg"
+    // `icon`/`font` (quick task 260828-ah9, D-01) — the Specimen half of
+    // the appearance-picker replacement: two more word routes on the
+    // `pkg` precedent, the fast typed path beside the Atelier's keybind
+    // path. Appended, never inserted — this file's own standing
+    // instruction.
+    readonly property string modeIcon: "icon"
+    readonly property string modeFont: "font"
     // Menu mode (quick task 260822-sht, Task 3) — the 9 D-2 verb-based
     // roots, drilled via `LauncherState.navStack` and rendered by
     // `MenuMode.qml`. Reached only via `pendingMode` on a fresh summon
@@ -105,7 +112,9 @@ Singleton {
     // app search, so a bare alphabetic run that merely STARTS with the word
     // is not a route.
     readonly property var _wordRoutes: ({
-            "pkg": root.modePkg
+            "pkg": root.modePkg,
+            "icon": root.modeIcon,
+            "font": root.modeFont
         })
 
     // The prefix that actually resolved the current route, "" when none did

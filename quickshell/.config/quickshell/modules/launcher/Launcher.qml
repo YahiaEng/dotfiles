@@ -1162,6 +1162,10 @@ PanelWindow {
                         return filesComponent;
                     case LauncherState.modePkg:
                         return pkgComponent;
+                    case LauncherState.modeIcon:
+                        return iconModeComponent;
+                    case LauncherState.modeFont:
+                        return fontModeComponent;
                     case LauncherState.modeWebSearch:
                         return webSearchComponent;
                     case LauncherState.modeProviderList:
@@ -1363,6 +1367,25 @@ PanelWindow {
                 id: pkgComponent
 
                 PkgMode {
+                }
+            }
+
+            // `icon`/`font` word routes (quick task 260828-ah9, D-01) —
+            // Specimen's typed half, `dismissCallback` resolved in THIS
+            // document's scope exactly like `wallpaperComponent` below.
+            Component {
+                id: iconModeComponent
+
+                IconMode {
+                    dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
+            Component {
+                id: fontModeComponent
+
+                FontMode {
+                    dismissCallback: launcherWindow._beginDismiss
                 }
             }
 

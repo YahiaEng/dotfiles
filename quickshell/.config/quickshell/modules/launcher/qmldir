@@ -76,3 +76,9 @@ WallpaperMode 1.0 WallpaperMode.qml
 # PkgMode (quick task 260828-75k) — the `+` route. Plain Item-rooted mode
 # result view, same non-singleton shape as every other mode above.
 PkgMode 1.0 PkgMode.qml
+# IconMode/FontMode (quick task 260828-ah9, D-01) — the `icon`/`font` word
+# routes, Specimen's typed half. Plain Item-rooted mode result views, same
+# non-singleton shape as every other mode above. Declared in the same
+# commit that creates them, per this manifest's own rule.
+IconMode 1.0 IconMode.qml
+FontMode 1.0 FontMode.qml
