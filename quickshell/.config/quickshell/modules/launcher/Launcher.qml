@@ -1166,6 +1166,8 @@ PanelWindow {
                         return iconModeComponent;
                     case LauncherState.modeFont:
                         return fontModeComponent;
+                    case LauncherState.modeCommands:
+                        return commandComponent;
                     case LauncherState.modeWebSearch:
                         return webSearchComponent;
                     case LauncherState.modeProviderList:
@@ -1410,6 +1412,19 @@ PanelWindow {
                 }
             }
 
+            // ── `cmd` commands — the same 9 roots' LEAVES, flattened into
+            //    one searchable list (quick task 260829-2ov). Same
+            //    `dismissCallback` shape as `menuComponent` above and for
+            //    the same reason: CommandMode.qml is a separate document
+            //    and has no other way to close the surface hosting it. ────
+            Component {
+                id: commandComponent
+
+                CommandMode {
+                    dismissCallback: launcherWindow._beginDismiss
+                }
+            }
+
             // ── System ▸ Updates / System ▸ System info (quick task
             //    260822-sht, Task 4 — R-1/R-2). Read-only report views;
             //    neither dismisses on activate() since there is nothing to
@@ -1538,6 +1553,15 @@ PanelWindow {
                         {
                             prefix: "pkg ",
                             label: "Packages"
+                        },
+                        // `cmd` (quick task 260829-2ov). `icon`/`font` are
+                        // still absent from this list — they were never
+                        // added when 260828-ah9 introduced them, and
+                        // closing that gap is a separate change from
+                        // opening this one.
+                        {
+                            prefix: "cmd ",
+                            label: "Commands"
                         }
                     ]
                     property int currentIndex: 0

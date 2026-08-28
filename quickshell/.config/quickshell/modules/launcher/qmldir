@@ -82,3 +82,8 @@ PkgMode 1.0 PkgMode.qml
 # commit that creates them, per this manifest's own rule.
 IconMode 1.0 IconMode.qml
 FontMode 1.0 FontMode.qml
+# CommandMode (quick task 260829-2ov) — the `cmd` word route, MenuTree's
+# leaves flattened into one searchable list. Plain Item-rooted mode result
+# view, same non-singleton shape as every other mode above. Declared in the
+# same commit that creates it, per this manifest's own rule.
+CommandMode 1.0 CommandMode.qml

@@ -57,6 +57,14 @@ Singleton {
     // instruction.
     readonly property string modeIcon: "icon"
     readonly property string modeFont: "font"
+    // `cmd` commands (quick task 260829-2ov) — the Super-tap menu's leaves,
+    // flattened into one searchable list. Fourth word route, on the same
+    // `pkg`/`icon`/`font` precedent; appended, never inserted, per this
+    // file's own standing instruction. `menu` mode BROWSES that tree one
+    // level at a time and keeps its own typed text as a level filter (see
+    // `_stickyModes` below); this mode SEARCHES the whole tree at once and
+    // is an ordinary word route, so the two never contend for a keystroke.
+    readonly property string modeCommands: "commands"
     // Menu mode (quick task 260822-sht, Task 3) — the 9 D-2 verb-based
     // roots, drilled via `LauncherState.navStack` and rendered by
     // `MenuMode.qml`. Reached only via `pendingMode` on a fresh summon
@@ -114,7 +122,11 @@ Singleton {
     readonly property var _wordRoutes: ({
             "pkg": root.modePkg,
             "icon": root.modeIcon,
-            "font": root.modeFont
+            "font": root.modeFont,
+            // `cmd` (quick task 260829-2ov). The whole-query-or-"cmd "
+            // match test below is what keeps an app named `cmder` an
+            // ordinary app search rather than a route.
+            "cmd": root.modeCommands
         })
 
     // The prefix that actually resolved the current route, "" when none did
