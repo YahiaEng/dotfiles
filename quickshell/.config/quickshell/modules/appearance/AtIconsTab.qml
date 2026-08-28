@@ -142,14 +142,39 @@ Item {
                     // gone — it was reported too bright twice, and the
                     // backdrop above already removes the collision the
                     // accent tint was working around.
-                    color: railRow.selected ? Colours.primaryContainer : (railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
+                    //
+                    // Operator round 4, item 3 — same split as
+                    // AtFontsTab.qml's rail: SELECTION is an instant
+                    // `visible` toggle (no Behavior), HOVER keeps the
+                    // animated `Behavior on color`. Round 3's single
+                    // combined `color` binding animated every selection
+                    // change too, at `Motion.colourDuration` (300ms) —
+                    // that cross-fade on a discrete state change is what
+                    // read as "laggy".
+                    color: "transparent"
 
-                    Behavior on color {
-                        enabled: Motion.motionEnabled
-                        ColorAnimation {
-                            duration: Motion.colourDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.colourEasing
+                    Rectangle {
+                        id: selectFill
+                        anchors.fill: parent
+                        radius: parent.radius
+                        visible: railRow.selected
+                        color: Colours.primaryContainer
+                    }
+
+                    Rectangle {
+                        id: hoverFill
+                        anchors.fill: parent
+                        radius: parent.radius
+                        visible: !railRow.selected
+                        color: railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent"
+
+                        Behavior on color {
+                            enabled: Motion.motionEnabled
+                            ColorAnimation {
+                                duration: Motion.colourDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.colourEasing
+                            }
                         }
                     }
 

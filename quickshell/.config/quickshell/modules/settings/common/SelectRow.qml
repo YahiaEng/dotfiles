@@ -287,6 +287,29 @@ Control {
             border.color: Colours.outline
         }
 
+        // Operator round 4, item 3 — `Menu.background`/`MenuItem.background`
+        // above were ALREADY overridden with `Colours.*` (verified directly
+        // against the installed Basic style's own Menu.qml/MenuItem.qml at
+        // /usr/lib/qt6/qml/QtQuick/Controls/Basic/ — neither falls through
+        // to `palette.window`/`palette.midlight`/`palette.light`; measured,
+        // not assumed). Reading that SAME installed Menu.qml surfaced a
+        // genuinely still-unaddressed leak this file's comment didn't name:
+        // `T.Overlay.modal`/`T.Overlay.modeless` default to
+        // `Color.transparent(control.palette.shadow, 0.5/0.12)` — the popup
+        // scrim, drawn behind the WHOLE menu on open. Neither was ever
+        // overridden here, so it was the one remaining `palette.*` colour
+        // this popup could paint. Closed with the same `Qt.alpha(Colours.
+        // background, …)` idiom `AtUninstallConfirm.qml`'s own modal
+        // backdrop already uses, at a proportionally lighter alpha for the
+        // modeless case.
+        Overlay.modal: Rectangle {
+            color: Qt.alpha(Colours.background, 0.55)
+        }
+
+        Overlay.modeless: Rectangle {
+            color: Qt.alpha(Colours.background, 0.15)
+        }
+
         Repeater {
             model: root.model
 
@@ -344,7 +367,18 @@ Control {
                 // other `rowFocused` ring in this module.
                 background: Rectangle {
                     radius: 8
-                    color: "transparent"
+                    // Operator round 4, item 3 — the border ring above
+                    // was the ONLY feedback this background ever painted;
+                    // a press (`down`) got NOTHING until `highlighted`
+                    // caught up (itself animated at `Motion.
+                    // colourDuration`, 300ms), which reads exactly like
+                    // "pressing paints a flash before the highlight
+                    // settles" even with zero palette involvement. A
+                    // same-Colours, un-animated press fill closes that
+                    // gap — instant, the same discrete-state-change
+                    // immediacy this round's rail/catalogue fix uses —
+                    // without touching the existing highlighted ring.
+                    color: menuItem.down ? Qt.alpha(Colours.primary, 0.12) : "transparent"
                     border.width: 2
                     border.color: menuItem.highlighted ? Colours.primary : "transparent"
 

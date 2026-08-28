@@ -62,14 +62,36 @@ Item {
                 // Operator round 3, item 1 — WbSidebar.qml:117's exact
                 // shape: selection is `primaryContainer`, hover is a flat
                 // 6% onSurface tint, rest is transparent.
-                color: tabDelegate.selected ? Colours.primaryContainer : (tabArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
+                //
+                // Operator round 4, item 3 — same split as the Icons/
+                // Fonts rails: the active TAB switches instantly (no
+                // Behavior), HOVER keeps the animated `Behavior on
+                // color`. Round 3's combined binding cross-faded a tab
+                // switch over 300ms too.
+                color: "transparent"
 
-                Behavior on color {
-                    enabled: Motion.motionEnabled
-                    ColorAnimation {
-                        duration: Motion.colourDuration
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.colourEasing
+                Rectangle {
+                    id: selectFill
+                    anchors.fill: parent
+                    radius: parent.radius
+                    visible: tabDelegate.selected
+                    color: Colours.primaryContainer
+                }
+
+                Rectangle {
+                    id: hoverFill
+                    anchors.fill: parent
+                    radius: parent.radius
+                    visible: !tabDelegate.selected
+                    color: tabArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent"
+
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.colourDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.colourEasing
+                        }
                     }
                 }
 

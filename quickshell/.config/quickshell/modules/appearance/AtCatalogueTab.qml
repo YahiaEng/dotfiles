@@ -196,14 +196,34 @@ Item {
                     width: resultsList.width
                     height: 56
                     radius: 10
-                    color: resultRow.selected ? Colours.primaryContainer : (rowArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
+                    // Operator round 4, item 3 — same split as the Icons/
+                    // Fonts rails and the tab strip: SELECTION is an
+                    // instant `visible` toggle, HOVER keeps the animated
+                    // `Behavior on color`.
+                    color: "transparent"
 
-                    Behavior on color {
-                        enabled: Motion.motionEnabled
-                        ColorAnimation {
-                            duration: Motion.colourDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.colourEasing
+                    Rectangle {
+                        id: selectFill
+                        anchors.fill: parent
+                        radius: parent.radius
+                        visible: resultRow.selected
+                        color: Colours.primaryContainer
+                    }
+
+                    Rectangle {
+                        id: hoverFill
+                        anchors.fill: parent
+                        radius: parent.radius
+                        visible: !resultRow.selected
+                        color: rowArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent"
+
+                        Behavior on color {
+                            enabled: Motion.motionEnabled
+                            ColorAnimation {
+                                duration: Motion.colourDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.colourEasing
+                            }
                         }
                     }
 

@@ -138,14 +138,40 @@ Item {
                     // flat 6% onSurface tint, rest is transparent. Same
                     // fix as AtIconsTab.qml's rail; see that file's
                     // comment for the full palette-collision reasoning.
-                    color: railRow.selected ? Colours.primaryContainer : (railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
+                    //
+                    // Operator round 4, item 3 — split into two layered
+                    // fills so a discrete SELECTION change is instant
+                    // while HOVER stays animated: one combined `color`
+                    // binding with a single `Behavior` (round 3's shape)
+                    // animated every selection change too, which is what
+                    // read as "laggy". `railRow` itself is now always
+                    // transparent; `selectFill` below toggles on
+                    // `visible` (a hard cut, no Behavior) and `hoverFill`
+                    // keeps the original animated `Behavior on color`.
+                    color: "transparent"
 
-                    Behavior on color {
-                        enabled: Motion.motionEnabled
-                        ColorAnimation {
-                            duration: Motion.colourDuration
-                            easing.type: Easing.BezierSpline
-                            easing.bezierCurve: Motion.colourEasing
+                    Rectangle {
+                        id: selectFill
+                        anchors.fill: parent
+                        radius: parent.radius
+                        visible: railRow.selected
+                        color: Colours.primaryContainer
+                    }
+
+                    Rectangle {
+                        id: hoverFill
+                        anchors.fill: parent
+                        radius: parent.radius
+                        visible: !railRow.selected
+                        color: railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent"
+
+                        Behavior on color {
+                            enabled: Motion.motionEnabled
+                            ColorAnimation {
+                                duration: Motion.colourDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.colourEasing
+                            }
                         }
                     }
 
