@@ -41,6 +41,20 @@ Item {
         return Colours.onSurfaceVariant;
     }
 
+    // Resizable left-pane width (defect 2c), persisted like
+    // `packages.sidebarWidth`/`packages.detailWidth`. Wider bounds than
+    // the Icons/Fonts rails — this pane holds a search box and full
+    // result rows, not just a theme/family name.
+    property int leftWidth: Math.max(300, Math.min(900, Prefs.getValue("appearance.catalogueLeftWidth")))
+
+    function setLeftWidth(w) {
+        var clamped = Math.max(300, Math.min(900, Math.round(w)));
+        if (clamped === root.leftWidth)
+            return;
+        root.leftWidth = clamped;
+        Prefs.setValue("appearance.catalogueLeftWidth", clamped);
+    }
+
     // Fetched on demand (never at startup — the backend's own rule), and
     // reconciled against the last install snapshot every time this pane
     // is shown, so a theme installed last session is already reflected.
@@ -52,12 +66,12 @@ Item {
 
     Row {
         anchors.fill: parent
-        spacing: Design.spacingMd
+        spacing: 0
 
         // ── Left pane: search + results ──────────────────────────────
         Column {
             id: leftPane
-            width: parent.width * 0.55 - Design.spacingMd / 2
+            width: root.leftWidth
             height: parent.height
             spacing: Design.spacingSm
 
@@ -237,10 +251,17 @@ Item {
             }
         }
 
+        AtRailGrip {
+            id: grip
+            height: parent.height
+            startWidth: root.leftWidth
+            onDragged: proposedWidth => root.setLeftWidth(proposedWidth)
+        }
+
         // ── Right pane: the live install log ─────────────────────────
         Column {
             id: rightPane
-            width: parent.width * 0.45 - Design.spacingMd / 2
+            width: parent.width - leftPane.width - grip.width
             height: parent.height
             spacing: Design.spacingSm
 

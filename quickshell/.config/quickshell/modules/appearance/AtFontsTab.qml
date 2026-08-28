@@ -82,6 +82,18 @@ Item {
         font.pixelSize: Design.settingsFontSub
     }
 
+    // Resizable rail width (defect 2c), persisted like
+    // `packages.sidebarWidth` — same [150, 460] clamp AtIconsTab uses.
+    property int railWidth: Math.max(150, Math.min(460, Prefs.getValue("appearance.fontsRailWidth")))
+
+    function setRailWidth(w) {
+        var clamped = Math.max(150, Math.min(460, Math.round(w)));
+        if (clamped === root.railWidth)
+            return;
+        root.railWidth = clamped;
+        Prefs.setValue("appearance.fontsRailWidth", clamped);
+    }
+
     Row {
         anchors.fill: parent
         visible: root._families.length > 0
@@ -90,7 +102,7 @@ Item {
         // ── Left rail — 13 families, never 26 rows (defect 2d's fix). ──
         ListView {
             id: rail
-            width: 220
+            width: root.railWidth
             height: parent.height
             clip: true
             model: root._families
@@ -147,11 +159,18 @@ Item {
             }
         }
 
+        AtRailGrip {
+            id: grip
+            height: parent.height
+            startWidth: root.railWidth
+            onDragged: proposedWidth => root.setRailWidth(proposedWidth)
+        }
+
         // ── Right pane — the specimen (defect 2b's fix: variants live
         //    HERE, not as separate rail rows). ────────────────────────
         Column {
             id: specimen
-            width: parent.width - rail.width
+            width: parent.width - rail.width - grip.width
             height: parent.height
             padding: Design.spacingMd
             spacing: Design.spacingMd
