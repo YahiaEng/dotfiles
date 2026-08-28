@@ -1,0 +1,191 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════════╗
+# ║           SINGLETON-PROP-CHECK (quick-260828-t22)         ║
+# ║  Member-resolution gate: every `<Singleton>.<member>`      ║
+# ║  reference must name a member that singleton actually      ║
+# ║  declares.                                                 ║
+# ╚══════════════════════════════════════════════════════════╝
+#
+# ── WHY THIS EXISTS, AND WHY IT IS NOT PART OF qml-import-check ────────
+# qml-import-check resolves TYPE names. Its own header states that dotted
+# forms are "enum/attached references, not instantiations" and are excluded
+# structurally. That is correct for its job and leaves a real hole for this
+# one — PROVEN by positive control, not assumed: injecting
+# `BarRoles.thisRoleDoesNotExist` into a live file left qml-import-check
+# reporting `0 unresolved references across 191 file(s)`.
+#
+# The hole matters most exactly where nothing else can see it. Quickshell
+# hot-reloads only files it has ACTUALLY LOADED — measured 2026-08-28: a
+# comment touch on the loaded SystemCapsule.qml produced a reload, the same
+# touch on the lazily-loaded UpdatesPopout.qml produced ZERO log lines. So
+# for every lazily-loaded surface (popouts, dialogs, pickers) a bad role
+# name is invisible to qmllint (blind here), invisible to qml-import-check
+# (by design), and invisible to the runtime log (never loaded) until a user
+# opens that surface and sees the wrong colour. This gate is the only
+# instrument that sees it before then.
+#
+# ── DELIBERATELY OVER-APPROXIMATES THE MEMBER SET ──────────────────────
+# Members are collected from ANYWHERE in the singleton's file — not just its
+# root object. Colours.qml declares its palette roles inside a nested
+# JsonAdapter behind a `readonly property alias` layer; a strict top-level
+# parse would report every `Colours.primary` in the tree as a violation.
+#
+# That means this gate does NOT police scope (a member declared on an inner
+# object still counts as declared). It catches the class that actually bites:
+# a name that exists NOWHERE in the singleton — a typo, or a role deleted out
+# from under its consumers. Over-approximating is the safe direction: a false
+# PASS costs what we already had, a false FAIL would make the gate unusable
+# and it would be switched off.
+#
+# ── WHY MEMBER NAMES ARE MATCHED lowercase-initial ─────────────────────
+# `Foo.Bar` (capital second segment) is an enum or attached-property
+# reference, not a member read — `Motion.Bezier`, `Colours.Role`. Matching
+# only `[a-z_]` second segments excludes those structurally rather than by an
+# exclusion list that would need maintaining.
+#
+# set -uo pipefail, deliberately NOT -e: survey the whole tree and report
+# every failure at the end, never die on the first.
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/tests/singleton-prop-fixtures"
+
+SELF_TEST=0
+TARGET_ARG=""
+for arg in "$@"; do
+    case "$arg" in
+        --self-test) SELF_TEST=1 ;;
+        *) TARGET_ARG="$arg" ;;
+    esac
+done
+
+# The scanner is a function so --self-test can point it at a fixture tree
+# instead of the live one — the same seam idiom quickshell-doctor uses.
+# Prints "violations=N" plus one line per violation; returns 0 iff N == 0.
+_spc_scan() {
+    python3 - "$1" <<'PYEOF'
+import os, re, sys, collections
+
+root = sys.argv[1]
+
+# 1. Discover singletons from qmldir manifests — never a hand-written list,
+#    so a singleton added tomorrow is covered without editing this gate.
+singles = {}
+for dp, _dns, fns in os.walk(root):
+    if 'qmldir' not in fns:
+        continue
+    for line in open(os.path.join(dp, 'qmldir'), encoding='utf-8', errors='replace'):
+        parts = line.split()
+        # `singleton <Name> <version> <File.qml>`
+        if len(parts) >= 4 and parts[0] == 'singleton':
+            f = os.path.join(dp, parts[3])
+            if os.path.exists(f):
+                singles[parts[1]] = f
+
+def strip(text):
+    """Block comments, line comments, then string literals — in that order.
+    Strings go last so a // inside a string does not eat the rest of a line
+    before the string itself is blanked."""
+    text = re.sub(r'/\*.*?\*/', '', text, flags=re.S)
+    text = re.sub(r'//.*$', '', text, flags=re.M)
+    return text
+
+MEMBER = re.compile(
+    r'\bproperty\s+alias\s+([a-z_]\w*)'
+    r'|\b(?:readonly\s+)?property\s+[A-Za-z_][\w.<>]*\s+([a-z_]\w*)'
+    r'|\bfunction\s+([a-z_]\w*)'
+    r'|\bsignal\s+([a-z_]\w*)'
+)
+
+# Members every QObject-derived singleton carries without declaring them.
+BUILTIN = {'objectName'}
+
+members = {}
+for name, path in singles.items():
+    body = strip(open(path, encoding='utf-8', errors='replace').read())
+    found = {next(g for g in m.groups() if g) for m in MEMBER.finditer(body)}
+    members[name] = found | BUILTIN
+
+violations = collections.Counter()
+scanned = 0
+for dp, _dns, fns in os.walk(root):
+    for fn in fns:
+        if not fn.endswith('.qml'):
+            continue
+        path = os.path.join(dp, fn)
+        scanned += 1
+        body = strip(open(path, encoding='utf-8', errors='replace').read())
+        body = re.sub(r'"(?:[^"\\]|\\.)*"', '""', body)
+        for m in re.finditer(r'\b([A-Z]\w*)\.([a-z_]\w*)\b', body):
+            sing, mem = m.group(1), m.group(2)
+            if sing in members and mem not in members[sing]:
+                violations[(sing, mem, os.path.relpath(path, root))] += 1
+
+print("singletons=%d scanned=%d violations=%d" % (len(singles), scanned, len(violations)))
+for (sing, mem, rel), count in sorted(violations.items()):
+    print("  %s.%s x%d  %s" % (sing, mem, count, rel))
+sys.exit(1 if violations else 0)
+PYEOF
+}
+
+if [[ "$SELF_TEST" -eq 1 ]]; then
+    echo "singleton-prop-check --self-test"
+    echo
+    st_pass=0
+    st_fail=0
+    _spc_st() {
+        if [[ "$2" -eq 0 ]]; then
+            printf '  [PASS] self-test: %s\n' "$1"; st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s\n' "$1"; st_fail=$((st_fail + 1))
+        fi
+    }
+
+    if [[ ! -d "$FIXTURES_DIR" ]]; then
+        echo "  [FAIL] fixtures directory missing: $FIXTURES_DIR" >&2
+        exit 1
+    fi
+
+    _spc_scan "$FIXTURES_DIR/compliant" >/dev/null 2>&1
+    _spc_st "compliant/ -> every Roles.* reference names a declared member, INCLUDING one declared inside a nested object (the Colours.qml shape that forces over-approximation)" "$([[ $? -eq 0 ]] && echo 0 || echo 1)"
+
+    _spc_scan "$FIXTURES_DIR/poisoned-missing-member" >/dev/null 2>&1
+    _spc_st "poisoned-missing-member/ -> FAILS (a consumer reads Roles.notDeclaredAnywhere, the typo/removed-role class this gate exists for)" "$([[ $? -ne 0 ]] && echo 0 || echo 1)"
+
+    _spc_scan "$FIXTURES_DIR/poisoned-enum-lookalike" >/dev/null 2>&1
+    _spc_st "poisoned-enum-lookalike/ -> PASSES (Roles.SomeEnum has a CAPITAL second segment and must be excluded structurally as an enum/attached ref, never reported as a missing member)" "$([[ $? -eq 0 ]] && echo 0 || echo 1)"
+
+    _spc_scan "$FIXTURES_DIR/poisoned-comment-only" >/dev/null 2>&1
+    _spc_st "poisoned-comment-only/ -> PASSES (the only mention of a bogus member is in a comment and a string literal; a gate that matched its own target's prose would false-fail here)" "$([[ $? -eq 0 ]] && echo 0 || echo 1)"
+
+    echo
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+    exit $?
+fi
+
+TARGET="${TARGET_ARG:-quickshell/.config/quickshell}"
+if [[ ! -d "$TARGET" ]]; then
+    echo "singleton-prop-check: target directory does not exist: $TARGET" >&2
+    exit 2
+fi
+
+echo "singleton-prop-check — singleton member resolution"
+echo
+OUT="$(_spc_scan "$TARGET")"
+RC=$?
+HEAD_LINE="$(printf '%s\n' "$OUT" | head -1)"
+BODY="$(printf '%s\n' "$OUT" | tail -n +2)"
+
+if [[ "$RC" -eq 0 ]]; then
+    echo "  [PASS] every Singleton.member reference resolves ($HEAD_LINE)"
+    echo
+    echo "Summary: 1 passed, 0 checks failed"
+    exit 0
+fi
+
+echo "  [FAIL] unresolved Singleton.member references ($HEAD_LINE)"
+printf '%s\n' "$BODY"
+echo
+echo "Summary: 0 passed, 1 check failed"
+exit 1
