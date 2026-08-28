@@ -459,6 +459,36 @@ QSD_BAR_SURFACE_ROWS=(
     #    further permanent surfaces cannot break that assertion's
     #    `permanent == 1` cardinality.
     "EdgeBar.qml|quickshell-baredge-|pattern|2|reserve|permanent"
+    # ── Quick task 260828-so7 — the idle screensaver's own surface, added
+    #    by 1d6fa3b2 and never registered. Found by the FIRST live run of
+    #    this gate (2026-08-28): the reverse-closure half reported
+    #    `unregistered=1`, which is precisely the debt that half exists to
+    #    make unshippable. It shipped only because the gate had been
+    #    mis-classified as operator-only and never run.
+    #
+    #    Registered here rather than waved through QSD_KNOWN_NONBAR_FRAMES,
+    #    for the same reason the Phase 19 notification family was: that set
+    #    is explicitly for frames that PREDATE this registry, and this one
+    #    postdates it by months.
+    #
+    #    Every field verified against the file, none assumed:
+    #      `exact`     — ScreensaverSurface.qml:99 declares the bare literal
+    #                    "quickshell-screensaver" with no per-instance
+    #                    suffix, so there is nothing for a `pattern` row to
+    #                    match on. It shares no prefix with the
+    #                    `quickshell-bar-`/`quickshell-baredge-` pattern
+    #                    rows, so it cannot double-match.
+    #      `3`         — :98 declares WlrLayershell.layer: WlrLayer.Overlay.
+    #      `noreserve` — :96 declares `exclusiveZone: -1`, which
+    #                    _qsd_zone_is_noreserve accepts alongside 0. NOT a
+    #                    typo for 0: -1 also opts the surface out of
+    #                    honouring OTHER surfaces' exclusive zones, which is
+    #                    what lets a full-screen saver cover the bar. The
+    #                    bar remains the single RESERVING surface.
+    #      `transient` — a LazyLoader-summoned idle surface destroyed on
+    #                    dismiss, mirroring the OSD/power-menu rows rather
+    #                    than the permanent bar/edge/notif rows.
+    "screensaver/ScreensaverSurface.qml|quickshell-screensaver|exact|3|noreserve|transient"
 )
 
 # Pre-existing summonable layer-shell frames this phase did not add and
