@@ -1178,6 +1178,12 @@ PanelWindow {
                         onClearGroupRequested: appName => NotifServer.clearGroup(appName)
                     }
                 }
+                // Scroll indicator (quick task 260828-pol). Sibling of the view,
+                // never a child: a Flickable/ListView appends Item children to its
+                // scrolled contentItem, so a bar declared inside scrolls away.
+                ThemedScrollBar {
+                    flickable: historyList
+                }
             }
 
             // ── News tab — page 1 of the pager (quick task

@@ -842,6 +842,12 @@ PanelDialog {
                 node: modelData
             }
         }
+        // Scroll indicator (quick task 260828-pol). Sibling of the view,
+        // never a child: a Flickable/ListView appends Item children to its
+        // scrolled contentItem, so a bar declared inside scrolls away.
+        ThemedScrollBar {
+            flickable: streamListView
+        }
 
         // Rendered whole, not staggered (D-15-08): staggering N
         // asynchronously-arriving rows at D-21's offsets breaks the

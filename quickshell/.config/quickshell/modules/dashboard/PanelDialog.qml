@@ -518,6 +518,12 @@ PanelWindow {
                 spacing: panelWindow.spacingMd
             }
         }
+        // Scroll indicator (quick task 260828-pol). Sibling of the view,
+        // never a child: a Flickable/ListView appends Item children to its
+        // scrolled contentItem, so a bar declared inside scrolls away.
+        ThemedScrollBar {
+            flickable: bodyFlick
+        }
 
         // ── D-15-09 empty-state placeholder — the D-41/D-15-26 case 4
         //    "quiet Material Symbol plus one line" grammar, rendered only

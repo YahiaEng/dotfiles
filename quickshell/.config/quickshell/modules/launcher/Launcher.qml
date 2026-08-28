@@ -1332,6 +1332,12 @@ PanelWindow {
                         }
                     }
                 }
+                // NO scroll indicator here, deliberately: this ListView is the ROOT of
+                // a Component, which may hold exactly one item, so a sibling bar is a
+                // hard parse error (measured: 'Invalid component body specification').
+                // Wrapping it in an Item would change what resultsLoader.item IS, and
+                // Launcher duck-types that object's activate()/currentIndex — not worth
+                // breaking a working contract for an indicator on a keyboard-driven list.
             }
 
             // ── `=` calc, `@` websearch, `/` files — thin wrappers around
@@ -1588,6 +1594,12 @@ PanelWindow {
                                 }
                             }
                         }
+                    }
+                    // Scroll indicator (quick task 260828-pol). Sibling of the view,
+                    // never a child: a Flickable/ListView appends Item children to its
+                    // scrolled contentItem, so a bar declared inside scrolls away.
+                    ThemedScrollBar {
+                        flickable: providerListView
                     }
                 }
             }
