@@ -218,6 +218,13 @@ Singleton {
         "services.newsTtlMinutes",
         "services.resourcesPollMs",
         "services.updatesPollMs",
+        // Quick task 260828-75k — the package workbench. Two keys only:
+        // the update-check interval already exists above as
+        // services.updatesPollMs (its row MOVED from the Services page to
+        // Settings > Packages rather than being duplicated), and the bar
+        // capsule's visibility already exists as bar.entries.updates.
+        "packages.includeAur",
+        "packages.warnOrphans",
         "region.unitsTemp",
         "region.unitsWind",
         "region.unitsPrecip",
@@ -347,6 +354,12 @@ Singleton {
         "services.newsTtlMinutes": 0,
         "services.resourcesPollMs": 2000,
         "services.updatesPollMs": 1800000,
+        // Quick task 260828-75k. Both default ON: the AUR blindness this
+        // task fixed was a defect, not a preference, so the corrected
+        // behaviour is the default and the toggle exists to opt OUT of a
+        // network call rather than to opt IN to correctness.
+        "packages.includeAur": true,
+        "packages.warnOrphans": true,
         "region.unitsTemp": "auto",
         "region.unitsWind": "auto",
         "region.unitsPrecip": "auto",

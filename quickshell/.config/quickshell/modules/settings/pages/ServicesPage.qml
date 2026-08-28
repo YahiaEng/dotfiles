@@ -57,14 +57,9 @@ PageBase {
             value: Prefs.getValue("services.resourcesPollMs") / 1000
             onMoved: (v) => Prefs.setValue("services.resourcesPollMs", Math.round(v) * 1000)
         }
-        StepperRow {
-            label: "Update check"
-            subtext: "How often the bar checks for pending package updates (minutes)"
-            from: 5
-            to: 240
-            stepSize: 5
-            value: Prefs.getValue("services.updatesPollMs") / 60000
-            onMoved: (v) => Prefs.setValue("services.updatesPollMs", Math.round(v) * 60000)
-        }
+        // "Update check" MOVED to Settings > Packages (quick task
+        // 260828-75k). It sets services.updatesPollMs, which is still the
+        // one key — the row moved to sit beside the rest of the package
+        // settings rather than being duplicated in two pages.
     }
 }

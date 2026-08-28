@@ -129,6 +129,12 @@ Singleton {
     readonly property Component securityComp: Component {
         SecurityPage {}
     }
+    // Packages (quick task 260828-75k). A plain Component, not
+    // StackPage-wrapped: the page is flat and has no sub-pages. It is
+    // deliberately thin — the browser is the workbench window, not this.
+    readonly property Component packagesComp: Component {
+        PackagesPage {}
+    }
     readonly property Component aboutComp: Component {
         AboutPage {}
     }
@@ -154,6 +160,7 @@ Singleton {
         languageRegionComp,
         updatesComp,
         securityComp,
+        packagesComp,
         aboutComp
     ]
 
@@ -179,6 +186,7 @@ Singleton {
         "language-region",
         "updates",
         "security",
+        "packages",
         "about"
     ]
 

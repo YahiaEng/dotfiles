@@ -249,7 +249,6 @@ Singleton {
         { pageIdx: 12, section: "Polling", label: "Weather refresh", keywords: "services polling weather refresh interval minutes" },
         { pageIdx: 12, section: "Polling", label: "News cache lifetime", keywords: "services polling news cache ttl minutes" },
         { pageIdx: 12, section: "Polling", label: "System stats refresh", keywords: "services polling cpu memory gpu refresh interval seconds" },
-        { pageIdx: 12, section: "Polling", label: "Update check", keywords: "services polling updates check interval minutes" },
 
         // ── pageIdx 13 — Language & region (quick task 260825-wj2 Task 6) ─
         { pageIdx: 13, section: "Region", label: "UI language", keywords: "language region translation locale" },
@@ -291,16 +290,26 @@ Singleton {
 //    15). ─────────────────────────────────────────────────────────
         // Nine literal system fields (quick-260826-1n9 Task 4, D-3) —
         // replaces the single "System information" Repeater entry.
-        { pageIdx: 16, section: "System", label: "OS", keywords: "about system os operating system distro" },
-        { pageIdx: 16, section: "System", label: "Host", keywords: "about system host machine model" },
-        { pageIdx: 16, section: "System", label: "Kernel", keywords: "about system kernel linux version release" },
-        { pageIdx: 16, section: "System", label: "Uptime", keywords: "about system uptime running time" },
-        { pageIdx: 16, section: "System", label: "Packages", keywords: "about system packages installed pacman count" },
-        { pageIdx: 16, section: "System", label: "Shell version", keywords: "about system shell version bash zsh fish" },
-        { pageIdx: 16, section: "System", label: "CPU", keywords: "about system cpu processor" },
-        { pageIdx: 16, section: "System", label: "GPU", keywords: "about system gpu graphics card nvidia" },
-        { pageIdx: 16, section: "System", label: "Memory", keywords: "about system memory ram used total" },
-        { pageIdx: 16, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
-        { pageIdx: 16, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
+        // Packages (quick task 260828-75k), pageIdx 16. Every row
+        // primitive on PackagesPage.qml, in the order it appears — the
+        // page is deliberately thin, so this list is short.
+        { pageIdx: 16, section: "Package manager", label: "Open package manager", keywords: "packages pacman aur paru browse manager workbench octopi installed" },
+        { pageIdx: 16, section: "Package manager", label: "Orphans", keywords: "packages orphans unused unneeded cleanup remove disk reclaim" },
+        { pageIdx: 16, section: "Settings", label: "Update check", keywords: "packages updates interval poll check minutes frequency checkupdates" },
+        { pageIdx: 16, section: "Settings", label: "Include AUR updates", keywords: "packages aur updates paru include count foreign" },
+        { pageIdx: 16, section: "Settings", label: "Warn about orphans", keywords: "packages orphans warn notice unneeded" },
+        { pageIdx: 16, section: "Settings", label: "Show the updates pill on the bar", keywords: "packages bar pill capsule updates glyph badge count show hide" },
+        { pageIdx: 16, section: "Settings", label: "How changes are applied", keywords: "packages terminal paru root privilege polkit pkexec confirm transaction" },
+        { pageIdx: 17, section: "System", label: "OS", keywords: "about system os operating system distro" },
+        { pageIdx: 17, section: "System", label: "Host", keywords: "about system host machine model" },
+        { pageIdx: 17, section: "System", label: "Kernel", keywords: "about system kernel linux version release" },
+        { pageIdx: 17, section: "System", label: "Uptime", keywords: "about system uptime running time" },
+        { pageIdx: 17, section: "System", label: "Packages", keywords: "about system packages installed pacman count" },
+        { pageIdx: 17, section: "System", label: "Shell version", keywords: "about system shell version bash zsh fish" },
+        { pageIdx: 17, section: "System", label: "CPU", keywords: "about system cpu processor" },
+        { pageIdx: 17, section: "System", label: "GPU", keywords: "about system gpu graphics card nvidia" },
+        { pageIdx: 17, section: "System", label: "Memory", keywords: "about system memory ram used total" },
+        { pageIdx: 17, section: "Shell", label: "Shell", keywords: "about shell quickshell config surfaces" },
+        { pageIdx: 17, section: "Shell", label: "Credits", keywords: "about credits caelestia end-4 dots-hyprland reference" }
     ]
 }

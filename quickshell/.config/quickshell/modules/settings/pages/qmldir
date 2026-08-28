@@ -38,3 +38,7 @@ WallpaperCategoryPage 1.0 WallpaperCategoryPage.qml
 # Declared in the same commit that creates SecurityPage.qml, per this
 # manifest's own standing rule.
 SecurityPage 1.0 SecurityPage.qml
+# Packages (quick task 260828-75k) — flat, no sub-pages. Declared in the
+# same commit that creates PackagesPage.qml, per this manifest's own
+# standing rule.
+PackagesPage 1.0 PackagesPage.qml

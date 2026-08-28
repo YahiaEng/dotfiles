@@ -172,6 +172,20 @@ Singleton {
             slug: "security"
         },
         {
+            // The package workbench's settings (quick task 260828-75k).
+            // Sits in `system` beside Updates and Security: the three
+            // answer neighbouring questions ("is my software current?" /
+            // "is this machine safe?" / "what is actually installed?").
+            // Inserted BEFORE About so About stays last, as every prior
+            // page addition has kept it — About moves 16 -> 17, and its
+            // eleven RowIndex entries move with it.
+            label: "Packages",
+            icon: "inventory_2",
+            description: "Browse installed packages, the AUR, orphans, disk use",
+            category: "system",
+            slug: "packages"
+        },
+        {
             label: "About",
             icon: "info",
             description: "System information, credits",

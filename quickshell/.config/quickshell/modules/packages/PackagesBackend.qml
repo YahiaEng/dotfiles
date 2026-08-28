@@ -384,7 +384,16 @@ Singleton {
             root.repoUpdatesProbed = false;
             repoUpdProc.running = true;
         }
-        if (!aurUpdProc.running) {
+        // `packages.includeAur` off means the AUR probe is not RUN at
+        // all — the point of the toggle is to skip a network call, so
+        // running it and discarding the answer would defeat it. The list
+        // is cleared and marked probed so `updatesProbed` still settles
+        // and nothing waits forever on a check that will never happen.
+        if (!Prefs.getValue("packages.includeAur")) {
+            root.aurUpdates = [];
+            root.aurUpdatesProbed = true;
+            root._markChecked();
+        } else if (!aurUpdProc.running) {
             root.aurUpdatesProbed = false;
             aurUpdProc.running = true;
         }
