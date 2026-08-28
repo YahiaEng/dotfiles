@@ -6,8 +6,8 @@ status: milestone-complete
 stopped_at: "260828-75k COMPLETE AND OPERATOR-CONFIRMED (2026-08-28). An Octopi replacement in four surfaces over ONE PackagesBackend singleton: the D4 workbench window (sortable ledger, multi-select, removal-cascade preview), a thin Settings > Packages page, a `pkg` launcher route painted in the accent colour, and a repaired bar pill with a popout. Octopi is off the host. NOTHING IS OWED. The feature request uncovered a DEFECT first: the bar pill polled checkupdates alone and read 3 while 4 were pending, blind to the AUR. Measurements that decided the design: `pacman -Qi` returns all 1420 records with every field in 0.20s/1.33MB (so no cache, no daemon), and `pacman -Rs --print --print-format` resolves the FULL removal cascade WITHOUT root (6 orphans -> 11 real removals) which is the one capability that justified a whole window. Retired UpdatesPage.qml and UpdatesMode.qml, absorbing the per-package armed update. SIX TRAPS RECORDED IN THE SUMMARY, three of them mine: `find | head` truncated a survey and I drew an architectural conclusion from it TWICE (every module dir has a qmldir; the failures were undeclared types) which misfiled two files; menu leaf labels carry invisible Nerd Font glyphs so an edit matched on the visible label silently no-ops; `follow_mouse=1` makes Qt Window.active a HOVER signal so click-outside needs HyprlandFocusGrab; a drag delta measured in the dragged thing's own frame drifts with speed, anchor on scene coords at press; pacman writes the error summary to stderr but the reasons to stdout; qmllint is blind here (rc=0 on a truncated file, positive-control verified). NEXT REAL DECISION, unchanged: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog."
 last_updated: "2026-08-28T11:05:00.000Z"
 last_activity: 2026-08-28
-last_activity_desc: "Atelier operator round 1 — nine defects closed (title bar, drag-to-move, size persistence, family grouping, icon detail pane at 22px, resizable rails, uninstall). Still NOT operator-verified."
-state_head: 6075ef1f
+last_activity_desc: "Atelier operator round 2 — chip brightness, selection highlight (4th same-role-as-surface recurrence), and the teardown race that wrote the clamp floor over the saved window size."
+state_head: 123f6544
 progress:
   total_phases: 6
   completed_phases: 6
@@ -1405,7 +1405,29 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — Atelier round 1 done. Still NOT operator-verified.
+### ▶ RESUME HERE — Atelier round 2 done. Still NOT operator-verified.
+
+**Round 2 closed three defects (`123f6544`), and all three had causes the
+round-1 code review missed because the code READ correctly.**
+
+**THE LESSON: the decisive instrument was `prefs.json`, not the source.** The
+window size "not persisting" was not a failed write — it was a successful write
+of the wrong value: teardown fires `onWidthChanged` with width collapsing to 0,
+and `Math.max(760, 0)` clamped it UP to the floor and saved that. The stored
+value was exactly `760x480`, both minimums, while two other keys on the same
+Prefs path had persisted fine. **Clamping turns an invalid sample into a
+plausible one** — reject, do not clamp.
+
+**Selection was the same colour as its own backing surface** (row
+`surfaceVariant` on a `surfaceVariant` panel) — the FOURTH recurrence of that
+class here. Both identity comparisons were sound and were a dead end; the
+study had already specified accent-at-13% plus an accent bar.
+
+**Residue:** `prefs.json` still holds the poisoned `760x480`. Not hand-edited
+because the live shell holds Prefs in memory and would overwrite it. The window
+opens small ONCE more, then the first resize sticks permanently.
+
+### Previous checkpoint — Atelier round 1 (superseded, round 2)
 
 **Operator round 1 closed all nine reported defects** — `534fcafd`..`6075ef1f`,
 pushed. The through-line: **the build had drifted from the study artifact**, and

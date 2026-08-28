@@ -231,6 +231,69 @@ click, screenshot, or restart. Round 1 adds these:
 7. Uninstall an icon theme; confirm the package list is right before letting it run. **Try `Adwaita` specifically** — it must list two packages.
 8. Uninstall an unowned user-dir theme (`~/.local/share/icons/Papirus`) — it should offer a path deletion, not a package removal.
 
+## Operator Round 2 — three defects, all root-caused by measuring first
+
+`123f6544`. **Every one had a cause the round-1 code review did not catch,
+because the code read correctly in all three cases.**
+
+**1. Size persistence did not fail on the write path — it succeeded with the
+wrong value.** The decisive measurement was `prefs.json`, not the source: it
+held `atelierWidth: 760, atelierHeight: 480` — **both minimums to the pixel** —
+while `iconsRailWidth: 233` and `catalogueLeftWidth: 432`, written through the
+SAME Prefs path, had persisted fine. So Prefs worked and the value was wrong.
+`onWidthChanged`/`onHeightChanged` also fire during LazyLoader teardown, where
+`width` collapses toward 0; round 1's `Math.max(760, 0)` turned that into 760
+and wrote it, so **every close overwrote the operator's real size with the
+clamp floor.** The clamp was the bug: clamping converts an invalid sample into
+a plausible one, making bad data indistinguishable from a deliberate minimum.
+Invalid samples are now rejected (`!visible`, or below `minimumSize`), never
+clamped.
+
+**2. Selection highlight was the same role as the surface behind it.** Rows
+were `Colours.surfaceVariant`; the Atelier's body panel IS `surfaceVariant`
+(`Atelier.qml`'s `surfaceBase` at 0.78 opacity). The detail pane updated
+correctly the whole time — which is exactly what "they expand on the right but
+do not get highlighted" describes. **Fourth recurrence of this class in this
+shell** after the Dial track and 14-10's GPU ring: a widget that draws nothing
+is usually the same colour as its backing surface, not broken data. Both
+identity comparisons were sound (`string === string` in Icons, `.family ===
+.family` in Fonts) — I checked those first and they were a dead end. The study
+had already specified the answer and the build diverged from it: `.frow.sel` is
+`rgba(255,121,198,.13)` plus `border-left: 2px solid var(--stage-acc)`. Now the
+accent at 13% plus a real 2px accent bar, neither able to collide with a
+surface role. Applied to the tab bar too, which had the same collision.
+
+**3. The chips did follow the palette — just not the shell's resting
+treatment.** `compareChip` already rested quiet (transparent fill, outline
+border, `onSurfaceVariant` label) and took the accent only when ACTIVE.
+Apply/Install/Uninstall instead wore full-strength `primary`/`error` border AND
+label at all times, several to a screen, on a `surfaceVariant` panel. That
+inconsistency is what read as "too bright and does not follow theme". Accent is
+now reserved for hover and genuine state; accent-for-real-state (the active
+theme's name, the search cursor) was deliberately left alone.
+
+**A WRONG HYPOTHESIS, KILLED BY MEASUREMENT BEFORE IT COST ANYTHING.** I
+suspected `Atelier.qml:171`'s
+`Qt.rgba(win.surfaceBase.r, win.surfaceBase.g, win.surfaceBase.b, …)` was the
+recorded pure-black bug (Colours roles are strings, so `.r/.g/.b` are
+undefined). It is not: `surfaceBase` is declared `readonly property color`, so
+the string is coerced and the components are valid — same as `Workbench.qml`,
+which carries a comment recording exactly why. Checking beat asserting, and it
+was that check which surfaced the real cause of defect 2.
+
+Gates after the round: `colour-lint` 566/0, `motion-lint` 751/0,
+`qml-import-check` 0 unresolved / 190 files, `settings-index-check` 191/0.
+Live load verified clean by line position — last `Configuration Loaded` at line
+9221 of 9225, zero errors after it.
+
+### Known residue
+
+`prefs.json` still holds the poisoned `760x480` from before the fix. It was
+deliberately NOT hand-edited: the live shell keeps Prefs in memory
+(`watchChanges: false`) and would overwrite a disk edit. **The window will open
+at minimum size once more; the first resize after that persists correctly and
+permanently.**
+
 ## Operator Checklist — everything below needs a human
 
 None of the 17 items in the plan's own `<operator_checklist>` could be run
