@@ -134,6 +134,13 @@ Singleton {
     readonly property int criticalCount: _countAtMost(Severity.rankCritical)
     readonly property int actionableCount: _countAtMost(Severity.rankLow)
     readonly property int absentCount: findings.filter(f => f.rank === Severity.rankAbsent).length
+
+    // Real vulnerabilities with no released fix. Counted, never hidden —
+    // they stay in `findings` and in `actionableCount`, because "you
+    // cannot fix it today" is not the same as "it does not matter". The
+    // layout collapses them for readability; the numbers stay honest.
+    readonly property int unfixableCveCount: findings.filter(f => f.isCve === true && f.fixable === false).length
+    readonly property int fixableCveCount: findings.filter(f => f.isCve === true && f.fixable !== false).length
     readonly property int healthyCount: findings.filter(f => f.rank === Severity.rankOk).length
 
     // Worst rank present. Drives the capsule glyph and the posture header.
@@ -284,6 +291,15 @@ Singleton {
                     // verbatim.
                     title: c.pkg + " — " + c.severity,
                     detail: c.detail,
+                    // The distinction that decides everything downstream:
+                    // a CVE with a fixed version is something you can act
+                    // on today (`pacman -Syu`); one without is a to-do
+                    // item for Arch's security team, not for you.
+                    // MEASURED on this host: all 17 affected packages have
+                    // status "Vulnerable" with fixed: None, and
+                    // `arch-audit -u` returns nothing.
+                    fixable: c.fixedIn.length > 0,
+                    isCve: true,
                     actionVerb: "",
                     actionLabel: ""
                 });
@@ -308,10 +324,26 @@ Singleton {
                 out.push(f);
         }
 
-        // Worst first, then by domain so equal-rank rows group sensibly.
+        // Worst first; then ACTIONABLE first at equal severity; then by
+        // domain so equal-rank rows group sensibly.
+        //
+        // The middle key is the operator's round-5 request. Severity
+        // stays primary on purpose: a critical vulnerability nobody can
+        // fix yet still outranks a low one you could patch this minute —
+        // demoting it would be telling you the more dangerous thing
+        // matters less because it is inconvenient. Fixability only breaks
+        // ties.
+        //
+        // `fixable` defaults to TRUE for anything that does not set it
+        // (every non-CVE finding), so nothing else is demoted by a field
+        // it never opted into.
         out.sort(function (a, b) {
             if (a.rank !== b.rank)
                 return a.rank - b.rank;
+            var af = (a.fixable === false) ? 1 : 0;
+            var bf = (b.fixable === false) ? 1 : 0;
+            if (af !== bf)
+                return af - bf;
             return a.domain < b.domain ? -1 : (a.domain > b.domain ? 1 : 0);
         });
         return out;

@@ -166,7 +166,18 @@ Column {
                                 where = "…" + where.substring(where.length - 47);
                             return SecurityBackend.scanFilesSeen + " files checked · " + SecurityBackend.scanThreats + " threat(s) · " + where;
                         }
-                        return SecurityBackend.absentCount > 0 ? SecurityBackend.absentCount + " capability not set up · " + SecurityBackend.healthyCount + " healthy" : SecurityBackend.healthyCount + " healthy";
+                        // Name the unfixable share explicitly. "17
+                        // issues need attention" is true but reads as 17
+                        // things you are neglecting, when in fact none of
+                        // them can be acted on today. The count stays
+                        // honest; the sentence explains it.
+                        var parts = [];
+                        if (SecurityBackend.unfixableCveCount > 0)
+                            parts.push(SecurityBackend.unfixableCveCount + " awaiting an upstream fix");
+                        if (SecurityBackend.absentCount > 0)
+                            parts.push(SecurityBackend.absentCount + " not set up");
+                        parts.push(SecurityBackend.healthyCount + " healthy");
+                        return parts.join(" · ");
                     }
                     font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
@@ -349,7 +360,23 @@ Column {
             width: root.width
             spacing: Design.spacingSm
 
-            readonly property var rows: root._findingsIn(section.modelData)
+            readonly property var allRows: root._findingsIn(section.modelData)
+
+            // ── Unfixable CVEs collapse into ONE row ─────────────────
+            // Operator round 5. On this host all 17 affected packages
+            // report status "Vulnerable" with no fixed version, so 17
+            // non-actionable rows pushed Network and Devices off the
+            // screen entirely. They are still counted in the verdict and
+            // still readable one click away — collapsed, never dropped.
+            //
+            // Collapsing is scoped to CVEs with `fixable === false`.
+            // Nothing else in the pane is ever hidden behind a
+            // disclosure: every other finding either has a button or
+            // names a state you can do something about.
+            readonly property var rows: section.allRows.filter(f => !(f.isCve === true && f.fixable === false))
+            readonly property var hiddenRows: section.allRows.filter(f => f.isCve === true && f.fixable === false)
+
+            property bool expanded: false
 
             Row {
                 spacing: Design.spacingSm
@@ -387,6 +414,115 @@ Column {
                             width: sectionCol.width
                             finding: modelData
                             // The heading already names the domain.
+                            showDomain: false
+                            indexLabel: modelData ? modelData.id : ""
+                        }
+                    }
+
+                    // ── The disclosure row ──
+                    Item {
+                        width: sectionCol.width
+                        height: section.hiddenRows.length > 0 ? Math.max(56, discRow.implicitHeight + Design.spacingMd * 2) : 0
+                        visible: section.hiddenRows.length > 0
+
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.leftMargin: Design.spacingXs
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 3
+                            height: parent.height - Design.spacingMd
+                            radius: 2
+                            color: Severity.rim(Severity.rankAbsent)
+                        }
+
+                        Row {
+                            id: discRow
+                            anchors.fill: parent
+                            anchors.leftMargin: Design.spacingMd
+                            anchors.rightMargin: Design.spacingMd
+                            anchors.topMargin: Design.spacingMd
+                            anchors.bottomMargin: Design.spacingMd
+                            spacing: Design.spacingMd
+
+                            Rectangle {
+                                id: discChip
+                                width: Design.settingsIconSize
+                                height: Design.settingsIconSize
+                                radius: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                color: Severity.back(Severity.rankAbsent)
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    font.family: Design.symbolFontFamily
+                                    font.pixelSize: Design.fontBody
+                                    text: "hourglass_empty"
+                                    color: Severity.fg(Severity.rankAbsent)
+                                }
+                            }
+
+                            Column {
+                                width: discRow.width - discChip.width - discChevron.width - discRow.spacing * 2
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+
+                                Text {
+                                    width: parent.width
+                                    text: section.hiddenRows.length + (section.hiddenRows.length === 1 ? " vulnerability has no fix yet" : " vulnerabilities have no fix yet")
+                                    font.pixelSize: Design.settingsFontRow
+                                    color: Colours.onSurface
+                                    elide: Text.ElideRight
+                                }
+                                Text {
+                                    width: parent.width
+                                    // Say WHY there is nothing to do, so
+                                    // this does not read as the pane
+                                    // giving up. Arch has acknowledged
+                                    // these but has not shipped a fixed
+                                    // package; your system is current.
+                                    text: section.expanded ? "Arch has acknowledged these but not yet released a fix. Nothing to install." : "Arch has acknowledged these but not yet released a fix — tap to review them."
+                                    font.pixelSize: Design.settingsFontSub
+                                    color: Colours.onSurfaceVariant
+                                    wrapMode: Text.WordWrap
+                                }
+                            }
+
+                            Text {
+                                id: discChevron
+                                anchors.verticalCenter: parent.verticalCenter
+                                font.family: Design.symbolFontFamily
+                                font.pixelSize: Design.iconSizeMd
+                                text: "expand_more"
+                                color: Colours.onSurfaceVariant
+                                rotation: section.expanded ? 180 : 0
+
+                                Behavior on rotation {
+                                    enabled: Motion.motionEnabled
+                                    NumberAnimation {
+                                        duration: Motion.standardDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.standardEasing
+                                    }
+                                }
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: section.expanded = !section.expanded
+                        }
+                    }
+
+                    // The collapsed rows themselves.
+                    Repeater {
+                        model: section.expanded ? section.hiddenRows : []
+
+                        FindingRow {
+                            required property var modelData
+
+                            width: sectionCol.width
+                            finding: modelData
                             showDomain: false
                             indexLabel: modelData ? modelData.id : ""
                         }
