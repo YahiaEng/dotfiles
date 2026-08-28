@@ -59,6 +59,15 @@ singleton CavaService 1.0 CavaService.qml
 # call site owns its own instance, the same shape as Bar/Dashboard/
 # Overview above.
 ThemedToolTip 1.0 ThemedToolTip.qml
+# ThemedScrollBar (quick task 260828-nav) — the shared scroll indicator.
+# Registered here rather than in settings/'s own manifest for exactly the
+# cross-tree reason ThemedToolTip is: censused 39 files carrying a
+# Flickable/ListView/GridView against only 3 carrying a ScrollBar, so this
+# type has to resolve from settings/, bar/, dashboard/, centre/, packages/
+# and launcher/ alike. Not a singleton — one instance per scrollable
+# surface, same posture as ThemedToolTip. Declared in the same commit that
+# creates the file, per this manifest's own standing instruction.
+ThemedScrollBar 1.0 ThemedScrollBar.qml
 # EdgeBar (quick task 260823-9ak, Task 3, R1/R4/D-2) — the always-on top/
 # bottom strip. Registered here, a sibling of Bar.qml/Dashboard.qml/
 # Overview.qml, deliberately NOT under modules/bar/ — see the file's own

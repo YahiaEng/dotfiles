@@ -132,6 +132,24 @@ Item {
         }
     }
 
+    // Sibling of bodyFlick, never a child of it — a Flickable's default
+    // property appends Item children to its scrolled contentItem, so a bar
+    // declared inside would scroll out of the viewport it reports on.
+    ThemedScrollBar {
+        flickable: bodyFlick
+    }
+
+    // The wheel handler is scoped to the page body rather than the whole
+    // page, so it cannot fight the NavRail's own handler.
+    WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: event => {
+            const delta = event.angleDelta.y;
+            const maxY = Math.max(0, bodyFlick.contentHeight - bodyFlick.height);
+            bodyFlick.contentY = Math.max(0, Math.min(maxY, bodyFlick.contentY - delta));
+        }
+    }
+
     Flickable {
         id: bodyFlick
         anchors.top: headerColumn.bottom
@@ -143,6 +161,20 @@ Item {
         clip: true
         contentHeight: bodyColumn.implicitHeight
         boundsBehavior: Flickable.StopAtBounds
+        // Default Flickable wheel handling moves in coarse content-relative
+        // jumps; an explicit pixel step plus an animated contentY turns each
+        // notch into a fixed glide. This is the "clunky" the operator named.
+        flickDeceleration: 4000
+        maximumFlickVelocity: 3500
+
+        Behavior on contentY {
+            enabled: Motion.motionEnabled && !bodyFlick.dragging && !bodyFlick.flicking
+            NumberAnimation {
+                duration: Motion.standardDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.standardEasing
+            }
+        }
 
         Column {
             id: bodyColumn

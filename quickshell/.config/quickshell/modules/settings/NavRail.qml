@@ -112,13 +112,41 @@ Item {
             }
         }
 
-        Flickable {
-            id: flick
+        // QML anchors resolve only against a parent or a SIBLING. The bar
+        // therefore cannot live at rail level and anchor to a Flickable
+        // nested inside this Column — measured, not assumed: that shape
+        // logged "Cannot anchor to an item that isn't a parent or sibling"
+        // and rendered nothing. This host Item exists purely to give the bar
+        // and the Flickable a common parent. The bar must also stay OUT of
+        // the Flickable itself, whose default property appends Item children
+        // to the scrolled contentItem.
+        Item {
+            id: flickHost
             width: parent.width
             height: parent.height - searchField.height - railColumn.spacing
+
+        Flickable {
+            id: flick
+            anchors.fill: parent
             contentHeight: root.sState.searchText.length > 0 ? searchColumn.implicitHeight : pageColumn.implicitHeight
             clip: true
             boundsBehavior: Flickable.StopAtBounds
+            // A bare Flickable takes the wheel through its own default
+            // handling, which moves in coarse content-relative jumps and is
+            // what made this rail feel steppy. A WheelHandler with an explicit
+            // pixel step and a Behavior on contentY turns each notch into a
+            // fixed, animated glide instead.
+            flickDeceleration: 4000
+            maximumFlickVelocity: 3500
+
+            Behavior on contentY {
+                enabled: Motion.motionEnabled && !flick.dragging && !flick.flicking
+                NumberAnimation {
+                    duration: Motion.standardDuration
+                    easing.type: Easing.BezierSpline
+                    easing.bezierCurve: Motion.standardEasing
+                }
+            }
 
             Column {
                 id: pageColumn
@@ -129,8 +157,14 @@ Item {
                 Repeater {
                     model: PageRegistry.pages
 
-                    delegate: Rectangle {
-                        id: navItem
+                    // ROLE-01/260828-nav: the delegate is an Item WRAPPER, not
+                    // the row Rectangle itself, purely so a category boundary
+                    // can add top margin. A Column gives every child the same
+                    // `spacing`; the extra gap that separates one category
+                    // from the next has to come from the item's own height,
+                    // with the visible row anchored to its bottom.
+                    delegate: Item {
+                        id: navSlot
 
                         required property var modelData
                         required property int index
@@ -139,12 +173,37 @@ Item {
                         readonly property bool isCategoryStart: index === 0 || PageRegistry.pages[index - 1].category !== modelData.category
                         readonly property bool isCategoryEnd: index === PageRegistry.pages.length - 1 || PageRegistry.pages[index + 1].category !== modelData.category
 
+                        // The category gap. Caelestia's NavLocations expresses
+                        // grouping as gap + corner radii and carries NO section
+                        // header text — matched here rather than invented.
+                        readonly property int categoryGap: (isCategoryStart && index !== 0) ? Design.spacingMd : 0
+
                         width: pageColumn.width
+                        height: 72 + categoryGap
+
+                    Rectangle {
+                        id: navItem
+
+                        readonly property bool isCurrentPage: navSlot.isCurrentPage
+                        readonly property bool isCategoryStart: navSlot.isCategoryStart
+                        readonly property bool isCategoryEnd: navSlot.isCategoryEnd
+                        readonly property var modelData: navSlot.modelData
+
+                        anchors.bottom: parent.bottom
+                        width: parent.width
                         // 56 -> 72: the row carries two lines of text now
                         // (label + description) at the settings scale, where
                         // it used to carry one at the shell scale.
                         height: 72
-                        color: isCurrentPage ? Colours.secondaryContainer : Qt.alpha(Colours.secondaryContainer, 0)
+                        // Was `Qt.alpha(Colours.secondaryContainer, 0)` for
+                        // every unselected row — i.e. fully transparent, which
+                        // is why the corner-radius grouping below has been
+                        // invisible since it was written: a radius needs a fill
+                        // to be seen. The tonal ladder that makes a real filled
+                        // pill possible only arrived in quick task 260828-u0r.
+                        color: isCurrentPage ? Colours.secondaryContainer
+                             : navMouseArea.containsMouse ? Colours.surfaceContainerHighest
+                             : Colours.surfaceContainerHigh
 
                         topLeftRadius: isCurrentPage ? 20 : (isCategoryStart ? 16 : 4)
                         topRightRadius: navItem.topLeftRadius
@@ -198,13 +257,37 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Design.spacingMd
 
-                            Text {
-                                id: navIcon
+                            // Circular icon chip, matching Caelestia's
+                            // NavLocations (a StyledRect at rounding.full
+                            // filled m3primary when current, m3secondaryContainer
+                            // otherwise). Gives the rail its second grouping
+                            // cue and a much stronger selected state than a
+                            // bare glyph colour change.
+                            Rectangle {
+                                id: navIconChip
                                 anchors.verticalCenter: parent.verticalCenter
-                                font.family: Design.symbolFontFamily
-                                font.pixelSize: Design.settingsIconSize
-                                text: navItem.modelData.icon
-                                color: navItem.isCurrentPage ? Colours.onSecondaryContainer : Colours.onSurface
+                                width: Design.settingsIconSize * 2
+                                height: width
+                                radius: width / 2
+                                color: navItem.isCurrentPage ? Colours.primary : Colours.secondaryContainer
+
+                                Behavior on color {
+                                    enabled: Motion.motionEnabled
+                                    ColorAnimation {
+                                        duration: Motion.colourDuration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: Motion.colourEasing
+                                    }
+                                }
+
+                                Text {
+                                    id: navIcon
+                                    anchors.centerIn: parent
+                                    font.family: Design.symbolFontFamily
+                                    font.pixelSize: Design.settingsIconSize
+                                    text: navItem.modelData.icon
+                                    color: navItem.isCurrentPage ? Colours.onPrimary : Colours.onSecondaryContainer
+                                }
                             }
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter
@@ -212,7 +295,7 @@ Item {
                                 // Row gives its children their implicit width,
                                 // under which `elide` never fires and a long
                                 // description would push past the rail edge.
-                                width: Math.max(0, navRow.width - navIcon.width - navRow.spacing)
+                                width: Math.max(0, navRow.width - navIconChip.width - navRow.spacing)
                                 spacing: 0
 
                                 Text {
@@ -237,9 +320,10 @@ Item {
                             id: navMouseArea
                             anchors.fill: parent
                             hoverEnabled: true
-                            onClicked: root.sState.goToPage(navItem.index)
+                            onClicked: root.sState.goToPage(navSlot.index)
                         }
 
+                    }
                     }
                 }
             }
@@ -316,6 +400,22 @@ Item {
                     horizontalAlignment: Text.AlignHCenter
                 }
             }
+        }
+
+        // Siblings of `flick` inside flickHost — see flickHost's comment.
+        ThemedScrollBar {
+            flickable: flick
+        }
+
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: event => {
+                const step = 120;
+                const delta = event.angleDelta.y / 120 * step;
+                const maxY = Math.max(0, flick.contentHeight - flick.height);
+                flick.contentY = Math.max(0, Math.min(maxY, flick.contentY - delta));
+            }
+        }
         }
     }
 }
