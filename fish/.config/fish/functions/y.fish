@@ -1,4 +1,4 @@
-# Parity port of zshell/.zshrc's y() — yazi with cwd-follow on exit.
+# Parity port of the retired .zshrc's y() — yazi with cwd-follow on exit.
 # Shape follows the official yazi fish wrapper (yazi-rs docs).
 function y --description "yazi with cwd-follow on exit"
     set -l tmp (mktemp -t "yazi-cwd.XXXXXX")

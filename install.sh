@@ -118,7 +118,10 @@ PACMAN_PKGS=(
     # Terminal
     kitty
 
-    # Shell (interactive, launched via kitty.conf; login shell stays zsh — D-12)
+    # Shell — both interactive (via kitty.conf) and login. Was fish-for-kitty
+    # with zsh as the login shell under D-08/D-12; zsh was removed from repo
+    # and host on 2026-08-28, so fish is now the only configured shell and
+    # bash remains the untouched system fallback.
     fish
 
     # Searchable shell history for fish (Ctrl-R / Up). Official `extra`
@@ -473,8 +476,7 @@ AUR_PKGS=(
     # Rice
     matugen-bin
 
-    # Z-shell
-    zsh
+    # Prompt (fish)
     oh-my-posh
 
     # Code editors

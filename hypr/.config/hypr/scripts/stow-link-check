@@ -69,8 +69,10 @@
 #                               pre-creates alongside it
 #   .                           home-named    — top-level dotfiles a
 #                               package can place directly in $HOME.
-#                               Measured: only zshell ships one (~/.zshrc)
-#                               — named-allowlist, not a blanket depth-1
+#                               Measured 2026-08-28: NO package ships one
+#                               any more — zshell (~/.zshrc) was the only
+#                               one and is retired. Kept as a named
+#                               allowlist rather than a blanket depth-1
 #                               walk, because a blanket walk also reports
 #                               ~/.steampath (Steam's own artifact, never
 #                               stow-managed) and there is no known
@@ -182,29 +184,37 @@ SWEEP_ROOTS = [
     ('Pictures/Screenshots', 'recursive',
      'the sibling root stow.sh pre-creates alongside it'),
     ('.', 'home-named',
-     'top-level dotfiles a package can place directly in $HOME — measured: '
-     'only zshell ships one (~/.zshrc). Named-allowlist scoped (not a '
+     'top-level dotfiles a package can place directly in $HOME — measured '
+     '2026-08-28: NONE, zshell (~/.zshrc) was the only one and is retired. '
+     'Named-allowlist scoped (not a '
      'blanket depth-1 walk) because a blanket walk also reports '
      '~/.steampath, Steam\'s own artifact, never stow-managed — unlike '
      '.config there is no known retired-package orphan at this level to '
      'protect against a name-based narrowing (22-08 task 2 item 4)'),
 ]
 
-# ── 22-08/Task 2 item 4 — the ONLY top-level $HOME dotfile any PACKAGES
-#    entry ships, enumerated directly (zshell/.zshrc -> ~/.zshrc). Unlike
-#    .config's depth-1 pass (deliberately ungated, to keep catching a
-#    retired package's orphan with no current name to allowlist), this
-#    root has no equivalent known-orphan case — narrowing it to a name
-#    allowlist does not blind any real finding, and removes ~/.steampath
-#    (Steam's own artifact) from the sweep's declared territory.
-ALLOWED_HOME_DOTFILES = {'.zshrc'}
+# ── 22-08/Task 2 item 4 — every top-level $HOME dotfile any PACKAGES entry
+#    ships, enumerated directly. EMPTY as of 2026-08-28: zshell/.zshrc was
+#    the sole member and the package is retired. An empty set is correct,
+#    not a stub — walk_links_home_named yields nothing, so the '.' root
+#    contributes zero links and reports 0 dangling, which is exactly true.
+#    The root is kept declared (rather than dropped from SWEEP_ROOTS) so
+#    that a future package shipping a $HOME dotfile only has to add its
+#    name here. Unlike .config's depth-1 pass (deliberately ungated, to
+#    keep catching a retired package's orphan with no current name to
+#    allowlist), this root has no equivalent known-orphan case — narrowing
+#    it to a name allowlist does not blind any real finding, and removes
+#    ~/.steampath (Steam's own artifact) from the sweep's declared
+#    territory.
+ALLOWED_HOME_DOTFILES = set()
 
 # ── 22-08/Task 2 — .config recursion is ownership-gated. Every name here is
 #    a top-level ~/.config/<name> directory a PACKAGES entry ships,
 #    enumerated directly against each package's shipped tree (not guessed):
 #    cava, fastfetch, fish, gtk(-3.0/-4.0), hypr, kitty, matugen,
 #    nvim, quickshell, theme-engine, thunar (ships Thunar/ + xfce4/), uwsm,
-#    vscodium (ships VSCodium/), yazi, zshell (ships oh-my-posh/),
+#    vscodium (ships VSCodium/), yazi — plus fish's own oh-my-posh/, which
+#    moved here from the retired zshell package on 2026-08-28,
 #    plus hypr's own xdg-desktop-portal/ exception subtree. Whichever of
 #    these render as a single whole-directory-fold symlink on a given host
 #    (the common case on a fresh install) are already caught by the
@@ -511,6 +521,17 @@ try:
         non_exempt_dangling = [r for r, lp in dangling if path_is_exempt(r) is None]
         if links and not non_exempt_dangling:
             emit('PASS', f'{rel_path}: {len(links)} symlink(s), none dangling')
+        elif not links:
+            # 2026-08-28: a present root that yields ZERO links used to emit
+            # NOTHING — the check simply vanished from the report. That went
+            # from theoretical to real when zsh was retired: ALLOWED_HOME_DOTFILES
+            # emptied out (~/.zshrc was its only member) and the '.' root's
+            # line disappeared, taking the summary from 2 checks to 1 with no
+            # indication that a declared root had stopped being covered. A
+            # gate that quietly reports one fewer check is indistinguishable
+            # from a gate that lost coverage, so say it out loud instead.
+            emit('EMPTY', f'{rel_path}: 0 symlink(s) in scope — nothing to check '
+                          '(declared root, deliberately empty)')
 
     if denom > 0 and present_count == 0:
         emit('FAIL', f'0 of {denom} sweep roots present under {sweep_home} — '
@@ -582,6 +603,7 @@ run_sweep() {
             FAIL)       printf '  [FAIL] %s\n' "$detail"; fail_n=$((fail_n + 1)) ;;
             EXEMPT)     printf '  [EXEMPT] %s\n' "$detail" ;;
             SCOPE-SKIP) printf '  [SCOPE-SKIP] %s\n' "$detail" ;;
+            EMPTY)      printf '  [EMPTY] %s\n' "$detail" ;;
         esac
     done < "$out_file"
 

@@ -301,7 +301,7 @@ Singleton {
         { pageIdx: 16, section: "System", label: "Kernel", keywords: "about system kernel linux version release" },
         { pageIdx: 16, section: "System", label: "Uptime", keywords: "about system uptime running time" },
         { pageIdx: 16, section: "System", label: "Packages", keywords: "about system packages installed pacman count" },
-        { pageIdx: 16, section: "System", label: "Shell version", keywords: "about system shell version bash zsh fish" },
+        { pageIdx: 16, section: "System", label: "Shell version", keywords: "about system shell version bash fish" },
         { pageIdx: 16, section: "System", label: "CPU", keywords: "about system cpu processor" },
         { pageIdx: 16, section: "System", label: "GPU", keywords: "about system gpu graphics card nvidia" },
         { pageIdx: 16, section: "System", label: "Memory", keywords: "about system memory ram used total" },

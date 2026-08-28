@@ -32,7 +32,6 @@ PACKAGES=(
     vscodium
     wallpapers
     yazi
-    zshell
 )
 
 echo "╔══════════════════════════════════════════╗"
@@ -702,17 +701,23 @@ if [[ ! -e "$HOME/.face" ]]; then
     fi
 fi
 
-# ── Switch to zshell ─────────────────────────────────
+# ── Switch to fish ───────────────────────────────────
 # Pitfall 6/D-59: a non-root `chsh` prompts for the invoking user's login
 # password via PAM, breaking the strictly-zero-prompts requirement. A
 # root-privileged shell change bypasses that PAM prompt entirely.
 # WR-03: guarded — the shell change is cosmetic relative to the first-boot
-# theme seed below, so a missing zsh or a failed sudo/chsh must never abort
+# theme seed below, so a missing fish or a failed sudo/chsh must never abort
 # the script under set -e before that seed runs.
-if command -v zsh >/dev/null 2>&1; then
-    sudo chsh -s "$(command -v zsh)" "$USER" || echo "  ⚠ chsh failed — change shell manually" >&2
+#
+# Was zsh until 2026-08-28. D-08/D-12 had kitty run fish while the LOGIN
+# shell stayed zsh, so a broken fish config still left a working TTY. That
+# split is retired on operator instruction: zsh is removed from the repo and
+# the host, fish is both the interactive and the login shell, and bash
+# remains as the untouched system fallback.
+if command -v fish >/dev/null 2>&1; then
+    sudo chsh -s "$(command -v fish)" "$USER" || echo "  ⚠ chsh failed — change shell manually" >&2
 else
-    echo "  ⚠ zsh not installed — skipping shell change" >&2
+    echo "  ⚠ fish not installed — skipping shell change" >&2
 fi
 
 # ── Seed first-boot theme baseline (D-60/WR-07) ──────
