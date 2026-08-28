@@ -39,6 +39,25 @@ PageBase {
     // outside the shell should not have to wait for the next tick.
     Component.onCompleted: SecurityBackend.refreshAll()
 
+    // ── Let the polkit prompt have focus (operator round 4) ────────────
+    // Every privileged action raises an EXTERNAL toplevel
+    // (polkit-gnome-authentication-agent-1, "Authenticate"). Settings'
+    // HyprlandFocusGrab is exclusive and cannot include another process's
+    // window, so without this the operator's click on the password prompt
+    // is treated as a click outside the grab: Settings takes focus back
+    // and the prompt drops behind it — they had to close Settings to
+    // reach the box.
+    //
+    // A Binding rather than an assignment so the hold is RELEASED
+    // automatically if this page is destroyed mid-action; a leaked hold
+    // would disable click-outside-dismiss for the rest of the session.
+    Binding {
+        target: root.sState
+        property: "externalDialogOpen"
+        value: SecurityBackend.actionRunning
+        restoreMode: Binding.RestoreBindingOrValue
+    }
+
     SettingsSection {
         title: "Overview"
         icon: "security"
@@ -67,10 +86,34 @@ PageBase {
         title: "Scanning"
         icon: "policy"
 
-        InfoRow {
+        SelectRow {
             label: "Scan target"
             icon: "folder"
+            // Was an InfoRow. Operator round 4: "clicking on Scan target
+            // does nothing" — because InfoRow is explanatory by design and
+            // has no activated() signal at all. It looked like a control,
+            // so it became one.
             subtext: SecurityBackend.scanTarget
+            model: [
+                {
+                    value: "home",
+                    display: "Home folder"
+                },
+                {
+                    value: "downloads",
+                    display: "Downloads"
+                },
+                {
+                    value: "documents",
+                    display: "Documents"
+                },
+                {
+                    value: "root",
+                    display: "Whole filesystem (slow)"
+                }
+            ]
+            currentValue: Prefs.getValue("security.scanTarget")
+            onSelected: value => Prefs.setValue("security.scanTarget", value)
         }
 
         InfoRow {

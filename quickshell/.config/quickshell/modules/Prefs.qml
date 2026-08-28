@@ -236,6 +236,11 @@ Singleton {
         // two, avoiding the redundant-parent-row shape mediaConnectivity
         // was retired for on 2026-08-25.
         "security.showDashboardTab",
+        // Which tree a virus scan covers. A key, not a free-form path:
+        // the value is resolved to a real directory by SecurityBackend,
+        // so a hand-edited prefs.json cannot point a root-capable scan at
+        // an arbitrary location.
+        "security.scanTarget",
         // Quick task 260826-1n9 Task 7 — the weather location's
         // automatic/manual toggle and its three data fields. Consumer:
         // WeatherBackend.qml's computed `lat`/`lon`/`cityOverride`
@@ -358,6 +363,10 @@ Singleton {
         // width makes that jump worse. Shipped because the operator
         // asked for all four, defaulted off because it costs something.
         "security.showDashboardTab": false,
+        // Home, not "/": a whole-filesystem clamscan takes hours and
+        // mostly reads package-managed files that pacman already
+        // verifies. Home is where anything you downloaded actually lives.
+        "security.scanTarget": "home",
         // Quick task 260826-1n9 Task 7 — "auto" keeps an existing
         // hand-edited weather.json fully authoritative (D-8), exactly the
         // same reasoning "auto" already carries for the three units keys

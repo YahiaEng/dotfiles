@@ -101,6 +101,12 @@ Singleton {
     property var scanFindings: []
     property string scanLastResult: ""
     property double scanStartedAt: 0
+    // True from launch until clamscan's first `Scanning` line. The engine
+    // spends several seconds loading its signature database before any
+    // file is touched, and a progress bar with no explanation during that
+    // window reads as a hang.
+    property bool scanLoadingDb: false
+    property string scanCurrentPath: ""
 
     property bool actionRunning: false
     property string actionVerb: ""
@@ -446,21 +452,51 @@ Singleton {
         }
         onExited: (code, status) => {
             root.firewallEnabled = (fwEnabledCollector.text || "").trim() === "enabled";
+            root.firewallActive = root.firewallEnabled && root.firewallLoadedOk;
             root.firewallProbed = true;
         }
     }
 
+    // ── `is-active` IS THE WRONG QUESTION FOR THIS UNIT ──────────────
+    // Measured 2026-08-28, after the operator enabled the firewall and
+    // the pane still said "No firewall is running": nftables.service is
+    // `Type=oneshot` with NO RemainAfterExit and no ExecStop. It runs
+    // `nft -f /etc/nftables.conf`, loads the ruleset into the kernel and
+    // exits — so `systemctl is-active` reports `inactive` FOREVER, even
+    // though the ruleset is live. The journal showed the unit had run at
+    // 04:33:19 with status=0/SUCCESS while the UI claimed it was off.
+    //
+    // Reading the ruleset directly would be authoritative but needs root
+    // (`nft list table inet filter` -> "Operation not permitted"), and
+    // this singleton never runs a privileged read. The honest
+    // unprivileged answer is: the unit is enabled AND its last run
+    // succeeded.
+    //
+    // KNOWN LIMIT, stated rather than hidden: a manual `nft flush
+    // ruleset` after a successful load would leave this reporting active
+    // while the kernel has no rules. The pane cannot see that without
+    // privilege.
     Process {
         id: fwActiveProc
         running: false
-        command: ["systemctl", "is-active", "nftables.service"]
+        command: ["systemctl", "show", "nftables.service", "-p", "Result", "-p", "ExecMainStatus", "--value"]
         stdout: StdioCollector {
             id: fwActiveCollector
         }
         onExited: (code, status) => {
-            root.firewallActive = (fwActiveCollector.text || "").trim() === "active";
+            var lines = (fwActiveCollector.text || "").split("\n").map(l => l.trim()).filter(l => l.length > 0);
+            var result = lines.length > 0 ? lines[0] : "";
+            var mainStatus = lines.length > 1 ? lines[1] : "";
+            root.firewallLoadedOk = (result === "success" && mainStatus === "0");
         }
     }
+
+    // Enabled at boot AND last load succeeded. Both halves matter: enabled
+    // alone would claim a firewall on a machine where the ruleset failed
+    // to parse, and a successful past run alone would ignore that the
+    // operator has since turned it off.
+    property bool firewallLoadedOk: false
+    onFirewallLoadedOkChanged: root.firewallActive = root.firewallEnabled && root.firewallLoadedOk
 
     Process {
         id: exposureProc
@@ -603,7 +639,36 @@ Singleton {
     //  Scanning — the work that outlives every surface
     // ═══════════════════════════════════════════════════════════════
 
-    property string scanTarget: Quickshell.env("HOME") || "/home"
+    // Chosen by the operator (Settings -> Security -> Scan target) and
+    // persisted, so a scan started tomorrow covers the same ground. The
+    // fallback is HOME, which is what it was before this became a knob.
+    readonly property string scanTarget: {
+        var v = Prefs.getValue("security.scanTarget");
+        var home = Quickshell.env("HOME") || "/home";
+        if (!v || v === "home")
+            return home;
+        if (v === "downloads")
+            return home + "/Downloads";
+        if (v === "documents")
+            return home + "/Documents";
+        if (v === "root")
+            return "/";
+        return home;
+    }
+
+    readonly property string scanTargetLabel: {
+        var v = Prefs.getValue("security.scanTarget");
+        switch (v) {
+        case "downloads":
+            return "Downloads";
+        case "documents":
+            return "Documents";
+        case "root":
+            return "Whole filesystem";
+        default:
+            return "Home folder";
+        }
+    }
 
     function startVirusScan() {
         if (root.scanRunning || !root.hasTool("clamav"))
@@ -614,6 +679,8 @@ Singleton {
         root.scanFilesSeen = 0;
         root.scanThreats = 0;
         root.scanFindings = [];
+        root.scanCurrentPath = "";
+        root.scanLoadingDb = true;
         root.scanStartedAt = Date.now();
         virusScan.running = true;
     }
@@ -629,10 +696,17 @@ Singleton {
     Process {
         id: virusScan
         running: false
-        // --stdout puts findings on stdout so one parser sees everything.
-        // -r recursive, -i prints INFECTED only, which is what keeps the
-        // line volume survivable over a whole home directory.
-        command: ["clamscan", "-r", "-i", "--stdout", root.scanTarget]
+        // `-v`, NOT `-i`. MEASURED 2026-08-28: with `-i` clamscan prints
+        // absolutely nothing until the final SCAN SUMMARY, so
+        // `scanFilesSeen` stayed 0 for the entire run and the operator
+        // correctly reported "I do not know if it is hanging or doing its
+        // work". `-v` emits `Scanning <path>` and `<path>: OK` per file,
+        // which is the only live progress clamscan offers.
+        //
+        // The line volume that `-i` existed to avoid is handled by NOT
+        // accumulating: only a counter and the current path are kept, and
+        // FOUND lines still go into scanFindings.
+        command: ["clamscan", "-r", "-v", "--stdout", root.scanTarget]
 
         // SplitParser gives us a line at a time WHILE the process runs —
         // a StdioCollector would only hand us the text at exit, which
@@ -648,7 +722,19 @@ Singleton {
                     var f = root.scanFindings.slice();
                     f.push(t);
                     root.scanFindings = f;
+                } else if (t.indexOf("Scanning ") === 0) {
+                    // First `Scanning` line means the signature database
+                    // has finished loading — measured at 6.7s for 3.6M
+                    // signatures even on a two-file directory, which is
+                    // dead air the pane must not present as a stalled
+                    // scan.
+                    root.scanLoadingDb = false;
+                    root.scanFilesSeen = root.scanFilesSeen + 1;
+                    root.scanCurrentPath = t.substring(9);
                 } else if (t.indexOf("Scanned files:") === 0) {
+                    // The summary's count is authoritative — it counts
+                    // files clamscan actually scanned, where our `Scanning`
+                    // tally includes ones it then skipped.
                     var n = parseInt(t.split(":")[1]);
                     if (!isNaN(n))
                         root.scanFilesSeen = n;
@@ -659,6 +745,8 @@ Singleton {
             root.scanRunning = false;
             root.scanKind = "";
             root.scanProgress = 0;
+            root.scanLoadingDb = false;
+            root.scanCurrentPath = "";
             // clamscan exits 0 = clean, 1 = virus found, 2 = error.
             // Only 2 is a failure of the SCAN; 1 is a successful scan
             // with a bad result, and conflating them would report an

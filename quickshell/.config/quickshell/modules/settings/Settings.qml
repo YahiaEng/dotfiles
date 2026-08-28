@@ -316,8 +316,20 @@ FloatingWindow {
         // `windows` is a writable QObjectList and a FloatingWindow is already
         // valid in it — `win` itself is one.
         windows: [win].concat(win.sState.extraGrabWindows)
-        active: true
-        onCleared: win.closeRequested()
+        // Released while a page has an EXTERNAL toplevel up (a polkit
+        // password prompt, a portal dialog) — see
+        // SettingsState.externalDialogOpen for the measurement. Those
+        // windows belong to another process and cannot join `windows`
+        // above, so the exclusive grab has to step aside or their clicks
+        // land here instead.
+        active: !win.sState.externalDialogOpen
+        // Guarded for the same reason: with the grab released, the
+        // ordinary click-outside dismiss must not fire and close Settings
+        // out from under the dialog the operator is typing into.
+        onCleared: {
+            if (!win.sState.externalDialogOpen)
+                win.closeRequested();
+        }
     }
 
     Component.onCompleted: win.sState.currentPageIdx = win.initialPageIdx

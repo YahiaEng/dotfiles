@@ -228,4 +228,22 @@ QtObject {
         else
             root.goToPage(row.pageIdx);
     }
+    // ── External-dialog hold (quick task 260827-np1, operator round 4) ──
+    // `Settings.qml`'s HyprlandFocusGrab is EXCLUSIVE. `extraGrabWindows`
+    // handles extra QML toplevels (the Browse picker), but an external
+    // process's window cannot be added to it — so while a page has spawned
+    // one, the grab must be released entirely or every click on that
+    // dialog is treated as a click OUTSIDE the grab: the settings window
+    // takes focus back and the dialog drops behind it.
+    //
+    // MEASURED: `pkexec` raises `class polkit-gnome-authentication-agent-1`,
+    // title "Authenticate", already floating — so this was never a
+    // missing float rule, it was the grab. The operator had to close
+    // Settings entirely to reach the password prompt.
+    //
+    // A page sets this true while its external dialog is up. Kept as a
+    // plain bool driven by a `Binding` at the call site so it restores
+    // automatically if the page is destroyed mid-action.
+    property bool externalDialogOpen: false
+
 }

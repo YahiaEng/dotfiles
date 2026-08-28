@@ -131,34 +131,82 @@ Column {
 
                 Text {
                     width: parent.width
-                    text: SecurityBackend.scanRunning ? "Virus scan running · " + SecurityBackend.scanThreats + " threat(s) so far · you can leave this page" : (SecurityBackend.absentCount > 0 ? SecurityBackend.absentCount + " capability not set up · " + SecurityBackend.healthyCount + " healthy" : SecurityBackend.healthyCount + " healthy")
+                    // While scanning, say what is happening RIGHT NOW.
+                    // clamscan spends several seconds loading 3.6M
+                    // signatures before touching a file, and a bar with no
+                    // caption during that window is indistinguishable from
+                    // a hang — which is exactly how the operator read it.
+                    text: {
+                        if (SecurityBackend.scanRunning) {
+                            if (SecurityBackend.scanLoadingDb)
+                                return "Loading virus signatures… (this takes a few seconds)";
+                            var where = SecurityBackend.scanCurrentPath;
+                            if (where.length > 48)
+                                where = "…" + where.substring(where.length - 47);
+                            return SecurityBackend.scanFilesSeen + " files checked · " + SecurityBackend.scanThreats + " threat(s) · " + where;
+                        }
+                        return SecurityBackend.absentCount > 0 ? SecurityBackend.absentCount + " capability not set up · " + SecurityBackend.healthyCount + " healthy" : SecurityBackend.healthyCount + " healthy";
+                    }
                     font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                     wrapMode: Text.WordWrap
                 }
 
+                // ── Indeterminate bar (operator round 4: "moves to one
+                //    end then teleports", and "moves out of bounds" after
+                //    reopening the page) ────────────────────────────────
+                // Both were the same mistake: `XAnimator on x` with
+                // `from`/`to` captured at animation START.
+                //   * loops:Infinite RESTARTS at `from`, it does not
+                //     reverse — hence the teleport back to the left.
+                //   * `to` was frozen at whatever the track width was
+                //     when the animation began. Reopening the page starts
+                //     it while the width is still 0 or stale, so the bead
+                //     later travels to a value that no longer fits —
+                //     hence out of bounds. This is the same
+                //     configured-after-construction trap recorded for
+                //     Loaders.
+                // Fix: animate a unitless 0..1 driver and DERIVE x from
+                // the live width, so a resize is followed automatically
+                // and the value can never exceed the track. The
+                // ping-pong is explicit rather than implied.
                 Rectangle {
+                    id: progressTrack
                     visible: SecurityBackend.scanRunning
                     width: parent.width
                     height: 4
                     radius: 999
                     color: Qt.alpha(Colours.outline, 0.35)
+                    clip: true
 
-                    Rectangle {
-                        id: progressBead
-                        width: parent.width * 0.28
-                        height: parent.height
-                        radius: 999
-                        color: Severity.scanning
+                    property real sweep: 0
 
-                        XAnimator on x {
-                            running: SecurityBackend.scanRunning && Motion.motionEnabled
-                            loops: Animation.Infinite
+                    SequentialAnimation on sweep {
+                        running: progressTrack.visible && Motion.motionEnabled
+                        loops: Animation.Infinite
+                        NumberAnimation {
                             from: 0
-                            to: progressBead.parent.width - progressBead.width
+                            to: 1
                             duration: Motion.ambientDuration
                             easing.type: Easing.InOutQuad
                         }
+                        NumberAnimation {
+                            from: 1
+                            to: 0
+                            duration: Motion.ambientDuration
+                            easing.type: Easing.InOutQuad
+                        }
+                    }
+
+                    Rectangle {
+                        id: progressBead
+                        width: Math.max(24, progressTrack.width * 0.28)
+                        height: parent.height
+                        radius: 999
+                        color: Severity.scanning
+                        // Bound, never animated directly — this is what
+                        // makes a width change safe.
+                        x: Math.max(0, (progressTrack.width - width) * progressTrack.sweep)
                     }
                 }
             }
