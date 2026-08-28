@@ -114,7 +114,42 @@ Item {
                 width: rail.width
                 height: 44
                 radius: 10
-                color: railRow.selected ? Colours.surfaceVariant : "transparent"
+                // ── Operator round 2, defect 2 — WHY NOTHING LOOKED
+                //    SELECTED. ────────────────────────────────────────────
+                // The highlight was `Colours.surfaceVariant`, and the
+                // Atelier's own body panel IS `surfaceVariant`
+                // (`Atelier.qml`'s `surfaceBase`, drawn at 0.78 opacity).
+                // A selected row was therefore the same role as the
+                // surface behind it and read as no highlight at all,
+                // while the detail pane updated correctly — exactly the
+                // "expands on the right but does not highlight" report.
+                // This is the fourth recurrence of this class in this
+                // shell (the Dial track, and 14-10's GPU ring before it):
+                // a widget that draws nothing is usually the same colour
+                // as its backing surface, not broken data.
+                //
+                // The study already specified the answer and the build
+                // diverged from it — `.frow.sel` is
+                // `background: rgba(255,121,198,.13)` plus
+                // `border-left: 2px solid var(--stage-acc)`. That is the
+                // accent at 13%, which cannot collide with any surface
+                // role, plus an accent bar that survives even if the
+                // tint is lost to a low-contrast palette.
+                color: railRow.selected ? Qt.alpha(Colours.primary, 0.13) : "transparent"
+
+                // The study's `border-left: 2px solid var(--stage-acc)`.
+                // Kept as a real child rather than a border so it hugs
+                // the leading edge only; the 13% tint above carries the
+                // fill and this carries the identity.
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 2
+                    height: parent.height - Design.spacingSm * 2
+                    radius: 1
+                    color: Colours.primary
+                    visible: railRow.selected
+                }
 
                 Behavior on color {
                     enabled: Motion.motionEnabled
@@ -341,10 +376,24 @@ Item {
 
                 Rectangle {
                     id: applyChip
+                    // ── Operator round 2, defect 1 — the chips did follow
+                    //    the palette, but not the shell's own resting
+                    //    treatment. ────────────────────────────────────
+                    // `compareChip` a few lines down already rested
+                    // quiet (transparent fill, outline border,
+                    // onSurfaceVariant label) and only took the accent
+                    // when ACTIVE. Apply/Install/Uninstall instead wore
+                    // full-strength `Colours.primary` border AND label at
+                    // all times, on a `surfaceVariant` panel, several to
+                    // a screen — so they read as too bright and
+                    // inconsistent with everything around them. Accent is
+                    // now reserved for hover and for genuine state, which
+                    // is the treatment the rest of this window already
+                    // used.
                     radius: 99
-                    color: Qt.alpha(Colours.primary, 0.16)
+                    color: applyChipArea.containsMouse ? Qt.alpha(Colours.primary, 0.16) : "transparent"
                     border.width: 1
-                    border.color: Colours.primary
+                    border.color: applyChipArea.containsMouse ? Colours.primary : Qt.alpha(Colours.outline, 0.5)
                     width: applyLabel.implicitWidth + Design.spacingMd
                     height: applyLabel.implicitHeight + Design.spacingSm
 
@@ -352,12 +401,14 @@ Item {
                         id: applyLabel
                         anchors.centerIn: parent
                         text: "Apply"
-                        color: Colours.primary
+                        color: applyChipArea.containsMouse ? Colours.primary : Colours.onSurfaceVariant
                         font.pixelSize: Design.fontLabel
                         textFormat: Text.PlainText
                     }
 
                     MouseArea {
+                        id: applyChipArea
+                        hoverEnabled: true
                         anchors.fill: parent
                         onClicked: AppearanceBackend.applyIconTheme(root._effectiveSelected)
                     }
@@ -393,10 +444,24 @@ Item {
                 // explicit Uninstall button is clicked.
                 Rectangle {
                     id: uninstallChip
+                    // ── Operator round 2, defect 1 — the chips did follow
+                    //    the palette, but not the shell's own resting
+                    //    treatment. ────────────────────────────────────
+                    // `compareChip` a few lines down already rested
+                    // quiet (transparent fill, outline border,
+                    // onSurfaceVariant label) and only took the accent
+                    // when ACTIVE. Apply/Install/Uninstall instead wore
+                    // full-strength `Colours.primary` border AND label at
+                    // all times, on a `surfaceVariant` panel, several to
+                    // a screen — so they read as too bright and
+                    // inconsistent with everything around them. Accent is
+                    // now reserved for hover and for genuine state, which
+                    // is the treatment the rest of this window already
+                    // used.
                     radius: 99
-                    color: "transparent"
+                    color: uninstallChipArea.containsMouse ? Qt.alpha(Colours.error, 0.16) : "transparent"
                     border.width: 1
-                    border.color: Qt.alpha(Colours.error, 0.5)
+                    border.color: uninstallChipArea.containsMouse ? Colours.error : Qt.alpha(Colours.outline, 0.5)
                     width: uninstallLabel.implicitWidth + Design.spacingMd
                     height: uninstallLabel.implicitHeight + Design.spacingSm
 
@@ -404,12 +469,14 @@ Item {
                         id: uninstallLabel
                         anchors.centerIn: parent
                         text: "Uninstall"
-                        color: Colours.error
+                        color: uninstallChipArea.containsMouse ? Colours.error : Colours.onSurfaceVariant
                         font.pixelSize: Design.fontLabel
                         textFormat: Text.PlainText
                     }
 
                     MouseArea {
+                        id: uninstallChipArea
+                        hoverEnabled: true
                         anchors.fill: parent
                         onClicked: AppearanceBackend.proposeUninstallIconTheme(root._effectiveSelected)
                     }

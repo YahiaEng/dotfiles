@@ -46,7 +46,28 @@ Item {
                 width: tabLabel.implicitWidth + Design.spacingLg
                 height: 32
                 radius: 10
-                color: tabDelegate.selected ? Colours.surfaceVariant : "transparent"
+                // ── Operator round 2, defect 2 — WHY NOTHING LOOKED
+                //    SELECTED. ────────────────────────────────────────────
+                // The highlight was `Colours.surfaceVariant`, and the
+                // Atelier's own body panel IS `surfaceVariant`
+                // (`Atelier.qml`'s `surfaceBase`, drawn at 0.78 opacity).
+                // A selected row was therefore the same role as the
+                // surface behind it and read as no highlight at all,
+                // while the detail pane updated correctly — exactly the
+                // "expands on the right but does not highlight" report.
+                // This is the fourth recurrence of this class in this
+                // shell (the Dial track, and 14-10's GPU ring before it):
+                // a widget that draws nothing is usually the same colour
+                // as its backing surface, not broken data.
+                //
+                // The study already specified the answer and the build
+                // diverged from it — `.frow.sel` is
+                // `background: rgba(255,121,198,.13)` plus
+                // `border-left: 2px solid var(--stage-acc)`. That is the
+                // accent at 13%, which cannot collide with any surface
+                // role, plus an accent bar that survives even if the
+                // tint is lost to a low-contrast palette.
+                color: tabDelegate.selected ? Qt.alpha(Colours.primary, 0.13) : "transparent"
 
                 Behavior on color {
                     enabled: Motion.motionEnabled

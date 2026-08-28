@@ -114,9 +114,34 @@ LazyLoader {
         // move) updates `width`/`height` directly, never `implicitWidth`,
         // so this is the one place that persists what the operator
         // actually left the window at.
+        //
+        // ── Operator round 2, defect 3 — WHY THE ROUND-1 FIX DID NOT
+        //    STICK, and it was not the save path. ────────────────────────
+        // `onWidthChanged`/`onHeightChanged` also fire during TEARDOWN:
+        // the LazyLoader destroys this window on close, `width`/`height`
+        // collapse toward 0 on the way out, and the round-1 body then ran
+        // `Math.max(760, 0)` -> 760 and WROTE it. So every close
+        // overwrote the operator's real size with the clamp floor. Proof
+        // it was the floor and not a failed write: `prefs.json` held
+        // exactly `atelierWidth: 760, atelierHeight: 480` — both minimums
+        // to the pixel — while `iconsRailWidth: 233` and
+        // `catalogueLeftWidth: 432` from the SAME Prefs path had
+        // persisted fine.
+        //
+        // The bug is the clamp itself: clamping turns an INVALID sample
+        // into a plausible one, so bad data is indistinguishable from a
+        // deliberate minimum. Reject the sample instead. A window that is
+        // not visible, or is not yet laid out, has nothing worth saving.
         function _persistSize() {
-            var w = Math.max(760, Math.min(win._screenWidth, Math.round(win.width)));
-            var h = Math.max(480, Math.min(win._screenHeight, Math.round(win.height)));
+            if (!win.visible)
+                return;
+            // Below-minimum is teardown or pre-layout, never a real size:
+            // `minimumSize` prevents the compositor from ever handing us
+            // one legitimately.
+            if (win.width < 760 || win.height < 480)
+                return;
+            var w = Math.min(win._screenWidth, Math.round(win.width));
+            var h = Math.min(win._screenHeight, Math.round(win.height));
             if (w !== win.atelierWidth) {
                 win.atelierWidth = w;
                 Prefs.setValue("appearance.atelierWidth", w);

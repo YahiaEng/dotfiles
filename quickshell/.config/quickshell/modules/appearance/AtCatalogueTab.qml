@@ -222,14 +222,16 @@ Item {
                             width: installLabel.implicitWidth + Design.spacingMd
                             height: 28
                             radius: 8
-                            color: resultRow.modelData.installed ? Qt.alpha(Colours.outline, 0.2) : Qt.alpha(Colours.primary, 0.18)
+                            border.width: 1
+                            border.color: resultRow.modelData.installed ? "transparent" : Qt.alpha(Colours.outline, 0.5)
+                            color: resultRow.modelData.installed ? Qt.alpha(Colours.outline, 0.2) : (installButtonArea.containsMouse ? Qt.alpha(Colours.primary, 0.16) : "transparent")
 
                             Text {
                                 id: installLabel
                                 anchors.centerIn: parent
                                 text: resultRow.modelData.installed ? "Installed" : "Install"
                                 font.pixelSize: Design.fontLabel
-                                color: resultRow.modelData.installed ? Colours.outline : Colours.primary
+                                color: resultRow.modelData.installed ? Colours.outline : (installButtonArea.containsMouse ? Colours.primary : Colours.onSurfaceVariant)
                             }
 
                             MouseArea {
