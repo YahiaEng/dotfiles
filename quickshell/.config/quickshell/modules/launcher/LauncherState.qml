@@ -43,6 +43,13 @@ Singleton {
     readonly property string modeSymbols: "symbols"
     readonly property string modeProviderList: "providerlist"
     readonly property string modeWebSearch: "websearch"
+    // `+` packages (quick task 260828-75k). Appended, never inserted —
+    // this file's own standing instruction. `+` reads as "add a package"
+    // and was the only unclaimed character that does; the study drew this
+    // route as `pkg `, but every route here is a single character keyed on
+    // charAt(0) below, and a word prefix would need a second routing shape
+    // maintained beside the first.
+    readonly property string modePkg: "pkg"
     // Menu mode (quick task 260822-sht, Task 3) — the 9 D-2 verb-based
     // roots, drilled via `LauncherState.navStack` and rendered by
     // `MenuMode.qml`. Reached only via `pendingMode` on a fresh summon
@@ -61,7 +68,8 @@ Singleton {
             ":": root.modeClipboard,
             ".": root.modeSymbols,
             ";": root.modeProviderList,
-            "@": root.modeWebSearch
+            "@": root.modeWebSearch,
+            "+": root.modePkg
         })
 
     // Menu mode is intentionally EXEMPT from prefix routing (quick task

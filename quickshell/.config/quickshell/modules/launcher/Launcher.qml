@@ -47,6 +47,7 @@ import Quickshell.Hyprland
 import ".."
 import "."
 import "../dashboard"
+import "../packages"
 import "fuzzy.js" as Fuzzy
 
 PanelWindow {
@@ -1118,6 +1119,8 @@ PanelWindow {
                         return calcComponent;
                     case LauncherState.modeFiles:
                         return filesComponent;
+                    case LauncherState.modePkg:
+                        return pkgComponent;
                     case LauncherState.modeWebSearch:
                         return webSearchComponent;
                     case LauncherState.modeProviderList:
@@ -1312,6 +1315,18 @@ PanelWindow {
                 }
             }
 
+            // `+` packages (quick task 260828-75k). Activating a row opens
+            // the workbench on that package rather than installing or
+            // removing it — a launcher row is a lookup, and a transaction
+            // started from a fuzzy match on a half-typed name is exactly
+            // the accident this shell should not make easy.
+            Component {
+                id: pkgComponent
+
+                PkgMode {
+                }
+            }
+
             // ── Menu mode — the 9 D-2 verb-based roots (quick task
             //    260822-sht, Task 3). `dismissCallback` is evaluated in
             //    THIS Component's own enclosing scope (Launcher.qml's own
@@ -1458,6 +1473,10 @@ PanelWindow {
                         {
                             prefix: "@",
                             label: "Web search"
+                        },
+                        {
+                            prefix: "+",
+                            label: "Packages"
                         }
                     ]
                     property int currentIndex: 0

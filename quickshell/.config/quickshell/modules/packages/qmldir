@@ -45,3 +45,10 @@ WbButton 1.0 WbButton.qml
 # on hot reload, taking the bar down until it was moved. Declared here, it
 # resolves through this manifest like every other type in this directory.
 UpdatesPopout 1.0 UpdatesPopout.qml
+
+# D3's launcher route. Here rather than in modules/launcher/ for the same
+# reason UpdatesPopout is not in modules/bar/: that directory has no
+# explicit qmldir, and Quickshell's directory-scanner synthesis does not
+# pick up a file added after process start — the type never resolves and
+# the shell's whole config fails to load until a restart.
+PkgMode 1.0 PkgMode.qml
