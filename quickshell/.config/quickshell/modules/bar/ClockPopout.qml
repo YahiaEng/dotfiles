@@ -144,7 +144,7 @@ SectionPopout {
                     textFormat: Text.PlainText
                     text: weekdayCell.modelData.text
                     font.pixelSize: Design.fontLabel
-                    color: weekdayCell.modelData.isFriday ? Colours.tertiary : Colours.onSurfaceVariant
+                    color: weekdayCell.modelData.isFriday ? BarRoles.warn : BarRoles.capsuleFg
                 }
             }
         }
@@ -167,17 +167,17 @@ SectionPopout {
                         width: Math.min(parent.width, parent.height) - 4
                         height: width
                         radius: width / 2
-                        color: dayCell.modelData.isToday ? Colours.primary : "transparent"
+                        color: dayCell.modelData.isToday ? BarRoles.accent : "transparent"
                     }
                     Text {
                         anchors.centerIn: parent
                         textFormat: Text.PlainText
                         text: dayCell.modelData.day
                         font.pixelSize: Design.fontBody
-                        color: dayCell.modelData.isToday ? Colours.onPrimary
-                            : dayCell.modelData.isFriday ? Colours.tertiary
-                            : dayCell.modelData.inMonth ? Colours.onSurface
-                            : Colours.onSurfaceVariant
+                        color: dayCell.modelData.isToday ? BarRoles.onAccent
+                            : dayCell.modelData.isFriday ? BarRoles.warn
+                            : dayCell.modelData.inMonth ? BarRoles.popoutFg
+                            : BarRoles.capsuleFg
                         opacity: dayCell.modelData.inMonth ? 1 : 0.5
                     }
                 }

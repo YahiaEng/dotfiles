@@ -75,7 +75,7 @@ SectionPopout {
         elide: Text.ElideRight
         font.pixelSize: Design.fontBody
         font.weight: Design.weightEmphasis
-        color: Colours.onSurface
+        color: BarRoles.popoutFg
     }
 
     Row {
@@ -91,7 +91,7 @@ SectionPopout {
             font.pixelSize: Design.iconSizeMd
             textFormat: Text.PlainText
             text: (root.audioBackend && root.audioBackend.masterMuted) ? "volume_off" : "volume_up"
-            color: (root.audioBackend && root.audioBackend.masterMuted) ? Colours.onSurfaceVariant : Colours.primary
+            color: (root.audioBackend && root.audioBackend.masterMuted) ? BarRoles.capsuleFg : BarRoles.accent
 
             // F2 (quick task 260812-69w) — deliberately LEFT AS a standalone
             // ToolTip, not converted to BarTooltipHost. This popout renders
@@ -150,13 +150,13 @@ SectionPopout {
                 width: audioVolumeSlider.availableWidth
                 height: 8
                 radius: 4
-                color: Colours.surfaceVariant
+                color: BarRoles.popoutSurfaceVariant
 
                 Rectangle {
                     width: audioVolumeSlider.visualPosition * parent.width
                     height: parent.height
                     radius: parent.radius
-                    color: Colours.primary
+                    color: BarRoles.accent
                 }
             }
             handle: Rectangle {
@@ -165,7 +165,7 @@ SectionPopout {
                 width: 20
                 height: 20
                 radius: 10
-                color: Colours.primary
+                color: BarRoles.accent
             }
         }
     }
@@ -187,7 +187,7 @@ SectionPopout {
                 width: parent.width
                 height: Design.iconSizeMd + Design.spacingSm * 2
                 radius: Design.spacingSm
-                color: sinkMouseArea.containsMouse ? Colours.surfaceVariant : "transparent"
+                color: sinkMouseArea.containsMouse ? BarRoles.popoutSurfaceVariant : "transparent"
 
                 Text {
                     anchors.left: parent.left
@@ -198,7 +198,7 @@ SectionPopout {
                     textFormat: Text.PlainText
                     elide: Text.ElideRight
                     text: root.audioBackend ? root.audioBackend.deviceLabel(sinkRow.modelData) : ""
-                    color: Colours.onSurface
+                    color: BarRoles.popoutFg
                 }
 
                 MouseArea {

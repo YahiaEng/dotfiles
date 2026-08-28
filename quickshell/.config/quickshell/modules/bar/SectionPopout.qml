@@ -55,11 +55,11 @@ PanelWindow {
 
     function stateColour(state) {
         switch (state) {
-        case "populated": return Colours.onSurface;
-        case "pending": return Colours.primary;
-        case "empty": return Colours.onSurfaceVariant;
-        case "failed": return Colours.error;
-        default: return Colours.onSurface;
+        case "populated": return BarRoles.popoutFg;
+        case "pending": return BarRoles.accent;
+        case "empty": return BarRoles.capsuleFg;
+        case "failed": return BarRoles.danger;
+        default: return BarRoles.popoutFg;
         }
     }
 
@@ -691,14 +691,14 @@ PanelWindow {
                     font.pixelSize: Design.iconSizeMd
                     text: popoutWindow.popoutGlyph
                     textFormat: Text.PlainText
-                    color: Colours.onSurface
+                    color: BarRoles.popoutFg
                 }
                 Text {
                     text: popoutWindow.popoutTitle
                     font.pixelSize: Design.fontHeading
                     font.weight: Design.weightEmphasis
                     textFormat: Text.PlainText
-                    color: Colours.onSurface
+                    color: BarRoles.popoutFg
                 }
             }
         }
@@ -788,7 +788,7 @@ PanelWindow {
                 height: parent.height
                 anchors.horizontalCenter: parent.horizontalCenter
                 radius: height / 2
-                color: Colours.surfaceVariant
+                color: BarRoles.popoutSurfaceVariant
                 opacity: popoutWindow.wayfindingAvailable ? 1 : popoutFoot.disabledOpacity
 
                 Text {
@@ -807,7 +807,7 @@ PanelWindow {
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.iconSizeMd
                     textFormat: Text.PlainText
-                    color: Colours.onSurfaceVariant
+                    color: BarRoles.capsuleFg
                     opacity: popoutWindow.wayfindingAvailable ? 1 : popoutFoot.disabledOpacity
                 }
 
@@ -1034,7 +1034,7 @@ PanelWindow {
 
     // ── Frame-owned constants, re-declared by the SAME names PanelDialog
     //    uses so a body file reads them identically off either frame. ───
-    readonly property color surfaceBase: Colours.surface
+    readonly property color surfaceBase: BarRoles.popoutSurface
     readonly property real panelSurfaceOpacity: 0.78
     readonly property int borderWidth: Design.borderWidth
 

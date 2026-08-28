@@ -115,7 +115,7 @@ SectionPopout {
         Rectangle {
             anchors.fill: parent
             radius: height / 2
-            color: Colours.surfaceVariant
+            color: BarRoles.popoutSurfaceVariant
         }
         Text {
             id: adapterToggleLabel
@@ -123,7 +123,7 @@ SectionPopout {
             textFormat: Text.PlainText
             text: (root.bluetoothBackend && root.bluetoothBackend.adapterEnabled) ? "Turn Bluetooth off" : "Turn Bluetooth on"
             font.pixelSize: Design.fontBody
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
         }
         MouseArea {
             anchors.fill: parent
@@ -162,7 +162,7 @@ SectionPopout {
                     Rectangle {
                         anchors.fill: parent
                         radius: Design.spacingSm
-                        color: deviceRowMouseArea.containsMouse ? Colours.surfaceVariant : "transparent"
+                        color: deviceRowMouseArea.containsMouse ? BarRoles.popoutSurfaceVariant : "transparent"
                     }
 
                     Text {
@@ -176,7 +176,7 @@ SectionPopout {
                         textFormat: Text.PlainText
                         text: deviceRow.modelData ? deviceRow.modelData.deviceName : ""
                         font.pixelSize: Design.fontBody
-                        color: Colours.onSurface
+                        color: BarRoles.popoutFg
                     }
 
                     Text {
@@ -187,7 +187,7 @@ SectionPopout {
                         textFormat: Text.PlainText
                         text: deviceRow.isFailedRow ? "Retry" : root._verbLabel(deviceRow.modelData)
                         font.pixelSize: Design.fontLabel
-                        color: deviceRow.isFailedRow ? Colours.error : Colours.primary
+                        color: deviceRow.isFailedRow ? BarRoles.danger : BarRoles.accent
                     }
 
                     MouseArea {
@@ -215,7 +215,7 @@ SectionPopout {
                     textFormat: Text.PlainText
                     text: (deviceRow.modelData ? deviceRow.modelData.deviceName : "") + " — " + root._failedReason
                     font.pixelSize: Design.fontLabel
-                    color: Colours.error
+                    color: BarRoles.danger
                 }
             }
         }
@@ -233,7 +233,7 @@ SectionPopout {
                 textFormat: Text.PlainText
                 text: batteryLine.modelData ? ("Battery " + Math.round(batteryLine.modelData.battery) + "%") : ""
                 font.pixelSize: Design.fontLabel
-                color: Colours.onSurfaceVariant
+                color: BarRoles.capsuleFg
             }
         }
 
@@ -250,7 +250,7 @@ SectionPopout {
             textFormat: Text.PlainText
             text: "Turn on Bluetooth to see paired devices."
             font.pixelSize: Design.fontLabel
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
         }
     }
 }

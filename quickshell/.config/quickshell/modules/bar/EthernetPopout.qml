@@ -136,7 +136,7 @@ SectionPopout {
             text: root._stateText
             font.pixelSize: Design.fontBody
             font.weight: root._connected ? Design.weightEmphasis : Design.weightBody
-            color: root._connected ? Colours.onSurface : Colours.onSurfaceVariant
+            color: root._connected ? BarRoles.popoutFg : BarRoles.capsuleFg
             elide: Text.ElideRight
             textFormat: Text.PlainText
         }
@@ -145,7 +145,7 @@ SectionPopout {
             width: parent.width
             text: root._interfaceText + " · " + root._speedText
             font.pixelSize: Design.fontLabel
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
             elide: Text.ElideRight
             textFormat: Text.PlainText
         }
@@ -154,7 +154,7 @@ SectionPopout {
             width: parent.width
             text: "MAC " + root._macText
             font.pixelSize: Design.fontLabel
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
             elide: Text.ElideRight
             textFormat: Text.PlainText
         }

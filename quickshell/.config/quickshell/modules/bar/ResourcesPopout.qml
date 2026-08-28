@@ -105,7 +105,7 @@ SectionPopout {
                     font.pixelSize: Design.iconSizeMd
                     textFormat: Text.PlainText
                     text: resourceRow.glyph
-                    color: Colours.onSurfaceVariant
+                    color: BarRoles.capsuleFg
                 }
                 Text {
                     anchors.left: rowGlyph.right
@@ -114,7 +114,7 @@ SectionPopout {
                     textFormat: Text.PlainText
                     text: resourceRow.label
                     font.pixelSize: Design.fontBody
-                    color: Colours.onSurface
+                    color: BarRoles.popoutFg
                 }
                 // Not yet sampled — no fill at all, and the value renders
                 // as an em-dash: a track filled to nothing is a claim
@@ -130,9 +130,9 @@ SectionPopout {
                     textFormat: Text.PlainText
                     text: resourceRow.metricState === "populated" ? resourceRow.valueText : "—"
                     font.pixelSize: Design.fontBody
-                    color: resourceRow.metricState === "populated" ? Colours.onSurface
-                        : resourceRow.metricState === "pending" ? Colours.primary
-                        : Colours.onSurfaceVariant
+                    color: resourceRow.metricState === "populated" ? BarRoles.popoutFg
+                        : resourceRow.metricState === "pending" ? BarRoles.accent
+                        : BarRoles.capsuleFg
                 }
             }
 
@@ -143,7 +143,7 @@ SectionPopout {
                 Rectangle {
                     anchors.fill: parent
                     radius: height / 2
-                    color: Colours.surfaceVariant
+                    color: BarRoles.popoutSurfaceVariant
                 }
                 // Real value only — the fill spans the fraction. Both
                 // pending and nothing-here render the same empty track
@@ -152,7 +152,7 @@ SectionPopout {
                     width: resourceRow.metricState === "populated" ? parent.width * Math.max(0, Math.min(1, resourceRow.fraction)) : 0
                     height: parent.height
                     radius: height / 2
-                    color: Colours.primary
+                    color: BarRoles.accent
                 }
             }
 
@@ -161,7 +161,7 @@ SectionPopout {
                 textFormat: Text.PlainText
                 text: resourceRow.detailText
                 font.pixelSize: Design.fontLabel
-                color: Colours.onSurfaceVariant
+                color: BarRoles.capsuleFg
             }
         }
     }

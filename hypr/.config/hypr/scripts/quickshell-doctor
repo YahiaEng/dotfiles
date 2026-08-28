@@ -2224,16 +2224,29 @@ _qsd_check_bar_surface_registry() {
 # them would silently grow the check's blind spot.
 QSD_BAR_COLOUR_ROLE_EXEMPT=(
     "BarRoles.qml"          # the role layer itself — the one legitimate Colours.* consumer
-    "SectionPopout.qml"     # popout framework — out of phase 18.1 scope_fence
-    "AudioPopout.qml"       # popout content — out of phase 18.1 scope_fence
-    "WifiPopout.qml"        # popout content — out of phase 18.1 scope_fence
-    "EthernetPopout.qml"    # popout content — same colour layer as its six siblings (added 2026-08-12)
-    "BluetoothPopout.qml"   # popout content — out of phase 18.1 scope_fence
-    "ClockPopout.qml"       # popout content — out of phase 18.1 scope_fence
-    "ResourcesPopout.qml"   # popout content — out of phase 18.1 scope_fence
-    "MediaPopout.qml"       # popout content — out of phase 18.1 scope_fence
-    "TrayPopout.qml"        # popout content — same colour layer as its seven siblings (added 2026-08-23)
 )
+# SHRUNK FROM TEN TO ONE, 2026-08-28 (quick task 260828-t22). The nine
+# SectionPopout-family entries are gone because the files no longer need them:
+# all 75 of their Colours.* references now route through BarRoles, and
+# WINDOWS.md row 57 — which asked for exactly this and had been open since
+# phase 18.1 — is closed.
+#
+# The exemption existed because 18.1's scope_fence put popout content out of
+# scope, not because popouts were a different colour layer. Left alone it grew
+# rather than shrank: quick task 260828-so7 found UpdatesPopout.qml had become
+# a tenth offender simply by postdating the fence, and routing it was the
+# cheaper answer than exempting it. This finishes that direction.
+#
+# The migration was a PURE RE-ROUTING — every mapping is value-identical
+# (warn == Colours.tertiary, popoutSurfaceVariant == Colours.surfaceVariant,
+# and so on), specifically so nine surfaces that cannot be exercised from an
+# agent shell could not change appearance. Note what was deliberately NOT done:
+# popout backgrounds were NOT pointed at the existing capsule/barSurface roles,
+# which are the same tokens carrying alpha, because that WOULD have changed the
+# render.
+#
+# Adding a name back here should be a last resort. The gate is now the whole
+# rule for modules/bar/, with a single documented exception.
 
 # Assert half — no bar capsule file (excluding QSD_BAR_COLOUR_ROLE_EXEMPT
 # above) may reference the global Colours.* palette directly. Comments are

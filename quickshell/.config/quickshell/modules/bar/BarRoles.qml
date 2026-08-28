@@ -160,6 +160,33 @@ Singleton {
     // that migration starts from, not a one-off.
     readonly property color popoutFg: Colours.onSurface
 
+    // Extended 2026-08-28 (quick task 260828-t22) to complete the popout
+    // family, closing WINDOWS.md row 57 — the nine SectionPopout-family files
+    // are no longer exempt from bar-colour-role-routing and now read these.
+    //
+    // THESE ARE EXACT ALIASES, AND THAT IS THE WHOLE POINT. The obvious move
+    // is to point popout backgrounds at `capsule`/`barSurface` above, which
+    // are the same palette tokens — but those carry alpha (0.85 / 0.55), so
+    // substituting them would have CHANGED how nine surfaces render. The
+    // migration's guarantee is that it is a pure re-routing: every one of the
+    // 75 references maps to a value-identical role, so no popout can look
+    // different by construction. Appearance changes, if wanted, are a separate
+    // decision made against a render, not smuggled in under a refactor.
+    //
+    // They are named for the popout family rather than reusing
+    // surfaceColour/surfaceVariantColour above, which are documented there as
+    // the internal colour-typed sources for THIS file's alpha blends — not
+    // semantic roles for consumers to read.
+    //
+    // No matching `popoutOutline` exists, deliberately: the one outline
+    // reference in the family routes to `outlineColour` above. That alias is
+    // in the same "colour-typed source" block, but unlike the two surface
+    // aliases its name carries no assumption about which surface it belongs
+    // to, so a consumer reading it is not borrowing someone else's semantics.
+    // One alias for one value beats a third name for the same colour.
+    readonly property color popoutSurface: Colours.surface
+    readonly property color popoutSurfaceVariant: Colours.surfaceVariant
+
     // ── Do-not-disturb deliberately owns NO role pair here (Phase 21
     //    Plan 05, D-21-27-R). A `dndSurface`/`dndSurfaceFg` pair (accent
     //    blended at 0.28, plus onSurface) briefly lived at this spot to

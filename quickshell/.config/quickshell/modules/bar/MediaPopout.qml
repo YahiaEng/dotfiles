@@ -243,8 +243,8 @@ SectionPopout {
                         }
 
                         strokeColor: (popoutVisualiserBar.hasLiveData && popoutVisualiserBar.amplitude > 0)
-                            ? Colours.primary
-                            : Colours.outline
+                            ? BarRoles.accent
+                            : BarRoles.outlineColour
 
                         Behavior on strokeColor {
                             enabled: Motion.motionEnabled
@@ -272,7 +272,7 @@ SectionPopout {
                 Rectangle {
                     id: artBackground
                     anchors.fill: parent
-                    color: Colours.surfaceVariant
+                    color: BarRoles.popoutSurfaceVariant
                     visible: false
                 }
 
@@ -309,7 +309,7 @@ SectionPopout {
                     ShapePath {
                         // Never painted — only alpha coverage is read.
                         // Sourced from a real role, not a hex literal.
-                        fillColor: Colours.onSurface
+                        fillColor: BarRoles.popoutFg
                         strokeColor: "transparent"
 
                         PathSvg {
@@ -349,7 +349,7 @@ SectionPopout {
                     text: "music_note"
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.iconSizeMd
-                    color: Colours.onSurfaceVariant
+                    color: BarRoles.capsuleFg
                 }
             }
         }
@@ -371,7 +371,7 @@ SectionPopout {
                 text: root.mediaBackend ? root.mediaBackend.displayTitle : ""
                 font.pixelSize: Design.fontBody
                 font.weight: Design.weightEmphasis
-                color: Colours.onSurface
+                color: BarRoles.popoutFg
             }
             Text {
                 id: artistText
@@ -380,7 +380,7 @@ SectionPopout {
                 textFormat: Text.PlainText
                 text: root.mediaBackend ? root.mediaBackend.displayArtist : ""
                 font.pixelSize: Design.fontLabel
-                color: Colours.onSurfaceVariant
+                color: BarRoles.capsuleFg
             }
         }
     }
@@ -400,7 +400,7 @@ SectionPopout {
         Rectangle {
             anchors.fill: parent
             radius: height / 2
-            color: Colours.surfaceVariant
+            color: BarRoles.popoutSurfaceVariant
         }
         Rectangle {
             width: (root.mediaBackend && root.mediaBackend.lengthSeconds > 0)
@@ -408,7 +408,7 @@ SectionPopout {
                 : 0
             height: parent.height
             radius: height / 2
-            color: Colours.primary
+            color: BarRoles.accent
         }
     }
 
@@ -451,7 +451,7 @@ SectionPopout {
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
-                color: Colours.surfaceVariant
+                color: BarRoles.popoutSurfaceVariant
             }
             Text {
                 id: prevGlyph
@@ -460,7 +460,7 @@ SectionPopout {
                 text: "skip_previous"
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd - 4
-                color: Colours.onSurfaceVariant
+                color: BarRoles.capsuleFg
             }
             MouseArea {
                 anchors.fill: parent
@@ -480,7 +480,7 @@ SectionPopout {
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
-                color: Colours.primary
+                color: BarRoles.accent
             }
             Text {
                 id: playPauseGlyph
@@ -489,7 +489,7 @@ SectionPopout {
                 text: (root.mediaBackend && root.mediaBackend.playing) ? "pause" : "play_arrow"
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd
-                color: Colours.onPrimary
+                color: BarRoles.onAccent
             }
             MouseArea {
                 anchors.fill: parent
@@ -513,7 +513,7 @@ SectionPopout {
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
-                color: Colours.surfaceVariant
+                color: BarRoles.popoutSurfaceVariant
             }
             Text {
                 id: nextGlyph
@@ -522,7 +522,7 @@ SectionPopout {
                 text: "skip_next"
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd - 4
-                color: Colours.onSurfaceVariant
+                color: BarRoles.capsuleFg
             }
             MouseArea {
                 anchors.fill: parent
@@ -544,6 +544,6 @@ SectionPopout {
         textFormat: Text.PlainText
         text: root.mediaBackend ? (root.mediaBackend.players.length + " players — switch in the dashboard") : ""
         font.pixelSize: Design.fontLabel
-        color: Colours.onSurfaceVariant
+        color: BarRoles.capsuleFg
     }
 }

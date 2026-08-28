@@ -113,7 +113,7 @@ SectionPopout {
             textFormat: Text.PlainText
             text: "network_wifi"
             opacity: root._strengthOpacity(root._currentNetwork)
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
         }
         Text {
             id: currentLabel
@@ -124,7 +124,7 @@ SectionPopout {
             text: root._currentNetwork ? root._currentNetwork.name : "Not connected"
             font.pixelSize: Design.fontBody
             font.weight: root._currentNetwork ? Design.weightEmphasis : Design.weightBody
-            color: root._currentNetwork ? Colours.onSurface : Colours.onSurfaceVariant
+            color: root._currentNetwork ? BarRoles.popoutFg : BarRoles.capsuleFg
         }
     }
 
@@ -140,7 +140,7 @@ SectionPopout {
         Rectangle {
             anchors.fill: parent
             radius: height / 2
-            color: Colours.surfaceVariant
+            color: BarRoles.popoutSurfaceVariant
         }
         Text {
             id: radioToggleLabel
@@ -148,7 +148,7 @@ SectionPopout {
             textFormat: Text.PlainText
             text: (root.wifiBackend && root.wifiBackend.wifiEnabled) ? "Turn Wi-Fi off" : "Turn Wi-Fi on"
             font.pixelSize: Design.fontBody
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
         }
         MouseArea {
             anchors.fill: parent
@@ -174,7 +174,7 @@ SectionPopout {
             text: "Saved networks"
             font.pixelSize: Design.fontLabel
             font.weight: Design.weightEmphasis
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
         }
 
         Repeater {
@@ -196,7 +196,7 @@ SectionPopout {
                     Rectangle {
                         anchors.fill: parent
                         radius: Design.spacingSm
-                        color: savedRowMouseArea.containsMouse ? Colours.surfaceVariant : "transparent"
+                        color: savedRowMouseArea.containsMouse ? BarRoles.popoutSurfaceVariant : "transparent"
                     }
 
                     Text {
@@ -208,7 +208,7 @@ SectionPopout {
                         font.pixelSize: Design.iconSizeMd
                         textFormat: Text.PlainText
                         text: (root.wifiBackend && root.wifiBackend.securityKind(savedRow.modelData) === "open") ? "lock_open" : "lock"
-                        color: Colours.onSurfaceVariant
+                        color: BarRoles.capsuleFg
                     }
 
                     Text {
@@ -222,7 +222,7 @@ SectionPopout {
                         textFormat: Text.PlainText
                         text: savedRow.modelData ? savedRow.modelData.name : ""
                         font.pixelSize: Design.fontBody
-                        color: Colours.onSurface
+                        color: BarRoles.popoutFg
                     }
 
                     MouseArea {
@@ -257,7 +257,7 @@ SectionPopout {
                     textFormat: Text.PlainText
                     text: root._failedText
                     font.pixelSize: Design.fontLabel
-                    color: Colours.error
+                    color: BarRoles.danger
                 }
             }
         }
@@ -273,7 +273,7 @@ SectionPopout {
             textFormat: Text.PlainText
             text: "No saved networks in range — scan in the dashboard to find more."
             font.pixelSize: Design.fontLabel
-            color: Colours.onSurfaceVariant
+            color: BarRoles.capsuleFg
         }
     }
 }

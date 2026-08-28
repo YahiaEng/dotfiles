@@ -224,7 +224,7 @@ SectionPopout {
                             source: overflowIcon
                             saturation: -1.0
                             colorization: root._tintTinted ? 1.0 : 0.0
-                            colorizationColor: Colours.onSurface
+                            colorizationColor: BarRoles.popoutFg
                         }
                     }
 
@@ -234,7 +234,7 @@ SectionPopout {
                         width: Design.popoutMaxWidth - Design.spacingMd * 2 - Design.iconSizeMd - Design.spacingSm
                         text: overflowRow._titleText
                         font.pixelSize: Design.fontBody
-                        color: Colours.onSurface
+                        color: BarRoles.popoutFg
                         elide: Text.ElideRight
                         textFormat: Text.PlainText
                     }
