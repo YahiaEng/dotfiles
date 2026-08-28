@@ -74,13 +74,6 @@ Singleton {
         "bar.capsules.launcher",
         "bar.capsules.workspaces",
         "bar.capsules.idleInhibitor",
-        // Security capsule (quick task 260827-np1). A PARENT row like
-        // systemTray rather than a per-entry toggle: its single entry has
-        // no independent children. This is the ONLY key that hides the
-        // capsule — it is a constant-size chip that never collapses on
-        // its own, because collapsing shifted the whole bar (measured;
-        // see SecurityCapsule.qml's header).
-        "bar.capsules.security",
         // bar.capsules.mediaConnectivity RETIRED 2026-08-25 (operator, quick
         // task 260825-v3u), on exactly the precedent clockActions/system set
         // below: its six children (media/audio/brightness/network/bluetooth/
@@ -151,6 +144,10 @@ Singleton {
         "bar.entries.clock",
         "bar.entries.gaming",
         "bar.entries.notifications",
+        // Security (quick task 260827-np1, operator round 2). An ENTRY on
+        // the clockActions capsule beside the bell, not a capsule of its
+        // own — so it is hidden the same way every other action glyph is.
+        "bar.entries.security",
         "bar.entries.settings",
         "bar.entries.power",
         // Quick task 260825-v3u — the six mediaConnectivity children, which
@@ -227,14 +224,15 @@ Singleton {
         // Quick task 260827-np1 — Security Center. The operator picked
         // "all plates", so all four surfaces ship and these three keys
         // choose between them: one layout pick for the settings page
-        // (S1/S2) and one visibility toggle each for the bar capsule
-        // (H1) and the dashboard tab (D1).
-        // security.showCapsule is deliberately ABSENT: the bar already has
-        // its own filter point (`bar.capsules.security`, consumed at
-        // BarEntryModel.capsulesForZone()), and two prefs hiding the same
-        // capsule is the redundant-parent-row shape mediaConnectivity was
-        // retired for on 2026-08-25. Settings -> Security's capsule toggle
-        // writes bar.capsules.security directly.
+        // (S1/S2) and one visibility toggle for the dashboard tab (D1).
+        //
+        // There is deliberately NO security-side key for the bar glyph:
+        // after operator round 2 it is an ENTRY on the clockActions
+        // capsule beside the notification bell, so it hides through the
+        // same `bar.entries.security` key every other action glyph uses.
+        // Settings -> Security's row writes THAT key — one switch, not
+        // two, avoiding the redundant-parent-row shape mediaConnectivity
+        // was retired for on 2026-08-25.
         "security.pageLayout",
         "security.showDashboardTab",
         // Quick task 260826-1n9 Task 7 — the weather location's
@@ -282,13 +280,6 @@ Singleton {
         "bar.capsules.launcher": true,
         "bar.capsules.workspaces": true,
         "bar.capsules.idleInhibitor": true,
-        // Security capsule allowed in the bar by default (quick task
-        // 260827-np1). This is "may it exist", not "is it drawn": the
-        // capsule self-hides unless a scan is running or there is a
-        // finding at Low or worse, so on a healthy machine it costs no
-        // bar space when it has nothing to say. Settings -> Security's
-        // capsule toggle writes THIS key, so there is one switch, not two.
-        "bar.capsules.security": true,
         "bar.capsules.systemTray": true,
         "bar.tray.iconTint": "desaturate",
         "notifs.popupTimeoutMs": 5000,
@@ -359,11 +350,10 @@ Singleton {
         // is answering "am I OK?" in one line; "sections" is the way
         // back out if that layout ever fails to render.
         //
-        // The capsule is a CONSTANT-SIZE chip and is always present while
-        // bar.capsules.security is true. It used to collapse to zero when
-        // it had nothing to report, which shifted every centre capsule by
-        // 23px — measured, see SecurityCapsule.qml's header. It draws its
-        // quietest state instead of vanishing.
+        // The bar glyph is a fixed-pitch ActionCell beside the bell, with
+        // NO badge: ActionCell grows when `badgeVisible` flips, and a
+        // count that comes and goes would reflow the bar — the defect
+        // operator round 2 reported. The count lives in its tooltip.
         //
         // The dashboard tab defaults OFF. It is the one plate that
         // WORSENS an existing defect: each drawer tab declares its own

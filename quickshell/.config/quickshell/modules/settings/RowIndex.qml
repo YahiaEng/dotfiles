@@ -85,7 +85,7 @@ Singleton {
         { pageIdx: 2, section: "Edge bar", label: "Edge bar style", keywords: "edge bar style continuous brackets segmented halo off picker frame rail outline corner workspace shape" },
         { pageIdx: 2, section: "Edge bar", label: "Animate the bulge", keywords: "edge bar bulge animate swell hover landmark permanent static continuous segmented halo off" },
         { pageIdx: 2, section: "Capsules", label: "Launcher", keywords: "bar capsule launcher apps icon" },
-        { pageIdx: 2, section: "Capsules", label: "Security", keywords: "bar capsule security alert chip scan posture firewall" },
+        
         { pageIdx: 2, section: "Capsules", label: "CPU", keywords: "bar entry cpu readout system" },
         { pageIdx: 2, section: "Capsules", label: "RAM", keywords: "bar entry ram memory readout system" },
         { pageIdx: 2, section: "Capsules", label: "Disk", keywords: "bar entry disk storage readout system" },
@@ -110,6 +110,7 @@ Singleton {
         { pageIdx: 2, section: "Capsules", label: "Clock", keywords: "bar entry clock popout" },
         { pageIdx: 2, section: "Capsules", label: "Gaming mode", keywords: "bar entry gaming mode toggle" },
         { pageIdx: 2, section: "Capsules", label: "Notifications", keywords: "bar entry notifications bell centre" },
+        { pageIdx: 2, section: "Capsules", label: "Security", keywords: "bar security glyph status shield scan posture firewall notification" },
         { pageIdx: 2, section: "Capsules", label: "Settings", keywords: "bar entry settings gear strip" },
         { pageIdx: 2, section: "Capsules", label: "Power", keywords: "bar entry power menu glyph" },
 
@@ -280,7 +281,7 @@ Singleton {
         // have no stable label to jump to and are deliberately not a
         // row primitive settings-index-check scans.
         { pageIdx: 15, section: "Layout", label: "Security page layout", keywords: "security layout findings sections plate posture domain" },
-        { pageIdx: 15, section: "Layout", label: "Security capsule in the bar", keywords: "security capsule bar posture scan visible glance" },
+        { pageIdx: 15, section: "Layout", label: "Security glyph in the bar", keywords: "security glyph bar posture scan visible glance bell notification" },
         { pageIdx: 15, section: "Layout", label: "Security tab on the dashboard", keywords: "security dashboard tab drawer bento fifth" },
         { pageIdx: 15, section: "Scanning", label: "Scan target", keywords: "security scan target path home directory clamav virus" },
         { pageIdx: 15, section: "Scanning", label: "Virus signatures", keywords: "security virus signatures clamav freshclam database malware" },

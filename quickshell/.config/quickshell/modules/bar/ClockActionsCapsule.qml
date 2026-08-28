@@ -38,6 +38,7 @@ import Quickshell.Wayland
 import "../"
 import "../dashboard"
 import "../notifications"
+import "../security"
 
 BarCapsule {
     id: clockActionsCapsule
@@ -436,6 +437,12 @@ BarCapsule {
         // tooltip is the only thing naming it. A cell that EXPANDS on hover is
         // the exception — see settingsTriggerCell's own comment.
         property bool tooltipEnabled: true
+        // Tooltip copy, defaulting to `label` so all four pre-existing
+        // cells (gaming/bell/settings/power) keep byte-identical
+        // behaviour. Override only where the cell's state carries more
+        // than its name does — securityCell below is the one such case.
+        // Same defaults-to-label idiom InfoRow.indexLabel uses.
+        property string tooltipText: cellItem.label
         property string badgeText: ""
         // Optional filled background (D-13, only bellCell opts in below).
         // Defaults leave every other ActionCell instance unaffected —
@@ -565,8 +572,8 @@ BarCapsule {
         // (gaming/bell/settings/power all carry a different glyph).
         BarTooltipHost {
             anchorItem: cellItem
-            text: cellItem.label
-            active: cellMouseArea.containsMouse && cellItem.label !== "" && cellItem.tooltipEnabled
+            text: cellItem.tooltipText
+            active: cellMouseArea.containsMouse && cellItem.tooltipText !== "" && cellItem.tooltipEnabled
             tipId: "clockActions-" + cellItem.glyph
         }
     }
@@ -918,6 +925,85 @@ BarCapsule {
         badgeText: notificationSource.unreadCount > 9 ? "9+" : String(notificationSource.unreadCount)
         onClicked: notificationSource.openCentre()
         onRightClicked: notificationSource.toggleDnd()
+    }
+
+    // ── Security (quick task 260827-np1) ──────────────────────────────
+    // Placed here, immediately after the bell, on the operator's own
+    // instruction ("place properly next to notification pill"). It was a
+    // standalone capsule elsewhere in endZone; the bell/gaming/settings/
+    // power cluster is where this bar's status glyphs actually live.
+    //
+    // ── COLOUR: FLAT TINT, NO WASH, NO RIM ───────────────────────────
+    // The first version drew a Severity.back() alpha wash plus a
+    // Severity.rim() border — operator: "too glowy and out of place with
+    // most themes". That was a Material-surface idiom imported into a bar
+    // that does not use one. THIS bar's language is a single flat tint on
+    // the glyph, from BarRoles, exactly as gamingCell
+    // (`gamingOn ? BarRoles.accent : contentColour`) and bellCell do.
+    //
+    // Deliberately NO `fillActive`/`fillColour`: ActionCell's own comment
+    // states "Athena has exactly three filled hues and this must not
+    // become a fourth". Severity here is carried by tint and glyph shape
+    // only.
+    //
+    // Deliberately NO badge either. `ActionCell.width`/`height` grow when
+    // `badgeVisible` flips, so a count that appears and disappears would
+    // reflow the bar — which is the defect this cell was just moved for.
+    // The count lives in the tooltip.
+    ActionCell {
+        id: securityCell
+        visible: BarEntryModel.entryVisible("security")
+
+        // Glyph carries severity independently of colour, so the state
+        // still reads for a colour-blind operator and on a theme where
+        // danger and content sit close together.
+        glyph: {
+            if (SecurityBackend.scanRunning)
+                return "security";
+            if (SecurityBackend.criticalCount > 0)
+                return "gpp_maybe";
+            if (SecurityBackend.actionableCount > 0)
+                return "shield_question";
+            return "verified_user";
+        }
+        label: "Security"
+
+        // Three-branch tint, worst first, mirroring bellCell's own
+        // ordered-branch shape. `warn` is BarRoles.tertiary-backed, the
+        // same role the updates fill uses, so a non-critical finding
+        // reads as "attend to this" rather than as an alarm.
+        tint: {
+            if (SecurityBackend.criticalCount > 0)
+                return BarRoles.danger;
+            if (SecurityBackend.actionableCount > 0)
+                return BarRoles.warn;
+            if (SecurityBackend.scanRunning)
+                return BarRoles.accent;
+            return clockActionsCapsule.contentColour;
+        }
+
+        // Deliberately NOT `filled`. gamingCell and bellCell both fill on
+        // their active state, but both of those states are transient —
+        // you turn gaming off, you clear notifications. A security
+        // finding can stand for weeks (an unfirewalled host is a valid
+        // standing choice), and a permanently SOLID glyph among four
+        // outline ones is what made operator round 2 call this "too
+        // glowy and out of place". Weight now matches its neighbours and
+        // severity rides on tint + glyph shape, which is two channels
+        // already and works without colour.
+
+        // Everything the flat glyph cannot say.
+        tooltipText: {
+            if (SecurityBackend.scanRunning)
+                return "Virus scan running — " + SecurityBackend.scanFilesSeen + " files, " + SecurityBackend.scanThreats + " threat(s)";
+            if (SecurityBackend.actionableCount > 0)
+                return SecurityBackend.actionableCount + " issue(s) — " + (SecurityBackend.findings.length > 0 ? SecurityBackend.findings[0].title : "");
+            if (SecurityBackend.absentCount > 0)
+                return SecurityBackend.absentCount + " security tool(s) not set up";
+            return "Nothing needs attention";
+        }
+
+        onClicked: Quickshell.execDetached(["qs", "ipc", "call", "--", "settings", "openPage", "security"])
     }
 
     // The settings strip — a Repeater over settingsAxes inside one

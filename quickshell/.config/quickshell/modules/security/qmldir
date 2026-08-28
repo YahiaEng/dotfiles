@@ -37,9 +37,12 @@ SecurityFindings 1.0 SecurityFindings.qml
 # Plate D1 — the dashboard drawer tab.
 SecurityTab 1.0 SecurityTab.qml
 
-# Plate H1 — the bar capsule. Posture at a glance, and the ONLY place a
-# running scan stays visible from once the settings window is closed.
-SecurityCapsule 1.0 SecurityCapsule.qml
+# Plate H1's bar half is NOT here. Operator round 2 moved it from a
+# standalone capsule to an ActionCell inside
+# modules/bar/ClockActionsCapsule.qml, beside the notification bell —
+# that cluster is where this bar's status glyphs live, and a lone capsule
+# in endZone was both mispositioned and a second thing changing that
+# zone's height. There is no SecurityCapsule.qml any more.
 
 # Shared row primitive used by both settings layouts and the tab, so a
 # finding renders identically wherever it appears.

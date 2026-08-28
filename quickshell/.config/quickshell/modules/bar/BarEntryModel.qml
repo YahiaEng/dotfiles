@@ -186,31 +186,6 @@ Singleton {
             ]
         },
         {
-            // Security Center capsule (plate H1, quick task 260827-np1).
-            // Declared BEFORE mediaConnectivity so it renders at the
-            // start of the end zone — declaration order is render order
-            // in this file, and an alert belongs outboard of the media
-            // readout rather than buried after it.
-            //
-            // No backends: SecurityCapsule reads the SecurityBackend
-            // singleton directly, so there is no handle for Bar.qml to
-            // thread down and nothing for requiresBackend() to keep
-            // alive on its behalf.
-            //
-            // It carries `bar.capsules.security` like every other
-            // capsule, and that is the ONLY switch — Settings -> Security's
-            // own capsule row writes this same key rather than a parallel
-            // one. The capsule is a constant-size chip that never
-            // collapses on its own: collapsing changed endZone's height,
-            // which re-centred centerZone and shifted every centre capsule
-            // by 23px (measured; see SecurityCapsule.qml's header).
-            id: "security",
-            zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
-            entries: [
-                { id: "security", backends: [], textBearing: true }
-            ]
-        },
-        {
             id: "mediaConnectivity",
             zone: { horizontal: root.zoneEnd, vertical: root.zoneEnd },
             entries: [
@@ -254,6 +229,15 @@ Singleton {
                 { id: "clock", backends: [], textBearing: true },
                 { id: "gaming", backends: [], textBearing: false },
                 { id: "notifications", backends: [], textBearing: false },
+                // Security (quick task 260827-np1, operator round 2:
+                // "place properly next to notification pill"). An ENTRY
+                // here, not its own capsule — the bell, gaming, settings
+                // and power glyphs are this bar's status/action cluster,
+                // and a lone security capsule elsewhere in endZone was
+                // both mispositioned and a second thing changing
+                // endZone's height. Sits immediately after the bell so
+                // the two status glyphs are adjacent.
+                { id: "security", backends: [], textBearing: false },
                 { id: "settings", backends: [], textBearing: false },
                 { id: "power", backends: [], textBearing: false }
             ]

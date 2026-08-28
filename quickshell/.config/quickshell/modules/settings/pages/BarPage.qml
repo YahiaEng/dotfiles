@@ -283,16 +283,6 @@ PageBase {
             checked: Prefs.getValue("bar.capsules.launcher")
             onToggled: (value) => Prefs.setValue("bar.capsules.launcher", value)
         }
-        ToggleRow {
-            label: "Security"
-            // Says what it actually does: this is "may the capsule
-            // exist", and the capsule still only draws itself when it
-            // has something to report. Settings -> Security has the
-            // feature-level switch above it.
-            subtext: "The security alert chip — only appears when a scan is running or something needs attention"
-            checked: Prefs.getValue("bar.capsules.security")
-            onToggled: (value) => Prefs.setValue("bar.capsules.security", value)
-        }
         // ── Per-entry toggles for "System" (operator fix wave finding 3)
         //    — nested here, under their parent capsule's toggle, so the
         //    hierarchy reads. Turning the capsule off above still hides
@@ -456,6 +446,12 @@ PageBase {
             subtext: "The notification bell and its centre"
             checked: Prefs.getValue("bar.entries.notifications")
             onToggled: (value) => Prefs.setValue("bar.entries.notifications", value)
+        }
+        ToggleRow {
+            label: "Security"
+            subtext: "The security status glyph, next to the notification bell"
+            checked: Prefs.getValue("bar.entries.security")
+            onToggled: (value) => Prefs.setValue("bar.entries.security", value)
         }
         ToggleRow {
             label: "Settings"
