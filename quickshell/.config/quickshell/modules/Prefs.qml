@@ -282,7 +282,22 @@ Singleton {
         // (Icons/Fonts/Catalogue) it reopens on. Written by
         // `Atelier.qml`'s own `setTab()` every time the tab changes, so
         // the tab you left on is the tab you return to.
-        "appearance.atelierTab"
+        "appearance.atelierTab",
+        // Operator round 1 (260828-ah9) — defect 4: the Atelier's own
+        // window size, watched off `win.width`/`win.height` and restored
+        // on the next open. `0` is the "unset" sentinel — a first run (or
+        // a value from an era before these keys existed) reads 0 and
+        // falls back to the same screen-derived formula the window
+        // already used, exactly mirroring `packages.sidebarWidth`'s own
+        // "hardcoded default is the pre-existing literal" rule.
+        "appearance.atelierWidth",
+        "appearance.atelierHeight",
+        // Defect 2c/2e — the three tabs' own resizable rails, one key
+        // each so widening the Fonts rail never touches the Icons or
+        // Catalogue rail. Same clamp shape as `packages.sidebarWidth`.
+        "appearance.iconsRailWidth",
+        "appearance.fontsRailWidth",
+        "appearance.catalogueLeftWidth"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -413,7 +428,17 @@ Singleton {
         "screensaver.style": "terminal",
         // Quick task 260828-ah9 — the Atelier opens on Icons by default,
         // the D-01 "Ctrl-A browse" precedent's own primary surface.
-        "appearance.atelierTab": "icons"
+        "appearance.atelierTab": "icons",
+        // Operator round 1 — 0 is the "unset" sentinel (see the allowlist
+        // comment above); `Atelier.qml` treats a non-positive read as
+        // "compute the screen-derived default instead".
+        "appearance.atelierWidth": 0,
+        "appearance.atelierHeight": 0,
+        // 220 mirrors the design study's own `.fontsplit` rail column
+        // (210px) rounded to this shell's spacing grid.
+        "appearance.iconsRailWidth": 220,
+        "appearance.fontsRailWidth": 220,
+        "appearance.catalogueLeftWidth": 420
     })
 
     // ── Helper functions — ALL declared here, above the FileView and
