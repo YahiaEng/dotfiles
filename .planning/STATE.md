@@ -6,8 +6,8 @@ status: milestone-complete
 stopped_at: "260828-75k COMPLETE AND OPERATOR-CONFIRMED (2026-08-28). An Octopi replacement in four surfaces over ONE PackagesBackend singleton: the D4 workbench window (sortable ledger, multi-select, removal-cascade preview), a thin Settings > Packages page, a `pkg` launcher route painted in the accent colour, and a repaired bar pill with a popout. Octopi is off the host. NOTHING IS OWED. The feature request uncovered a DEFECT first: the bar pill polled checkupdates alone and read 3 while 4 were pending, blind to the AUR. Measurements that decided the design: `pacman -Qi` returns all 1420 records with every field in 0.20s/1.33MB (so no cache, no daemon), and `pacman -Rs --print --print-format` resolves the FULL removal cascade WITHOUT root (6 orphans -> 11 real removals) which is the one capability that justified a whole window. Retired UpdatesPage.qml and UpdatesMode.qml, absorbing the per-package armed update. SIX TRAPS RECORDED IN THE SUMMARY, three of them mine: `find | head` truncated a survey and I drew an architectural conclusion from it TWICE (every module dir has a qmldir; the failures were undeclared types) which misfiled two files; menu leaf labels carry invisible Nerd Font glyphs so an edit matched on the visible label silently no-ops; `follow_mouse=1` makes Qt Window.active a HOVER signal so click-outside needs HyprlandFocusGrab; a drag delta measured in the dragged thing's own frame drifts with speed, anchor on scene coords at press; pacman writes the error summary to stderr but the reasons to stdout; qmllint is blind here (rc=0 on a truncated file, positive-control verified). NEXT REAL DECISION, unchanged: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog."
 last_updated: "2026-08-28T11:05:00.000Z"
 last_activity: 2026-08-28
-last_activity_desc: "Atelier operator round 2 — chip brightness, selection highlight (4th same-role-as-surface recurrence), and the teardown race that wrote the clamp floor over the saved window size."
-state_head: 123f6544
+last_activity_desc: "Atelier operator round 3 — copied WbSidebar's highlight/button language verbatim after diverging twice, difference-aware compare with probes that actually separate the Papirus trio, and word routes from Super-tap menu mode."
+state_head: 7e4ef134
 progress:
   total_phases: 6
   completed_phases: 6
@@ -1405,7 +1405,46 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — Atelier round 2 done. Still NOT operator-verified.
+### ▶ RESUME HERE — Atelier round 3 done. Still NOT operator-verified.
+
+**Round 3 closed four items** — `17a7b7f0`, `4bb56576`, `7e4ef134`.
+
+**I DIVERGED TWICE ON THE SAME THING BEFORE COPYING THE REFERENCE.** "Too
+bright" was reported in round 2 AND round 3 because both times I picked my own
+accent value instead of reading what the shell already does. The convention is
+`WbSidebar.qml:117` — selection `primaryContainer`/`onPrimaryContainer`, hover
+`Qt.alpha(Colours.onSurface, 0.06)` — and the reason it could not just be
+dropped in is that **this palette makes `surfaceVariant`, `primaryContainer`
+and `secondaryContainer` ALL `#44475a`**. It reads correctly in WbSidebar only
+because that sidebar sits on `Qt.alpha(Colours.surface, 0.55)`. The fix was
+structural (give the rails that backdrop first), not another alpha. Buttons are
+now `packages/WbButton` everywhere; zero hand-rolled chips remain.
+
+**"MISSING" PAPIRUS PREVIEWS WERE NOT MISSING — THEY WERE IDENTICAL.** All 8
+themes resolve 12/12 probes (Adwaita 9/12). But 11 of 12 probes are
+byte-identical across Papirus/-Dark/-Light. Round 1's move to 22px did not help
+because SIZE was never the issue — the probe SET was: it was full of
+`places`/`apps`/`mime` names, the one category that never differs. Measured
+over ~14.5k icons: `actions/*` separates -Dark (6/8 theme coverage), `panel/*`
+separates -Light (3/8), `places/*` separates nothing, and NO single icon differs
+across all three. Two probes now compose to separate all three pairs, verified
+independently: `edit-copy` 153e4a/e1de13/153e4a, `indicator-messages`
+0588f0/0588f0/584aca.
+
+**Known limitation carried:** `WbButton` has no toggled/active visual, so the
+Compare control changes only its label; the compare grid appearing is the real
+feedback. Worth a look — if it reads as unresponsive, WbButton needs a toggled
+tone.
+
+**WHAT IS OWED: 6 new checklist items on top of the earlier ones.** The one
+that decides whether item 3 is actually solved: **in the Distinguishing-probes
+strip, do Papirus, Papirus-Dark and Papirus-Light finally look different?**
+
+**NEXT REAL DECISION, unchanged: v5.0 has no roadmap.** v4.0 is 100%. Scope
+with `/gsd-new-milestone`; the backlog directory is empty, and ICON-BROWSE is
+no longer a candidate (the Catalogue tab consumed it).
+
+### Previous checkpoint — Atelier round 2 (superseded, round 3)
 
 **Round 2 closed three defects (`123f6544`), and all three had causes the
 round-1 code review missed because the code READ correctly.**

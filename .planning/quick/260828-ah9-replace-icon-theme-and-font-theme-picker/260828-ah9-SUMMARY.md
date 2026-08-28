@@ -294,6 +294,126 @@ deliberately NOT hand-edited: the live shell keeps Prefs in memory
 at minimum size once more; the first resize after that persists correctly and
 permanently.**
 
+## Operator Round 3 — four items, all pre-root-caused, all implemented
+
+`17a7b7f0`..`7e4ef134`, three commits, all pushed-pending. The operator supplied
+the diagnosis for all four items with live measurements this round — the brief
+was explicit: do not re-diagnose, implement. All four landed.
+
+| # | Item | Commit |
+|---|------|--------|
+| 1 | Rail/tab-bar highlight + button language | `17a7b7f0` |
+| 2+3 | Difference-aware compare + extended probe set | `4bb56576` |
+| 4 | Menu word routes (`icon`/`font`/`pkg` from Super-tap menu) | `7e4ef134` |
+
+**Item 1 — copied `WbSidebar.qml`'s treatment verbatim, twice diverged from
+before.** The operator's own measurement stood: `surfaceVariant` ==
+`primaryContainer` == `secondaryContainer` == `#44475a` in the live Dracula
+palette, and the Atelier's body panel IS `surfaceVariant`. `WbSidebar.qml:87`'s
+fix — give the rail its own `Qt.alpha(Colours.surface, 0.55)` backdrop BEFORE
+drawing a container-role selection on top of it — is what makes
+`Colours.primaryContainer` legible at all; without that backdrop the same
+collision the operator flagged twice would recur a third time. Applied to the
+Icons rail, Fonts rail, Catalogue's left pane, and `AtTabBar.qml`'s strip (the
+operator named this one explicitly too — same panel, same collision). Removed
+round 2's 13%-accent-tint-plus-2px-bar entirely; kept only the applied-theme/
+font label accent (`railRow.active ? Colours.primary : …`) as the one marker
+distinguishing "applied" from "selected for viewing", per the brief. Every
+hand-rolled chip — `AtIconsTab`'s `applyChip`/`compareChip`/`uninstallChip`,
+`AtFontsTab`'s uninstall chip, `AtCatalogueTab`'s `installButton`,
+`AtUninstallConfirm`'s primary/cancel buttons — replaced with `packages/
+WbButton`. Tones: Apply = "primary" (Icons tab's single main action);
+Catalogue's per-row Install = "ghost" (many per screen, never the pane's one
+action); every Uninstall = "danger"; Compare/Cancel/OK = "ghost".
+
+*Known limitation, not a deviation:* `WbButton` has no toggled/active visual
+state — it only has `tone` (primary/ghost/danger) and `enabled`. The Icons
+tab's Compare button used to visually invert when toggled on; it now only
+changes its own LABEL ("Compare with Papirus" → "Hide compare"), no colour
+change. This is the direct cost of "one button language, not two" — a second,
+richer chip shape was exactly what round 2 was asked to stop doing.
+
+**Items 2+3 — converged into one difference-aware compare, live-measured
+before picking probe names.** Rather than trust the operator's category-level
+finding blind, every candidate probe name was verified directly on this host
+with `md5sum` against the actual `_find_icon_at_size` resolution chain (not
+just `ls`, since Papirus-Light's `actions/` and Papirus-Dark's `panel/` are
+whole-directory symlinks into Papirus — a naive per-file scan would have
+missed that and mis-picked a probe). Two names, exactly matching the operator's
+own category-level counts:
+
+- `edit-copy` (`actions/`) hashes `[Papirus=A, Papirus-Dark=B, Papirus-Light=A]`
+  — resolves in 6 of the 8 installed themes (every theme but Adwaita), matching
+  "present in 6 of 8 themes" precisely.
+- `indicator-messages` (`panel/`) hashes `[Papirus=A, Papirus-Dark=A,
+  Papirus-Light=B]` — resolves in exactly 3 of 8 (Papirus, Papirus-Dark,
+  Papirus-Light only), matching "present in only 3 of 8 themes (panel is a
+  Papirus-ism)" precisely. (The first panel candidate tried, `ac-adapter`,
+  measured 4/8 — AdwaitaLegacy also carries a legacy PNG of it — so it was
+  swapped for `indicator-messages`, which measured exactly 3/8.)
+
+Built as a new `--preview-diff <theme> [sz]` script verb (same
+`<probe>\t<path-or-'-'>` shape as `--preview`, reusing `_find_icon_at_size`)
+plus `AppearanceBackend.diffPreviewFor()` — its OWN queue/process/cache,
+deliberately not folded into the primary 12-probe queue, so the rail's `X/12`
+coverage number is never touched by this addition. The Icons tab detail pane
+now has three sections instead of two: the primary 12-icon grid (recognisable,
+unchanged, hidden only while actively comparing so nothing renders twice), a
+Compare section that pairs each of the 12 probes' selected+baseline icons
+side by side and SORTS differing ones first (`detail._pairs`), and a
+"Distinguishing probes" secondary strip (always visible, pairs with the
+baseline once Compare is on) reporting its own honest "N of 2 available for
+&lt;theme&gt;" — Adwaita/breeze/elementary show `0/2` or `1/2` and a
+placeholder cell, never folded into or inflating the 12-probe number.
+
+**Item 4 — one-line reorder, exactly as directed.** `_routeQuery()` now checks
+`_wordRoutes` before the `_stickyModes` bail, using the identical match test
+it already had (`lower === word || lower.indexOf(word + " ") === 0`) — so
+typing "icon"/"font"/"pkg" from Super-tap menu mode now routes out, while an
+ordinary menu-filter keystroke ("c", "col", "settings") still can't collide
+with a route word, since it never matches that test. `wallpaper`/`systeminfo`
+sticky modes get the identical fix incidentally (same `_stickyModes` table),
+though the operator only reported it for menu mode.
+
+**Deviations: none.** All four items matched their stated root cause exactly;
+no Rule 1-4 fixes were needed beyond what the brief already specified.
+
+Gates after this round: `qml-import-check` 0 unresolved / 190 files,
+`colour-lint` 566/0, `motion-lint` 751/0, `settings-index-check` 191/0 — run
+after EACH commit, not just once at the end. `~/.cache/quickshell.log` read
+after every edit via byte-offset tail; every hot reload after this round's
+edits settled reached a clean `Configuration Loaded` with zero errors
+following it (one transient bracket-mismatch mid-edit on `AtCatalogueTab.qml`
+self-corrected within the same edit sequence, before that file's commit).
+
+### Operator checklist — round 3 (nothing below could be seen from this shell)
+
+Same standing limitation as rounds 1-2: no input-injection tool, `grim`
+crashes this NVIDIA host, and restarting quickshell/`quickshell-doctor` are
+both forbidden from this shell. All of the following are new with this round
+and remain **unrun**:
+
+1. Icons/Fonts rails and the Catalogue's left pane — does the new
+   `Qt.alpha(Colours.surface, 0.55)` backdrop read as a visible, distinct
+   panel-within-a-panel, and does a selected row's `primaryContainer` fill
+   now actually contrast against it?
+2. `AtTabBar.qml` — same question for the tab strip.
+3. Every WbButton — Apply (primary), Install/Compare/Cancel/OK (ghost),
+   Uninstall (danger) — do the three tones read distinctly against the new
+   backdrops, and does "Installed"/disabled read as dimmed rather than dead?
+4. Icons tab, Compare toggle on Papirus-Dark vs Papirus (or Papirus-Light vs
+   Papirus) — does the side-by-side grid render, do differing probes sort
+   first, and does the summary line read correctly ("N of 12 differ" /
+   "12 of 12 identical")?
+5. The "Distinguishing probes" strip — for Papirus/-Dark/-Light, do
+   `edit-copy` and `indicator-messages` visibly show DIFFERENT icons between
+   variants? For Adwaita/breeze/elementary, does it show honest placeholders
+   and a low/zero "N of 2 available" count without looking broken?
+6. Super-tap the launcher into menu mode, type `icon` — does it jump straight
+   to the Icon Specimen mode? Same for `font` and `pkg`. Then re-open the menu
+   and type an ordinary filter word (e.g. `col` for Colour picker) — does it
+   still fuzzy-filter the current menu level rather than routing away?
+
 ## Operator Checklist — everything below needs a human
 
 None of the 17 items in the plan's own `<operator_checklist>` could be run
