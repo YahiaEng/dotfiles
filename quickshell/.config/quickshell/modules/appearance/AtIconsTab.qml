@@ -227,8 +227,71 @@ Item {
             }
 
             onCompareOnChanged: {
-                if (detail.compareOn && root._baseline.length > 0)
+                if (detail.compareOn && root._baseline.length > 0) {
                     AppearanceBackend.previewFor(root._baseline);
+                    AppearanceBackend.diffPreviewFor(root._baseline);
+                }
+            }
+
+            // ── Operator round 3, items 2+3 — a real side-by-side
+            //    compare, not an asserted `_differs` boolean. Built once
+            //    here so the summary text and the Repeater below read the
+            //    same probe-paired, sorted list: probes that actually
+            //    DIFFER from the baseline render first (the operator's
+            //    own brief), everything identical follows.
+            readonly property var _pairs: {
+                if (!detail.compareOn || detail._baseRows.length === 0)
+                    return [];
+                var differing = [];
+                var same = [];
+                for (var i = 0; i < detail._rows.length; ++i) {
+                    var sel = detail._rows[i];
+                    var base = i < detail._baseRows.length ? detail._baseRows[i] : {
+                        probe: sel.probe,
+                        path: "-"
+                    };
+                    var pair = {
+                        probe: sel.probe,
+                        selPath: sel.path,
+                        basePath: base.path,
+                        differs: sel.path !== base.path
+                    };
+                    (pair.differs ? differing : same).push(pair);
+                }
+                return differing.concat(same);
+            }
+
+            // ── The DISTINGUISHING probe set (M1 extended, items 2+3) —
+            //    always fetched for the selected theme so the secondary
+            //    strip below has something to show even outside Compare;
+            //    paired against the baseline once Compare is on. Kept
+            //    entirely separate from `_rows`/`_pairs` above so the
+            //    primary 12-probe coverage number is never touched by
+            //    this addition.
+            readonly property var _diffRows: root._effectiveSelected.length > 0 ? AppearanceBackend.diffPreviewFor(root._effectiveSelected) : []
+            readonly property var _diffBaseRows: detail.compareOn && root._baseline.length > 0 ? AppearanceBackend.diffPreviewFor(root._baseline) : []
+            readonly property int _diffAvailable: {
+                var n = 0;
+                for (var i = 0; i < detail._diffRows.length; ++i)
+                    if (detail._diffRows[i].path !== "-")
+                        n++;
+                return n;
+            }
+            readonly property var _diffPairs: {
+                var out = [];
+                var pairing = detail.compareOn && detail._diffBaseRows.length > 0;
+                for (var i = 0; i < detail._diffRows.length; ++i) {
+                    var sel = detail._diffRows[i];
+                    var base = pairing && i < detail._diffBaseRows.length ? detail._diffBaseRows[i] : null;
+                    out.push({
+                        probe: sel.probe,
+                        selPath: sel.path,
+                        basePath: base ? base.path : "-",
+                        differs: base !== null && sel.path !== base.path,
+                        hasBaseline: base !== null
+                    });
+                }
+                return out;
             }
 
             Row {
@@ -264,9 +327,15 @@ Item {
                 textFormat: Text.PlainText
             }
 
-            // The selected theme's own 22px probe row.
+            // ── Primary grid — recognisable names, ALWAYS the selected
+            //    theme's own probes (operator round 3, items 2+3: "keep
+            //    the primary preview recognisable"). Hidden only while
+            //    actively comparing, so the same 12 icons never render
+            //    twice — the dedicated side-by-side section below takes
+            //    over for that. ─────────────────────────────────────────
             Grid {
                 width: detail.width - detail.padding * 2
+                visible: !detail.compareOn || root._baseline.length === 0
                 columns: 6
                 rowSpacing: Design.spacingSm
                 columnSpacing: Design.spacingSm
@@ -277,25 +346,14 @@ Item {
                     delegate: Item {
                         id: probeCell
                         required property var modelData
-                        required property int index
 
                         readonly property bool _hit: probeCell.modelData.path !== "-"
-                        readonly property bool _differs: detail.compareOn && detail._baseRows.length > probeCell.index && detail._baseRows[probeCell.index].path !== probeCell.modelData.path
 
                         width: (detail.width - detail.padding * 2 - Design.spacingSm * 5) / 6
                         height: width
 
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 6
-                            color: "transparent"
-                            border.width: probeCell._differs ? 2 : 0
-                            border.color: Colours.primary
-                        }
-
                         Image {
                             anchors.fill: parent
-                            anchors.margins: probeCell._differs ? 3 : 0
                             visible: probeCell._hit
                             asynchronous: true
                             fillMode: Image.PreserveAspectFit
@@ -315,53 +373,213 @@ Item {
                 }
             }
 
-            // Baseline row, shown only while comparing — the same probe
-            // set for `_baseline`, so the two rows line up cell-for-cell.
+            // ── Compare — a real side-by-side visual (operator round 3,
+            //    items 2+3), not an asserted `_differs` boolean: every
+            //    probe renders the selected theme's icon NEXT TO the
+            //    baseline's, sorted differing-first via `detail._pairs`.
             Column {
                 width: detail.width - detail.padding * 2
                 visible: detail.compareOn && root._baseline.length > 0
-                spacing: Design.spacingXs
+                spacing: Design.spacingSm
 
                 Text {
-                    text: root._baseline + " (baseline) — " + detail._diffCount + " of " + detail._rows.length + " differ"
+                    text: detail._diffCount > 0 ? (detail._diffCount + " of " + detail._pairs.length + " differ from " + root._baseline) : (detail._pairs.length + " of " + detail._pairs.length + " identical to " + root._baseline)
                     color: Colours.onSurfaceVariant
                     font.pixelSize: Design.fontLabel
                     textFormat: Text.PlainText
                 }
 
-                Grid {
+                Column {
                     width: parent.width
-                    columns: 6
-                    rowSpacing: Design.spacingSm
-                    columnSpacing: Design.spacingSm
+                    spacing: 2
 
                     Repeater {
-                        model: detail._baseRows
+                        model: detail._pairs
 
-                        delegate: Item {
-                            id: baseCell
+                        delegate: Row {
+                            id: pairRow
                             required property var modelData
 
-                            readonly property bool _hit: baseCell.modelData.path !== "-"
+                            width: parent.width
+                            height: 40
+                            spacing: Design.spacingSm
 
-                            width: (detail.width - detail.padding * 2 - Design.spacingSm * 5) / 6
-                            height: width
-
-                            Image {
-                                anchors.fill: parent
-                                visible: baseCell._hit
-                                asynchronous: true
-                                fillMode: Image.PreserveAspectFit
-                                sourceSize.width: baseCell.width * 2
-                                sourceSize.height: baseCell.height * 2
-                                source: baseCell._hit ? ("file://" + baseCell.modelData.path) : ""
+                            Text {
+                                width: 120
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: pairRow.modelData.probe
+                                color: pairRow.modelData.differs ? Colours.onSurface : Colours.onSurfaceVariant
+                                font.pixelSize: Design.fontLabel
+                                elide: Text.ElideRight
+                                textFormat: Text.PlainText
                             }
 
                             Rectangle {
-                                anchors.fill: parent
-                                visible: !baseCell._hit
-                                radius: 3
-                                color: Qt.alpha(Colours.outline, 0.25)
+                                width: 32
+                                height: 32
+                                anchors.verticalCenter: parent.verticalCenter
+                                radius: 6
+                                color: "transparent"
+                                border.width: pairRow.modelData.differs ? 2 : 0
+                                border.color: Colours.primary
+
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: pairRow.modelData.differs ? 3 : 0
+                                    visible: pairRow.modelData.selPath !== "-"
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize.width: 64
+                                    sourceSize.height: 64
+                                    source: pairRow.modelData.selPath !== "-" ? ("file://" + pairRow.modelData.selPath) : ""
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    visible: pairRow.modelData.selPath === "-"
+                                    radius: 3
+                                    color: Qt.alpha(Colours.outline, 0.25)
+                                }
+                            }
+
+                            Rectangle {
+                                width: 32
+                                height: 32
+                                anchors.verticalCenter: parent.verticalCenter
+                                radius: 6
+                                color: "transparent"
+
+                                Image {
+                                    anchors.fill: parent
+                                    visible: pairRow.modelData.basePath !== "-"
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize.width: 64
+                                    sourceSize.height: 64
+                                    source: pairRow.modelData.basePath !== "-" ? ("file://" + pairRow.modelData.basePath) : ""
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    visible: pairRow.modelData.basePath === "-"
+                                    radius: 3
+                                    color: Qt.alpha(Colours.outline, 0.25)
+                                }
+                            }
+
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: pairRow.modelData.differs ? "differs" : "identical"
+                                color: pairRow.modelData.differs ? Colours.primary : Colours.outline
+                                font.pixelSize: Design.fontLabel
+                                textFormat: Text.PlainText
+                            }
+                        }
+                    }
+                }
+            }
+
+            // ── Distinguishing probes — operator round 3, items 2+3's
+            //    own extra probe set (M1 EXTENDED: `actions/edit-copy`
+            //    separates Papirus-Dark, `panel/indicator-messages`
+            //    separates Papirus-Light — see AppearanceBackend.qml's
+            //    `_DIFF_PROBES` for the measured "why"). A SECONDARY
+            //    strip, never a replacement for the recognisable grid
+            //    above: always visible so a single theme's own
+            //    distinguishing icons show up without needing Compare,
+            //    and pairs with the baseline too once Compare is on.
+            //    `panel/`'s low coverage (3 of 8 themes) is reported
+            //    HONESTLY here — its own count, never folded into the
+            //    12-probe coverage above. ──────────────────────────────
+            Column {
+                width: detail.width - detail.padding * 2
+                visible: detail._diffRows.length > 0
+                spacing: Design.spacingXs
+
+                Text {
+                    text: "Distinguishing probes — " + detail._diffAvailable + " of " + detail._diffRows.length + " available for " + root._effectiveSelected
+                    color: Colours.outline
+                    font.pixelSize: Design.fontLabel
+                    textFormat: Text.PlainText
+                }
+
+                Column {
+                    width: parent.width
+                    spacing: 2
+
+                    Repeater {
+                        model: detail._diffPairs
+
+                        delegate: Row {
+                            id: diffRow
+                            required property var modelData
+
+                            width: parent.width
+                            height: 36
+                            spacing: Design.spacingSm
+
+                            Text {
+                                width: 150
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: diffRow.modelData.probe
+                                color: Colours.onSurfaceVariant
+                                font.pixelSize: Design.fontLabel
+                                elide: Text.ElideRight
+                                textFormat: Text.PlainText
+                            }
+
+                            Rectangle {
+                                width: 28
+                                height: 28
+                                anchors.verticalCenter: parent.verticalCenter
+                                radius: 6
+                                color: "transparent"
+
+                                Image {
+                                    anchors.fill: parent
+                                    visible: diffRow.modelData.selPath !== "-"
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize.width: 56
+                                    sourceSize.height: 56
+                                    source: diffRow.modelData.selPath !== "-" ? ("file://" + diffRow.modelData.selPath) : ""
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    visible: diffRow.modelData.selPath === "-"
+                                    radius: 3
+                                    color: Qt.alpha(Colours.outline, 0.25)
+                                }
+                            }
+
+                            Rectangle {
+                                width: 28
+                                height: 28
+                                anchors.verticalCenter: parent.verticalCenter
+                                radius: 6
+                                visible: diffRow.modelData.hasBaseline
+                                color: "transparent"
+                                border.width: diffRow.modelData.differs ? 2 : 0
+                                border.color: Colours.primary
+
+                                Image {
+                                    anchors.fill: parent
+                                    anchors.margins: diffRow.modelData.differs ? 3 : 0
+                                    visible: diffRow.modelData.basePath !== "-"
+                                    asynchronous: true
+                                    fillMode: Image.PreserveAspectFit
+                                    sourceSize.width: 56
+                                    sourceSize.height: 56
+                                    source: diffRow.modelData.basePath !== "-" ? ("file://" + diffRow.modelData.basePath) : ""
+                                }
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    visible: diffRow.modelData.basePath === "-"
+                                    radius: 3
+                                    color: Qt.alpha(Colours.outline, 0.25)
+                                }
                             }
                         }
                     }

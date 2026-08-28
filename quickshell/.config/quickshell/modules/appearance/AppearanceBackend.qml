@@ -41,6 +41,15 @@ Singleton {
     // a future edit to the probe set only ever needs one file changed.
     readonly property var _PREVIEW_PROBES: ["folder", "user-home", "network-server", "drive-harddisk", "applications-system", "utilities-terminal", "text-x-generic", "image-x-generic", "audio-x-generic", "video-x-generic", "package-x-generic", "preferences-system"]
 
+    // Operator round 3, items 2+3 — the 12-probe set above is generic and
+    // recognisable BY DESIGN, and M1 already proved that costs it the
+    // ability to separate Papirus/Papirus-Dark/Papirus-Light (all three
+    // are byte-identical on every name in it). `--preview-diff`'s own
+    // script-side comment records the live md5sum measurements behind
+    // these two names; kept here too so this file never has to guess
+    // what the script emits.
+    readonly property var _DIFF_PROBES: ["edit-copy", "indicator-messages"]
+
     // ═══════════════════════════════════════════════════════════════
     //  How every surface asks for the Atelier — Task 2 (D-01). The
     //  Atelier is a TYPE mounted once in shell.qml, not a singleton, so
@@ -229,6 +238,101 @@ Singleton {
                 root._previewCache = cache;
             }
             root._pumpPreviewQueue();
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Operator round 3, items 2+3 — the 2-probe DIFFERENTIATOR set
+    //  (`_DIFF_PROBES`). Same single-flight/cache-per-theme shape as the
+    //  12-probe queue above, kept as its OWN queue/process/cache rather
+    //  than folded into it: the Compare strip fetches this only for the
+    //  two themes actually being compared, and keeping it separate means
+    //  the primary 12-probe coverage count above is never touched by
+    //  this addition — exactly the "coverage count must stay truthful"
+    //  requirement.
+    // ═══════════════════════════════════════════════════════════════
+
+    property var _diffPreviewCache: ({})
+    property var _diffPreviewQueue: []
+    property string _diffPreviewRunningTheme: ""
+
+    // Returns the cached differentiator rows for `theme` —
+    // `[{probe, path}]`, same shape as `previewFor()`. Queues a fetch on
+    // first ask, same pattern.
+    function diffPreviewFor(theme: string): var {
+        if (!theme)
+            return [];
+        if (root._diffPreviewCache.hasOwnProperty(theme))
+            return root._diffPreviewCache[theme];
+        root._queueDiffPreview(theme);
+        return [];
+    }
+
+    function _queueDiffPreview(theme) {
+        if (root._diffPreviewRunningTheme === theme)
+            return;
+        if (root._diffPreviewQueue.indexOf(theme) >= 0)
+            return;
+        var q = root._diffPreviewQueue.slice();
+        q.push(theme);
+        root._diffPreviewQueue = q;
+        root._pumpDiffPreviewQueue();
+    }
+
+    function _pumpDiffPreviewQueue() {
+        if (root._diffPreviewRunningTheme !== "")
+            return;
+        if (root._diffPreviewQueue.length === 0)
+            return;
+        var next = root._diffPreviewQueue[0];
+        root._diffPreviewQueue = root._diffPreviewQueue.slice(1);
+        root._diffPreviewRunningTheme = next;
+        diffPreviewWatchdog.restart();
+        diffPreviewProc.command = [root._iconScript, "--preview-diff", next, "22"];
+        diffPreviewProc.running = true;
+    }
+
+    Timer {
+        id: diffPreviewWatchdog
+        interval: 5000
+        onTriggered: {
+            if (diffPreviewProc.running)
+                diffPreviewProc.running = false;
+        }
+    }
+    Process {
+        id: diffPreviewProc
+        running: false
+        command: ["true"]
+        stdout: StdioCollector {
+            id: diffPreviewCollector
+        }
+        onExited: (code, status) => {
+            diffPreviewWatchdog.stop();
+            var theme = root._diffPreviewRunningTheme;
+            root._diffPreviewRunningTheme = "";
+            if (theme !== "") {
+                var rows = [];
+                if (code === 0) {
+                    var lines = (diffPreviewCollector.text || "").split("\n");
+                    for (var i = 0; i < lines.length; ++i) {
+                        if (lines[i].length === 0)
+                            continue;
+                        var parts = lines[i].split("\t");
+                        if (parts.length === 2)
+                            rows.push({
+                                probe: parts[0],
+                                path: parts[1]
+                            });
+                    }
+                }
+                var cache = {};
+                for (var k in root._diffPreviewCache)
+                    cache[k] = root._diffPreviewCache[k];
+                cache[theme] = rows;
+                root._diffPreviewCache = cache;
+            }
+            root._pumpDiffPreviewQueue();
         }
     }
 

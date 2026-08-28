@@ -15,6 +15,12 @@
 # ║                       re-run, notify)                              ║
 # ║    --preview <t> [sz] 12-probe montage rows for one theme, for the ║
 # ║                       Atelier/launcher preview grids (Task 1, M1)  ║
+# ║    --preview-diff <t> [sz]  2-probe DISTINGUISHING rows (operator   ║
+# ║                       round 3, items 2+3) — `edit-copy` (actions/)  ║
+# ║                       and `indicator-messages` (panel/), MEASURED   ║
+# ║                       live on this host to separate the Papirus     ║
+# ║                       trio the 12-probe set cannot (M1: all three   ║
+# ║                       are byte-identical on every --preview name).  ║
 # ║                                                                    ║
 # ║  The catalogue browse+install this script used to do interactively ║
 # ║  now lives in AppearanceBackend.qml's own catalogue functions      ║
@@ -153,6 +159,55 @@ case "${1:-}" in
             || { echo "icon-theme-picker.sh --preview: '$THEME' is not an installed icon theme" >&2; exit 1; }
         PROBE_NAMES=(folder user-home network-server drive-harddisk applications-system utilities-terminal text-x-generic image-x-generic audio-x-generic video-x-generic package-x-generic preferences-system)
         for _n in "${PROBE_NAMES[@]}"; do
+            _f=$(_find_icon_at_size "$THEME_DIR" "$_n" "$SIZE")
+            if [[ -n "$_f" ]]; then
+                printf '%s\t%s\n' "$_n" "$_f"
+            else
+                printf '%s\t-\n' "$_n"
+            fi
+        done
+        exit 0
+        ;;
+    --preview-diff)
+        # Operator round 3, items 2+3 — a SECOND, smaller probe set that
+        # exists purely to separate themes the 12-probe `--preview` set
+        # cannot: `edit-copy` (actions/) and `indicator-messages`
+        # (panel/), both MEASURED live on this host (`md5sum` against
+        # every installed theme's own file):
+        #
+        #   edit-copy           — Papirus-Dark owns a real actions/
+        #                          directory (Papirus-Light symlinks the
+        #                          whole directory into Papirus), so this
+        #                          hashes [Papirus=A, Dark=B, Light=A].
+        #                          Resolves in 6 of the 8 installed
+        #                          themes (every theme but Adwaita).
+        #   indicator-messages   — Papirus-Light owns a real panel/
+        #                          directory (Papirus-Dark symlinks
+        #                          Papirus's), so this hashes
+        #                          [Papirus=A, Dark=A, Light=B]. panel/
+        #                          is a Papirus-ism: resolves in only 3
+        #                          of the 8 installed themes (Papirus,
+        #                          Papirus-Dark, Papirus-Light).
+        #
+        # Same `<probeName>\t<path-or-'-'>` shape as --preview, so the
+        # QML side reuses one parser for both. The low panel/ coverage is
+        # reported HONESTLY by the caller (a separate count, never folded
+        # into the 12-probe coverage number) — this verb only ever emits
+        # what it finds, never pads or hides a miss.
+        THEME="${2:-}"
+        SIZE="${3:-22}"
+        [[ -n "$THEME" ]] || { echo "icon-theme-picker.sh --preview-diff: theme name required" >&2; exit 1; }
+        THEME_DIR=""
+        for base in /usr/share/icons "$HOME/.local/share/icons"; do
+            if [[ -d "$base/$THEME" ]]; then
+                THEME_DIR="$base/$THEME"
+                break
+            fi
+        done
+        [[ -n "$THEME_DIR" ]] \
+            || { echo "icon-theme-picker.sh --preview-diff: '$THEME' is not an installed icon theme" >&2; exit 1; }
+        DIFF_PROBE_NAMES=(edit-copy indicator-messages)
+        for _n in "${DIFF_PROBE_NAMES[@]}"; do
             _f=$(_find_icon_at_size "$THEME_DIR" "$_n" "$SIZE")
             if [[ -n "$_f" ]]; then
                 printf '%s\t%s\n' "$_n" "$_f"
