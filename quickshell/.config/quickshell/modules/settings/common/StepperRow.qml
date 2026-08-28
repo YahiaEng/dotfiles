@@ -76,12 +76,26 @@ Control {
         id: rowHover
     }
 
-    // Round 5, item 2 — same passive-observer idiom as `rowHover`: never
-    // grabs the point, so the `−`/`+` pill's own MouseAreas still get
-    // every click.
+    // Round 5, item 2 — a press observer for RowSurface's `pressed` state.
+    //
+    // CORRECTED 2026-08-28 (quick task 260828-t22): this block used to set
+    // `gesturePolicy: TapHandler.PassiveOnly` and the comment described a
+    // handler that "never grabs the point". THERE IS NO SUCH VALUE. Measured
+    // against /usr/lib/qt6/qml/QtQuick/plugins.qmltypes, GesturePolicy has
+    // exactly four: DragThreshold, WithinBounds, ReleaseWithinBounds,
+    // DragWithinBounds. `PassiveOnly` appears NOWHERE in Qt, so the
+    // assignment failed at runtime — `Unable to assign [undefined] to
+    // QQuickTapHandler::GesturePolicy`, logged on every instantiation — and
+    // the handler silently used the DEFAULT all along.
+    //
+    // The line is REMOVED rather than replaced. What shipped and what the
+    // operator approved live in round 5 IS the default; substituting a
+    // real-but-different policy would change approved behaviour on a surface
+    // that cannot be exercised from an agent shell. This makes the code
+    // honest about what it already does. Choosing a different policy is a
+    // separate, testable decision.
     TapHandler {
         id: rowPress
-        gesturePolicy: TapHandler.PassiveOnly
     }
 
     background: RowSurface {
