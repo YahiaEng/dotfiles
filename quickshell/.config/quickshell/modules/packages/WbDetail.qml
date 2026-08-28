@@ -29,8 +29,9 @@ Item {
 
     required property var bench
 
+    // Width is assigned by the workbench (persisted, drag-resizable) —
+    // this file must not pin it.
     implicitWidth: 320
-    width: 320
 
     readonly property var backend: root.bench.backend
     readonly property var row: root.bench.focusRow

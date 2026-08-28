@@ -1,17 +1,17 @@
-// modules/launcher/PkgMode.qml — the `+` route (quick task 260828-75k,
+// modules/launcher/PkgMode.qml — the `pkg` route (quick task 260828-75k,
 // direction D3).
 //
-// ── WHY `+` AND NOT `pkg ` ────────────────────────────────────────────
-// The study drew this as `pkg nvid`, but every route in this launcher is
-// a SINGLE character (`=` calc, `/` files, `:` clipboard, `.` symbols,
-// `;` providerlist, `@` websearch) — a convention inherited from walker's
-// own `[[providers.prefixes]]` table and preserved verbatim through the
-// QML migration. `_routeQuery()` keys the table on `charAt(0)`, so a
-// word prefix would need a second routing shape maintained beside the
-// first, and a four-character route would be the odd one out in the
-// providerlist that exists to teach these. `+` reads as "add a package"
-// and is unclaimed. Stated here because it IS a deviation from what was
-// approved in the study.
+// ── THE ROUTE IS THE WORD `pkg` ──────────────────────────────────────
+// It shipped as `+` first, on the reasoning that every other route here is
+// a single character (`=` calc, `/` files, `:` clipboard, `.` symbols, `;`
+// providerlist, `@` websearch) inherited from walker's own prefixes table.
+// The operator rejected it — "+" reads as punctuation, not as a command —
+// so LauncherState grew a second, word-shaped route table beside the
+// character one. The single-character vocabulary is untouched.
+//
+// "pkg" matches only at the very start and only alone or followed by a
+// space, so `pkgfile` stays an ordinary app search rather than becoming a
+// package query for "file".
 //
 // ── WHAT IT SEARCHES ──────────────────────────────────────────────────
 // Installed packages first (ranked: exact, then prefix, then substring),

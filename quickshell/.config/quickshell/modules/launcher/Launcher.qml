@@ -933,6 +933,47 @@ PanelWindow {
                             LauncherState.query = searchField.text;
                     }
 
+                    // ── Route prefix painted as a command (quick task
+                    //    260828-75k, operator round 3) ──────────────────
+                    // An overlay Text drawn over the field's own first
+                    // glyphs, not a contentItem replacement: this tree
+                    // already records that anchoring a QQC2 Control's
+                    // contentItem shrinks its background below its content,
+                    // and the field's sizing is not worth risking for a
+                    // colour.
+                    //
+                    // It aligns because it is the SAME string, font and
+                    // origin: the shell's family is FiraCode Nerd Font
+                    // (monospace) and the position is read from the field's
+                    // own leftPadding/topPadding rather than assumed. Only
+                    // the prefix span is drawn, so the rest of the query is
+                    // the field's own untouched rendering.
+                    Text {
+                        id: routeToken
+                        x: searchField.leftPadding
+                        y: searchField.topPadding
+                        width: searchField.width - searchField.leftPadding - searchField.rightPadding
+                        height: searchField.height - searchField.topPadding - searchField.bottomPadding
+                        verticalAlignment: Text.AlignVCenter
+                        visible: text.length > 0
+                        // A resolved route paints its whole prefix; a
+                        // partial one ("p", "pk") paints what has been typed
+                        // so far, so the feedback starts on keystroke one.
+                        text: LauncherState.routePrefix.length > 0 ? LauncherState.routePrefix : (LauncherState.routePartial ? LauncherState.query : "")
+                        font: searchField.font
+                        color: LauncherState.routePrefix.length > 0 ? Colours.primary : Colours.tertiary
+                        textFormat: Text.PlainText
+
+                        Behavior on color {
+                            enabled: Motion.motionEnabled
+                            ColorAnimation {
+                                duration: Motion.colourDuration
+                                easing.type: Easing.BezierSpline
+                                easing.bezierCurve: Motion.colourEasing
+                            }
+                        }
+                    }
+
                     Keys.onEscapePressed: function (event) {
                         launcherWindow._beginDismiss();
                         event.accepted = true;
@@ -1313,7 +1354,7 @@ PanelWindow {
                 }
             }
 
-            // `+` packages (quick task 260828-75k). Activating a row opens
+            // `pkg` packages (quick task 260828-75k). Activating a row opens
             // the workbench on that package rather than installing or
             // removing it — a launcher row is a lookup, and a transaction
             // started from a fuzzy match on a half-typed name is exactly
@@ -1466,7 +1507,7 @@ PanelWindow {
                             label: "Web search"
                         },
                         {
-                            prefix: "+",
+                            prefix: "pkg ",
                             label: "Packages"
                         }
                     ]

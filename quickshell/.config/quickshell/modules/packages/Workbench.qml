@@ -94,6 +94,16 @@ LazyLoader {
             Prefs.setValue("packages.sidebarWidth", clamped);
         }
 
+        property int detailWidth: Math.max(240, Math.min(620, Prefs.getValue("packages.detailWidth")))
+
+        function setDetailWidth(w) {
+            var clamped = Math.max(240, Math.min(620, Math.round(w)));
+            if (clamped === win.detailWidth)
+                return;
+            win.detailWidth = clamped;
+            Prefs.setValue("packages.detailWidth", clamped);
+        }
+
         // Lives on the BACKEND, not here: dismiss-on-click-outside makes
         // losing this window easy, and a half-built removal queue is real
         // work. The backend is a singleton, so it survives.
@@ -406,30 +416,106 @@ LazyLoader {
                     }
                 }
 
+                // ── WHY SCENE COORDINATES AND NOT `mouse.x` ──────────
+                // The first version computed `sidebarWidth + mouse.x -
+                // width/2` on every move. That is a delta measured in the
+                // GRIP'S OWN frame — and the grip moves the instant the
+                // rail resizes, so each frame's measurement was taken
+                // against a ruler the previous frame had already shifted.
+                // Slow drags hid it (one pixel of error per frame); a fast
+                // drag accumulated the error into visible judder and
+                // drift, which is exactly the speed-dependent bug the
+                // operator reported.
+                //
+                // Anchoring on the press instead makes it frame-
+                // independent: remember the scene x and the width at
+                // press, and every subsequent position is an absolute
+                // offset from those two fixed numbers. `mapToItem(null,
+                // …)` is scene space, which the rail's own resizing
+                // cannot move.
                 MouseArea {
                     id: gripArea
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.SizeHorCursor
+
+                    property real pressSceneX: 0
+                    property int pressWidth: 0
+
+                    onPressed: mouse => {
+                        gripArea.pressSceneX = gripArea.mapToItem(null, mouse.x, 0).x;
+                        gripArea.pressWidth = win.sidebarWidth;
+                    }
+
                     onPositionChanged: mouse => {
                         if (!gripArea.pressed)
                             return;
-                        win.setSidebarWidth(win.sidebarWidth + mouse.x - sideGrip.width / 2);
+                        var sceneX = gripArea.mapToItem(null, mouse.x, 0).x;
+                        win.setSidebarWidth(gripArea.pressWidth + (sceneX - gripArea.pressSceneX));
                     }
                 }
             }
 
             WbTable {
                 id: table
-                width: parent.width - side.width - sideGrip.width - detail.width
+                width: parent.width - side.width - sideGrip.width - detailGrip.width - detail.width
                 height: parent.height
                 bench: win
+            }
+
+            // Right-hand grip (operator round 3). Identical mechanism to
+            // the rail's, with the delta INVERTED: dragging left grows the
+            // detail pane, because the boundary and the pane are on
+            // opposite sides of the pointer here.
+            Item {
+                id: detailGrip
+                width: 6
+                height: parent.height
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 2
+                    height: parent.height
+                    color: detailGripArea.containsMouse || detailGripArea.pressed ? Colours.primary : Qt.alpha(Colours.outline, 0.35)
+
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.colourDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.colourEasing
+                        }
+                    }
+                }
+
+                MouseArea {
+                    id: detailGripArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.SizeHorCursor
+
+                    property real pressSceneX: 0
+                    property int pressWidth: 0
+
+                    onPressed: mouse => {
+                        detailGripArea.pressSceneX = detailGripArea.mapToItem(null, mouse.x, 0).x;
+                        detailGripArea.pressWidth = win.detailWidth;
+                    }
+
+                    onPositionChanged: mouse => {
+                        if (!detailGripArea.pressed)
+                            return;
+                        var sceneX = detailGripArea.mapToItem(null, mouse.x, 0).x;
+                        win.setDetailWidth(detailGripArea.pressWidth - (sceneX - detailGripArea.pressSceneX));
+                    }
+                }
             }
 
             WbDetail {
                 id: detail
                 height: parent.height
                 bench: win
+                width: win.detailWidth
             }
         }
     }

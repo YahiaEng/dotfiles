@@ -43,12 +43,12 @@ Singleton {
     readonly property string modeSymbols: "symbols"
     readonly property string modeProviderList: "providerlist"
     readonly property string modeWebSearch: "websearch"
-    // `+` packages (quick task 260828-75k). Appended, never inserted —
-    // this file's own standing instruction. `+` reads as "add a package"
-    // and was the only unclaimed character that does; the study drew this
-    // route as `pkg `, but every route here is a single character keyed on
-    // charAt(0) below, and a word prefix would need a second routing shape
-    // maintained beside the first.
+    // `pkg` packages (quick task 260828-75k). Appended, never inserted —
+    // this file's own standing instruction. Shipped as the character `+`
+    // first and the operator rejected it ("+" reads as punctuation, not as
+    // a command), so `_wordRoutes` below is the second routing shape the
+    // original reasoning was trying to avoid — added deliberately, with
+    // the single-character vocabulary left exactly as it was.
     readonly property string modePkg: "pkg"
     // Menu mode (quick task 260822-sht, Task 3) — the 9 D-2 verb-based
     // roots, drilled via `LauncherState.navStack` and rendered by
@@ -68,8 +68,7 @@ Singleton {
             ":": root.modeClipboard,
             ".": root.modeSymbols,
             ";": root.modeProviderList,
-            "@": root.modeWebSearch,
-            "+": root.modePkg
+            "@": root.modeWebSearch
         })
 
     // Menu mode is intentionally EXEMPT from prefix routing (quick task
@@ -97,6 +96,50 @@ Singleton {
             "systeminfo": true
         })
 
+    // ── Word routes (quick task 260828-75k, operator round 3) ────────
+    // The single-character table above is walker's inherited vocabulary and
+    // stays exactly as it is. `pkg` is a WORD because the operator asked for
+    // one — "+" read as punctuation rather than as a command. Matched
+    // case-insensitively, and only at the very start, either alone ("pkg")
+    // or followed by a space ("pkg nvid"): "pkgfile" must stay an ordinary
+    // app search, so a bare alphabetic run that merely STARTS with the word
+    // is not a route.
+    readonly property var _wordRoutes: ({
+            "pkg": root.modePkg
+        })
+
+    // The prefix that actually resolved the current route, "" when none did
+    // — the single character for a char route, the whole word for a word
+    // route. The launcher paints exactly this span in the accent colour, so
+    // a route reads as a command while it is being typed.
+    readonly property string routePrefix: {
+        const q = root.query;
+        if (q.length === 0)
+            return "";
+        const lower = q.toLowerCase();
+        for (const word in root._wordRoutes) {
+            if (lower === word || lower.indexOf(word + " ") === 0)
+                return q.slice(0, word.length);
+        }
+        if (root._prefixRoutes[q.charAt(0)] !== undefined)
+            return q.charAt(0);
+        return "";
+    }
+
+    // True while what has been typed so far could still BECOME a word route
+    // ("p", "pk"). Painted in the accent colour too, so the feedback starts
+    // on the first keystroke rather than snapping in on the third.
+    readonly property bool routePartial: {
+        const q = root.query.toLowerCase();
+        if (q.length === 0 || root.routePrefix.length > 0)
+            return false;
+        for (const word in root._wordRoutes) {
+            if (word.indexOf(q) === 0)
+                return true;
+        }
+        return false;
+    }
+
     function _routeQuery() {
         if (root._stickyModes[root.mode] === true)
             return;
@@ -104,6 +147,13 @@ Singleton {
         if (q.length === 0) {
             root.mode = root.modeApps;
             return;
+        }
+        const lower = q.toLowerCase();
+        for (const word in root._wordRoutes) {
+            if (lower === word || lower.indexOf(word + " ") === 0) {
+                root.mode = root._wordRoutes[word];
+                return;
+            }
         }
         const routed = root._prefixRoutes[q.charAt(0)];
         root.mode = routed !== undefined ? routed : root.modeApps;
@@ -120,9 +170,13 @@ Singleton {
     // verbatim (no prefix to strip).
     readonly property string queryArg: {
         const q = root.query;
-        if (q.length > 0 && root._prefixRoutes[q.charAt(0)] !== undefined)
-            return q.slice(1);
-        return q;
+        const p = root.routePrefix;
+        if (p.length === 0)
+            return q;
+        // The word form is written with a separating space ("pkg nvid");
+        // the character form is not ("=2+2"). Trimming the leading space
+        // covers both without a second branch.
+        return q.slice(p.length).replace(/^ /, "");
     }
 
     // ── Menu navigation stack (Task 3 pushes/pops submenu nodes here;
