@@ -50,6 +50,9 @@
     "spatial-in": { "duration": "medium2", "easing": "spatial-in" },
     "spatial-out": { "duration": "short3", "easing": "spatial-out" },
     "spatial-move": { "duration": "short4", "easing": "spatial-move" },
+    "leaf-short3": { "duration": "short3", "easing": "standard" },
+    "leaf-short4": { "duration": "short4", "easing": "standard" },
+    "leaf-medium1": { "duration": "medium1", "easing": "standard" },
     "leaf-medium2": { "duration": "medium2", "easing": "standard" },
     "leaf-medium4": { "duration": "medium4", "easing": "standard" },
     "leaf-long2": { "duration": "long2", "easing": "standard" },
@@ -95,89 +98,147 @@
     "smooth": {
       "label": "Smooth",
       "description": "Critically damped, longest, no overshoot.",
+      "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
       "easings": {
         "spatial-in": [0.16, 0.85, 0.3, 1.0],
-        "standard": [0.4, 0, 0.6, 1]
+        "spatial-out": [0.35, 0, 0.7, 1],
+        "spatial-move": [0.35, 0, 0.25, 1],
+        "standard": [0.4, 0, 0.6, 1],
+        "effects": [0.4, 0, 0.6, 1]
       },
       "semantic": {
         "standard": { "duration": "medium1", "easing": "standard" },
+        "standard-slow": { "duration": "long4", "easing": "standard" },
         "emphasized-in": { "duration": "medium4", "easing": "emphasized-decelerate" },
         "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
+        "colour": { "duration": "medium2", "easing": "effects" },
         "spatial-in": { "duration": "medium4", "easing": "spatial-in" },
         "spatial-out": { "duration": "short4", "easing": "spatial-out" },
         "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
       },
       "hypr_leaves": {
-        "windows_in": { "curve": "spatial-in", "style": "slidefade" },
-        "windows_out": { "curve": "spatial-out", "style": "slidefade" },
-        "workspaces": { "curve": "spatial-in", "style": "slidefade" },
-        "special_workspace": { "curve": "spatial-in", "style": "slidefade" }
+        "windows_in": { "curve": "spatial-in", "speed_key": "leaf-long2", "style": "slidefade" },
+        "windows_out": { "curve": "spatial-out", "speed_key": "leaf-medium4", "style": "slidefade" },
+        "windows_move": { "curve": "spatial-move", "speed_key": "leaf-long2", "style": "slide" },
+        "workspaces": { "curve": "spatial-in", "speed_key": "leaf-long2", "style": "slidefade" },
+        "special_workspace": { "curve": "spatial-in", "speed_key": "leaf-medium4", "style": "slidefade" },
+        "layers": { "curve": "spatial-move", "speed_key": "leaf-long2", "style": "slide" },
+        "layers_in": { "curve": "spatial-in", "speed_key": "leaf-long2", "style": "slide" },
+        "layers_out": { "curve": "spatial-out", "speed_key": "leaf-medium4", "style": "slide" },
+        "fade_in": { "curve": "standard", "speed_key": "leaf-long2" },
+        "fade_out": { "curve": "standard", "speed_key": "leaf-medium4" },
+        "fade_switch": { "curve": "standard", "speed_key": "leaf-long2" },
+        "fade_shadow": { "curve": "standard", "speed_key": "leaf-long2" },
+        "fade_dim": { "curve": "standard", "speed_key": "leaf-long2" }
       }
     },
     "snappy": {
       "label": "Snappy",
       "description": "Short, fast rise, a barely-there overshoot.",
+      "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
       "easings": {
         "spatial-in": [0.1, 0.9, 0.4, 1.12],
-        "standard": [0.05, 0.5, 0.1, 1]
+        "spatial-out": [0.3, 0, 0.8, 1],
+        "spatial-move": [0.1, 0.9, 0.4, 1.06],
+        "standard": [0.05, 0.5, 0.1, 1],
+        "effects": [0.05, 0.5, 0.1, 1]
       },
       "semantic": {
         "standard": { "duration": "short3", "easing": "standard" },
+        "standard-slow": { "duration": "short4", "easing": "standard" },
         "emphasized-in": { "duration": "short4", "easing": "emphasized-decelerate" },
         "emphasized-out": { "duration": "short2", "easing": "emphasized-accelerate" },
+        "colour": { "duration": "short2", "easing": "effects" },
         "spatial-in": { "duration": "short4", "easing": "spatial-in" },
         "spatial-out": { "duration": "short2", "easing": "spatial-out" },
         "spatial-move": { "duration": "short3", "easing": "spatial-move" }
       },
       "hypr_leaves": {
-        "windows_in": { "curve": "spatial-in", "style": "popin 80%" },
-        "windows_out": { "curve": "spatial-out", "style": "popin 80%" }
+        "windows_in": { "curve": "spatial-in", "speed_key": "leaf-short4", "style": "popin 80%" },
+        "windows_out": { "curve": "spatial-out", "speed_key": "leaf-short3", "style": "popin 80%" },
+        "windows_move": { "curve": "spatial-move", "speed_key": "leaf-short4", "style": "slide" },
+        "workspaces": { "curve": "spatial-move", "speed_key": "leaf-short4", "style": "slide" },
+        "special_workspace": { "curve": "spatial-in", "speed_key": "leaf-short4", "style": "slidevert" },
+        "layers": { "curve": "spatial-move", "speed_key": "leaf-short4", "style": "popin 80%" },
+        "layers_in": { "curve": "spatial-in", "speed_key": "leaf-short4", "style": "popin 80%" },
+        "layers_out": { "curve": "spatial-out", "speed_key": "leaf-short3", "style": "popin 80%" },
+        "fade_in": { "curve": "standard", "speed_key": "leaf-short4" },
+        "fade_out": { "curve": "standard", "speed_key": "leaf-short3" },
+        "fade_switch": { "curve": "standard", "speed_key": "leaf-short4" },
+        "fade_shadow": { "curve": "standard", "speed_key": "leaf-short4" },
+        "fade_dim": { "curve": "standard", "speed_key": "leaf-short4" }
       }
     },
     "bouncy": {
       "label": "Bouncy",
       "description": "Crests past the target, drops back through it, then settles — the snap-back of a bounce.",
-      "_comment_curve": "This dipping curve carries a history worth knowing before retuning it. (1) Hyprland's hl.curve() rejects any control-point Y above 2.00 and then SILENTLY KEEPS the previously registered curve instead of failing the reload — an out-of-range number looks exactly like 'my edit did nothing'. (2) It first shipped as [0.05, 2.0, 0.3, 0.6] and was rejected by the operator on 2026-08-22 as causing motion sickness: it fired its whole +10.8% overshoot in the first 94ms of 450ms — already 111% of the way by a fifth of the duration — then sagged to 8% BELOW the target for the remaining 356ms. (3) A retune to [0.3, 1.45, 0.7, 0.94] at +4% overcorrected and read as a near-twin of smooth. What those verdicts together establish is that neither the crest SIZE nor the 450ms length was the problem — the SNAP was, together with the sag depth and the fact that the reversal landed on a whole-screen vertical slide. [0.4, 1.85, 0.75, 0.74] keeps the crest (+9.7%) but reaches it smoothly at 54% of the duration and dips only 4.2%. (4) It lived under the 'wavy' name until 2026-08-22, when the operator judged the two names backwards — a curve that overshoots and comes BACK DOWN reads as a bounce, not a wave — and the curves were swapped. The motion moved; this history moved with it.",
+      "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
       "easings": {
-        "spatial-in": [0.4, 1.85, 0.75, 0.74]
+        "spatial-in": [0.4, 1.85, 0.75, 0.74],
+        "spatial-out": [0.45, 0, 0.6, 1.15],
+        "spatial-move": [0.4, 1.5, 0.6, 0.9],
+        "effects": [0.3, 0, 0.5, 1]
       },
       "semantic": {
         "standard": { "duration": "short4", "easing": "standard" },
+        "standard-slow": { "duration": "long2", "easing": "standard" },
         "emphasized-in": { "duration": "long1", "easing": "emphasized-decelerate" },
         "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
+        "colour": { "duration": "short4", "easing": "effects" },
         "spatial-in": { "duration": "long1", "easing": "spatial-in" },
         "spatial-out": { "duration": "short3", "easing": "spatial-out" },
         "spatial-move": { "duration": "short4", "easing": "spatial-move" }
       },
-      "_comment_leaves": "workspaces/special_workspace MUST stay on a monotonic curve while this style owns the dipping spatial-in. They keep their vertical slidevert shape, but on spatial-move rather than spatial-in. This is not stylistic: the operator's motion sickness came from a reversing curve landing on a whole-screen VERTICAL slide, and this style is the one that puts full-screen motion on spatial-in. Vertical motion itself was never the trigger — this style ran a full-screen vertical slidevert with a +8% monotonic overshoot for weeks without complaint — so the shape stays and only the reversal is kept off it. special_workspace needs an explicit override here because the BASE table points it at spatial-in. Note a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name), so this also moves workspace switching onto spatial-move's 200ms.",
       "hypr_leaves": {
-        "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
-        "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
-        "workspaces": { "curve": "spatial-move", "style": "slidevert" },
-        "special_workspace": { "curve": "spatial-move", "style": "slidevert" }
+        "windows_in": { "curve": "spatial-in", "speed_key": "leaf-long2", "style": "popin 0%" },
+        "windows_out": { "curve": "spatial-out", "speed_key": "leaf-medium1", "style": "popin 0%" },
+        "windows_move": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slide" },
+        "workspaces": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidevert" },
+        "special_workspace": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidevert" },
+        "layers": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "popin 0%" },
+        "layers_in": { "curve": "spatial-in", "speed_key": "leaf-long2", "style": "popin 0%" },
+        "layers_out": { "curve": "spatial-out", "speed_key": "leaf-medium1", "style": "popin 0%" },
+        "fade_in": { "curve": "standard", "speed_key": "leaf-medium2" },
+        "fade_out": { "curve": "standard", "speed_key": "leaf-medium1" },
+        "fade_switch": { "curve": "standard", "speed_key": "leaf-medium2" },
+        "fade_shadow": { "curve": "standard", "speed_key": "leaf-medium2" },
+        "fade_dim": { "curve": "standard", "speed_key": "leaf-medium2" }
       }
     },
     "wavy": {
       "label": "Wavy",
       "description": "One smooth swell past the target, settling from above — never doubles back.",
-      "_comment_curve": "Held the dipping wave curve until 2026-08-22, when the operator judged the wavy/bouncy names backwards and the two curves were swapped — a dip-and-return reads as a bounce, a single smooth swell reads as a wave. The full history of the dipping curve now lives under 'bouncy'. [0.1, 0.9, 0.4, 1.254] peaks +8.0% at 66% of the duration and settles from above without ever crossing back below the target.",
+      "_comment_260828_parity": "quick task 260828-mot: brought to zen's coverage. Before this, this style overrode 1-2 easings, 6 semantic names and 2-4 Hyprland leaves while zen overrode 4/8/13, so switching away from zen dropped nine leaves (windows_move, all three layers_*, all five fade_*) back to the base MD3 table and the style's own character stopped at the window border. spatial-out/spatial-move/effects are overridden here for the same reason. INVARIANT HELD: only spatial-in/out/move may leave [0,1] (the file's own rule) - `effects` drives colour and stays monotonic in every style below, because a colour that overshoots is simply the wrong colour briefly. Hyprland silently keeps the OLD curve for any control-point Y above 2.00; every value here is well under.",
       "easings": {
-        "spatial-in": [0.1, 0.9, 0.4, 1.254]
+        "spatial-in": [0.1, 0.9, 0.4, 1.254],
+        "spatial-out": [0.35, 0, 0.7, 1.06],
+        "spatial-move": [0.1, 0.9, 0.4, 1.15],
+        "effects": [0.25, 0, 0.5, 1]
       },
       "semantic": {
         "standard": { "duration": "medium1", "easing": "standard" },
+        "standard-slow": { "duration": "long2", "easing": "standard" },
         "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
         "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
+        "colour": { "duration": "medium1", "easing": "effects" },
         "spatial-in": { "duration": "medium3", "easing": "spatial-in" },
         "spatial-out": { "duration": "short4", "easing": "spatial-out" },
         "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
       },
-      "_comment_leaves": "workspaces/special_workspace use spatial-move with a vertical slidefadevert. This style no longer carries a reversing curve (that moved to 'bouncy' in the 2026-08-22 name swap), so the split is now about pacing rather than safety: full-screen motion runs at spatial-move's 250ms while windows and panels swell over 350ms. Keep the shape here distinct from smooth's horizontal slidefade — an earlier pass made these leaves horizontal and the operator reported the style then read as smooth. Note a leaf's DURATION follows its curve name (animations.lua register_hypr_leaf: speed_key = curve name).",
       "hypr_leaves": {
-        "windows_in": { "curve": "spatial-in", "style": "popin 0%" },
-        "windows_out": { "curve": "spatial-out", "style": "popin 0%" },
-        "workspaces": { "curve": "spatial-move", "style": "slidefadevert" },
-        "special_workspace": { "curve": "spatial-move", "style": "slidefadevert" }
+        "windows_in": { "curve": "spatial-in", "speed_key": "leaf-medium4", "style": "popin 0%" },
+        "windows_out": { "curve": "spatial-out", "speed_key": "leaf-medium1", "style": "popin 0%" },
+        "windows_move": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slide" },
+        "workspaces": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidefadevert" },
+        "special_workspace": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidefadevert" },
+        "layers": { "curve": "spatial-move", "speed_key": "leaf-medium4", "style": "slidefade" },
+        "layers_in": { "curve": "spatial-in", "speed_key": "leaf-medium4", "style": "slidefade" },
+        "layers_out": { "curve": "spatial-out", "speed_key": "leaf-medium1", "style": "slidefade" },
+        "fade_in": { "curve": "standard", "speed_key": "leaf-medium4" },
+        "fade_out": { "curve": "standard", "speed_key": "leaf-medium1" },
+        "fade_switch": { "curve": "standard", "speed_key": "leaf-medium4" },
+        "fade_shadow": { "curve": "standard", "speed_key": "leaf-medium4" },
+        "fade_dim": { "curve": "standard", "speed_key": "leaf-medium4" }
       }
     },
     "zen": {
