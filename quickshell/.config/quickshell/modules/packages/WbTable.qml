@@ -37,10 +37,14 @@ Item {
     readonly property int gap: Design.spacingSm
     readonly property int colName: Math.max(120, root.width - Design.spacingMd * 2 - root.colTick - root.colVersion - root.colSize - root.colSource - root.gap * 4)
 
+    // Returns a LIGATURE NAME, drawn by its own Text in the symbol font.
+    // It cannot be concatenated into the label string: the label renders in
+    // the shell's normal family, where "arrow_downward" would appear as
+    // those seventeen letters rather than an arrow.
     function _sortGlyph(key) {
         if (root.bench.sortKey !== key)
             return "";
-        return root.bench.sortDesc ? " ↓" : " ↑";
+        return root.bench.sortDesc ? "arrow_downward" : "arrow_upward";
     }
 
     // ── Search ──────────────────────────────────────────────────────
@@ -68,7 +72,8 @@ Item {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: "⌕"
+                    text: "search"
+                    font.family: Design.symbolFontFamily
                     font.pixelSize: Design.settingsFontRow
                     color: Colours.primary
                 }
@@ -118,8 +123,9 @@ Item {
 
                 Text {
                     anchors.centerIn: parent
-                    text: root.bench.selected.length > 0 ? "▣" : "▢"
-                    font.pixelSize: Design.fontLabel
+                    text: root.bench.selected.length > 0 ? "check_box" : "check_box_outline_blank"
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.settingsFontSub
                     color: root.bench.selected.length > 0 ? Colours.primary : Colours.outline
                 }
 
@@ -169,14 +175,27 @@ Item {
                     width: headCell.modelData.w
                     height: header.height
 
-                    Text {
+                    Row {
                         anchors.fill: parent
-                        verticalAlignment: Text.AlignVCenter
-                        horizontalAlignment: headCell.modelData.align
-                        text: headCell.modelData.label.toUpperCase() + root._sortGlyph(headCell.modelData.key)
-                        font.pixelSize: 10
-                        font.letterSpacing: 0.8
-                        color: root.bench.sortKey === headCell.modelData.key ? Colours.primary : Colours.outline
+                        layoutDirection: headCell.modelData.align === Text.AlignRight ? Qt.RightToLeft : Qt.LeftToRight
+                        spacing: 2
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: headCell.modelData.label.toUpperCase()
+                            font.pixelSize: 10
+                            font.letterSpacing: 0.8
+                            color: root.bench.sortKey === headCell.modelData.key ? Colours.primary : Colours.outline
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: text.length > 0
+                            text: root._sortGlyph(headCell.modelData.key)
+                            font.family: Design.symbolFontFamily
+                            font.pixelSize: 12
+                            color: Colours.primary
+                        }
                     }
 
                     MouseArea {
@@ -255,8 +274,9 @@ Item {
 
                     Text {
                         anchors.centerIn: parent
-                        text: row.ticked ? "▣" : "▢"
-                        font.pixelSize: Design.fontLabel
+                        text: row.ticked ? "check_box" : "check_box_outline_blank"
+                        font.family: Design.symbolFontFamily
+                        font.pixelSize: Design.settingsFontSub
                         color: row.ticked ? Colours.primary : Qt.alpha(Colours.outline, 0.55)
                     }
 

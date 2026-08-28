@@ -186,6 +186,15 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("qs ipc call launcher open clipboard"
 -- instead of calling the script with no argument.
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("qs ipc call launcher open clipboardwipe")) -- Wipe clipboard history
 
+-- ── Packages ─────────────────────────────────────────
+-- The package workbench (quick task 260828-75k). SHIFT+P rather than a
+-- bare Super+P, which is already pseudotiling; the P mnemonic is kept
+-- because that is what makes a chord memorable. `exec_cmd` on the IPC
+-- verb, not a GlobalShortcut, matching Super+C above — a GlobalShortcut
+-- would need a shortcuts.json manifest entry AND a shell restart to
+-- register, and buys nothing here.
+hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("qs ipc call packages-window open")) -- Open package manager
+
 -- ── Screenshots ──────────────────────────────────────
 -- Omarchy-style Print-key family (D-05): freeze-capture into satty for
 -- annotate+save+copy (SHOT-01/02). Old Super+X/Z/Shift+Print binds

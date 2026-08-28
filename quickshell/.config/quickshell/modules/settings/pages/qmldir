@@ -21,7 +21,8 @@ AppsPage 1.0 AppsPage.qml
 AllAppsPage 1.0 AllAppsPage.qml
 AppInfoPage 1.0 AppInfoPage.qml
 # Updates + About (quick task 260825-wj2 Task 3) — flat, no sub-pages.
-UpdatesPage 1.0 UpdatesPage.qml
+# UpdatesPage RETIRED 2026-08-28 (quick task 260828-75k) — absorbed
+# into the package workbench.
 AboutPage 1.0 AboutPage.qml
 # Connected devices + sub-page (quick task 260825-wj2 Task 4, D-8).
 BluetoothPage 1.0 BluetoothPage.qml

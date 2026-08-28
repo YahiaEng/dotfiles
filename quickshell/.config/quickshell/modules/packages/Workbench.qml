@@ -30,6 +30,7 @@
 // escalates no privilege; see the backend's header for why that is the
 // design rather than a limitation.
 import QtQuick
+import QtQuick.Window
 import Quickshell
 import ".."
 import "../dashboard"
@@ -65,10 +66,14 @@ LazyLoader {
         property string query: ""
         property string sortKey: "size"
         property bool sortDesc: true
-        property var selected: []
         property string focusName: loader.pendingFocus
 
         readonly property var backend: PackagesBackend
+
+        // Lives on the BACKEND, not here: dismiss-on-click-outside makes
+        // losing this window easy, and a half-built removal queue is real
+        // work. The backend is a singleton, so it survives.
+        readonly property var selected: PackagesBackend.queue
 
         title: "Packages"
 
@@ -86,10 +91,21 @@ LazyLoader {
         readonly property real panelSurfaceOpacity: 0.78
         color: "transparent"
 
-        implicitWidth: 1100
-        implicitHeight: 640
-        minimumSize.width: 780
-        minimumSize.height: 460
+        // ── Size (operator round 1: "scaled too small") ─────────────
+        // 1100x640 was a literal and read tiny on a 2560x1440 screen.
+        // This is Settings.qml's own formula verbatim — 70% of the screen
+        // height at 16:9, floored at a size the three columns still fit —
+        // so the two windows in this shell that browse a long list are
+        // the same size as each other on any monitor. Measured: Settings
+        // renders 1792x1008 here, and so does this now.
+        readonly property int _screenHeight: (win.screen && win.screen.height > 0) ? win.screen.height : 1080
+        readonly property real _heightMult: 0.7
+        readonly property real _aspectRatio: 16 / 9
+
+        implicitHeight: Math.max(560, Math.round(win._screenHeight * win._heightMult))
+        implicitWidth: Math.max(900, Math.round(win.implicitHeight * win._aspectRatio))
+        minimumSize.width: 900
+        minimumSize.height: 560
 
         onVisibleChanged: {
             if (!visible)
@@ -101,23 +117,16 @@ LazyLoader {
             return win.selected.indexOf(name) >= 0;
         }
 
+        // All three delegate to the backend, which owns the queue and
+        // re-previews on every change — the cascade for {a} and for {a,b}
+        // are different questions, and a preview left over from the
+        // previous selection is worse than none.
         function toggleSelected(name) {
-            var next = win.selected.slice();
-            var i = next.indexOf(name);
-            if (i >= 0)
-                next.splice(i, 1);
-            else
-                next.push(name);
-            win.selected = next;
-            // Re-preview on every change: the cascade for {a} and for
-            // {a,b} are different questions, and a preview left over from
-            // the previous selection is worse than none.
-            win.backend.previewRemoval(next);
+            win.backend.queueToggle(name);
         }
 
         function clearSelection() {
-            win.selected = [];
-            win.backend.previewRemoval([]);
+            win.backend.queueClear();
         }
 
         function selectAllVisible() {
@@ -125,8 +134,7 @@ LazyLoader {
             for (var i = 0; i < win.rows.length; ++i)
                 if (win.rows[i].installed)
                     next.push(win.rows[i].name);
-            win.selected = next;
-            win.backend.previewRemoval(next);
+            win.backend.queueSet(next);
         }
 
         // ── The row model ───────────────────────────────────────────
@@ -292,11 +300,36 @@ LazyLoader {
             }
         }
 
-        // Escape closes, matching every other summoned surface here.
+        // ── Escape, and dismiss-on-click-outside (operator round 1) ──
+        // A FloatingWindow is a real toplevel, so it does not dismiss on
+        // an outside click the way a layer surface does. FloatingWindow
+        // exposes no focus property of its own either (checked against
+        // quickshell-window.qmltypes: title/minimumSize/visible/…, no
+        // `active`), so the signal is Qt's own attached `Window.active`
+        // on an item inside — the same mechanism Settings.qml already
+        // uses for its focus-retention, and per that file's measured
+        // header the one belief that actually tracks activation
+        // (`hyprctl activewindow` is NOT a reliable proxy).
+        //
+        // Deliberate consequence: pressing Review opens the terminal,
+        // which takes focus, which closes this window. That is the right
+        // behaviour — you have moved to the terminal — and the queue
+        // survives it because `selected` lives on the backend singleton,
+        // not on this window.
         Item {
+            id: focusCatcher
             anchors.fill: parent
             focus: true
             Keys.onEscapePressed: loader.activeAsync = false
+
+            Window.onActiveChanged: {
+                if (!focusCatcher.Window.active)
+                    loader.activeAsync = false;
+                else
+                    focusCatcher.forceActiveFocus();
+            }
+
+            Component.onCompleted: forceActiveFocus()
         }
 
         Row {

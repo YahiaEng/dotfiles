@@ -37,6 +37,43 @@ Item {
 
     readonly property bool hasQueue: root.bench.selected.length > 0
 
+    // ── Per-package update, two-step arm ────────────────────────────
+    // ABSORBED VERBATIM IN BEHAVIOUR from the retired UpdatesPage.qml,
+    // including its reasoning, because the reasoning is the feature:
+    //
+    //   * The command carries NO `-y`. `paru -Sy <pkg>` is the documented
+    //     Arch partial-upgrade footgun — it refreshes the sync database
+    //     and then installs ONE package against a system that has not
+    //     been upgraded, dragging in newer dependencies. Omitting it
+    //     bounds the transaction to the database already on disk.
+    //     `checkupdates` syncs into a TEMPORARY db and never touches
+    //     /var/lib/pacman/sync, so the honest worst case is that paru
+    //     reports nothing to do — a no-op, in the safe direction.
+    //   * `--needed` turns a stale-database hit into an explicit skip
+    //     rather than a same-version reinstall.
+    //   * TWO clicks, and the risk is stated at the point of action
+    //     between them. A 6 s timer disarms on its own.
+    property string _armedUpdate: ""
+
+    Timer {
+        id: disarmTimer
+        interval: 6000
+        running: false
+        repeat: false
+        onTriggered: root._armedUpdate = ""
+    }
+
+    function _updateClicked(name) {
+        if (root._armedUpdate === name) {
+            root._armedUpdate = "";
+            disarmTimer.stop();
+            root.backend.install([name]);
+            return;
+        }
+        root._armedUpdate = name;
+        disarmTimer.restart();
+    }
+
     function _joinOr(list, fallback) {
         if (!list || list.length === 0)
             return fallback;
@@ -91,10 +128,16 @@ Item {
             v: p.explicit ? "Explicitly installed" : "Installed as a dependency",
             tone: "normal"
         });
+        // "Nothing depends on this" is NOT the same claim as "orphan".
+        // pacman's own definition (`-Qdt`) is dependency-installed AND
+        // unrequired; an EXPLICITLY installed package with no dependents
+        // is simply a leaf you asked for. The first version called `linux`
+        // an orphan, which it is not — caught on a render.
+        var orphan = root.backend.isOrphan(p.name);
         out.push({
             k: "Required by",
-            v: root._joinOr(p.requiredBy, "Nothing — this is an orphan"),
-            tone: p.requiredBy.length === 0 ? "accent" : "normal"
+            v: root._joinOr(p.requiredBy, orphan ? "Nothing — an orphan, safe to remove" : "Nothing — but you asked for it explicitly"),
+            tone: orphan ? "accent" : "normal"
         });
         out.push({
             k: "Depends on",
@@ -391,6 +434,36 @@ Item {
                                 wrapMode: Text.WordWrap
                             }
                         }
+                    }
+                }
+
+                // Update this package — only when there IS one, so the
+                // control cannot be read as "reinstall".
+                Column {
+                    width: parent.width
+                    spacing: Design.spacingSm
+                    visible: !!root.row && !!root.row.update
+
+                    WbButton {
+                        label: {
+                            if (root.backend.dbLocked)
+                                return "pacman is busy";
+                            if (root._armedUpdate === (root.row ? root.row.name : ""))
+                                return "Click again to run";
+                            return "Update this package";
+                        }
+                        tone: root._armedUpdate === (root.row ? root.row.name : "") ? "danger" : "primary"
+                        enabled: !root.backend.dbLocked
+                        onActivated: root._updateClicked(root.row.name)
+                    }
+
+                    Text {
+                        width: parent.width
+                        visible: root._armedUpdate === (root.row ? root.row.name : "")
+                        text: "Updates only this package — a partial upgrade, which can break Arch. Use Update all when in doubt."
+                        font.pixelSize: Design.fontLabel
+                        color: Colours.error
+                        wrapMode: Text.WordWrap
                     }
                 }
 

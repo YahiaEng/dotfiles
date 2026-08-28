@@ -117,6 +117,13 @@ Singleton {
 
     // The last removal preview, keyed by the request that produced it so
     // a stale answer cannot be shown against a new selection.
+    // ── The removal queue ────────────────────────────────────────────
+    // Lives here rather than on the workbench window because the window
+    // now dismisses on an outside click (operator round 1), and a
+    // half-built queue is real work to lose. A singleton survives the
+    // window; the window reads this and never holds its own copy.
+    property var queue: []
+
     property var previewFor: []         // names asked about
     property var previewCascade: []     // [{name, version}] actually removed
     property string previewError: ""
@@ -571,6 +578,28 @@ Singleton {
     // `removeCommand` below use `-Rs`. The preview therefore describes
     // exactly what will run.
 
+    // Every queue mutation goes through here so the preview can never
+    // describe a selection that is no longer current.
+    function queueToggle(name: string): void {
+        var next = root.queue.slice();
+        var i = next.indexOf(name);
+        if (i >= 0)
+            next.splice(i, 1);
+        else
+            next.push(name);
+        root.queue = next;
+        root.previewRemoval(next);
+    }
+
+    function queueSet(names): void {
+        root.queue = names ? names.slice() : [];
+        root.previewRemoval(root.queue);
+    }
+
+    function queueClear(): void {
+        root.queueSet([]);
+    }
+
     function previewRemoval(names): void {
         root.previewError = "";
         root.previewCascade = [];
@@ -728,6 +757,7 @@ Singleton {
         // for why this is not `-Rns`.
         Quickshell.execDetached([root._terminal(), "-e", "paru", "-Rs"].concat(safe));
         root.transactionLaunched("remove");
+        root.queueClear();
         return true;
     }
 
@@ -814,6 +844,7 @@ Singleton {
                 pendingAur: root.aurUpdates.length,
                 totalSizeMiB: Math.round(root.totalSizeMiB),
                 dbLocked: root.dbLocked,
+                queue: root.queue,
                 preview: {
                     asked: root.previewFor,
                     running: root.previewRunning,
@@ -842,9 +873,13 @@ Singleton {
         // comma-separated and go through previewRemoval, which validates
         // every one against _NAME_RE before it reaches an argv array.
         function preview(names: string): string {
+            // queueSet, NOT previewRemoval directly: this is a diagnostic
+            // for what the WINDOW does, and the window ticks rows into the
+            // queue, which then previews. Calling the lower-level function
+            // would have tested a path the UI never takes.
             var list = (names || "").split(",").map(n => n.trim()).filter(n => n.length > 0);
-            root.previewRemoval(list);
-            return "previewing " + list.length + " package(s); read the result from status";
+            root.queueSet(list);
+            return "queued " + list.length + " package(s); read the result from status";
         }
     }
 }

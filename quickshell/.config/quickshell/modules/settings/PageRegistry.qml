@@ -149,15 +149,12 @@ Singleton {
             category: "shell",
             slug: "language-region"
         },
-        // Updates + About (quick task 260825-wj2 Task 3) — both flat, no
-        // sub-pages.
-        {
-            label: "Updates",
-            icon: "update",
-            description: "Pending package updates, system upgrade",
-            category: "system",
-            slug: "updates"
-        },
+        // "Updates" RETIRED 2026-08-28 (quick task 260828-75k). Its whole
+        // surface moved into the package workbench: Update all and the
+        // last-checked line onto the sidebar, the per-package two-step
+        // armed update (with its partial-upgrade warning, verbatim) onto
+        // the detail pane. Running it beside the workbench would have been
+        // two owners of one action. Security/Packages/About shift down one.
         {
             // Security Center (quick task 260827-np1). Sits in the
             // `system` category beside Updates deliberately: the two
