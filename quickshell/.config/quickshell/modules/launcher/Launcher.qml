@@ -1151,8 +1151,6 @@ PanelWindow {
                     // stays out of LauncherState's prefix table too.
                     case "wallpaper":
                         return wallpaperComponent;
-                    case "updates":
-                        return updatesComponent;
                     case "systeminfo":
                         return systemInfoComponent;
                     // "theme"/"barorientation" (quick task 260822-sht,
@@ -1360,13 +1358,6 @@ PanelWindow {
                 WallpaperMode {
                     dismissCallback: launcherWindow._beginDismiss
                     query: LauncherState.query
-                }
-            }
-
-            Component {
-                id: updatesComponent
-
-                UpdatesMode {
                 }
             }
 

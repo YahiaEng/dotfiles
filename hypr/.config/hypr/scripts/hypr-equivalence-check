@@ -410,6 +410,14 @@ ACCEPTED_OPTION_CHANGES = {
     # window edges during transitions. Operator-confirmed by live A/B.
     ('render:expand_undersized_textures', 'added'):
         'hyprland.lua, added 2026-08-18 (quick task 260818-nwo) — fixes the animated-resize edge smear',
+    # general:resize_on_border: set 2026-08-28 by quick task 260828-75k so a
+    # floating window can be resized by dragging its edge, the way an
+    # ordinary app window can. Asked for on the package workbench, but it is
+    # a general-purpose want and is set globally rather than as a per-window
+    # rule. Hyprland's own default is false (measured via `hyprctl getoption`
+    # before the change); Super+RMB drag is unaffected.
+    ('general:resize_on_border', 'added'):
+        'hyprland.lua, added 2026-08-28 (quick task 260828-75k) — edge-drag resize for floating windows',
 }
 
 # ── Volatile (operator-adjustable) option keys (quick task 260820-sqd,
@@ -741,6 +749,15 @@ ACCEPTED_ADDITIONS = {
     # 2026-08-08); it is new config, not drifted config.
     ("", 64, "M", False):
         "Phase 21 QMEDIA-01 dashboard-on-Media-tab (keybinds.lua:243)",
+    # Quick task 260828-75k, operator round 2: the package workbench took
+    # the bare Super+P (it is reached far more often than pseudotiling) and
+    # pseudotiling MOVED to Super+SHIFT+P. Only the SHIFT chord reads as an
+    # addition here — Super+P itself was already in the baseline, because
+    # this gate compares CHORDS, not the actions behind them, so a swap
+    # between two existing chords is invisible to it and only the genuinely
+    # new chord surfaces. Measured free under SUPER+SHIFT before the move.
+    ("", 65, "P", False):
+        "Quick task 260828-75k pseudotiling moved off Super+P (keybinds.lua:76)",
     # Quick task 260820-sqd: the in-shell QML settings window's entry point,
     # declared at keybinds.lua as
     # `hl.bind(mainMod .. " + comma", hl.dsp.global("quickshell:settings"))`.

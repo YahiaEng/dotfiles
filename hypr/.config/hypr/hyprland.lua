@@ -126,6 +126,19 @@ hl.config({
         },
         layout = "dwindle",
         allow_tearing = false,
+        -- Drag a floating window's edge to resize it (quick task
+        -- 260828-75k, operator round 2 — asked for on the package
+        -- workbench, but it is a general-purpose want and belongs here
+        -- rather than as a per-window special case). Hyprland's own
+        -- default is false, measured via `hyprctl getoption
+        -- general:resize_on_border` before adding this.
+        --
+        -- `extend_border_grab_area` is left at its default 15, also
+        -- measured: the grab area is already generous enough that a 3px
+        -- border is comfortably draggable, so nothing else is needed.
+        -- Super+RMB drag keeps working exactly as before; this only adds
+        -- the borderless-looking path an ordinary app window offers.
+        resize_on_border = true,
     },
 
     -- input block — hyprland.conf lines 38-45, reproduced exactly. No

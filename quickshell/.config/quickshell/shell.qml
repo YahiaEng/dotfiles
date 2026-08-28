@@ -1398,8 +1398,10 @@ ShellRoot {
     Connections {
         target: PackagesBackend
 
-        function onOpenWorkbenchRequested(focusName) {
-            if (focusName && focusName.length > 0)
+        function onOpenWorkbenchRequested(focusName, filterName) {
+            if (filterName && filterName.length > 0)
+                packagesWorkbench.openFilter(filterName);
+            else if (focusName && focusName.length > 0)
                 packagesWorkbench.openOn(focusName);
             else
                 packagesWorkbench.open();
@@ -1415,6 +1417,13 @@ ShellRoot {
 
         function openOn(name: string): void {
             packagesWorkbench.openOn(name);
+        }
+
+        // Opens straight onto one source — the same entry point the
+        // launcher's System > Updates leaf takes, exposed so a keybind can
+        // use it and so the route is testable without a mouse.
+        function openFilter(filterName: string): void {
+            packagesWorkbench.openFilter(filterName);
         }
 
         function close(): void {

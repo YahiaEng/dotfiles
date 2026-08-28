@@ -18,8 +18,9 @@ Item {
 
     required property var bench
 
+    // Width is assigned by the workbench (a persisted, drag-resizable
+    // value) — this file must not pin it.
     implicitWidth: 200
-    width: 200
 
     readonly property var backend: root.bench.backend
 
@@ -111,7 +112,7 @@ Item {
                 readonly property bool active: root.bench.filter === srcRow.modelData.id
 
                 width: root.width - Design.spacingSm * 2
-                height: 34
+                height: 38
                 radius: 12
                 color: srcRow.active ? Colours.primaryContainer : (srcArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
 
@@ -151,7 +152,7 @@ Item {
                         anchors.verticalCenter: parent.verticalCenter
                         width: parent.width - 18 - countLabel.width - Design.spacingSm * 2
                         text: srcRow.modelData.label
-                        font.pixelSize: Design.settingsFontSub
+                        font.pixelSize: Design.fontBody
                         font.weight: srcRow.active ? Design.weightEmphasis : Design.weightBody
                         color: srcRow.active ? Colours.onPrimaryContainer : Colours.onSurface
                         elide: Text.ElideRight
@@ -185,7 +186,7 @@ Item {
         // nothing that its absence does not.
         Rectangle {
             width: root.width - Design.spacingSm * 2
-            height: 34
+            height: 38
             radius: 12
             visible: root.backend.pendingCount > 0
             color: root.backend.dbLocked ? "transparent" : (updateAllArea.containsMouse ? Qt.lighter(Colours.primary, 1.1) : Colours.primary)
@@ -232,7 +233,7 @@ Item {
         // ── Update check ────────────────────────────────────────────
         Rectangle {
             width: root.width - Design.spacingSm * 2
-            height: 34
+            height: 38
             radius: 12
             color: checkArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent"
 

@@ -62,7 +62,8 @@ WebSearchMode 1.0 WebSearchMode.qml
 FilesMode 1.0 FilesMode.qml
 MenuMode 1.0 MenuMode.qml
 SystemInfoMode 1.0 SystemInfoMode.qml
-UpdatesMode 1.0 UpdatesMode.qml
+# UpdatesMode RETIRED 2026-08-28 (quick task 260828-75k) — System >
+# Updates opens the package workbench instead.
 PickerMode 1.0 PickerMode.qml
 ConfirmMode 1.0 ConfirmMode.qml
 EmojiMode 1.0 EmojiMode.qml
@@ -72,3 +73,6 @@ KeybindsMode 1.0 KeybindsMode.qml
 # with live preview, reached via `qs ipc call launcher open wallpaper`.
 # Declared in the same commit that creates it, per this manifest's own rule.
 WallpaperMode 1.0 WallpaperMode.qml
+# PkgMode (quick task 260828-75k) — the `+` route. Plain Item-rooted mode
+# result view, same non-singleton shape as every other mode above.
+PkgMode 1.0 PkgMode.qml

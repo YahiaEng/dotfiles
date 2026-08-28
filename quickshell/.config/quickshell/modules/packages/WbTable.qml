@@ -18,6 +18,7 @@
 // instantiated. This is the one list in this window big enough for that
 // to matter.
 import QtQuick
+import QtQuick.Controls
 import ".."
 import "../dashboard"
 
@@ -31,9 +32,15 @@ Item {
     // ── Column geometry, derived from the table width. Declared above
     //    everything that reads it at construction time.
     readonly property int colTick: 22
-    readonly property int colVersion: 116
-    readonly property int colSize: 88
-    readonly property int colSource: 66
+    // Widened with the type (operator round 2): at the previous 12px meta
+    // size these fit, and at 14px they truncated — "lib32-nvidia-utils"
+    // showed `multil…` and every kernel version lost its suffix. Sized off
+    // the widest real value each column holds on this host rather than by
+    // eye: "1:1.2.96.518-2" for version, "885.66 MiB" for size, "multilib"
+    // for source.
+    readonly property int colVersion: 152
+    readonly property int colSize: 104
+    readonly property int colSource: 88
     readonly property int gap: Design.spacingSm
     readonly property int colName: Math.max(120, root.width - Design.spacingMd * 2 - root.colTick - root.colVersion - root.colSize - root.colSource - root.gap * 4)
 
@@ -84,7 +91,7 @@ Item {
                     width: parent.width - 40
                     text: root.bench.query
                     onTextChanged: root.bench.query = text
-                    font.pixelSize: Design.settingsFontSub
+                    font.pixelSize: Design.fontBody
                     color: Colours.onSurface
                     selectionColor: Colours.primary
                     selectedTextColor: Colours.onPrimary
@@ -183,7 +190,7 @@ Item {
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: headCell.modelData.label.toUpperCase()
-                            font.pixelSize: 10
+                            font.pixelSize: 11
                             font.letterSpacing: 0.8
                             color: root.bench.sortKey === headCell.modelData.key ? Colours.primary : Colours.outline
                         }
@@ -233,6 +240,35 @@ Item {
         model: root.bench.rows
         cacheBuffer: 400
 
+            // Thin scrollbar (operator round 2). Sized in its own right so
+            // it cannot widen the list it sits over, and faded until the
+            // pointer is in the view — visible enough to show position,
+            // quiet enough not to compete with the rows.
+            ScrollBar.vertical: ScrollBar {
+                policy: ScrollBar.AsNeeded
+                width: 6
+                opacity: hovered || pressed ? 1 : 0.45
+
+                Behavior on opacity {
+                    enabled: Motion.motionEnabled
+                    NumberAnimation {
+                        duration: Motion.colourDuration
+                        easing.type: Easing.BezierSpline
+                        easing.bezierCurve: Motion.colourEasing
+                    }
+                }
+
+                contentItem: Rectangle {
+                    radius: width / 2
+                    color: Colours.primary
+                }
+
+                background: Rectangle {
+                    radius: width / 2
+                    color: Qt.alpha(Colours.onSurface, 0.06)
+                }
+            }
+
 
         delegate: Rectangle {
             id: row
@@ -242,7 +278,7 @@ Item {
             readonly property bool focused: root.bench.focusName === row.modelData.name
 
             width: list.width
-            height: 26
+            height: 32
             radius: 6
             color: row.focused ? Colours.primaryContainer : (rowArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.05) : "transparent")
 
@@ -304,7 +340,7 @@ Item {
 
                         Text {
                             text: row.modelData.name
-                            font.pixelSize: Design.settingsFontSub
+                            font.pixelSize: Design.fontBody
                             color: row.modelData.installed ? Colours.onSurface : Colours.outline
                             elide: Text.ElideRight
                             width: Math.min(implicitWidth, parent.width - tagRow.width - Design.spacingSm)
@@ -318,28 +354,28 @@ Item {
                             Text {
                                 visible: row.modelData.foreign
                                 text: "AUR"
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                                 color: Colours.tertiary
                             }
 
                             Text {
                                 visible: row.modelData.orphan
                                 text: "orphan"
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                                 color: Colours.error
                             }
 
                             Text {
                                 visible: !!row.modelData.update
                                 text: "update"
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                                 color: Colours.primary
                             }
 
                             Text {
                                 visible: row.modelData.installed && root.bench.filter === "repos"
                                 text: "installed"
-                                font.pixelSize: 10
+                                font.pixelSize: 11
                                 color: Colours.onSurfaceVariant
                             }
                         }
@@ -351,7 +387,7 @@ Item {
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
                     text: row.modelData.update ? (row.modelData.update.from + " → " + row.modelData.update.to) : row.modelData.version
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: row.modelData.update ? Colours.primary : Colours.outline
                     elide: Text.ElideRight
                 }
@@ -362,7 +398,7 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     horizontalAlignment: Text.AlignRight
                     text: row.modelData.sizeMiB > 0 ? root.backend.formatSize(row.modelData.sizeMiB) : "—"
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                 }
 
@@ -371,7 +407,7 @@ Item {
                     height: parent.height
                     verticalAlignment: Text.AlignVCenter
                     text: row.modelData.source
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: row.modelData.foreign ? Colours.tertiary : Colours.outline
                     elide: Text.ElideRight
                 }

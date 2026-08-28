@@ -1,4 +1,4 @@
-// modules/packages/UpdatesPopout.qml — what the updates pill shows before it
+// modules/bar/UpdatesPopout.qml — what the updates pill shows before it
 // upgrades anything (quick task 260828-75k, direction D5).
 //
 // ── WHY THIS EXISTS ───────────────────────────────────────────────────
@@ -28,8 +28,8 @@
 // this file is declared in, and the popout is package-domain anyway.
 import QtQuick
 import ".."
-import "../bar"
 import "../dashboard"
+import "../packages"
 
 SectionPopout {
     id: root
@@ -55,7 +55,7 @@ SectionPopout {
     emptyStateText: PackagesBackend.updatesProbed ? "Up to date" : "Checking for updates…"
 
     wayfindingLabel: "Open package manager"
-    onWayfindingActivated: PackagesBackend.openWorkbench("")
+    onWayfindingActivated: PackagesBackend.openWorkbench("", "updates")
 
     // At most the first six, then a count — the cap that keeps this a
     // glance surface. The unbounded list is the workbench's job, which is

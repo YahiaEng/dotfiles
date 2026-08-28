@@ -225,6 +225,7 @@ Singleton {
         // capsule's visibility already exists as bar.entries.updates.
         "packages.includeAur",
         "packages.warnOrphans",
+        "packages.sidebarWidth",
         "region.unitsTemp",
         "region.unitsWind",
         "region.unitsPrecip",
@@ -360,6 +361,7 @@ Singleton {
         // network call rather than to opt IN to correctness.
         "packages.includeAur": true,
         "packages.warnOrphans": true,
+        "packages.sidebarWidth": 200,
         "region.unitsTemp": "auto",
         "region.unitsWind": "auto",
         "region.unitsPrecip": "auto",

@@ -73,7 +73,7 @@ hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.global("quickshell:power-menu")) -- Op
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" })) -- Toggle floating
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(0)) -- Toggle fullscreen
 hl.bind(mainMod .. " + SHIFT + F", hl.dsp.window.fullscreen(1)) -- Toggle maximize
-hl.bind(mainMod .. " + P", hl.dsp.window.pseudo()) -- Toggle pseudotiling
+hl.bind(mainMod .. " + SHIFT + P", hl.dsp.window.pseudo()) -- Toggle pseudotiling
 -- bind = $mainMod, J, togglesplit
 
 -- ── Launchers (native QML launcher, quick-260822-sht) ────
@@ -187,13 +187,15 @@ hl.bind(mainMod .. " + C", hl.dsp.exec_cmd("qs ipc call launcher open clipboard"
 hl.bind(mainMod .. " + SHIFT + C", hl.dsp.exec_cmd("qs ipc call launcher open clipboardwipe")) -- Wipe clipboard history
 
 -- ── Packages ─────────────────────────────────────────
--- The package workbench (quick task 260828-75k). SHIFT+P rather than a
--- bare Super+P, which is already pseudotiling; the P mnemonic is kept
--- because that is what makes a chord memorable. `exec_cmd` on the IPC
+-- The package workbench (quick task 260828-75k). Super+P outright —
+-- operator round 2 swapped the two: the workbench is reached far more
+-- often than pseudotiling, so it gets the bare mnemonic and pseudotiling
+-- moves to Super+SHIFT+P (declared above with the other window
+-- actions). `exec_cmd` on the IPC
 -- verb, not a GlobalShortcut, matching Super+C above — a GlobalShortcut
 -- would need a shortcuts.json manifest entry AND a shell restart to
 -- register, and buys nothing here.
-hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("qs ipc call packages-window open")) -- Open package manager
+hl.bind(mainMod .. " + P", hl.dsp.exec_cmd("qs ipc call packages-window open")) -- Open package manager
 
 -- ── Screenshots ──────────────────────────────────────
 -- Omarchy-style Print-key family (D-05): freeze-capture into satty for

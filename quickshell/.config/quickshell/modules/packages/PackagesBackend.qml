@@ -138,10 +138,20 @@ Singleton {
     // raises this on the backend they all already hold, and shell.qml —
     // which owns the one instance — connects it. `focusName` may be empty,
     // meaning "just open".
-    signal openWorkbenchRequested(string focusName)
+    // `filterName` is optional and may be "": the launcher's System >
+    // Updates leaf opens straight onto the Updates filter, while the bar
+    // popout and the `+` route just want the window.
+    signal openWorkbenchRequested(string focusName, string filterName)
 
-    function openWorkbench(name: string): void {
-        root.openWorkbenchRequested(name || "");
+    // Recorded so `status` can report which source the workbench was last
+    // aimed at — the launcher's menu leaf is not clickable from a shell,
+    // so this is how that route is verified.
+    property string lastFilterApplied: ""
+
+    function openWorkbench(name: string, filterName: string): void {
+        if (filterName)
+            root.lastFilterApplied = filterName;
+        root.openWorkbenchRequested(name || "", filterName || "");
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -845,6 +855,7 @@ Singleton {
                 totalSizeMiB: Math.round(root.totalSizeMiB),
                 dbLocked: root.dbLocked,
                 queue: root.queue,
+                workbenchFilter: root.lastFilterApplied,
                 preview: {
                     asked: root.previewFor,
                     running: root.previewRunning,

@@ -52,7 +52,7 @@ PageBase {
             label: "Open package manager"
             icon: "inventory_2"
             subtext: root._summary
-            onActivated: PackagesBackend.openWorkbench("")
+            onActivated: PackagesBackend.openWorkbench("", "")
         }
 
         InfoRow {

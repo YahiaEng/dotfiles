@@ -30,8 +30,8 @@
 // escalates no privilege; see the backend's header for why that is the
 // design rather than a limitation.
 import QtQuick
-import QtQuick.Window
 import Quickshell
+import Quickshell.Hyprland
 import ".."
 import "../dashboard"
 
@@ -42,6 +42,7 @@ LazyLoader {
     // the bar popout hand off — "show me this one" rather than "show me
     // everything and good luck".
     property string pendingFocus: ""
+    property string pendingFilter: ""
 
     function open(): void {
         loader.activeAsync = true;
@@ -50,6 +51,16 @@ LazyLoader {
     function openOn(name: string): void {
         loader.pendingFocus = name || "";
         loader.activeAsync = true;
+    }
+
+    // Opens straight onto one source (the launcher's System > Updates leaf
+    // uses "updates"). Applied on an ALREADY-OPEN window too, so a second
+    // request re-aims it rather than doing nothing.
+    function openFilter(filterName: string): void {
+        loader.pendingFilter = filterName || "";
+        loader.activeAsync = true;
+        if (loader.item && filterName)
+            loader.item.setFilter(filterName);
     }
 
     function close(): void {
@@ -69,6 +80,19 @@ LazyLoader {
         property string focusName: loader.pendingFocus
 
         readonly property var backend: PackagesBackend
+
+        // Persisted, so a rail you widened stays widened (operator round
+        // 2). Clamped on READ as well as on write: a value from an older
+        // or hand-edited config cannot wedge the rail off-screen.
+        property int sidebarWidth: Math.max(150, Math.min(460, Prefs.getValue("packages.sidebarWidth")))
+
+        function setSidebarWidth(w) {
+            var clamped = Math.max(150, Math.min(460, Math.round(w)));
+            if (clamped === win.sidebarWidth)
+                return;
+            win.sidebarWidth = clamped;
+            Prefs.setValue("packages.sidebarWidth", clamped);
+        }
 
         // Lives on the BACKEND, not here: dismiss-on-click-outside makes
         // losing this window easy, and a half-built removal queue is real
@@ -283,6 +307,10 @@ LazyLoader {
                 win.focusName = loader.pendingFocus;
                 loader.pendingFocus = "";
             }
+            if (loader.pendingFilter.length > 0) {
+                win.setFilter(loader.pendingFilter);
+                loader.pendingFilter = "";
+            }
         }
 
         Rectangle {
@@ -300,37 +328,48 @@ LazyLoader {
             }
         }
 
-        // ── Escape, and dismiss-on-click-outside (operator round 1) ──
-        // A FloatingWindow is a real toplevel, so it does not dismiss on
-        // an outside click the way a layer surface does. FloatingWindow
-        // exposes no focus property of its own either (checked against
-        // quickshell-window.qmltypes: title/minimumSize/visible/…, no
-        // `active`), so the signal is Qt's own attached `Window.active`
-        // on an item inside — the same mechanism Settings.qml already
-        // uses for its focus-retention, and per that file's measured
-        // header the one belief that actually tracks activation
-        // (`hyprctl activewindow` is NOT a reliable proxy).
+        // ── Escape, and dismiss-on-click-outside ────────────────────
+        // ROUND 2 CORRECTION. Round 1 used Qt's attached `Window.active`,
+        // which was wrong on this host for a measurable reason:
+        // `hyprctl getoption input:follow_mouse` is 1, so activation
+        // follows the POINTER. The window therefore dismissed when the
+        // mouse left its bounds rather than when something outside was
+        // clicked — exactly what the operator reported.
         //
-        // Deliberate consequence: pressing Review opens the terminal,
-        // which takes focus, which closes this window. That is the right
-        // behaviour — you have moved to the terminal — and the queue
-        // survives it because `selected` lives on the backend singleton,
-        // not on this window.
+        // HyprlandFocusGrab is the right instrument: a protocol-level grab
+        // whose `cleared` fires on a real click outside the grabbed set,
+        // independent of hover focus. Settings.qml uses the same shape for
+        // the same job.
         Item {
             id: focusCatcher
             anchors.fill: parent
             focus: true
             Keys.onEscapePressed: loader.activeAsync = false
-
-            Window.onActiveChanged: {
-                if (!focusCatcher.Window.active)
-                    loader.activeAsync = false;
-                else
-                    focusCatcher.forceActiveFocus();
-            }
-
             Component.onCompleted: forceActiveFocus()
         }
+
+        HyprlandFocusGrab {
+            id: grab
+            windows: [win]
+            active: true
+            onCleared: loader.activeAsync = false
+        }
+
+        // A grab is EXCLUSIVE: while held, a window belonging to another
+        // process is input-dead — the Security Center learned this when
+        // its polkit prompt could not be clicked. Every transaction here
+        // opens a terminal, so the window closes as the terminal launches.
+        // That releases the grab with the LazyLoader and is also simply
+        // the right behaviour: you have moved to the terminal. The queue
+        // survives on the backend singleton.
+        Connections {
+            target: PackagesBackend
+
+            function onTransactionLaunched(kind) {
+                loader.activeAsync = false;
+            }
+        }
+
 
         Row {
             anchors.fill: parent
@@ -340,11 +379,49 @@ LazyLoader {
                 id: side
                 height: parent.height
                 bench: win
+                width: win.sidebarWidth
+            }
+
+            // Drag strip between the rail and the table (operator round 2).
+            // Its OWN width is constant, so dragging moves the boundary
+            // without changing how much space the three panes divide.
+            Item {
+                id: sideGrip
+                width: 6
+                height: parent.height
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 2
+                    height: parent.height
+                    color: gripArea.containsMouse || gripArea.pressed ? Colours.primary : Qt.alpha(Colours.outline, 0.35)
+
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.colourDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.colourEasing
+                        }
+                    }
+                }
+
+                MouseArea {
+                    id: gripArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.SizeHorCursor
+                    onPositionChanged: mouse => {
+                        if (!gripArea.pressed)
+                            return;
+                        win.setSidebarWidth(win.sidebarWidth + mouse.x - sideGrip.width / 2);
+                    }
+                }
             }
 
             WbTable {
                 id: table
-                width: parent.width - side.width - detail.width
+                width: parent.width - side.width - sideGrip.width - detail.width
                 height: parent.height
                 bench: win
             }

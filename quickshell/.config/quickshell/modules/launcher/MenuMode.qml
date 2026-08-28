@@ -39,6 +39,7 @@ import QtQuick
 import Quickshell
 import ".."
 import "."
+import "../packages"
 import "fuzzy.js" as Fuzzy
 
 Item {
@@ -118,6 +119,19 @@ Item {
         // leaves once Task 4/7/9 flip their nodes from `placeholder` to a
         // real `mode` target) — switches the results Loader without
         // closing the launcher, exactly like typing a route prefix does.
+        // A leaf that opens the package workbench (quick task 260828-75k,
+        // operator round 2). A direct call rather than a `command`
+        // shelling out to `qs ipc call packages-window open`: the launcher
+        // already resolves PackagesBackend, so spawning a process for the
+        // shell to talk to itself would be pure cost — and `command` goes
+        // through `sh -c`, which this leaf has no need of.
+        if (row.workbench) {
+            PackagesBackend.openWorkbench("", row.workbench);
+            if (typeof root.dismissCallback === "function")
+                root.dismissCallback();
+            return;
+        }
+
         if (row.mode) {
             LauncherState.mode = row.mode;
             return;

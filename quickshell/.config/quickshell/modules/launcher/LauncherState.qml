@@ -92,7 +92,8 @@ Singleton {
     readonly property var _stickyModes: ({
             "menu": true,
             "wallpaper": true,
-            "updates": true,
+            // "updates" RETIRED 2026-08-28 — System > Updates now opens the
+            // package workbench (MenuTree `workbench: "updates"`).
             "systeminfo": true
         })
 

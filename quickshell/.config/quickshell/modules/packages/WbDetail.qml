@@ -20,6 +20,7 @@
 // transaction and asks. This pane never escalates and never runs pacman
 // itself — see PackagesBackend's header for why that is the design.
 import QtQuick
+import QtQuick.Controls
 import ".."
 import "../dashboard"
 
@@ -184,6 +185,35 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
 
+        // Thin scrollbar (operator round 2). Sized in its own right so
+        // it cannot widen the list it sits over, and faded until the
+        // pointer is in the view — visible enough to show position,
+        // quiet enough not to compete with the rows.
+        ScrollBar.vertical: ScrollBar {
+            policy: ScrollBar.AsNeeded
+            width: 6
+            opacity: hovered || pressed ? 1 : 0.45
+
+            Behavior on opacity {
+                enabled: Motion.motionEnabled
+                NumberAnimation {
+                duration: Motion.colourDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.colourEasing
+                }
+            }
+
+            contentItem: Rectangle {
+                radius: width / 2
+                color: Colours.primary
+            }
+
+            background: Rectangle {
+                radius: width / 2
+                color: Qt.alpha(Colours.onSurface, 0.06)
+            }
+        }
+
         Column {
             id: body
             width: flick.width
@@ -222,7 +252,7 @@ Item {
                                 required property var modelData
                                 width: queueCol.width
                                 text: modelData
-                                font.pixelSize: Design.fontLabel
+                                font.pixelSize: Design.settingsFontSub
                                 color: Colours.onSurface
                                 elide: Text.ElideRight
                             }
@@ -239,7 +269,7 @@ Item {
                             width: queueCol.width
                             visible: root.backend.previewRunning
                             text: "Resolving what this removes…"
-                            font.pixelSize: Design.fontLabel
+                            font.pixelSize: Design.settingsFontSub
                             color: Colours.outline
                             wrapMode: Text.WordWrap
                         }
@@ -248,7 +278,7 @@ Item {
                             width: queueCol.width
                             visible: root.backend.previewError.length > 0
                             text: root.backend.previewError
-                            font.pixelSize: Design.fontLabel
+                            font.pixelSize: Design.settingsFontSub
                             color: Colours.error
                             wrapMode: Text.WordWrap
                         }
@@ -268,7 +298,7 @@ Item {
 
                                     Text {
                                         text: "Removes"
-                                        font.pixelSize: Design.fontLabel
+                                        font.pixelSize: Design.settingsFontSub
                                         color: Colours.onSurfaceVariant
                                     }
 
@@ -279,7 +309,7 @@ Item {
 
                                     Text {
                                         text: root.backend.previewCascade.length + " packages"
-                                        font.pixelSize: Design.fontLabel
+                                        font.pixelSize: Design.settingsFontSub
                                         color: root.backend.previewCascade.length > root.bench.selected.length ? Colours.primary : Colours.onSurfaceVariant
                                     }
                                 }
@@ -291,7 +321,7 @@ Item {
                                     width: cascadeCol.width
                                     visible: root.backend.previewCascade.length > root.bench.selected.length
                                     text: "Also removes " + (root.backend.previewCascade.length - root.bench.selected.length) + " package(s) nothing else needs: " + root._extraNames()
-                                    font.pixelSize: Design.fontLabel
+                                    font.pixelSize: Design.settingsFontSub
                                     color: Colours.primary
                                     wrapMode: Text.WordWrap
                                 }
@@ -301,7 +331,7 @@ Item {
 
                                     Text {
                                         text: "Reclaims"
-                                        font.pixelSize: Design.fontLabel
+                                        font.pixelSize: Design.settingsFontSub
                                         color: Colours.onSurfaceVariant
                                     }
 
@@ -312,7 +342,7 @@ Item {
 
                                     Text {
                                         text: root.backend.formatSize(root.backend.previewReclaimMiB)
-                                        font.pixelSize: Design.fontLabel
+                                        font.pixelSize: Design.settingsFontSub
                                         color: Colours.onSurface
                                     }
                                 }
@@ -377,7 +407,7 @@ Item {
                     width: parent.width
                     visible: !!root.pkg && root.pkg.description.length > 0
                     text: root.pkg ? root.pkg.description : ""
-                    font.pixelSize: Design.fontLabel
+                    font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                     wrapMode: Text.WordWrap
                 }
@@ -392,7 +422,7 @@ Item {
                     Text {
                         width: parent.width
                         text: "Not installed · available in " + (root.row ? root.row.source : "")
-                        font.pixelSize: Design.fontLabel
+                        font.pixelSize: Design.settingsFontSub
                         color: Colours.tertiary
                     }
 
@@ -422,14 +452,14 @@ Item {
                             Text {
                                 width: 92
                                 text: fieldRow.modelData.k
-                                font.pixelSize: Design.fontLabel
+                                font.pixelSize: Design.settingsFontSub
                                 color: Colours.outline
                             }
 
                             Text {
                                 width: fieldRow.width - 92 - Design.spacingSm
                                 text: fieldRow.modelData.v
-                                font.pixelSize: Design.fontLabel
+                                font.pixelSize: Design.settingsFontSub
                                 color: fieldRow.modelData.tone === "accent" ? Colours.primary : Colours.onSurface
                                 wrapMode: Text.WordWrap
                             }
@@ -461,7 +491,7 @@ Item {
                         width: parent.width
                         visible: root._armedUpdate === (root.row ? root.row.name : "")
                         text: "Updates only this package — a partial upgrade, which can break Arch. Use Update all when in doubt."
-                        font.pixelSize: Design.fontLabel
+                        font.pixelSize: Design.settingsFontSub
                         color: Colours.error
                         wrapMode: Text.WordWrap
                     }

@@ -125,3 +125,7 @@ BarDrawer 1.0 BarDrawer.qml
 # instance on dwell.
 BarTooltip 1.0 BarTooltip.qml
 BarTooltipHost 1.0 BarTooltipHost.qml
+
+# UpdatesPopout (quick task 260828-75k) — the updates pill's card, a
+# SectionPopout like every other popout in this directory.
+UpdatesPopout 1.0 UpdatesPopout.qml

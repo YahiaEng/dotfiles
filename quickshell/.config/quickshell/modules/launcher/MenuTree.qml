@@ -32,7 +32,7 @@
 // `LauncherState.mode` to that string and does NOT dismiss the launcher,
 // the same mechanism a typed route prefix uses (Task 2's router). Three
 // leaves use this today — Apps' own child (`mode: "apps"`, R-3, Task 4),
-// System's Updates/System info (`mode: "updates"`/`"systeminfo"`, R-1/R-2,
+// System's System info (`mode: "systeminfo"`, R-2,
 // Task 4) — plus Tools ▸ Clipboard, whose retired TOML action IS still
 // recorded here verbatim for reversibility even though `mode: "clipboard"`
 // means it is NEVER executed — the ONE entry Task 3's own plan text named
@@ -292,7 +292,13 @@ Singleton {
                 {
                     text: "  Updates",
                     command: null,
-                    mode: "updates"
+                    // Opens the package workbench on its Updates filter
+                    // (quick task 260828-75k, operator round 2). Was
+                    // `mode: "updates"` -> UpdatesMode.qml, a read-only
+                    // list that duplicated the bar popout and could act on
+                    // nothing; the workbench shows the same pending set
+                    // AND can update all of them, or one of them.
+                    workbench: "updates"
                 },
                 {
                     text: "  System info",

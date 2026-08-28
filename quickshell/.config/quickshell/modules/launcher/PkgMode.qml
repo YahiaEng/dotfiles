@@ -1,4 +1,4 @@
-// modules/packages/PkgMode.qml — the `+` route (quick task 260828-75k,
+// modules/launcher/PkgMode.qml — the `+` route (quick task 260828-75k,
 // direction D3).
 //
 // ── WHY `+` AND NOT `pkg ` ────────────────────────────────────────────
@@ -19,15 +19,6 @@
 // answered before "can I get it?". Both come from PackagesBackend, which
 // is already in memory — this mode spawns nothing and polls nothing.
 //
-// ── WHY IT LIVES IN packages/ RATHER THAN launcher/ ───────────────────
-// MEASURED, twice: Quickshell's directory-scanner synthesis (used by any
-// directory with no explicit qmldir, which includes modules/launcher/ and
-// modules/bar/) does NOT pick up a file added after process start. A new
-// type there reads "PkgMode is not a type" and takes the whole shell's
-// config down, and NO number of hot reloads fixes it — only a restart
-// would. modules/packages/ has an explicit manifest, so a type declared
-// in it resolves on the very next reload.
-//
 // ── WHAT ACTIVATING DOES ──────────────────────────────────────────────
 // Opens the workbench on that package. It deliberately does NOT install
 // or remove: a launcher row is a lookup, and a transaction started from
@@ -37,7 +28,7 @@
 import QtQuick
 import ".."
 import "../dashboard"
-import "../launcher"
+import "../packages"
 
 Item {
     id: root
@@ -124,7 +115,7 @@ Item {
         var entry = root.results[root.currentIndex];
         if (!entry)
             return;
-        PackagesBackend.openWorkbench(entry.name);
+        PackagesBackend.openWorkbench(entry.name, "");
     }
 
     ListView {
