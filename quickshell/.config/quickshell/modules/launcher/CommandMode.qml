@@ -34,10 +34,19 @@
 // 9 roots, 35 leaves, no deeper nesting. The walk below recurses anyway, so a
 // future sub-submenu is searchable the day it is added rather than silently
 // dropping out of this list with nothing going red.
+// `../dashboard` is where `Design` lives, and it is NOT reachable through
+// `..` — MenuMode.qml gets away without it only because it uses no Design
+// token. Omitting it here cost a live `ReferenceError: Design is not
+// defined` that EVERY gate passed through: `qml-import-check` and
+// `singleton-prop-check` both read the file clean, because the reference
+// resolves as a name and only fails at binding-evaluation time, inside a
+// LAZILY-loaded component no reload ever touches. The launcher had to be
+// opened in this mode to see it.
 import QtQuick
 import Quickshell
 import ".."
 import "."
+import "../dashboard"
 import "../packages"
 import "../appearance"
 import "fuzzy.js" as Fuzzy
