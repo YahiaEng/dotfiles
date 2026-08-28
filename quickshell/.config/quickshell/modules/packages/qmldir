@@ -1,0 +1,24 @@
+# qmldir — explicit module manifest for quickshell/modules/packages/
+# (quick task 260828-75k). Mirrors every sibling module manifest's own
+# standing instruction (see modules/security/qmldir, modules/osd/qmldir,
+# modules/lock/qmldir): any .qml type added to this directory that is NOT
+# declared below becomes unresolvable, with no load error — it simply
+# reads `undefined` forever. qml-import-check enforces this. Any FUTURE
+# type added here MUST be declared in the same commit that creates it.
+#
+# ── THE `singleton` KEYWORD IS LOAD-BEARING ───────────────────────────
+# PackagesBackend carries `pragma Singleton` AND is marked `singleton`
+# below. modules/qmldir's own header records why both are required,
+# binary-verified in 12-06: without the qmldir keyword, a bare
+# `PackagesBackend.packages`-style access resolves to `undefined`
+# forever and the object is never constructed. Removing either one is a
+# silent, error-free failure.
+#
+# PackagesBackend is the singleton that owns the whole package model.
+# The workbench window, the Settings page, the launcher's `pkg` route
+# and the bar capsule are FOUR READERS OF ONE BACKEND, never four
+# backends — and it is a singleton specifically so a long-running read
+# or a pending preview outlives the surface that asked for it.
+module qs.modules.packages
+
+singleton PackagesBackend 1.0 PackagesBackend.qml

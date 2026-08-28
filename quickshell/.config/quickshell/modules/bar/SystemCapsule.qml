@@ -33,6 +33,7 @@ import QtQuick
 import Quickshell.Io
 import "../"
 import "../dashboard"
+import "../packages"
 
 BarCapsule {
     id: root
@@ -471,24 +472,22 @@ BarCapsule {
     // excluding non-visible children and their spacing, the same
     // mechanism BarCapsule itself uses to drop an empty capsule.
     //
-    // Poll cadence is deliberately NOT a Motion token, for the same reason
-    // MediaBackend.qml's own header already records: a poll cadence riding
-    // the motion-scale axis would reach zero at the "off" preset. The
-    // retired bar polled its update-check command every 15 seconds from a
-    // dismissible widget; this surface never dismisses, so an inherited
-    // 15-second cadence would run that same command roughly 5,700 times a
-    // day (240 an hour) against public package-mirror infrastructure from
-    // one desktop. Thirty minutes below is two runs an hour — 48 a day —
-    // a fivefold-per-day reduction from the number the retired module
-    // carried (the plan text this file was built from said "four runs an
-    // hour"; the arithmetic for a 1,800,000ms/30-minute interval is two,
-    // corrected here and recorded in the SUMMARY as a Rule 1 fix).
-    readonly property string updatesCheckCommand: "checkupdates"
-    // Quick task 260825-wj2 Task 6 — Services page's "Update check"
-    // stepper. The literal `1800000` stays as Prefs' own `_defaults`
-    // value, so an install that never opens that page is unaffected.
-    readonly property int updatesPollIntervalMs: Prefs.getValue("services.updatesPollMs")
-    property int pendingUpdatesCount: 0
+    // ── THE COUNT NOW INCLUDES THE AUR (quick task 260828-75k) ────────
+    // This capsule owned a `checkupdates`-only Process until this task, so
+    // `pendingUpdatesCount` counted REPO updates alone and every pending
+    // AUR update was invisible on the bar. Measured on this host the day
+    // it was fixed: the pill read 3 while 4 were actually pending —
+    // `python-steam 2.0.0.alpha1-2 -> -3` existed only in `paru -Qua`,
+    // which nothing on the bar ran.
+    //
+    // The probe, its 30-minute timer and the poll-cadence reasoning that
+    // used to live here all moved to PackagesBackend, which runs BOTH
+    // `checkupdates` and `paru -Qua` and is read by the workbench, the
+    // Settings page and the launcher route as well. That reasoning is
+    // preserved verbatim in the backend's own updateTimer comment, and it
+    // still reads the same `services.updatesPollMs` the Services page
+    // owns — one probe, one cadence, one count, four readers.
+    readonly property int pendingUpdatesCount: PackagesBackend.pendingCount
 
     // Athena's own #custom-updates rule is a FILLED pill (style-athena.scss
     // "background: @fill-updates; color: @fill-updates-fg; font-weight:
@@ -529,44 +528,13 @@ BarCapsule {
         tooltipId: "systemUpdates"
     }
 
-    Process {
-        id: updatesProcess
-        running: false
-        command: [root.updatesCheckCommand]
-        stdout: StdioCollector {
-            id: updatesCollector
-        }
-        onExited: (exitCode, exitStatus) => {
-            // A non-zero exit here is the tool's own "nothing pending"
-            // signal, not a failure — the pacman-contrib update-listing
-            // command documents this exit convention, and treating it as
-            // an error would tint the glyph red on the most common case on
-            // a well-maintained system. Only the line count matters.
-            const lines = (updatesCollector.text || "").split("\n").filter(function (l) {
-                return l.trim() !== "";
-            });
-            root.pendingUpdatesCount = lines.length;
-        }
-    }
-
-    // Single-flighted: a tick that fires while the previous run is still
-    // in flight is dropped rather than queued, so a slow mirror sync can
-    // never stack a second child.
-    function refreshUpdates() {
-        if (updatesProcess.running)
-            return;
-        updatesProcess.running = true;
-    }
-
-    Timer {
-        id: updatesTimer
-        interval: root.updatesPollIntervalMs
-        running: true
-        repeat: true
-        onTriggered: root.refreshUpdates()
-    }
-
-    Component.onCompleted: root.refreshUpdates()
+    // The probe, its single-flight guard and its 30-minute Timer are gone
+    // from this file — PackagesBackend owns all three now, and its own
+    // refreshUpdates() carries the same single-flighting (a tick arriving
+    // while a check is in flight is dropped rather than queued, so a slow
+    // mirror can never stack a second child). There is nothing to start
+    // on completion here either: the backend is a singleton and probes
+    // itself.
 
     // ── The updates click action — the retired bar's own behaviour,
     //    reproduced as two fixed literal argv arrays chained on an exit
@@ -589,7 +557,10 @@ BarCapsule {
         onExited: (exitCode, exitStatus) => {
             if (exitCode === 0) {
                 notifyProcess.running = true;
-                root.refreshUpdates();
+                // Re-check through the backend so the workbench, the
+                // Settings page and this pill all move together — this
+                // capsule no longer has a probe of its own to run.
+                PackagesBackend.refreshUpdates();
             }
         }
     }
