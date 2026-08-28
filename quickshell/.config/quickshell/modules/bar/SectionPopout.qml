@@ -107,6 +107,16 @@ PanelWindow {
     property bool _dismissing: false
 
     function requestDismiss() {
+        // Teardown race (found 2026-08-28, quick task 260828-pol, by opening
+        // and closing all eight bar popouts back to back): the host can
+        // unload this surface's LazyLoader while a dismiss is still queued,
+        // and a QML `id` naming a destroyed object evaluates to null — so
+        // this fired "TypeError: Cannot call method 'dismissRequested' of
+        // null" on the way out. Nothing to report when it happens: the
+        // surface the caller wanted dismissed is already gone, which is the
+        // outcome requestDismiss() exists to produce.
+        if (!popoutWindow)
+            return;
         popoutWindow.dismissRequested();
         if (!Motion.motionEnabled) {
             // D-21's `off` collapse, mirrored: no animation, straight to
@@ -138,7 +148,12 @@ PanelWindow {
         id: exitHold
         interval: Math.max(Motion.spatialInDuration, Motion.emphasizedInDuration)
         repeat: false
-        onTriggered: popoutWindow.dismissFinished()
+        // Same teardown race as requestDismiss() above — the hold can outlive
+        // the surface, and `popoutWindow` is null once it is destroyed.
+        onTriggered: {
+            if (popoutWindow)
+                popoutWindow.dismissFinished();
+        }
     }
 
     // Esc routes through this rather than straight to requestDismiss() —

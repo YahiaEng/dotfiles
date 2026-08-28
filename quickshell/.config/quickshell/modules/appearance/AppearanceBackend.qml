@@ -169,7 +169,18 @@ Singleton {
             return [];
         if (root._previewCache.hasOwnProperty(theme))
             return root._previewCache[theme];
-        root._queuePreview(theme);
+        // Qt.callLater, NOT a direct call (fixed 2026-08-28, quick task
+        // 260828-pol). This function is invoked FROM BINDINGS
+        // (AtIconsTab's `_rows`/`_coverage`/`_diffRows`), and on a cache
+        // miss the queue call mutates properties those same bindings
+        // transitively depend on — a binding that writes what it reads,
+        // which Qt reports as "Binding loop detected". Deferring the
+        // mutation to the next event-loop turn takes the write out of the
+        // binding's own evaluation and breaks the cycle. Behaviour is
+        // unchanged: the queue helper already guards re-entry on both the
+        // running theme and queue membership, so a duplicate deferred call
+        // is a no-op, and the caller still re-reads when the cache lands.
+        Qt.callLater(root._queuePreview, theme);
         return [];
     }
 
@@ -199,10 +210,28 @@ Singleton {
 
     Timer {
         id: previewWatchdog
-        interval: 5000
+    // 15s, not the 5s every other watchdog in this file uses (raised
+    // 2026-08-28, quick task 260828-pol). MEASURED, not guessed: the probe
+    // script takes 136ms for Adwaita, 1.1s for elementary — but 6.4s, 6.9s
+    // and 6.8s for Papirus, Papirus-Dark and Papirus-Light, which are far
+    // larger themes. At 5s all three Papirus variants were killed mid-run,
+    // and because onExited below caches `[]` for ANY non-zero exit while
+    // previewFor() re-queues only on a cache MISS, that empty result was
+    // permanent: the three Papirus themes read "0/0" forever, and the stall
+    // was visible in the rail as every theme after them staying blank too.
+    // 15s is a >2x margin over the measured worst case.
+        interval: 15000
         onTriggered: {
-            if (previewProc.running)
+            if (previewProc.running) {
+                // Say it out loud. A silent kill here is indistinguishable
+                // from a theme that genuinely has no icons, which is exactly
+                // how the Papirus case hid for so long.
+                console.warn("AppearanceBackend: preview probe for '"
+                             + root._previewRunningTheme
+                             + "' exceeded " + previewWatchdog.interval
+                             + "ms and was killed — it will cache as empty (0/0)");
                 previewProc.running = false;
+            }
         }
     }
     Process {
@@ -264,7 +293,18 @@ Singleton {
             return [];
         if (root._diffPreviewCache.hasOwnProperty(theme))
             return root._diffPreviewCache[theme];
-        root._queueDiffPreview(theme);
+        // Qt.callLater, NOT a direct call (fixed 2026-08-28, quick task
+        // 260828-pol). This function is invoked FROM BINDINGS
+        // (AtIconsTab's `_rows`/`_coverage`/`_diffRows`), and on a cache
+        // miss the queue call mutates properties those same bindings
+        // transitively depend on — a binding that writes what it reads,
+        // which Qt reports as "Binding loop detected". Deferring the
+        // mutation to the next event-loop turn takes the write out of the
+        // binding's own evaluation and breaks the cycle. Behaviour is
+        // unchanged: the queue helper already guards re-entry on both the
+        // running theme and queue membership, so a duplicate deferred call
+        // is a no-op, and the caller still re-reads when the cache lands.
+        Qt.callLater(root._queueDiffPreview, theme);
         return [];
     }
 
@@ -293,8 +333,11 @@ Singleton {
     }
 
     Timer {
+        // Raised with the 12-probe watchdog above and for the same measured
+        // reason — this queue runs the same script against the same themes,
+        // so a 5s cap truncated the Papirus family here too.
         id: diffPreviewWatchdog
-        interval: 5000
+        interval: 15000
         onTriggered: {
             if (diffPreviewProc.running)
                 diffPreviewProc.running = false;
