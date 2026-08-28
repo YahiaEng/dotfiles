@@ -211,7 +211,7 @@ Item {
 
             background: Rectangle {
                 radius: width / 2
-                color: Qt.alpha(Colours.onSurface, 0.06)
+                color: Colours.surfaceContainer
             }
         }
 
@@ -237,7 +237,7 @@ Item {
                     width: parent.width
                     implicitHeight: queueCol.implicitHeight + Design.spacingSm * 2
                     radius: 14
-                    color: Qt.alpha(Colours.onSurface, 0.07)
+                    color: Colours.surfaceContainer
 
                     Column {
                         id: queueCol
@@ -262,7 +262,7 @@ Item {
                         Rectangle {
                             width: queueCol.width
                             height: 1
-                            color: Qt.alpha(Colours.outline, 0.4)
+                            color: Colours.outlineVariant
                         }
 
                         // ── The cascade ─────────────────────────────
@@ -376,7 +376,7 @@ Item {
                 Rectangle {
                     width: parent.width
                     height: 1
-                    color: Qt.alpha(Colours.outline, 0.4)
+                    color: Colours.outlineVariant
                 }
             }
 

@@ -69,7 +69,7 @@ Item {
             anchors.leftMargin: Design.spacingMd
             anchors.rightMargin: Design.spacingMd
             radius: 14
-            color: Qt.alpha(Colours.onSurface, 0.07)
+            color: Colours.surfaceContainer
 
             Row {
                 anchors.fill: parent
@@ -223,7 +223,7 @@ Item {
             anchors.leftMargin: Design.spacingMd
             anchors.rightMargin: Design.spacingMd
             height: 1
-            color: Qt.alpha(Colours.outline, 0.4)
+            color: Colours.outlineVariant
         }
     }
 
@@ -265,7 +265,7 @@ Item {
 
                 background: Rectangle {
                     radius: width / 2
-                    color: Qt.alpha(Colours.onSurface, 0.06)
+                    color: Colours.surfaceContainer
                 }
             }
 

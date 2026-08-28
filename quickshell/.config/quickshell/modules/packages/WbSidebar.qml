@@ -175,7 +175,7 @@ Item {
         Rectangle {
             width: root.width - Design.spacingSm * 2
             height: 1
-            color: Colours.outline
+            color: Colours.outlineVariant
             opacity: 0.35
         }
 
@@ -318,7 +318,7 @@ Item {
         anchors.margins: Design.spacingSm
         height: lockText.implicitHeight + Design.spacingSm * 2
         radius: 10
-        color: Colours.error
+        color: Colours.errorContainer
 
         Text {
             id: lockText
@@ -327,7 +327,7 @@ Item {
             text: "pacman is running.\nActions are paused."
             wrapMode: Text.WordWrap
             font.pixelSize: Design.fontLabel
-            color: Colours.onError
+            color: Colours.onErrorContainer
         }
     }
 }

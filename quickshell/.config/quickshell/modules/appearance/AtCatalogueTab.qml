@@ -111,7 +111,7 @@ Item {
                 width: parent.width
                 height: 40
                 radius: 12
-                color: Qt.alpha(Colours.onSurface, 0.07)
+                color: Colours.surfaceContainer
 
                 Row {
                     anchors.fill: parent
@@ -177,7 +177,7 @@ Item {
                     }
                     background: Rectangle {
                         radius: width / 2
-                        color: Qt.alpha(Colours.onSurface, 0.06)
+                        color: Colours.surfaceContainer
                     }
                 }
 
@@ -357,7 +357,7 @@ Item {
                 width: parent.width
                 height: 64
                 radius: 12
-                color: Qt.alpha(Colours.onSurface, 0.05)
+                color: Colours.surfaceContainerLow
 
                 Text {
                     anchors.centerIn: parent
@@ -415,7 +415,7 @@ Item {
                 width: parent.width
                 height: parent.height - 30 - detailCard.height - Design.spacingSm
                 radius: 12
-                color: Qt.alpha(Colours.onSurface, 0.05)
+                color: Colours.surfaceContainerLow
 
                 ListView {
                     id: logList

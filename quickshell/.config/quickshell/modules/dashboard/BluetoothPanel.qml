@@ -419,7 +419,7 @@ PanelDialog {
         Rectangle {
             width: parent.width
             height: 1
-            color: Colours.outline
+            color: Colours.outlineVariant
         }
         Text {
             text: parent.label
