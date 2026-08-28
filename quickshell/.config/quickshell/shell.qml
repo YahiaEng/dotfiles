@@ -821,18 +821,39 @@ ShellRoot {
 
     LazyLoader {
         id: edgeBarTopLoader
-        active: root.edgeBarRailPresent && root._edgeBarMountArmed
+        // ── NOT MOUNTED WHEN THE BAR IS THE TOP EDGE (quick task
+        //    260829-2ov) ────────────────────────────────────────────────
+        // This is the exact mirror of `edgeBarRightLoader` staying unmounted
+        // under Continuous with a VERTICAL bar, and it is the same rule
+        // stated once: Continuous draws THREE runs, the bar is one of them,
+        // and the fourth side is left open. Vertical -> top + bottom rails,
+        // bar on the right, left open. Horizontal -> right + bottom rails,
+        // bar on the top, left open.
+        //
+        // MEASURED, and this is why it is a mount decision rather than a
+        // styling one: a non-negative exclusive zone is positioned inside
+        // every existing zone, so with a horizontal bar this strip landed at
+        // y=56 — UNDER the bar, as a second parallel band 6px below its rim.
+        // Two parallel bands cannot share one silhouette. At the open left
+        // end they disagreed visibly: the bar's slab caps with a 25px pill
+        // radius and the strip with a 3px one, so the strip protruded ~25px
+        // to the left of the slab's curve. Captured at x0..40,y40..62.
+        //
+        // THE TRADE, STATED: this strip carries the dashboard's attachment
+        // bulge and its dwell-hover summon, so in this orientation the
+        // dashboard spawns unattached and is reached by Super+D or the
+        // clock instead. That is not a new state — `brackets` carries no
+        // bulge on ANY edge (EdgeBar.qml's own `_brackets` note) and the
+        // dashboard already copes with it through `_floatingFromRail`.
+        active: root.edgeBarRailPresent && root._edgeBarMountArmed && !root._edgeBarContinuousRightRail
 
         EdgeBar {
             id: edgeBarTop
             edge: "top"
             style: root.edgeBarStyle
-            // Only a VERTICAL bar stands at the far end of this run and
-            // carries it on (quick task 260829-2ov) — a horizontal one lies
-            // parallel to it. Resolved here, where the bar's orientation is
-            // already knowable, rather than inside EdgeBar.qml, which has no
-            // orientation of its own.
-            runsIntoBar: BarEntryModel.isVertical
+            // Reach the right rail when Continuous mounts one (a horizontal
+            // bar); the left end stays inset and capped — that is the open side.
+            runsToCorner: root._edgeBarContinuousRightRail
             // Sized to whichever surface is actually spawning from this
             // strip (quick task 260825-pyf, operator request). It was fixed
             // at the dashboard's own width; the three config panels spawn
@@ -862,8 +883,9 @@ ShellRoot {
             id: edgeBarBottom
             edge: "bottom"
             style: root.edgeBarStyle
-            // Same reasoning as the top strip above.
-            runsIntoBar: BarEntryModel.isVertical
+            // Reach the right rail when Continuous mounts one (a horizontal
+            // bar); the left end stays inset and capped — that is the open side.
+            runsToCorner: root._edgeBarContinuousRightRail
             // Matches the launcher, which spawns from this strip.
             bulgeWidth: Design.edgeBarBulgeWidthBottom
             animatedBulge: root.edgeBarAnimatedBulgeEffective
@@ -879,6 +901,25 @@ ShellRoot {
     // own `_hasBulge` is false on both and they draw plain runs.
     readonly property bool _edgeBarFourSided: root.edgeBarStyle === "halo" || root.edgeBarStyle === "brackets"
 
+    // ── CONTINUOUS + A HORIZONTAL BAR ALSO NEEDS THE RIGHT RAIL (quick
+    //    task 260829-2ov) ──────────────────────────────────────────────────
+    // Operator: "a continuous edge rail wrapping the top bar and extending
+    // to the right side and all the way to the bottom, leaving the left side
+    // empty."
+    //
+    // That is the SAME three-sided silhouette Continuous already draws with
+    // a vertical bar, rotated. There the bar IS the right edge and the two
+    // horizontal rails run into it; here the bar is the TOP edge, so the
+    // right edge has nothing to draw it and a rail has to take that job.
+    // The attachment map in EdgeBar.qml's own `_hasBulge` note — "right =
+    // the bar" — is an artefact of the vertical orientation, not a property
+    // of the right edge, and it stops holding the moment the bar moves.
+    //
+    // `fullRun` on this instance (and only this one) is what lets it reach
+    // both perpendicular runs: Halo and Brackets keep their 10px end insets
+    // because their arms are separate strokes, not a closed corner.
+    readonly property bool _edgeBarContinuousRightRail: root.edgeBarStyle === "continuous" && !BarEntryModel.isVertical
+
     LazyLoader {
         id: edgeBarLeftLoader
         active: root._edgeBarFourSided && root._edgeBarMountArmed
@@ -892,13 +933,14 @@ ShellRoot {
     }
     LazyLoader {
         id: edgeBarRightLoader
-        active: root._edgeBarFourSided && root._edgeBarMountArmed
+        active: (root._edgeBarFourSided || root._edgeBarContinuousRightRail) && root._edgeBarMountArmed
 
         EdgeBar {
             id: edgeBarRight
             edge: "right"
             style: root.edgeBarStyle
             animatedBulge: root.edgeBarAnimatedBulgeEffective
+            fullRun: root._edgeBarContinuousRightRail
         }
     }
 

@@ -172,7 +172,13 @@ PanelWindow {
     // the slab has already climbed to within ~5px of it.
     margins.top: barWindow.vertical ? (barWindow._continuousWeld ? 0 : Design.barSideMargin) : Design.barEdgeMargin
     margins.right: barWindow.vertical ? Design.barEdgeMargin : (barWindow._continuousWeldH ? 0 : Design.barSideMargin)
-    margins.left: barWindow.vertical ? 0 : (barWindow._continuousWeldH ? 0 : Design.barSideMargin)
+    // margins.LEFT keeps `barSideMargin` in every case. Round 1 of this task
+    // dropped it to 0 so the slab reached the screen corner, on the reasoning
+    // that the top strip's own end would otherwise sit inside the slab's cap.
+    // That strip is no longer mounted in this orientation (shell.qml), so the
+    // left end is now the silhouette's ONE OPEN END — and it should line up
+    // with the bottom rail's own 10px inset rather than run past it.
+    margins.left: barWindow.vertical ? 0 : Design.barSideMargin
     margins.bottom: barWindow.vertical ? (barWindow._continuousWeld ? 0 : Design.barSideMargin) : 0
 
     // ── Extent — the free axis is the one both opposite edges anchor, so
@@ -203,6 +209,7 @@ PanelWindow {
     implicitHeight: barWindow.vertical
         ? 0
         : Design.barHeight + (barWindow._continuousWeldH ? 2 * Design.edgeBarWeldRim : 0)
+          + barWindow._weldFlareOverhang
     implicitWidth: barWindow.vertical
         ? Design.barColumnWidth + (barWindow._continuousWeld ? (Design.edgeBarSideMargin + Design.barColumnWidth / 2) : 0)
         : 0
@@ -553,6 +560,26 @@ PanelWindow {
     // Anything less leaves the box's two corners outside the shape, which is
     // exactly what "too close to the edge" looks like.
     readonly property real _weldContentRunInset: barWindow._weldCoreRunInset + barWindow._weldCoreDepth / 2
+
+    // ── THE CORNER FLARE, HORIZONTAL (quick task 260829-2ov) ────────────
+    // Operator: "the top bar wrapping should have the same smooth edge
+    // flares as the vertical version." In the vertical weld that flare is
+    // `_weldStubPath`'s concave fillet, where a 6px rail meets the slab's
+    // flank; here the mirror case is where the 50px top band meets the 6px
+    // RIGHT rail, at one re-entrant corner instead of two.
+    //
+    // SAME RADIUS ON PURPOSE — `Design.edgeBarWeldFlareRadius` (20), the
+    // vertical weld's own token. Its derivation there (cap radius minus rail
+    // thickness, so the arc's far end lands on the pill cap's widest point)
+    // does not carry over, because this band's right end is SQUARE rather
+    // than capped — a quarter arc is tangent to both faces at any radius, so
+    // the value is genuinely free. Reusing the token is what makes the two
+    // orientations look identical, which is exactly what was asked for.
+    //
+    // The surface grows by this much so the patch has somewhere to live. It
+    // reserves nothing (see `reservedZoneExtent`) — the same non-reserving
+    // overhang the strips' own bulges use.
+    readonly property real _weldFlareOverhang: barWindow._continuousWeldH ? Design.edgeBarWeldFlareRadius : 0
 
     // ── Gradient continuity with the strip ──────────────────────────────
     // Phase comes from the shared clock (GradientPhase.qml) so this cannot
@@ -1227,10 +1254,100 @@ PanelWindow {
                     xl: 0,
                     xr: 0,
                     bulge: false,
+                    // The right end BUTTS the right rail rather than capping
+                    // (quick task 260829-2ov). This is the identical call the
+                    // strips make for the identical reason — `EdgeBar.qml`'s
+                    // own note: "Continuous is the one style where this strip
+                    // does NOT end at its own surface edge… cap it there and
+                    // the joint reads as a rounded lump mid-rail". The left
+                    // end keeps its pill cap, which is the silhouette's one
+                    // open end.
+                    squareEnd: true,
                     surfaceDepth: barWindow._weldSlabDepth,
                     flip: false,
                     axis: "horizontal"
                 })
+            }
+        }
+    }
+
+    // 1c. The corner flare (quick task 260829-2ov) — the concave fillet
+    //     where this band's underside turns into the right rail's inner
+    //     face, so the silhouette reads as one outline through the corner
+    //     rather than as a 50px band butted against a 6px rail.
+    //
+    //     Drawn on a box spanning the FULL surface width, not just the
+    //     corner: that makes this Shape's local x identical to the slab's,
+    //     so it takes the same `_stripGradX1` gradient verbatim and the two
+    //     cannot drift. A corner-sized box would need the offset applied by
+    //     hand, which is one more thing to get wrong for no gain.
+    //
+    //     ── THE SWEEP FLAG IS DERIVED, NOT GUESSED ─────────────────────
+    //     The trap `edgebarpath.js` and `AttachedCorner.qml` both spell out:
+    //     the wrong flag selects the OTHER valid centre for the same
+    //     endpoints and radius, drawing a CONVEX lump that looks deliberate
+    //     and is wrong. Worked through that file's own `_arcCentre` (a
+    //     quarter arc, so inside its documented domain) for the arc from
+    //     (X, F) back to (X-F, 0):
+    //
+    //       sweepPositive = true  -> centre (X,   0)   <- not this one
+    //       sweepPositive = false -> centre (X-F, F)   <- the one wanted
+    //
+    //     and `_shoulderSweep` maps sweepPositive true to flag 1, so this is
+    //     flag 0. Checked numerically at F=20, X=2544 before being written.
+    Shape {
+        id: weldFlareH
+        visible: barWindow._continuousWeldH
+        x: 0
+        y: barWindow._weldSlabDepth
+        width: barWindow.width
+        height: barWindow._weldFlareOverhang
+        preferredRendererType: Shape.CurveRenderer
+
+        // The rail's inner face, in this surface's own coordinates. The rail
+        // is flush to the screen's right edge and this surface's right edge
+        // is too (margins.right is 0 while welded), so the two agree without
+        // any screen-space arithmetic.
+        readonly property real _corner: barWindow.width - Design.edgeBarThickness
+
+        ShapePath {
+            strokeWidth: -1
+            strokeColor: "transparent"
+            fillGradient: LinearGradient {
+                x1: barWindow._stripGradX1
+                y1: 0
+                x2: barWindow._stripGradX1 + barWindow._stripPeriod
+                y2: 0
+                spread: ShapeGradient.RepeatSpread
+                GradientStop {
+                    position: 0.0
+                    color: Colours.primary
+                }
+                GradientStop {
+                    position: 0.33
+                    color: Colours.secondary
+                }
+                GradientStop {
+                    position: 0.66
+                    color: Colours.tertiary
+                }
+                GradientStop {
+                    position: 1.0
+                    color: Colours.primary
+                }
+            }
+            PathSvg {
+                path: {
+                    const f = barWindow._weldFlareOverhang;
+                    const x = weldFlareH._corner;
+                    if (f <= 0)
+                        return "";
+                    return "M " + (x - f) + " 0"
+                        + " L " + x + " 0"
+                        + " L " + x + " " + f
+                        + " A " + f + " " + f + " 0 0 0 " + (x - f) + " 0"
+                        + " Z";
+                }
             }
         }
     }
@@ -1291,8 +1408,14 @@ PanelWindow {
         anchors.topMargin: barWindow._welded
             ? (barWindow.vertical ? barWindow._weldContentRunInset : Design.edgeBarWeldRim)
             : 0
+        // The horizontal branch adds `_weldFlareOverhang`: the surface is
+        // that much taller than the slab so the corner flare has somewhere
+        // to be drawn, and the content must stay inside the CORE, not the
+        // surface.
         anchors.bottomMargin: barWindow._welded
-            ? (barWindow.vertical ? barWindow._weldContentRunInset : Design.edgeBarWeldRim)
+            ? (barWindow.vertical
+                ? barWindow._weldContentRunInset
+                : Design.edgeBarWeldRim + barWindow._weldFlareOverhang)
             : 0
         // NEVER `: undefined` here. `vertical` is FALSE at construction
         // (BarEntryModel.isVertical settles later), so an undefined branch

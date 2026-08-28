@@ -147,12 +147,20 @@ PanelWindow {
     // shell.qml's single resolution point (root.edgeBarStyle).
     property string style: "continuous"
 
-    // Whether the bar's own body continues this run past the strip's far
-    // end (quick task 260829-2ov). Threaded in from shell.qml for the same
-    // reason `style` is, and kept as a plain fact rather than an
-    // orientation: this file has no orientation, only an `edge`. Consumed
-    // by `squareEnd` in the path call below — see the note there.
-    property bool runsIntoBar: false
+    // Whether this rail runs corner-to-corner rather than sitting inset at
+    // both ends (quick task 260829-2ov). Threaded in from shell.qml for the
+    // same reason `style` is, and kept as a plain fact rather than an
+    // orientation: this file has no orientation, only an `edge`. Consumed by
+    // the margins block below.
+    property bool fullRun: false
+
+    // The horizontal counterpart of `fullRun`, and deliberately asymmetric
+    // (quick task 260829-2ov): drops the inset at the FAR end only, so a
+    // top/bottom run reaches the right rail while its LEFT end keeps the
+    // 10px inset and its pill cap. That left end is the silhouette's one
+    // OPEN end — the operator's "leaving the left side empty" — so squaring
+    // or extending it would close a corner they asked to stay open.
+    property bool runsToCorner: false
 
     // ── Which instances carry a bulge (Task 4) ──────────────────────────
     // Only the horizontal pair. The measured attachment map is: top =
@@ -270,10 +278,23 @@ PanelWindow {
     //
     // Halo's left rail is unchanged: it was already flush at x = 0, which
     // is where the study draws IT (`rect{x: 0, w: k}`).
+    //
+    // ── `fullRun` DROPS THE FREE-SIDE INSET (quick task 260829-2ov) ─────
+    // A rail that is a CORNER of the silhouette rather than a floating arm
+    // has to reach the perpendicular runs it meets, and a 10px inset at each
+    // end is exactly the gap that would stop it. This is the same reasoning
+    // the vertical bar's own weld already applies to itself — it sets
+    // `margins.top/bottom: 0` so its slab spans the full screen height and
+    // the two horizontal rails can run into it.
+    //
+    // Only Continuous-with-a-horizontal-bar sets it (shell.qml resolves
+    // that, this file does not know the bar's orientation). Halo and
+    // Brackets keep the inset: their arms are deliberately separate strokes
+    // with rounded ends, not a closed frame.
     margins.left: edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin
-    margins.right: edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin
-    margins.top: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
-    margins.bottom: edgeBarWindow._vertical ? Design.edgeBarSideMargin : 0
+    margins.right: edgeBarWindow._vertical ? 0 : (edgeBarWindow.runsToCorner ? 0 : Design.edgeBarSideMargin)
+    margins.top: edgeBarWindow._vertical ? (edgeBarWindow.fullRun ? 0 : Design.edgeBarSideMargin) : 0
+    margins.bottom: edgeBarWindow._vertical ? (edgeBarWindow.fullRun ? 0 : Design.edgeBarSideMargin) : 0
 
     // ── Surface depth vs PAINTED depth (operator round 10) ──────────────
     // These were the same number until the hover target was decoupled from
@@ -598,17 +619,16 @@ PanelWindow {
         // own surface edge — Bar.qml carries the run on through the bar's
         // body. Cap it there and the joint reads as a rounded lump.
         //
-        // ── ONLY WHEN SOMETHING ACTUALLY CARRIES IT ON (quick task
-        //    260829-2ov) ──────────────────────────────────────────────────
-        // That is true of a VERTICAL bar, which stands at the far end of
-        // both horizontal runs. A horizontal bar lies parallel to them and
-        // is nowhere near their far ends, so the butt end had nothing
-        // continuing it and read as a blunt stop 10px short of the screen
-        // edge, against a rounded cap at the other end of the same rail.
-        // `runsIntoBar` is threaded in from shell.qml rather than read off
-        // `BarEntryModel.isVertical` here, because this file has no
-        // orientation of its own — only an edge (this file's own header).
-        squareEnd: edgeBarWindow.style === "continuous" && edgeBarWindow.runsIntoBar,
+        // UNCONDITIONAL AGAIN under Continuous (quick task 260829-2ov,
+        // round 2). It was briefly gated on a `runsIntoBar` flag, because a
+        // horizontal bar lies PARALLEL to these runs and so did not
+        // terminate them — the butt end read as a blunt stop against a
+        // rounded cap at the other end of the same rail. That gate is gone
+        // because the premise is: Continuous now mounts a full-height RIGHT
+        // RAIL whenever the bar is horizontal, so something always continues
+        // the far end — the bar's own slab in the vertical orientation, the
+        // right rail in the horizontal one.
+        squareEnd: edgeBarWindow.style === "continuous",
         // Halo's two vertical rails are plain runs (see `_hasBulge`).
         bulge: edgeBarWindow._hasBulge,
         xl: edgeBarWindow._xl,
