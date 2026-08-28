@@ -705,6 +705,12 @@ footer p { margin-bottom: 6px; }
           lives in <b>Settings → Packages</b> · new nav-rail entry, page 15 · sibling of
           <b>SecurityPage.qml</b>
         </p>
+        <p class="where" style="color:var(--warn); margin-top:10px">
+          <b style="color:var(--warn)">SUPERSEDED as drawn.</b> D4 was picked as the main
+          surface, which makes this browser a second copy of it. D1 ships as a <b>thin
+          preferences page</b> instead — see the decision record at the foot of this page. The
+          mockup below is kept as the record of what was considered and why it was cut.
+        </p>
       </div>
     </div>
   </div>
@@ -1112,13 +1118,13 @@ footer p { margin-bottom: 6px; }
       <div>
         <h2>Capsule</h2>
         <p class="thesis">
-          A bar glyph with a count, and a popout listing what's pending. Ambient only — it exists
-          so you notice 4 updates without going looking, and it hands off to whichever real
-          surface you pick.
+          <b>Correction, after the operator read this study:</b> there is nothing to add. The
+          updates readout already exists as a cell inside <code>SystemCapsule.qml:509</code>. D5
+          is not a new capsule — it is a repair of that cell plus the popout it never had.
         </p>
         <p class="where">
-          lives in <b>the bar</b> · beside the security glyph · sibling of
-          <b>MediaConnectivityCapsule.qml</b>
+          lives in <b>SystemCapsule.qml</b> · an existing <code>Readout</code>, not a new capsule ·
+          no bar reflow risk
         </p>
       </div>
     </div>
@@ -1154,6 +1160,7 @@ footer p { margin-bottom: 6px; }
         <span>capsule <b>34</b>, radius <b>17</b></span>
         <span>popout <b>340</b> wide, radius <b>20</b></span>
         <span>glyph <b>16 px</b> Material Symbols Rounded</span>
+        <span>the glyph pill is <b>already there</b> — filled tertiary, BarRoles.fillUpdates</span>
       </p>
     </div>
   </div>
@@ -1161,26 +1168,30 @@ footer p { margin-bottom: 6px; }
   <div class="wrap">
     <div class="spec">
       <div>
-        <h4>What it does best</h4>
-        <p>Ambient awareness at zero cost of attention. The count is the whole feature; the
-        popout is a courtesy.</p>
+        <h4>Defect 1 — blind to the AUR</h4>
+        <p class="cant">The cell polls <code>checkupdates</code> and nothing else, so
+        <code>pendingUpdatesCount</code> counts repo updates only. Right now it reads
+        <b>3</b> while <b>4</b> are pending — <code>python-steam</code> does not exist as far as
+        the bar is concerned.</p>
       </div>
       <div>
-        <h4>What it can't do</h4>
-        <p class="cant">Nothing browsing-related. And it adds a fourth right-side capsule to a
-        bar that just gained the security glyph — the reflow you filed as a defect on
-        27 Aug is a live risk here.</p>
+        <h4>Defect 2 — no look before the leap</h4>
+        <p class="cant">Clicking it calls <code>launchUpgrade()</code>, which opens kitty on
+        <code>paru -Syu</code> immediately. There is no way to see what is about to change
+        without starting the transaction. That is what the popout is for.</p>
       </div>
       <div>
-        <h4>Does it absorb Updates?</h4>
-        <p>No, and it must not. It reads the same two commands and links out. If it also
-        <em>ran</em> upgrades there would be three owners of that action.</p>
+        <h4>What already works, and stays</h4>
+        <p>Hidden at zero. Single-flighted, so a slow mirror can't stack probes. 30-minute poll,
+        already configurable. Filled tertiary pill per Athena's own rule. Terminal handoff for
+        the upgrade. None of that changes.</p>
       </div>
       <div>
         <h4>Rough cost</h4>
         <p class="cost">≈ 220 lines</p>
-        <p style="margin-top:6px">Capsule plus popout, over a backend that must exist already.
-        Meaningless on its own.</p>
+        <p style="margin-top:6px">A second <code>Process</code> for <code>paru -Qua</code>, a
+        popout component, and a route into D4. The glyph, poll timer and click action already
+        exist.</p>
       </div>
     </div>
   </div>
@@ -1324,7 +1335,7 @@ footer p { margin-bottom: 6px; }
           <tr><td>Sort by size</td><td class="part">column only</td><td class="part">top 6 only</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
           <tr><td>Bulk select + queue</td><td class="no">no</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
           <tr><td>Removal preview (<code>pactree</code>)</td><td class="part">one at a time</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
-          <tr><td>Notices updates unprompted</td><td class="no">no</td><td class="part">on open</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td></tr>
+          <tr><td>Notices updates unprompted</td><td class="no">no</td><td class="part">on open</td><td class="no">no</td><td class="no">no</td><td class="yes">already does</td></tr>
           <tr><td>Answers “where did the disk go”</td><td class="part">by column</td><td class="yes">yes</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
           <tr><td>Replaces Octopi</td><td class="part">mostly</td><td class="no">no</td><td class="no">no</td><td class="yes">yes</td><td class="no">no</td></tr>
           <tr><td>New window shell to maintain</td><td class="yes">none</td><td class="yes">none</td><td class="yes">none</td><td class="no">yes</td><td class="yes">none</td></tr>
@@ -1339,98 +1350,125 @@ footer p { margin-bottom: 6px; }
 <!-- ══ Recommendation ════════════════════════════════════════════════ -->
 <section>
   <div class="wrap">
-    <p class="eyebrow">If you want one answer</p>
-    <h2>Recommendation</h2>
+    <p class="eyebrow">Shipped 2026-08-28 · operator-confirmed after three rounds</p>
+    <h2>What shipped</h2>
     <div class="rec">
       <p class="verdict">
-        Build <em>D1 Ledger</em> with the <em>R1</em> row, absorbing the existing Updates page.
-        Add <em>D2 Sentinel</em> only if the footprint plate appeals. Skip D4, D5, and D3 for now.
+        Build <em>D4 Workbench</em> as the main surface — an actual Octopi replacement — with
+        <em>D3</em>, <em>D5</em> and a rescoped <em>D1</em> around it, all over one backend.
+        <em>D2 Sentinel</em> is not being built.
       </p>
       <p>
-        D1 is the smallest thing that satisfies the actual ask. It gets the nav rail, the search
-        field, the window chrome and the page lifecycle free from Settings, which is the
-        difference between 800 lines and D4's 1,400 — and D4's extra 600 lines buy a second
-        window shell that duplicates what Settings already gives you. The two capabilities D4
-        genuinely adds that D1 can't fake are bulk selection and the <code>pactree</code>
-        removal preview. Both can be added to D1's detail pane later if you miss them; neither
-        is worth a second toplevel up front.
+        I recommended D1-as-a-browser and was overruled on the strength of the real goal: the ask
+        was always a replacement for Octopi, and a Settings page is not that. D4 is a window you
+        leave open and work in, with bulk selection and a removal preview — the two things a
+        Settings page genuinely cannot fake.
       </p>
       <p>
-        R1 because a package list is a table of names, versions and sizes, and the ledger is the
-        only one of the three that stays legible at 26 rows. R2 is proven but halves the density;
-        R3's size bar is genuinely useful, and belongs on D2's footprint plate where you are
-        actually asking about size — not on every row of a list you're scrolling to find one name.
+        That decision then forced a second one. With D4 in the tree, D1 as drawn would have been
+        the same browser in a different frame, which is precisely the redundancy that got the
+        Security Center's two layouts merged in operator round 3. <b>D1 is therefore rescoped to
+        a thin preferences page</b>: package settings plus one button into D4. One browser in
+        the tree, not two.
       </p>
-      <p>
-        Three things I'd hold you to whichever way you go:
+
+      <div class="tbl-wrap" style="margin-top:6px">
+        <table>
+          <thead><tr><th>Piece</th><th>What ships</th><th>Rough size</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>PackagesBackend</td>
+              <td>One singleton owning the <code>-Qi</code> dump, the repo list, updates, orphans
+              and the history read. Every surface below reads it; none of them shells out on its
+              own. Sibling of <code>SecurityBackend.qml</code>.</td>
+              <td class="num">≈ 400</td>
+            </tr>
+            <tr>
+              <td><b>D4 Workbench</b> — main</td>
+              <td>Own <code>FloatingWindow</code>. Sources rail, sortable table, multi-select,
+              transaction queue, <code>pactree</code> removal preview, <code>-Qi</code> detail.
+              Review opens kitty on the real <code>paru</code> command.</td>
+              <td class="num">≈ 1400</td>
+            </tr>
+            <tr>
+              <td>D1 Packages page</td>
+              <td>Thin. “Open package manager” into D4, plus the prefs: check interval (moved
+              here from Services), include-AUR, orphan warning, bar capsule, confirm-in-terminal.
+              <b>No list, no detail pane.</b></td>
+              <td class="num">≈ 200</td>
+            </tr>
+            <tr>
+              <td>D3 Prefix</td>
+              <td>A <code>pkg</code> route on the launcher's router over the same backend.
+              <code>pkg!</code> searches the repos. Enter opens D4 on that package.</td>
+              <td class="num">≈ 180</td>
+            </tr>
+            <tr>
+              <td>D5 Capsule</td>
+              <td>Repairs the existing <code>SystemCapsule</code> cell: adds
+              <code>paru -Qua</code> so the count stops lying, and a popout so a click shows what
+              is pending before it upgrades. Existing glyph, timer and click action stay.</td>
+              <td class="num">≈ 220</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:4px">
+        <b>All of it is built, live and operator-confirmed.</b> Ten commits,
+        <code>8dc0693d</code>..<code>711e2460</code>. Octopi came off the disk on
+        2026-08-28 at 06:21:24 — <code>octopi-git</code>, <code>qtermwidget</code>,
+        <code>qt-sudo</code> and <code>alpm_octopi_utils-git</code> — with
+        <code>pacman-contrib</code> and <code>pkgfile</code> reclaimed as explicit first, so
+        <code>checkupdates</code> survived.
       </p>
+
+      <div class="tbl-wrap" style="margin-top:6px">
+        <table>
+          <thead><tr><th>Round</th><th>What changed, and why</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Build</td>
+              <td>The bar's updates pill was <b>AUR-blind</b> — it polled <code>checkupdates</code>
+              alone and read 3 while 4 were pending. That defect, not the feature request, is
+              what the backend fixed first.</td>
+            </tr>
+            <tr>
+              <td>Round 1</td>
+              <td>Window sized off the screen (Settings' own formula) instead of a literal;
+              ad-hoc unicode glyphs replaced with Material Symbols, all 19 verified against the
+              installed font with an absent control; <code>UpdatesPage.qml</code> retired with
+              its per-package armed update absorbed; <code>Super+P</code> bound.</td>
+            </tr>
+            <tr>
+              <td>Round 2</td>
+              <td>Dismiss-on-click-outside was really dismiss-on-mouse-exit: <code>follow_mouse</code>
+              is 1 here, so Qt's <code>Window.active</code> tracks the pointer. Replaced with
+              <code>HyprlandFocusGrab</code>. Panes made resizable, fonts up a step, columns
+              widened to match, thin scrollbars added.</td>
+            </tr>
+            <tr>
+              <td>Round 3</td>
+              <td>The <code>+</code> route became the word <code>pkg</code>, painted in the accent
+              colour from the first keystroke. Pane resize was measuring in the grip's own moving
+              frame; re-anchored to scene coordinates at press-time. Right pane made resizable
+              too.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:4px">Standing constraints, honoured throughout:</p>
       <ol>
-        <li><b>One owner for the update action.</b> Whatever you pick either absorbs
-        <code>UpdatesPage.qml</code> or links to it. Two surfaces that both run
-        <code>paru -Syu</code> is the redundancy that got the Security Center's two layouts
-        merged.</li>
-        <li><b>Terminal handoff for every write.</b> No pkexec verb, no root-side install, no
-        <code>install.sh</code> change. Browsing is unprivileged and should stay that way.</li>
-        <li><b>Decide about Octopi explicitly.</b> If D1 or D4 ships and you're happy with it,
-        <code>octopi-git</code>, <code>qt-sudo</code> and <code>qtermwidget</code> come off the
-        disk in the same task. If you'd rather keep Octopi, that's an argument for D2 + D3 only
-        and against building a browser at all.</li>
+        <li><b>One owner for the update action.</b> D4 owns browsing and transactions; the
+        capsule and D3 route into it. <code>UpdatesPage.qml</code> is absorbed by D4 rather than
+        left running beside it.</li>
+        <li><b>Terminal handoff for every write.</b> No pkexec verb, no polkit action, no
+        <code>install.sh</code> change. Browsing is unprivileged and stays that way.</li>
+        <li><b>Octopi is gone</b> — done 2026-08-28. The removal preview earned its keep on
+        the way out: the obvious <code>-Rs</code> would have taken <code>pacman-contrib</code>
+        with it, and <code>pacman-contrib</code> owns <code>checkupdates</code>.</li>
       </ol>
-    </div>
-  </div>
-</section>
-
-<!-- ══ Picker ════════════════════════════════════════════════════════ -->
-<section>
-  <div class="wrap">
-    <p class="eyebrow">Your call</p>
-    <h2>Pick, then paste the result back to me</h2>
-    <p class="spine" style="color:var(--ink-2); margin-bottom:28px">
-      Tick whatever you want built — directions combine, and the Security Center shipped as three
-      surfaces over one backend. The box on the right updates as you go.
-    </p>
-    <div class="picker">
-      <div>
-        <fieldset>
-          <legend>Surfaces — pick any</legend>
-          <label class="opt"><input type="checkbox" class="d" value="D1 Ledger — Settings → Packages, two-pane browser (~800 lines)" checked><span><b>D1 · Ledger</b> — a Packages page in Settings</span></label>
-          <label class="opt"><input type="checkbox" class="d" value="D2 Sentinel — dashboard tab, four plates (~300 lines)"><span><b>D2 · Sentinel</b> — a dashboard tab of plates</span></label>
-          <label class="opt"><input type="checkbox" class="d" value="D3 Prefix — launcher pkg route (~180 lines)"><span><b>D3 · Prefix</b> — a <code>pkg</code> route in the launcher</span></label>
-          <label class="opt"><input type="checkbox" class="d" value="D4 Workbench — standalone window, queue + pactree preview (~1400 lines)"><span><b>D4 · Workbench</b> — its own window with a queue</span></label>
-          <label class="opt"><input type="checkbox" class="d" value="D5 Capsule — bar glyph + popout (~220 lines)"><span><b>D5 · Capsule</b> — a bar glyph with a count</span></label>
-        </fieldset>
-
-        <fieldset>
-          <legend>Row treatment — pick one</legend>
-          <label class="opt"><input type="radio" name="row" class="r" value="R1 Ledger — monospace 3-column, densest" checked><span><b>R1 · Ledger</b> — monospace, densest</span></label>
-          <label class="opt"><input type="radio" name="row" class="r" value="R2 Card cell — reuse UpdatesPage PackageCell"><span><b>R2 · Card cell</b> — reuse what ships today</span></label>
-          <label class="opt"><input type="radio" name="row" class="r" value="R3 Weighted — size bar per row"><span><b>R3 · Weighted</b> — with a size bar</span></label>
-        </fieldset>
-
-        <fieldset>
-          <legend>Privilege — pick one</legend>
-          <label class="opt"><input type="radio" name="priv" class="p" value="Terminal handoff for all writes — no pkexec, no install.sh change" checked><span><b>Terminal handoff</b> — pacman prompts, you approve</span></label>
-          <label class="opt"><input type="radio" name="priv" class="p" value="pkexec helper — new allowlist verb, in-shell progress"><span><b>pkexec helper</b> — in-shell, needs a new verb</span></label>
-        </fieldset>
-
-        <fieldset>
-          <legend>Open questions</legend>
-          <label class="opt"><input type="checkbox" class="q" value="Absorb UpdatesPage.qml into the new surface (retire its 347 lines)" checked><span>Absorb the existing <b>Updates page</b> rather than link to it</span></label>
-          <label class="opt"><input type="checkbox" class="q" value="Remove octopi-git, qt-sudo, qtermwidget once this ships"><span>Retire <b>Octopi</b> once this ships</span></label>
-          <label class="opt"><input type="checkbox" class="q" value="Include repo catalogue search (15,412 packages) — install, not just browse"><span>Include <b>repo search</b> — install new packages too</span></label>
-          <label class="opt"><input type="checkbox" class="q" value="Include pactree dependency preview before any removal"><span>Include a <b>removal preview</b> via pactree</span></label>
-          <label class="opt"><input type="checkbox" class="q" value="Warn when a pacman transaction is already running (db.lck present)"><span>Warn when <b>pacman is already running</b></span></label>
-        </fieldset>
-      </div>
-
-      <div>
-        <label for="out" class="eyebrow" style="display:block; margin-bottom:8px">Paste this back</label>
-        <textarea id="out" readonly aria-live="polite"></textarea>
-        <div class="copybar">
-          <button class="copy" id="copyBtn" type="button">Copy to clipboard</button>
-          <small id="copyNote">Or select the text above.</small>
-        </div>
-      </div>
     </div>
   </div>
 </section>
@@ -1442,98 +1480,3 @@ footer p { margin-bottom: 6px; }
     <p>Mockups are static HTML approximations of QML surfaces — they show layout, density and colour, not real rendering.</p>
   </div>
 </footer>
-
-<script>
-(function () {
-  "use strict";
-
-  var out = document.getElementById("out");
-  var KEY = "pkg-panel-studies-picks-v1";
-
-  function collect() {
-    var dirs = [].slice.call(document.querySelectorAll("input.d:checked")).map(function (i) { return i.value; });
-    var row  = document.querySelector("input.r:checked");
-    var priv = document.querySelector("input.p:checked");
-    var qs   = [].slice.call(document.querySelectorAll("input.q:checked")).map(function (i) { return i.value; });
-    return { dirs: dirs, row: row ? row.value : "", priv: priv ? priv.value : "", qs: qs };
-  }
-
-  function render() {
-    var s = collect();
-    var lines = [];
-    lines.push("Package panel — picks from the study (quick task 260828-75k)");
-    lines.push("");
-    lines.push("SURFACES:");
-    if (s.dirs.length === 0) {
-      lines.push("  (none picked yet)");
-    } else {
-      s.dirs.forEach(function (d) { lines.push("  - " + d); });
-    }
-    lines.push("");
-    lines.push("ROW TREATMENT:");
-    lines.push("  - " + (s.row || "(none)"));
-    lines.push("");
-    lines.push("PRIVILEGE:");
-    lines.push("  - " + (s.priv || "(none)"));
-    lines.push("");
-    lines.push("ALSO:");
-    if (s.qs.length === 0) {
-      lines.push("  (nothing extra)");
-    } else {
-      s.qs.forEach(function (q) { lines.push("  - " + q); });
-    }
-    out.value = lines.join("\n");
-    save(s);
-  }
-
-  function save(s) {
-    try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) { /* private window, blocked storage */ }
-  }
-
-  function restore() {
-    var raw = null;
-    try { raw = localStorage.getItem(KEY); } catch (e) { return; }
-    if (!raw) return;
-    var s;
-    try { s = JSON.parse(raw); } catch (e) { return; }
-    if (!s) return;
-    if (Array.isArray(s.dirs)) {
-      [].forEach.call(document.querySelectorAll("input.d"), function (i) { i.checked = s.dirs.indexOf(i.value) !== -1; });
-    }
-    if (Array.isArray(s.qs)) {
-      [].forEach.call(document.querySelectorAll("input.q"), function (i) { i.checked = s.qs.indexOf(i.value) !== -1; });
-    }
-    if (s.row) {
-      [].forEach.call(document.querySelectorAll("input.r"), function (i) { if (i.value === s.row) i.checked = true; });
-    }
-    if (s.priv) {
-      [].forEach.call(document.querySelectorAll("input.p"), function (i) { if (i.value === s.priv) i.checked = true; });
-    }
-  }
-
-  [].forEach.call(document.querySelectorAll("input.d, input.r, input.p, input.q"), function (i) {
-    i.addEventListener("change", render);
-  });
-
-  var btn = document.getElementById("copyBtn");
-  var note = document.getElementById("copyNote");
-  btn.addEventListener("click", function () {
-    var done = function () {
-      note.textContent = "Copied.";
-      setTimeout(function () { note.textContent = "Or select the text above."; }, 2400);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(out.value).then(done, function () {
-        out.select();
-        note.textContent = "Press Ctrl+C to copy.";
-      });
-    } else {
-      out.select();
-      note.textContent = "Press Ctrl+C to copy.";
-    }
-  });
-
-  restore();
-  render();
-})();
-</script>
