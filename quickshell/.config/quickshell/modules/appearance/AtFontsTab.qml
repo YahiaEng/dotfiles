@@ -22,6 +22,7 @@
 import QtQuick
 import ".."
 import "../dashboard"
+import "../packages"
 
 Item {
     id: root
@@ -100,96 +101,89 @@ Item {
         spacing: 0
 
         // ── Left rail — 13 families, never 26 rows (defect 2d's fix). ──
-        ListView {
+        // Operator round 3, item 1 — copy WbSidebar.qml's own treatment
+        // verbatim rather than inventing a third accent value. See
+        // AtIconsTab.qml's matching rail comment for the full "why" —
+        // `surfaceVariant`/`primaryContainer`/`secondaryContainer` are
+        // all the same hex in the live palette, so the rail needs its
+        // own `Qt.alpha(Colours.surface, 0.55)` backdrop before a
+        // container-role selection can read at all.
+        Item {
             id: rail
             width: root.railWidth
             height: parent.height
-            clip: true
-            model: root._families
 
-            delegate: Rectangle {
-                id: railRow
-                required property var modelData
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.alpha(Colours.surface, 0.55)
+            }
 
-                readonly property bool selected: railRow.modelData.family === root._selectedEntry.family
+            ListView {
+                id: railList
+                anchors.fill: parent
+                clip: true
+                model: root._families
 
-                width: rail.width
-                height: 44
-                radius: 10
-                // ── Operator round 2, defect 2 — WHY NOTHING LOOKED
-                //    SELECTED. ────────────────────────────────────────────
-                // The highlight was `Colours.surfaceVariant`, and the
-                // Atelier's own body panel IS `surfaceVariant`
-                // (`Atelier.qml`'s `surfaceBase`, drawn at 0.78 opacity).
-                // A selected row was therefore the same role as the
-                // surface behind it and read as no highlight at all,
-                // while the detail pane updated correctly — exactly the
-                // "expands on the right but does not highlight" report.
-                // This is the fourth recurrence of this class in this
-                // shell (the Dial track, and 14-10's GPU ring before it):
-                // a widget that draws nothing is usually the same colour
-                // as its backing surface, not broken data.
-                //
-                // The study already specified the answer and the build
-                // diverged from it — `.frow.sel` is
-                // `background: rgba(255,121,198,.13)` plus
-                // `border-left: 2px solid var(--stage-acc)`. That is the
-                // accent at 13%, which cannot collide with any surface
-                // role, plus an accent bar that survives even if the
-                // tint is lost to a low-contrast palette.
-                color: railRow.selected ? Qt.alpha(Colours.primary, 0.13) : "transparent"
+                delegate: Rectangle {
+                    id: railRow
+                    required property var modelData
 
-                // The study's `border-left: 2px solid var(--stage-acc)`.
-                // Kept as a real child rather than a border so it hugs
-                // the leading edge only; the 13% tint above carries the
-                // fill and this carries the identity.
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 2
-                    height: parent.height - Design.spacingSm * 2
-                    radius: 1
-                    color: Colours.primary
-                    visible: railRow.selected
-                }
+                    readonly property bool selected: railRow.modelData.family === root._selectedEntry.family
 
-                Behavior on color {
-                    enabled: Motion.motionEnabled
-                    ColorAnimation {
-                        duration: Motion.colourDuration
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.colourEasing
-                    }
-                }
+                    width: rail.width
+                    height: 44
+                    radius: 10
+                    // Operator round 3, item 1 — WbSidebar.qml:117's exact
+                    // shape: selection is `primaryContainer`, hover is a
+                    // flat 6% onSurface tint, rest is transparent. Same
+                    // fix as AtIconsTab.qml's rail; see that file's
+                    // comment for the full palette-collision reasoning.
+                    color: railRow.selected ? Colours.primaryContainer : (railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
 
-                Row {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.margins: Design.spacingSm
-                    spacing: Design.spacingXs
-
-                    Text {
-                        width: parent.width - countLabel.implicitWidth - Design.spacingXs
-                        text: railRow.modelData.family
-                        color: railRow.modelData.active ? Colours.primary : Colours.onSurface
-                        font.pixelSize: Design.settingsFontSub
-                        elide: Text.ElideRight
-                        textFormat: Text.PlainText
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.colourDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.colourEasing
+                        }
                     }
 
-                    Text {
-                        id: countLabel
-                        text: railRow.modelData.active ? "active" : (railRow.modelData.variants.length + "")
-                        color: Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontLabel
-                        textFormat: Text.PlainText
-                    }
-                }
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: Design.spacingSm
+                        spacing: Design.spacingXs
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.selectedFamily = railRow.modelData.family
+                        Text {
+                            width: parent.width - countLabel.implicitWidth - Design.spacingXs
+                            // The APPLIED family keeps its accent label
+                            // colour regardless of selection-for-viewing —
+                            // the one marker this file keeps distinguishing
+                            // the two states.
+                            text: railRow.modelData.family
+                            color: railRow.modelData.active ? Colours.primary : (railRow.selected ? Colours.onPrimaryContainer : Colours.onSurface)
+                            font.pixelSize: Design.settingsFontSub
+                            elide: Text.ElideRight
+                            textFormat: Text.PlainText
+                        }
+
+                        Text {
+                            id: countLabel
+                            text: railRow.modelData.active ? "active" : (railRow.modelData.variants.length + "")
+                            color: railRow.selected ? Colours.onPrimaryContainer : Colours.onSurfaceVariant
+                            font.pixelSize: Design.fontLabel
+                            textFormat: Text.PlainText
+                        }
+                    }
+
+                    MouseArea {
+                        id: railArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: root.selectedFamily = railRow.modelData.family
+                    }
                 }
             }
         }
@@ -361,31 +355,15 @@ Item {
                 // Operator round 1, defect 1 — resolves ownership of the
                 // currently previewed variant's own file via `fc-match`;
                 // proposes a plan, never removes on this click alone.
-                Rectangle {
-                    id: uninstallChip
+                // Operator round 3, item 1 — `WbButton`, not a hand-rolled
+                // chip.
+                WbButton {
                     visible: specimen._activeVariant !== null
-                    radius: 99
-                    color: uninstallChipArea.containsMouse ? Qt.alpha(Colours.error, 0.16) : "transparent"
-                    border.width: 1
-                    border.color: uninstallChipArea.containsMouse ? Colours.error : Qt.alpha(Colours.outline, 0.5)
-                    width: uninstallLabel.implicitWidth + Design.spacingMd
-                    height: uninstallLabel.implicitHeight + Design.spacingSm
-
-                    Text {
-                        id: uninstallLabel
-                        anchors.centerIn: parent
-                        text: "Uninstall"
-                        color: uninstallChipArea.containsMouse ? Colours.error : Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontLabel
-                        textFormat: Text.PlainText
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            if (specimen._activeVariant)
-                                AppearanceBackend.proposeUninstallFont(specimen._activeVariant.rawName);
-                        }
+                    label: "Uninstall"
+                    tone: "danger"
+                    onActivated: {
+                        if (specimen._activeVariant)
+                            AppearanceBackend.proposeUninstallFont(specimen._activeVariant.rawName);
                     }
                 }
             }

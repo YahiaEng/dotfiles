@@ -29,9 +29,22 @@ Item {
 
     implicitHeight: 40
 
+    // Operator round 3, item 1 — the same collision as the Icons/Fonts
+    // rails, on the same body panel: `surfaceVariant` == `primaryContainer`
+    // == `secondaryContainer` in the live palette, so the strip needs its
+    // own `Qt.alpha(Colours.surface, 0.55)` backdrop before a
+    // container-role selection can read against it — `WbSidebar.qml:87`'s
+    // exact fix, applied here too.
+    Rectangle {
+        anchors.fill: parent
+        radius: 12
+        color: Qt.alpha(Colours.surface, 0.55)
+    }
+
     Row {
         anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
+        anchors.leftMargin: Design.spacingXs
         spacing: Design.spacingSm
 
         Repeater {
@@ -46,28 +59,10 @@ Item {
                 width: tabLabel.implicitWidth + Design.spacingLg
                 height: 32
                 radius: 10
-                // ── Operator round 2, defect 2 — WHY NOTHING LOOKED
-                //    SELECTED. ────────────────────────────────────────────
-                // The highlight was `Colours.surfaceVariant`, and the
-                // Atelier's own body panel IS `surfaceVariant`
-                // (`Atelier.qml`'s `surfaceBase`, drawn at 0.78 opacity).
-                // A selected row was therefore the same role as the
-                // surface behind it and read as no highlight at all,
-                // while the detail pane updated correctly — exactly the
-                // "expands on the right but does not highlight" report.
-                // This is the fourth recurrence of this class in this
-                // shell (the Dial track, and 14-10's GPU ring before it):
-                // a widget that draws nothing is usually the same colour
-                // as its backing surface, not broken data.
-                //
-                // The study already specified the answer and the build
-                // diverged from it — `.frow.sel` is
-                // `background: rgba(255,121,198,.13)` plus
-                // `border-left: 2px solid var(--stage-acc)`. That is the
-                // accent at 13%, which cannot collide with any surface
-                // role, plus an accent bar that survives even if the
-                // tint is lost to a low-contrast palette.
-                color: tabDelegate.selected ? Qt.alpha(Colours.primary, 0.13) : "transparent"
+                // Operator round 3, item 1 — WbSidebar.qml:117's exact
+                // shape: selection is `primaryContainer`, hover is a flat
+                // 6% onSurface tint, rest is transparent.
+                color: tabDelegate.selected ? Colours.primaryContainer : (tabArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
 
                 Behavior on color {
                     enabled: Motion.motionEnabled
@@ -82,7 +77,7 @@ Item {
                     id: tabLabel
                     anchors.centerIn: parent
                     text: tabDelegate.modelData.label
-                    color: tabDelegate.selected ? Colours.primary : Colours.onSurfaceVariant
+                    color: tabDelegate.selected ? Colours.onPrimaryContainer : Colours.onSurfaceVariant
                     font.pixelSize: Design.settingsFontSub
                     textFormat: Text.PlainText
 
@@ -97,7 +92,9 @@ Item {
                 }
 
                 MouseArea {
+                    id: tabArea
                     anchors.fill: parent
+                    hoverEnabled: true
                     onClicked: root.tabSelected(tabDelegate.modelData.id)
                 }
             }

@@ -15,6 +15,7 @@
 import QtQuick
 import ".."
 import "../dashboard"
+import "../packages"
 
 Item {
     id: root
@@ -151,59 +152,28 @@ Item {
                 textFormat: Text.PlainText
             }
 
+            // Operator round 3, item 1 — `WbButton`, not a hand-rolled
+            // pair of Rectangles: same two-button language as everywhere
+            // else in the Atelier now.
             Row {
                 width: parent.width
                 spacing: Design.spacingSm
                 layoutDirection: Qt.RightToLeft
 
-                Rectangle {
+                WbButton {
                     id: primaryButton
                     readonly property bool _actionable: root.plan && (root.plan.kind === "packages" || root.plan.kind === "userdir")
-                    radius: 10
-                    color: primaryButton._actionable ? Qt.alpha(Colours.error, 0.18) : Qt.alpha(Colours.outline, 0.15)
-                    border.width: 1
-                    border.color: primaryButton._actionable ? Colours.error : Qt.alpha(Colours.outline, 0.4)
-                    width: primaryLabel.implicitWidth + Design.spacingLg
-                    height: primaryLabel.implicitHeight + Design.spacingMd
-
-                    Text {
-                        id: primaryLabel
-                        anchors.centerIn: parent
-                        text: primaryButton._actionable ? "Uninstall" : "OK"
-                        color: primaryButton._actionable ? Colours.error : Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontBody
-                        textFormat: Text.PlainText
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: primaryButton._actionable ? AppearanceBackend.confirmUninstall() : AppearanceBackend.cancelUninstall()
-                    }
+                    label: primaryButton._actionable ? "Uninstall" : "OK"
+                    tone: primaryButton._actionable ? "danger" : "ghost"
+                    onActivated: primaryButton._actionable ? AppearanceBackend.confirmUninstall() : AppearanceBackend.cancelUninstall()
                 }
 
-                Rectangle {
+                WbButton {
                     id: cancelButton
                     visible: primaryButton._actionable
-                    radius: 10
-                    color: "transparent"
-                    border.width: 1
-                    border.color: Qt.alpha(Colours.outline, 0.4)
-                    width: cancelLabel.implicitWidth + Design.spacingLg
-                    height: cancelLabel.implicitHeight + Design.spacingMd
-
-                    Text {
-                        id: cancelLabel
-                        anchors.centerIn: parent
-                        text: "Cancel"
-                        color: Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontBody
-                        textFormat: Text.PlainText
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: AppearanceBackend.cancelUninstall()
-                    }
+                    label: "Cancel"
+                    tone: "ghost"
+                    onActivated: AppearanceBackend.cancelUninstall()
                 }
             }
         }

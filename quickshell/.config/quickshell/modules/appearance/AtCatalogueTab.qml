@@ -11,6 +11,7 @@ import QtQuick
 import QtQuick.Controls
 import ".."
 import "../dashboard"
+import "../packages"
 
 Item {
     id: root
@@ -69,10 +70,23 @@ Item {
         spacing: 0
 
         // ── Left pane: search + results ──────────────────────────────
-        Column {
+        // Operator round 3, item 1 — the same `Qt.alpha(Colours.surface,
+        // 0.55)` backdrop as the Icons/Fonts rails (`WbSidebar.qml:87`'s
+        // own treatment), for the identical reason: this pane sits on
+        // the Atelier's `surfaceVariant` body panel, which collides with
+        // any container-role fill drawn directly on top of it.
+        Item {
             id: leftPane
             width: root.leftWidth
             height: parent.height
+
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.alpha(Colours.surface, 0.55)
+            }
+
+            Column {
+            anchors.fill: parent
             spacing: Design.spacingSm
 
             Rectangle {
@@ -216,29 +230,20 @@ Item {
                             }
                         }
 
-                        Rectangle {
+                        // Operator round 3, item 1 — `WbButton`, not a
+                        // hand-rolled Rectangle. There are many of these
+                        // per screen (one per result row), so this is
+                        // never the pane's SINGLE main action — "ghost",
+                        // not "primary". "Installed" is conveyed the same
+                        // way every other WbButton conveys an unavailable
+                        // action: `enabled: false`.
+                        WbButton {
                             id: installButton
                             anchors.verticalCenter: parent.verticalCenter
-                            width: installLabel.implicitWidth + Design.spacingMd
-                            height: 28
-                            radius: 8
-                            border.width: 1
-                            border.color: resultRow.modelData.installed ? "transparent" : Qt.alpha(Colours.outline, 0.5)
-                            color: resultRow.modelData.installed ? Qt.alpha(Colours.outline, 0.2) : (installButtonArea.containsMouse ? Qt.alpha(Colours.primary, 0.16) : "transparent")
-
-                            Text {
-                                id: installLabel
-                                anchors.centerIn: parent
-                                text: resultRow.modelData.installed ? "Installed" : "Install"
-                                font.pixelSize: Design.fontLabel
-                                color: resultRow.modelData.installed ? Colours.outline : (installButtonArea.containsMouse ? Colours.primary : Colours.onSurfaceVariant)
-                            }
-
-                            MouseArea {
-                                anchors.fill: parent
-                                enabled: !resultRow.modelData.installed
-                                onClicked: AppearanceBackend.installCatalogue(resultRow.modelData.name, resultRow.modelData.source)
-                            }
+                            label: resultRow.modelData.installed ? "Installed" : "Install"
+                            tone: "ghost"
+                            enabled: !resultRow.modelData.installed
+                            onActivated: AppearanceBackend.installCatalogue(resultRow.modelData.name, resultRow.modelData.source)
                         }
                     }
                 }
@@ -250,6 +255,7 @@ Item {
                 text: AppearanceBackend.catalogueRunning ? "Searching repos + AUR…" : (AppearanceBackend.catalogueProbed ? "Nothing matches “" + root.query + "”" : "Loading catalogue…")
                 font.pixelSize: Design.settingsFontSub
                 color: Colours.outline
+            }
             }
         }
 

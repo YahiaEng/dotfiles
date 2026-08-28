@@ -27,6 +27,7 @@
 import QtQuick
 import ".."
 import "../dashboard"
+import "../packages"
 
 Item {
     id: root
@@ -95,99 +96,98 @@ Item {
         spacing: 0
 
         // ── Left rail — theme name + coverage count. ──────────────────
-        ListView {
+        // Operator round 3, item 1 — copy WbSidebar.qml's own treatment
+        // verbatim rather than inventing a third accent value. In the
+        // live Dracula palette `surfaceVariant`/`primaryContainer`/
+        // `secondaryContainer` are ALL `#44475a`, and the Atelier's body
+        // panel IS `surfaceVariant` (`Atelier.qml`'s `surfaceBase`) — so
+        // a container-role selection collides with the panel behind it
+        // unless the rail gets its OWN backdrop first. `WbSidebar.qml:87`
+        // gives its rail `Qt.alpha(Colours.surface, 0.55)` for exactly
+        // this reason; `rail` (the outer Item, not the ListView) carries
+        // that background so `Colours.primaryContainer` drawn on top of
+        // it is never the same colour as what is behind it.
+        Item {
             id: rail
             width: root.railWidth
             height: parent.height
-            clip: true
-            model: root._themes
 
-            delegate: Rectangle {
-                id: railRow
-                required property string modelData
+            Rectangle {
+                anchors.fill: parent
+                color: Qt.alpha(Colours.surface, 0.55)
+            }
 
-                readonly property bool selected: railRow.modelData === root._effectiveSelected
-                readonly property bool active: railRow.modelData === AppearanceBackend.iconThemeName
-                readonly property var _rows: AppearanceBackend.previewFor(railRow.modelData)
-                readonly property int _coverage: root._coverageFor(railRow.modelData)
+            ListView {
+                id: railList
+                anchors.fill: parent
+                clip: true
+                model: root._themes
 
-                width: rail.width
-                height: 44
-                radius: 10
-                // ── Operator round 2, defect 2 — WHY NOTHING LOOKED
-                //    SELECTED. ────────────────────────────────────────────
-                // The highlight was `Colours.surfaceVariant`, and the
-                // Atelier's own body panel IS `surfaceVariant`
-                // (`Atelier.qml`'s `surfaceBase`, drawn at 0.78 opacity).
-                // A selected row was therefore the same role as the
-                // surface behind it and read as no highlight at all,
-                // while the detail pane updated correctly — exactly the
-                // "expands on the right but does not highlight" report.
-                // This is the fourth recurrence of this class in this
-                // shell (the Dial track, and 14-10's GPU ring before it):
-                // a widget that draws nothing is usually the same colour
-                // as its backing surface, not broken data.
-                //
-                // The study already specified the answer and the build
-                // diverged from it — `.frow.sel` is
-                // `background: rgba(255,121,198,.13)` plus
-                // `border-left: 2px solid var(--stage-acc)`. That is the
-                // accent at 13%, which cannot collide with any surface
-                // role, plus an accent bar that survives even if the
-                // tint is lost to a low-contrast palette.
-                color: railRow.selected ? Qt.alpha(Colours.primary, 0.13) : "transparent"
+                delegate: Rectangle {
+                    id: railRow
+                    required property string modelData
 
-                // The study's `border-left: 2px solid var(--stage-acc)`.
-                // Kept as a real child rather than a border so it hugs
-                // the leading edge only; the 13% tint above carries the
-                // fill and this carries the identity.
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 2
-                    height: parent.height - Design.spacingSm * 2
-                    radius: 1
-                    color: Colours.primary
-                    visible: railRow.selected
-                }
+                    readonly property bool selected: railRow.modelData === root._effectiveSelected
+                    readonly property bool active: railRow.modelData === AppearanceBackend.iconThemeName
+                    readonly property var _rows: AppearanceBackend.previewFor(railRow.modelData)
+                    readonly property int _coverage: root._coverageFor(railRow.modelData)
 
-                Behavior on color {
-                    enabled: Motion.motionEnabled
-                    ColorAnimation {
-                        duration: Motion.colourDuration
-                        easing.type: Easing.BezierSpline
-                        easing.bezierCurve: Motion.colourEasing
-                    }
-                }
+                    width: rail.width
+                    height: 44
+                    radius: 10
+                    // Operator round 3, item 1 — WbSidebar.qml:117's exact
+                    // shape: selection is `primaryContainer`, hover is a
+                    // flat 6% onSurface tint, rest is transparent. The
+                    // round-2 accent-at-13%-plus-2px-bar treatment is
+                    // gone — it was reported too bright twice, and the
+                    // backdrop above already removes the collision the
+                    // accent tint was working around.
+                    color: railRow.selected ? Colours.primaryContainer : (railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
 
-                Row {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    anchors.margins: Design.spacingSm
-                    spacing: Design.spacingXs
-
-                    Text {
-                        width: parent.width - covLabel.implicitWidth - Design.spacingXs
-                        text: railRow.modelData
-                        color: railRow.active ? Colours.primary : Colours.onSurface
-                        font.pixelSize: Design.settingsFontSub
-                        elide: Text.ElideRight
-                        textFormat: Text.PlainText
+                    Behavior on color {
+                        enabled: Motion.motionEnabled
+                        ColorAnimation {
+                            duration: Motion.colourDuration
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: Motion.colourEasing
+                        }
                     }
 
-                    Text {
-                        id: covLabel
-                        text: railRow._coverage + "/" + railRow._rows.length
-                        color: Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontLabel
-                        textFormat: Text.PlainText
-                    }
-                }
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.margins: Design.spacingSm
+                        spacing: Design.spacingXs
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: root.selectedTheme = railRow.modelData
+                        Text {
+                            width: parent.width - covLabel.implicitWidth - Design.spacingXs
+                            // The APPLIED theme keeps its accent label
+                            // colour regardless of selection-for-viewing —
+                            // the one marker this file keeps distinguishing
+                            // the two states, per the operator's brief.
+                            text: railRow.modelData
+                            color: railRow.active ? Colours.primary : (railRow.selected ? Colours.onPrimaryContainer : Colours.onSurface)
+                            font.pixelSize: Design.settingsFontSub
+                            elide: Text.ElideRight
+                            textFormat: Text.PlainText
+                        }
+
+                        Text {
+                            id: covLabel
+                            text: railRow._coverage + "/" + railRow._rows.length
+                            color: railRow.selected ? Colours.onPrimaryContainer : Colours.onSurfaceVariant
+                            font.pixelSize: Design.fontLabel
+                            textFormat: Text.PlainText
+                        }
+                    }
+
+                    MouseArea {
+                        id: railArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: root.selectedTheme = railRow.modelData
+                    }
                 }
             }
         }
@@ -370,116 +370,34 @@ Item {
 
             // ── Variant bar — Apply (selecting a rail row no longer
             //    applies immediately, matching the Fonts tab's own
-            //    select-then-act split) and the working Compare toggle. ──
+            //    select-then-act split) and the working Compare toggle.
+            //    Operator round 3, item 1 — every hand-rolled chip here
+            //    replaced with `WbButton` (`packages/qmldir`'s one button
+            //    shape), rather than a second button language living
+            //    beside the shell's own. ─────────────────────────────────
             Row {
                 spacing: Design.spacingSm
 
-                Rectangle {
-                    id: applyChip
-                    // ── Operator round 2, defect 1 — the chips did follow
-                    //    the palette, but not the shell's own resting
-                    //    treatment. ────────────────────────────────────
-                    // `compareChip` a few lines down already rested
-                    // quiet (transparent fill, outline border,
-                    // onSurfaceVariant label) and only took the accent
-                    // when ACTIVE. Apply/Install/Uninstall instead wore
-                    // full-strength `Colours.primary` border AND label at
-                    // all times, on a `surfaceVariant` panel, several to
-                    // a screen — so they read as too bright and
-                    // inconsistent with everything around them. Accent is
-                    // now reserved for hover and for genuine state, which
-                    // is the treatment the rest of this window already
-                    // used.
-                    radius: 99
-                    color: applyChipArea.containsMouse ? Qt.alpha(Colours.primary, 0.16) : "transparent"
-                    border.width: 1
-                    border.color: applyChipArea.containsMouse ? Colours.primary : Qt.alpha(Colours.outline, 0.5)
-                    width: applyLabel.implicitWidth + Design.spacingMd
-                    height: applyLabel.implicitHeight + Design.spacingSm
-
-                    Text {
-                        id: applyLabel
-                        anchors.centerIn: parent
-                        text: "Apply"
-                        color: applyChipArea.containsMouse ? Colours.primary : Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontLabel
-                        textFormat: Text.PlainText
-                    }
-
-                    MouseArea {
-                        id: applyChipArea
-                        hoverEnabled: true
-                        anchors.fill: parent
-                        onClicked: AppearanceBackend.applyIconTheme(root._effectiveSelected)
-                    }
+                WbButton {
+                    label: "Apply"
+                    tone: "primary"
+                    onActivated: AppearanceBackend.applyIconTheme(root._effectiveSelected)
                 }
 
-                Rectangle {
-                    id: compareChip
+                WbButton {
                     visible: root._baseline.length > 0
-                    radius: 99
-                    color: detail.compareOn ? Qt.alpha(Colours.primary, 0.16) : "transparent"
-                    border.width: 1
-                    border.color: detail.compareOn ? Colours.primary : Qt.alpha(Colours.outline, 0.5)
-                    width: compareLabel.implicitWidth + Design.spacingMd
-                    height: compareLabel.implicitHeight + Design.spacingSm
-
-                    Text {
-                        id: compareLabel
-                        anchors.centerIn: parent
-                        text: "Compare with " + root._baseline
-                        color: detail.compareOn ? Colours.primary : Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontLabel
-                        textFormat: Text.PlainText
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: detail.compareOn = !detail.compareOn
-                    }
+                    label: detail.compareOn ? "Hide compare" : "Compare with " + root._baseline
+                    tone: "ghost"
+                    onActivated: detail.compareOn = !detail.compareOn
                 }
 
                 // Operator round 1, defect 1 — proposes a plan; nothing
                 // is removed until the confirmation overlay's own
                 // explicit Uninstall button is clicked.
-                Rectangle {
-                    id: uninstallChip
-                    // ── Operator round 2, defect 1 — the chips did follow
-                    //    the palette, but not the shell's own resting
-                    //    treatment. ────────────────────────────────────
-                    // `compareChip` a few lines down already rested
-                    // quiet (transparent fill, outline border,
-                    // onSurfaceVariant label) and only took the accent
-                    // when ACTIVE. Apply/Install/Uninstall instead wore
-                    // full-strength `Colours.primary` border AND label at
-                    // all times, on a `surfaceVariant` panel, several to
-                    // a screen — so they read as too bright and
-                    // inconsistent with everything around them. Accent is
-                    // now reserved for hover and for genuine state, which
-                    // is the treatment the rest of this window already
-                    // used.
-                    radius: 99
-                    color: uninstallChipArea.containsMouse ? Qt.alpha(Colours.error, 0.16) : "transparent"
-                    border.width: 1
-                    border.color: uninstallChipArea.containsMouse ? Colours.error : Qt.alpha(Colours.outline, 0.5)
-                    width: uninstallLabel.implicitWidth + Design.spacingMd
-                    height: uninstallLabel.implicitHeight + Design.spacingSm
-
-                    Text {
-                        id: uninstallLabel
-                        anchors.centerIn: parent
-                        text: "Uninstall"
-                        color: uninstallChipArea.containsMouse ? Colours.error : Colours.onSurfaceVariant
-                        font.pixelSize: Design.fontLabel
-                        textFormat: Text.PlainText
-                    }
-
-                    MouseArea {
-                        id: uninstallChipArea
-                        hoverEnabled: true
-                        anchors.fill: parent
-                        onClicked: AppearanceBackend.proposeUninstallIconTheme(root._effectiveSelected)
-                    }
+                WbButton {
+                    label: "Uninstall"
+                    tone: "danger"
+                    onActivated: AppearanceBackend.proposeUninstallIconTheme(root._effectiveSelected)
                 }
             }
         }
