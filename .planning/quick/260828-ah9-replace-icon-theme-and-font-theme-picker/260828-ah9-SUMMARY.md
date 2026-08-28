@@ -414,6 +414,179 @@ and remain **unrun**:
    and type an ordinary filter word (e.g. `col` for Colour picker) — does it
    still fuzzy-filter the current menu level rather than routing away?
 
+## Operator Round 4 — repeat complaint closed at the class, two items landed
+
+`8e9d5f58`..`070f5f85`, three commits, all pushed-pending. Item 1 was the
+operator's explicit repeat complaint: "You keep repeating this issue."
+
+| # | Item | Commit |
+|---|------|--------|
+| 1 | Full button sweep — fix WbButton at source, add button-lint gate | `8e9d5f58` |
+| 2 | Catalogue rows now selectable, with a real detail pane | `69225f2e` |
+| 3 | Instant selection / animated hover; SelectRow palette-scrim leak closed | `070f5f85` |
+
+**Item 1 — WHY THIS KEPT RECURRING, AND WHY IT WON'T AGAIN.** Rounds 1-3
+"fixed" the button class by moving hand-rolled chips INTO `WbButton`, but
+never fixed `WbButton` itself — `tone: "primary"` painted a SOLID
+`Colours.primary` fill at rest, `tone: "danger"` painted a full-strength
+`Colours.error` border AND label at rest. The destination was exactly as
+loud as what it replaced, which is why the operator kept seeing the same
+brightness on new widgets (`Uninstall`, the Fonts tab's "propo" chip) after
+each round. Fixed at the SOURCE this time: every tone now keeps its LABEL
+at `Colours.onSurface` at rest — the label is what draws the eye — and
+confines accent to border/fill, which is a light tint at rest (primary:
+`Qt.alpha(Colours.primary, 0.16)`; danger: transparent fill,
+`Qt.alpha(Colours.error, 0.5)` border) and only deepens on hover or the
+new `active` prop (primary hover: `0.28`; danger hover: `0.18` fill +
+full-strength border AND label, the one tone that still amplifies on
+hover, matching an irreversible action). `active` is the toggled/on-state
+round 3 recorded as missing — it renders like hover-at-rest without
+needing the pointer present, wired to the Icons tab's Compare button and
+the Fonts tab's Mono/Propo/Apply chips (their "currently applied" state).
+
+Converted the two remaining hand-rolled button-likes — `AtFontsTab.qml`'s
+Mono/Propo/Apply "vchip" (the exact "propo" button the operator named) and
+`AtCatalogueTab.qml`'s Re-check pill — to `WbButton`. `appearance/` now has
+exactly one button implementation; measured with a parser (13 interactive
+elements: 7 `WbButton`, 6 correctly-left-alone raw `MouseArea`s — rail
+rows, tabs, the uninstall-confirm backdrop), not a grep.
+
+**The recurrence-prevention gate.** New `hypr/.config/hypr/scripts/
+button-lint`: deny-by-default, flags a `Rectangle` with its own `radius:`
+that has a DIRECT `Text` child AND a DIRECT `MouseArea{onClicked}` child
+lacking `hoverEnabled: true`. That last clause is what lets rows/tabs pass
+WITHOUT a name-based allowlist — verified against the real files, not
+invented: every row/tab/list delegate in this tree sets `hoverEnabled:
+true` because its background depends on `containsMouse`; neither retired
+chip (`vchip`, Re-check) ever bothered with hover tracking at all. Text
+wrapped inside an intermediate `Row`/`Column` (every rail row, the
+catalogue result row) is a GRANDCHILD, not a direct child, so those never
+even reach the `hoverEnabled` check. `AtTabBar.qml`'s tab pill is the one
+shape structurally CLOSE to a button (`Text` and `MouseArea` both direct
+children, sized from the label like a chip) and is exactly the case the
+`hoverEnabled` clause exists to separate correctly. **Poison-tested**: ran
+the gate against the real PRE-FIX tree — it FAILED at both
+`AtFontsTab.qml:299` (vchip) and `AtCatalogueTab.qml:288` (Re-check),
+while passing `AtTabBar.qml` — then again with 5 committed self-test
+fixtures (3 compliant, 2 poisoned, replaying the exact vchip/Re-check
+shapes) — before converting either file, so the gate is proven to fail,
+not merely asserted to. Live scan post-fix: 9/9 clean. Self-test: 5/5.
+
+`packages/WbDetail.qml` (the one other `WbButton` consumer, outside this
+task) was checked structurally, not visually: its six `WbButton` usages
+(2 primary, 2 ghost, 1 danger, 1 conditional primary/danger) reference only
+`label`/`tone`/`enabled`/`onActivated` — none of the props renamed or
+removed — so every call site still binds correctly and nothing broke at
+the API level. The new lighter-fill visual on its primary/danger buttons
+is unverified (could not screenshot); flagged below.
+
+**Item 2 — the same defect in a new costume.** `AtCatalogueTab.qml:184`'s
+row `MouseArea` had NO `onClicked` at all — confirmed by direct read
+before touching anything. Added `selectedName`/`_selectedEntry`, an
+`onClicked` that selects, and the SAME `primaryContainer`/hover-tint
+treatment the Icons/Fonts rails and tab strip already carry. Selecting a
+row now populates a real detail card above the install log — name, source
+(repo/AUR), version, installed state — not only a visual highlight, per
+the brief's own "a selection that does nothing is the same defect in a new
+costume." `AppearanceBackend.qml`'s `_parseCatalogueBlock` gained version
+capture, verified live against both `pacman -Ss papirus-icon-theme`
+("extra/papirus-icon-theme 20260801-1 [installed]") and `paru -Ss -a
+icon-theme` ("aur/numix-icon-theme-git 21.10.31.r0.g7a28092dd-1 [+437
+~0.26]") — version is the third whitespace token in both sources on this
+host. The Install button's own `MouseArea` (inside `WbButton`, layered
+above the row's background `MouseArea` by declaration order) was already
+isolated from the row click by z-order before this change; verified
+unchanged, not re-architected.
+
+**Item 3 — two unrelated causes sharing one symptom.** The rails/tab/
+catalogue fix and the SelectRow fix are NOT the same bug wearing two
+costumes — they're genuinely different mechanisms that both read as
+"laggy"/"flashy":
+
+- *Rails, tab strip, catalogue selection:* each row's single combined
+  `color` binding + one `Behavior on color` animated EVERY colour change
+  — hover AND selection alike — at `Motion.colourDuration` (300ms, live-
+  measured). Split into two layered fills per row: `selectFill` (an
+  instant `visible` toggle, no `Behavior` at all — a hard cut) for the
+  discrete selection state, `hoverFill` (the original animated `Behavior`,
+  untouched) for the continuous hover state. Applied identically across
+  `AtFontsTab.qml`, `AtIconsTab.qml`, `AtTabBar.qml`, and the new
+  `AtCatalogueTab.qml` row.
+- *SelectRow.qml's documented flash:* re-measured rather than trusted.
+  Read the installed Basic style directly
+  (`/usr/lib/qt6/qml/QtQuick/Controls/Basic/{Menu,MenuItem}.qml`, no
+  `QT_QUICK_CONTROLS_STYLE` set on this host, confirmed via `systemctl
+  --user show-environment`) side by side with this file: `Menu.background`
+  and `MenuItem.background` were **already** overridden with `Colours.*`
+  roles before this round — the file's own comment named the RIGHT class
+  of bug (Qt's Basic-style defaults reading `control.palette.midlight`/
+  `.light`/`.window`) but the fix it describes was already in place; there
+  was no live leak on either of those two properties to close. Reading the
+  same installed `Menu.qml` surfaced a genuinely still-open leak the
+  comment never named: `T.Overlay.modal`/`T.Overlay.modeless` default to
+  `Color.transparent(control.palette.shadow, 0.5/0.12)` — the popup's own
+  scrim — and neither was ever overridden in this file. Closed with
+  `Qt.alpha(Colours.background, …)`, the exact idiom
+  `AtUninstallConfirm.qml`'s own modal backdrop already uses. Separately,
+  gave `menuItem.down` its own immediate, un-animated `Colours`-based fill
+  (`Qt.alpha(Colours.primary, 0.12)`) — previously a press painted NOTHING
+  until `highlighted` caught up 300ms later, which reads exactly like "a
+  flash before the highlight settles" with zero palette involvement at
+  all. The existing `highlighted` border ring and its `Behavior` are
+  untouched, as instructed.
+
+**Deviations: none of Rules 1-4** — every fix matched a directly measured
+cause. One documented correction to the brief's own premise: item 3's
+SelectRow instruction assumed `Menu.background`/`MenuItem.background`
+were still leaking; direct measurement showed they were not, so the actual
+fix landed one layer over (`Overlay.modal`/`modeless`) plus the
+`down`-state timing gap — same class of bug (a QQC2 default reading
+`palette.*`, and a discrete-state-change animated too slowly), different
+exact property, found by re-measuring rather than trusting the file's own
+older comment at face value.
+
+Gates after this round, run after EACH commit: `colour-lint` 566/0,
+`motion-lint` 766/0, `qml-import-check` 0 unresolved/190 files,
+`settings-index-check` 191/0, `button-lint` 9/9 (new gate, self-test 5/5).
+`~/.cache/quickshell.log` read after every edit via ANSI-stripped,
+`grep -a`'d tail, positions compared against the last `Configuration
+Loaded` line by absolute line number (not `head`/`tail` guesswork); every
+edit in this round reached a clean reload with zero errors after it, and
+each check's log mtime was confirmed strictly newer than the edited
+file's own mtime before trusting it.
+
+### Operator checklist — round 4 (nothing below could be seen from this shell)
+
+Same standing limitation as every prior round: no input-injection tool, no
+`grim` (crashes this NVIDIA host), and restarting quickshell/
+`quickshell-doctor` are both forbidden from this shell. All of the
+following are new with this round and remain **unrun**:
+
+1. Every `WbButton` — Apply/Review (primary), Compare/Cancel/OK/Install/
+   Re-check/Mark-explicit (ghost), Uninstall/Queue-removal (danger) — does
+   the new light-tint-at-rest, deepen-on-hover treatment actually read as
+   calmer than round 3's shape, and does danger still read unambiguously
+   once hovered (border+fill+label all amplify to full error)?
+2. Icons tab Compare button, and the Fonts tab's currently-applied Mono/
+   Propo chip — does `active` visibly read as "toggled on" (the deepened
+   hover-at-rest fill) even with the pointer elsewhere?
+3. `packages/WbDetail.qml`'s six `WbButton`s (Update/Review/Mark-explicit/
+   Queue-removal) — unrelated to this task's own files, but they inherit
+   the new tone logic automatically. Do they still read correctly, or did
+   the lighter fill make anything here too subtle?
+4. Catalogue tab: click a row — does it highlight AND populate the new
+   detail card (name/source/version/installed) above the log? Click
+   Install on a DIFFERENT row than the one selected — does it still work
+   without requiring selection first?
+5. Click a rail row (Icons/Fonts), a tab, or a catalogue row — does the
+   selection highlight snap in INSTANTLY (no cross-fade), while hovering
+   an unselected row still fades in smoothly?
+6. Open any settings dropdown menu (e.g. Appearance → theme/icon picker) —
+   press-and-hold an item: does anything still flash light grey before the
+   highlight ring settles? This is the one item this round could NOT
+   verify even indirectly — the fix targets `Overlay.modal`/`modeless` and
+   `menuItem.down`, neither of which this shell can render.
+
 ## Operator Checklist — everything below needs a human
 
 None of the 17 items in the plan's own `<operator_checklist>` could be run

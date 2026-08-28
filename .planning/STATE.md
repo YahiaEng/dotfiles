@@ -6,8 +6,8 @@ status: milestone-complete
 stopped_at: "260828-75k COMPLETE AND OPERATOR-CONFIRMED (2026-08-28). An Octopi replacement in four surfaces over ONE PackagesBackend singleton: the D4 workbench window (sortable ledger, multi-select, removal-cascade preview), a thin Settings > Packages page, a `pkg` launcher route painted in the accent colour, and a repaired bar pill with a popout. Octopi is off the host. NOTHING IS OWED. The feature request uncovered a DEFECT first: the bar pill polled checkupdates alone and read 3 while 4 were pending, blind to the AUR. Measurements that decided the design: `pacman -Qi` returns all 1420 records with every field in 0.20s/1.33MB (so no cache, no daemon), and `pacman -Rs --print --print-format` resolves the FULL removal cascade WITHOUT root (6 orphans -> 11 real removals) which is the one capability that justified a whole window. Retired UpdatesPage.qml and UpdatesMode.qml, absorbing the per-package armed update. SIX TRAPS RECORDED IN THE SUMMARY, three of them mine: `find | head` truncated a survey and I drew an architectural conclusion from it TWICE (every module dir has a qmldir; the failures were undeclared types) which misfiled two files; menu leaf labels carry invisible Nerd Font glyphs so an edit matched on the visible label silently no-ops; `follow_mouse=1` makes Qt Window.active a HOVER signal so click-outside needs HyprlandFocusGrab; a drag delta measured in the dragged thing's own frame drifts with speed, anchor on scene coords at press; pacman writes the error summary to stderr but the reasons to stdout; qmllint is blind here (rc=0 on a truncated file, positive-control verified). NEXT REAL DECISION, unchanged: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog."
 last_updated: "2026-08-28T11:05:00.000Z"
 last_activity: 2026-08-28
-last_activity_desc: "Atelier operator round 3 — copied WbSidebar's highlight/button language verbatim after diverging twice, difference-aware compare with probes that actually separate the Papirus trio, and word routes from Super-tap menu mode."
-state_head: 7e4ef134
+last_activity_desc: "Atelier operator round 4 — fixed WbButton at SOURCE (the repeat-complaint class), added a poison-tested button-lint gate, made catalogue rows selectable, and closed the QQC2 palette scrim leak."
+state_head: 070f5f85
 progress:
   total_phases: 6
   completed_phases: 6
@@ -1405,7 +1405,47 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — Atelier round 3 done. Still NOT operator-verified.
+### ▶ RESUME HERE — Atelier round 4 done. Still NOT operator-verified.
+
+**Round 4** — `8e9d5f58`, `69225f2e`, `070f5f85`.
+
+**THE BUTTON COMPLAINT RECURRED FOUR TIMES BECAUSE I KEPT FIXING INSTANCES,
+NEVER THE POPULATION.** Enumerating with a parser (not a grep) found 13
+interactive elements in `appearance/`: 7 `WbButton` + 6 raw `MouseArea`. The
+real cause was that **`WbButton`'s own tones are bright AT REST** — `primary`
+was a solid `Colours.primary` fill, `danger` was `Colours.error` border AND
+label. Round 3 "fixed" buttons by moving them INTO WbButton, i.e. into a
+destination just as loud. Fixed at source: the LABEL is `onSurface` at rest for
+every tone and accent lives only in border/fill, deepening on hover or the new
+`active` prop. The last two hand-rolled chips (the Mono/Propo vchip, the
+Catalogue Re-check) are now WbButton — one button implementation remains.
+
+**A GATE NOW ENFORCES IT: `hypr/.config/hypr/scripts/button-lint`.** Deny-by-
+default, distinguishing hand-rolled buttons from legitimate rows/tabs. **Poison-
+tested and verified going RED** — `--self-test` replays 5 committed fixtures
+(2 poisoned from the REAL pre-fix files, 3 compliant); I ran it myself. A sweep
+without a gate decays; this is the thing that stops round 5.
+
+**Catalogue rows were never selectable** — `AtCatalogueTab.qml:184` was
+`MouseArea { hoverEnabled: true }` with **no `onClicked`**. Now selectable, with
+a real detail card, not just a highlight.
+
+**THE EXECUTOR CORRECTED MY BRIEF ON THE FLASH, BY MEASURING.** I asserted
+`Menu.background`/`MenuItem.background` were leaking the QQC2 system palette;
+those were already overridden. The remaining leak was the popup SCRIM —
+`/usr/lib/qt6/qml/QtQuick/Controls/Basic/Menu.qml:41-47` defines
+`T.Overlay.modal`/`modeless` as `Color.transparent(control.palette.shadow, …)`.
+I verified that file myself. Selection colour is now instant (`selectFill`, no
+Behavior) while hover stays animated — a discrete state should not cross-fade
+for 300 ms.
+
+**WHAT IS OWED:** the round-4 checklist in the SUMMARY, plus everything
+earlier. I could not observe the flash or any visual result from this shell.
+
+**NEXT REAL DECISION, unchanged: v5.0 has no roadmap.** v4.0 is 100%. Scope
+with `/gsd-new-milestone`; ICON-BROWSE is no longer a candidate.
+
+### Previous checkpoint — Atelier round 3 (superseded, round 4)
 
 **Round 3 closed four items** — `17a7b7f0`, `4bb56576`, `7e4ef134`.
 
