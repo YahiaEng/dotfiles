@@ -14,6 +14,7 @@ import ".."
 import "../common"
 import "../../"
 import "../../dashboard"
+import "../../appearance"
 
 PageBase {
     id: root
@@ -107,129 +108,23 @@ PageBase {
         }
     }
 
-    // ── Personalization — Icon theme, Font, Fastfetch logo, all real
-    //    inline pickers now (Task 10 lands their --list/--set surface).
-    //    Each list is fetched once on page mount by a fixed-argv Process
-    //    with a watchdog Timer, parsed line-wise; each row shows `busy`
-    //    during its own apply so the wait reads as progress. ─────────────
+    // ── Personalization — Icon theme, Font, Fastfetch logo. Icon theme
+    //    and Font now read AppearanceBackend (quick task 260828-ah9,
+    //    Task 1) — one backend, four readers: this page, the Atelier's
+    //    Icons/Fonts tabs, the launcher's `icon`/`font` routes and the
+    //    bar's clock drawer. Fastfetch logo is a DIFFERENT script and
+    //    stays exactly as it was, page-scoped. ─────────────────────────
     SettingsSection {
         id: personalizationSection
         title: "Personalization"
         icon: "style"
 
-        // ── Icon theme ───────────────────────────────────────────────────
-        property var iconThemeOptions: []
-        property bool iconThemeApplying: false
-
-        FileView {
-            id: iconThemeFile
-            path: Quickshell.env("HOME") + "/.local/state/theme/icon-theme"
-            watchChanges: true
-            onFileChanged: reload()
-        }
-        readonly property string iconThemeName: (iconThemeFile.text() || "").trim()
-
-        Timer {
-            id: iconThemeListWatchdog
-            interval: 5000
-            onTriggered: {
-                if (iconThemeListProc.running)
-                    iconThemeListProc.running = false;
-            }
-        }
-        Process {
-            id: iconThemeListProc
-            running: false
-            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/icon-theme-picker.sh", "--list"]
-            stdout: StdioCollector { id: iconThemeListCollector }
-            onExited: (code, status) => {
-                iconThemeListWatchdog.stop();
-                if (code === 0) {
-                    var lines = iconThemeListCollector.text.split("\n").filter(function (l) { return l.trim().length > 0; });
-                    personalizationSection.iconThemeOptions = lines.map(function (n) { return { value: n, display: n }; });
-                }
-            }
-            Component.onCompleted: {
-                iconThemeListWatchdog.restart();
-                running = true;
-            }
-        }
-        Process {
-            id: iconThemeApplyProc
-            running: false
-            onExited: (code, status) => {
-                personalizationSection.iconThemeApplying = false;
-                if (code !== 0)
-                    console.warn("AppearancePage: icon-theme-picker.sh --set failed (exit " + code + ")");
-            }
-        }
-        function applyIconTheme(name) {
-            personalizationSection.iconThemeApplying = true;
-            iconThemeApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/icon-theme-picker.sh", "--set", name];
-            iconThemeApplyProc.running = true;
-        }
-
-        // ── Font ─────────────────────────────────────────────────────────
-        property var fontOptions: []
-        property bool fontApplying: false
-
-        FileView {
-            id: kittyFontFile
-            path: Quickshell.env("HOME") + "/.local/state/theme/kitty-font.conf"
-            watchChanges: true
-            onFileChanged: reload()
-        }
-        // `font_family      <name>` is the first line kitty-font.conf's
-        // renderer emits — every value after the keyword, arbitrary
-        // internal whitespace tolerated, is the family name.
-        readonly property string fontFamilyName: {
-            var lines = (kittyFontFile.text() || "").split("\n");
-            for (var i = 0; i < lines.length; i++) {
-                var m = lines[i].match(/^font_family\s+(.+)$/);
-                if (m)
-                    return m[1].trim();
-            }
-            return "";
-        }
-
-        Timer {
-            id: fontListWatchdog
-            interval: 5000
-            onTriggered: {
-                if (fontListProc.running)
-                    fontListProc.running = false;
-            }
-        }
-        Process {
-            id: fontListProc
-            running: false
-            command: [Quickshell.env("HOME") + "/.config/hypr/scripts/font-switcher.sh", "--list"]
-            stdout: StdioCollector { id: fontListCollector }
-            onExited: (code, status) => {
-                fontListWatchdog.stop();
-                if (code === 0) {
-                    var lines = fontListCollector.text.split("\n").filter(function (l) { return l.trim().length > 0; });
-                    personalizationSection.fontOptions = lines.map(function (n) { return { value: n, display: n }; });
-                }
-            }
-            Component.onCompleted: {
-                fontListWatchdog.restart();
-                running = true;
-            }
-        }
-        Process {
-            id: fontApplyProc
-            running: false
-            onExited: (code, status) => {
-                personalizationSection.fontApplying = false;
-                if (code !== 0)
-                    console.warn("AppearancePage: font-switcher.sh --set failed (exit " + code + ")");
-            }
-        }
-        function applyFont(name) {
-            personalizationSection.fontApplying = true;
-            fontApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/font-switcher.sh", "--set", name];
-            fontApplyProc.running = true;
+        function _fontRowDisplay(f) {
+            if (f.behaviour === "mono")
+                return f.family + " · Mono";
+            if (f.behaviour === "propo")
+                return f.family + " · Propo";
+            return f.family;
         }
 
         // ── Fastfetch logo (F-06) ───────────────────────────────────────
@@ -287,18 +182,18 @@ PageBase {
         SelectRow {
             label: "Icon theme"
             subtext: "Installed icon themes"
-            model: personalizationSection.iconThemeOptions
-            currentValue: personalizationSection.iconThemeName
-            busy: personalizationSection.iconThemeApplying
-            onSelected: (value) => personalizationSection.applyIconTheme(value)
+            model: AppearanceBackend.iconThemes.map(function (n) { return { value: n, display: n }; })
+            currentValue: AppearanceBackend.iconThemeName
+            busy: AppearanceBackend.iconApplying
+            onSelected: (value) => AppearanceBackend.applyIconTheme(value)
         }
         SelectRow {
             label: "Font"
-            subtext: "Installed Nerd Fonts"
-            model: personalizationSection.fontOptions
-            currentValue: personalizationSection.fontFamilyName
-            busy: personalizationSection.fontApplying
-            onSelected: (value) => personalizationSection.applyFont(value)
+            subtext: "Installed Nerd Fonts — 13 families, Mono/Propo spacing (M2: the third cut was a measured duplicate)"
+            model: AppearanceBackend.fontFamilies.map(function (f) { return { value: f.rawName, display: personalizationSection._fontRowDisplay(f) }; })
+            currentValue: AppearanceBackend.activeFontRaw
+            busy: AppearanceBackend.fontApplying
+            onSelected: (value) => AppearanceBackend.applyFont(value)
         }
         SelectRow {
             label: "Fastfetch logo"

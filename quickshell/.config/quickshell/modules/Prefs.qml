@@ -277,7 +277,12 @@ Singleton {
         // already uses). An unrecognised value falls back to "terminal" at
         // the READ site (Screensaver.qml's own `style`), not here — this
         // allowlist entry only gates the WRITE.
-        "screensaver.style"
+        "screensaver.style",
+        // Quick task 260828-ah9 — which of the Atelier's three tabs
+        // (Icons/Fonts/Catalogue) it reopens on. Written by
+        // `Atelier.qml`'s own `setTab()` every time the tab changes, so
+        // the tab you left on is the tab you return to.
+        "appearance.atelierTab"
     ]
 
     // Hardcoded default per allowlisted key, keyed by the identical dotted
@@ -405,7 +410,10 @@ Singleton {
         // stated default style (brief: "1. S1 Terminal Effects (default
         // style)"), and it is the one that carries the Omarchy lineage
         // this feature was asked for.
-        "screensaver.style": "terminal"
+        "screensaver.style": "terminal",
+        // Quick task 260828-ah9 — the Atelier opens on Icons by default,
+        // the D-01 "Ctrl-A browse" precedent's own primary surface.
+        "appearance.atelierTab": "icons"
     })
 
     // ── Helper functions — ALL declared here, above the FileView and

@@ -1,0 +1,22 @@
+# qmldir — explicit module manifest for quickshell/modules/appearance/
+# (quick task 260828-ah9). Mirrors every sibling module manifest's own
+# standing instruction (see modules/packages/qmldir, modules/security/qmldir,
+# modules/osd/qmldir): any .qml type added to this directory that is NOT
+# declared below becomes unresolvable, with no load error — it simply
+# reads `undefined` forever. qml-import-check enforces this. Any FUTURE
+# type added here MUST be declared in the SAME COMMIT that creates it.
+#
+# ── THE `singleton` KEYWORD IS LOAD-BEARING ───────────────────────────
+# AppearanceBackend carries `pragma Singleton` AND is marked `singleton`
+# below — both required, per modules/packages/qmldir's own binary-verified
+# finding: without the qmldir keyword, a bare `AppearanceBackend.iconThemes`
+# -style access resolves to `undefined` forever and the object is never
+# constructed. Removing either one is a silent, error-free failure.
+#
+# AppearanceBackend is the singleton that owns icon-theme and font state.
+# Settings > Appearance's two SelectRows, the Atelier's Icons/Fonts/
+# Catalogue tabs, the launcher's `icon`/`font` routes and the bar's clock
+# drawer are readers of ONE backend, never four backends.
+module qs.modules.appearance
+
+singleton AppearanceBackend 1.0 AppearanceBackend.qml
