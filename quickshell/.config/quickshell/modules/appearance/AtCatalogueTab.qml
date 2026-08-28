@@ -285,26 +285,17 @@ Item {
                     color: Colours.onSurface
                 }
 
-                Rectangle {
+                // Operator round 4, item 1 — `WbButton`, not a hand-rolled
+                // pill: the last hand-rolled button-like shape this file
+                // carried after round 3's sweep. "ghost" tone — a
+                // secondary, occasional action next to the log header,
+                // never the pane's single main action.
+                WbButton {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
-                    width: recheckLabel.implicitWidth + Design.spacingSm
-                    height: 22
-                    radius: 8
-                    color: Qt.alpha(Colours.onSurface, 0.07)
-
-                    Text {
-                        id: recheckLabel
-                        anchors.centerIn: parent
-                        text: "Re-check"
-                        font.pixelSize: Design.fontLabel
-                        color: Colours.primary
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: AppearanceBackend.reconcileInstall()
-                    }
+                    label: "Re-check"
+                    tone: "ghost"
+                    onActivated: AppearanceBackend.reconcileInstall()
                 }
             }
 

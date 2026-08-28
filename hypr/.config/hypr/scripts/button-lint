@@ -1,0 +1,443 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║                   BUTTON-LINT (260828-ah9)              ║
+# ║  Deny-by-default hand-rolled-button gate for            ║
+# ║  modules/appearance/. Report-only — never mutates any   ║
+# ║  file. Exits nonzero if ANY hand-rolled button shape is ║
+# ║  found outside packages/WbButton.qml.                   ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# WHY THIS EXISTS (operator round 4, item 1): the Atelier's button class
+# recurred FOUR times across rounds 1-4 (title-bar chips, applyChip/
+# compareChip/uninstallChip, the Fonts-tab Mono/Propo/Apply "vchip", the
+# Catalogue tab's "Re-check" pill) because nothing enforced "one button
+# implementation" after round 3's sweep — two hand-rolled instances simply
+# regrew in the two files round 3 did not touch. `colour-lint` cannot see
+# this class: a hand-rolled chip built entirely from `Colours.*` tokens is
+# colour-compliant while still being a SECOND button language living
+# beside `packages/WbButton.qml`. This gate closes that hole structurally.
+#
+# THE RULE — a `Rectangle` block is flagged as a hand-rolled button shape
+# when ALL of the following hold:
+#   1. It declares its own `radius:` property (a pill/chip, not a plain
+#      panel).
+#   2. It has a DIRECT child `Text` element (not one nested inside an
+#      intermediate `Row`/`Column` — see "why DIRECT matters" below).
+#   3. It has a DIRECT child `MouseArea` element carrying `onClicked:`.
+#   4. That `MouseArea` does NOT also carry `hoverEnabled: true`.
+#
+# WHY "DIRECT" MATTERS — this is what lets rail rows and list delegates
+# pass without a name-based allowlist. `AtFontsTab.qml`'s/`AtIconsTab.qml`'s
+# rail-row delegates and `AtCatalogueTab.qml`'s result-row delegate all
+# wrap their `Text` children inside a `Row`/`Column` — the `Text` is a
+# GRANDCHILD of the delegate `Rectangle`, never a direct child — so they
+# never match condition 2 at all, regardless of what their `MouseArea`
+# carries. The one shape that genuinely IS structurally close to a button
+# — `AtTabBar.qml`'s tab pill, `Text` AND `MouseArea` both direct children,
+# sized from the label's own `implicitWidth` exactly like a chip — is
+# still correctly exempted by condition 4: every row/tab/list delegate in
+# this tree sets `hoverEnabled: true` on its `MouseArea` because its
+# background colour depends on `containsMouse`, while the two hand-rolled
+# chips this task removed (the Fonts-tab `vchip`, the Catalogue `Re-check`
+# pill) never bothered with hover tracking at all — a real, verifiable
+# difference in the actual source, not an invented rule.
+#
+# Deliberately excludes `packages/WbButton.qml` itself from being flagged
+# (mirrors colour-lint's own definition-source exclusion) — though its
+# own internal `MouseArea` already carries `hoverEnabled: true`, so
+# condition 4 would exempt it anyway; the exclusion is belt-and-braces.
+#
+# Usage:
+#   button-lint [target-dir]
+#       No argument: scans modules/appearance/ under the real deployed
+#       quickshell surface set ($HOME/.config/quickshell). With an
+#       argument: treats target-dir as the SOLE root and recursively globs
+#       .qml files inside it — same code path serves a throwaway/poisoned
+#       fixture directory as serves the real tree (colour-lint/motion-lint
+#       precedent: "a gate that cannot fail is not a gate").
+#
+#   button-lint --self-test
+#       Runs this script against each of the committed fixtures under
+#       tests/button-fixtures/ (one at a time, in isolation) and asserts
+#       the expected verdict: compliant fixtures exit 0, poisoned fixtures
+#       exit non-zero.
+#
+# Never runs theme-apply, never edits anything — pure read-only analysis.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/tests/button-fixtures"
+DEFAULT_TARGET="$HOME/.config/quickshell/modules/appearance"
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+_button_lint_checks() {
+    python3 - "$FIXTURES_DIR" "${ROOTS[@]}" <<'PYEOF'
+import os
+import re
+import sys
+
+fixtures_dir = os.path.realpath(sys.argv[1])
+roots = sys.argv[2:]
+
+results = []  # (tag, status, detail)
+
+
+def emit(tag, status, detail):
+    results.append((tag, status, detail))
+
+
+def dump():
+    for tag, status, detail in results:
+        print(f'{tag}\t{status}\t{detail}')
+
+
+# ── Comment strippers — verbatim from colour-lint/motion-lint. ──────────
+def strip_block_comments(text):
+    out = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] == '/' and i + 1 < n and text[i + 1] == '*':
+            j = text.find('*/', i + 2)
+            end = n if j == -1 else j + 2
+            for ch in text[i:end]:
+                out.append('\n' if ch == '\n' else ' ')
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return ''.join(out)
+
+
+def strip_qml_comments(text):
+    text = strip_block_comments(text)
+    lines = text.split('\n')
+    out = []
+    for line in lines:
+        in_string = None
+        cut = -1
+        i = 0
+        n = len(line)
+        while i < n:
+            ch = line[i]
+            if in_string:
+                if ch == '\\' and i + 1 < n:
+                    i += 2
+                    continue
+                if ch == in_string:
+                    in_string = None
+            elif ch in ('"', "'"):
+                in_string = ch
+            elif ch == '/' and i + 1 < n and line[i + 1] == '/':
+                cut = i
+                break
+            i += 1
+        out.append(line[:cut] if cut != -1 else line)
+    return '\n'.join(out)
+
+
+def brace_delta(line):
+    delta = 0
+    in_string = None
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if in_string:
+            if ch == '\\' and i + 1 < n:
+                i += 2
+                continue
+            if ch == in_string:
+                in_string = None
+        elif ch in ('"', "'"):
+            in_string = ch
+        elif ch == '{':
+            delta += 1
+        elif ch == '}':
+            delta -= 1
+        i += 1
+    return delta
+
+
+# A component-open line: optional `propName:` prefix (e.g. `delegate:`),
+# then a `Type` (dotted identifiers allowed, e.g. `Component.onCompleted`
+# harmlessly matches too — it is never a `Rectangle`/`Text`/`MouseArea`
+# type so it is simply an untracked node), then `{` alone to end of line.
+BLOCK_OPEN_RE = re.compile(
+    r'^\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*:\s*)?([A-Za-z_][A-Za-z0-9_.]*)\s*\{\s*$'
+)
+RADIUS_RE = re.compile(r'(?:^|[^A-Za-z0-9_.])radius\s*:')
+ONCLICKED_RE = re.compile(r'(?:^|[^A-Za-z0-9_.])onClicked\s*:')
+HOVER_TRUE_RE = re.compile(r'(?:^|[^A-Za-z0-9_.])hoverEnabled\s*:\s*true\b')
+
+
+class Block:
+    __slots__ = ('type', 'start', 'end', 'parent', 'children')
+
+    def __init__(self, btype, start, parent):
+        self.type = btype
+        self.start = start
+        self.end = None
+        self.parent = parent
+        self.children = []
+
+
+def parse_blocks(lines):
+    """Returns the list of top-level Block objects (with nested .children),
+    built from a running-depth stack — a block's parent is whatever was on
+    top of the stack the moment it opened, which is exactly its immediate
+    lexical container (a true direct-child relationship), independent of
+    any non-component brace nesting (function bodies, signal handlers,
+    inline JS object/array literals) that happens in between."""
+    depth = 0
+    stack = []  # list of (Block, open_depth) — open_depth = depth BEFORE this line's own delta
+    top_level = []
+    for i, line in enumerate(lines):
+        m = BLOCK_OPEN_RE.match(line)
+        if m:
+            blk = Block(m.group(1), i, stack[-1][0] if stack else None)
+            if stack:
+                stack[-1][0].children.append(blk)
+            else:
+                top_level.append(blk)
+            stack.append((blk, depth))
+        depth += brace_delta(line)
+        # Pop any blocks whose body just closed (depth fell back to their
+        # own open_depth). Loop in case one line closes more than one
+        # block (not expected given this tree's one-brace-per-line style,
+        # but safe regardless).
+        while stack and stack[-1][1] == depth:
+            blk, _ = stack.pop()
+            blk.end = i
+    return top_level
+
+
+def iter_all(blocks):
+    for b in blocks:
+        yield b
+        yield from iter_all(b.children)
+
+
+def own_line_indices(block):
+    """Lines belonging to `block` but not to any nested child block —
+    i.e. the block's own direct property assignments."""
+    covered = set()
+    for c in block.children:
+        end = c.end if c.end is not None else block.end
+        covered.update(range(c.start, end + 1))
+    lo = block.start + 1
+    hi = (block.end if block.end is not None else len(lines_global))
+    return [j for j in range(lo, hi) if j not in covered]
+
+
+lines_global = []
+
+
+def check_button_surface(path):
+    global lines_global
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+    body = strip_qml_comments(raw)
+    lines = body.split('\n')
+    lines_global = lines
+    top_level = parse_blocks(lines)
+
+    hits = []
+    for blk in iter_all(top_level):
+        if blk.type != 'Rectangle' or blk.end is None:
+            continue
+        own = own_line_indices(blk)
+        has_radius = any(RADIUS_RE.search(lines[j]) for j in own)
+        if not has_radius:
+            continue
+        text_children = [c for c in blk.children if c.type == 'Text']
+        mouse_children = [c for c in blk.children if c.type == 'MouseArea']
+        if not text_children or not mouse_children:
+            continue
+        for ma in mouse_children:
+            ma_lo, ma_hi = ma.start, (ma.end if ma.end is not None else blk.end)
+            ma_text = '\n'.join(lines[ma_lo:ma_hi + 1])
+            has_onclick = bool(ONCLICKED_RE.search(ma_text))
+            has_hover_true = bool(HOVER_TRUE_RE.search(ma_text))
+            if has_onclick and not has_hover_true:
+                hits.append((blk.start + 1, blk.type))
+                break
+
+    if hits:
+        for line_no, btype in hits:
+            emit('BTN', 'FAIL',
+                 f'{path}:{line_no} hand-rolled button shape ({btype} with '
+                 'radius + a direct Text child + a direct MouseArea child '
+                 'carrying onClicked but no hoverEnabled: true) — replace '
+                 'with packages/WbButton.qml, or this is a genuine row/tab/'
+                 'list delegate and should set hoverEnabled: true so this '
+                 'gate can tell the difference.')
+    else:
+        emit('BTN', 'PASS', f'{path}: no hand-rolled button shape')
+    return True
+
+
+def collect_qml_files(roots):
+    files = []
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(root, followlinks=True):
+            for fn in filenames:
+                if not fn.endswith('.qml'):
+                    continue
+                full = os.path.join(dirpath, fn)
+                if fn == 'WbButton.qml':
+                    continue
+                if exclude_fixtures and under_fixtures_dir(full):
+                    continue
+                files.append(full)
+    return files
+
+
+exclude_fixtures = not any(
+    os.path.realpath(r) == fixtures_dir or os.path.realpath(r).startswith(fixtures_dir + os.sep)
+    for r in roots
+)
+
+
+def under_fixtures_dir(path):
+    real = os.path.realpath(path)
+    return real == fixtures_dir or real.startswith(fixtures_dir + os.sep)
+
+
+qml_files = sorted(collect_qml_files(roots))
+total_scanned = len(qml_files)
+roots_desc = ', '.join(roots) if roots else '(no roots)'
+
+if total_scanned == 0:
+    emit('C', 'FAIL', f'button-lint scanned 0 surfaces under {roots_desc}; check the root path(s).')
+else:
+    emit('C', 'PASS', f'button-lint scanned {total_scanned} surface(s) under {roots_desc}')
+
+for path in qml_files:
+    if not check_button_surface(path):
+        break
+
+dump()
+PYEOF
+}
+
+run_self_test() {
+    local -a fixtures=(
+        "compliant-wbbutton-qml.qml:0"
+        "compliant-rail-row-qml.qml:0"
+        "compliant-tab-hover-qml.qml:0"
+        "poisoned-vchip-qml.qml:1"
+        "poisoned-recheck-qml.qml:1"
+    )
+    local st_pass=0 st_fail=0
+    local entry fname expect_nonzero src tmp out rc want_desc
+
+    echo "button-lint --self-test — replaying the committed fixtures"
+    echo ""
+
+    for entry in "${fixtures[@]}"; do
+        fname="${entry%%:*}"
+        expect_nonzero="${entry##*:}"
+        src="$FIXTURES_DIR/$fname"
+
+        if [[ ! -f "$src" ]]; then
+            printf '  [FAIL] self-test: fixture missing: %s\n' "$src"
+            st_fail=$((st_fail + 1))
+            continue
+        fi
+
+        tmp="$(mktemp -d)"
+        cp -- "$src" "$tmp/$fname"
+        out="$("$0" "$tmp" 2>&1)"
+        rc=$?
+        rm -rf -- "$tmp"
+
+        if [[ "$expect_nonzero" == "0" ]]; then
+            want_desc="exit 0 (compliant)"
+        else
+            want_desc="a non-zero exit (poisoned)"
+        fi
+
+        if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]] || [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then
+            printf '  [PASS] self-test: %s -> %s as expected\n' "$fname" "$want_desc"
+            st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s -> exited %d, expected %s\n' "$fname" "$rc" "$want_desc"
+            printf '         output:\n%s\n' "$(printf '%s\n' "$out" | sed 's/^/           /')"
+            st_fail=$((st_fail + 1))
+        fi
+    done
+
+    echo ""
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+    run_self_test
+    exit $?
+fi
+
+TARGET_DIR="${1:-}"
+
+if [[ -n "$TARGET_DIR" ]]; then
+    ROOTS=("$TARGET_DIR")
+else
+    ROOTS=("$DEFAULT_TARGET")
+fi
+
+echo "button-lint — hand-rolled-button deny-by-default gate (modules/appearance/)"
+if [[ -n "$TARGET_DIR" ]]; then
+    echo "  target: $TARGET_DIR"
+else
+    echo "  target: real deployed appearance/ surface set"
+fi
+echo ""
+
+while IFS=$'\t' read -r tag status detail; do
+    [[ -z "$tag" ]] && continue
+    case "$tag" in
+        ABORT)
+            check "$detail" "1"
+            ;;
+        *)
+            case "$status" in
+                PASS) check "CHECK $tag: $detail" "0" ;;
+                FAIL) check "CHECK $tag: $detail" "1" ;;
+            esac
+            ;;
+    esac
+done < <(_button_lint_checks)
+
+if [[ "$FAIL" -eq 1 ]]; then
+    FAIL_WORD="check failed"
+else
+    FAIL_WORD="checks failed"
+fi
+
+echo ""
+printf 'Summary: %d passed, %d %s\n' "$PASS" "$FAIL" "$FAIL_WORD"
+[[ "$FAIL" -eq 0 ]]
+exit $?

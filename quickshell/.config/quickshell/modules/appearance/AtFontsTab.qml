@@ -293,37 +293,30 @@ Item {
                 width: specimen.width - specimen.padding * 2
                 spacing: Design.spacingSm
 
+                // Operator round 4, item 1 — `WbButton`, not a hand-rolled
+                // pill: this is the last hand-rolled button-like shape
+                // this file carried after round 3's sweep, and exactly
+                // the one the operator named ("propo"). "ghost" tone —
+                // there are two-to-three of these per family, never the
+                // pane's single action — with `active` wired to the
+                // variant's own applied state so the currently-applied
+                // Mono/Propo cut still reads distinctly (WbButton's
+                // `active` renders like hover-at-rest), without a second,
+                // richer chip shape living beside the shell's one button
+                // language.
                 Repeater {
                     model: specimen.variants
 
-                    delegate: Rectangle {
+                    delegate: WbButton {
                         id: vchip
                         required property var modelData
 
-                        readonly property bool on: vchip.modelData.active
-
-                        radius: 99
-                        color: vchip.on ? Qt.alpha(Colours.primary, 0.16) : "transparent"
-                        border.width: 1
-                        border.color: vchip.on ? Colours.primary : Qt.alpha(Colours.outline, 0.5)
-                        width: vchipLabel.implicitWidth + Design.spacingMd
-                        height: vchipLabel.implicitHeight + Design.spacingSm
-
-                        Text {
-                            id: vchipLabel
-                            anchors.centerIn: parent
-                            text: vchip.modelData.behaviour === "mono" ? "Mono" : (vchip.modelData.behaviour === "propo" ? "Propo" : "Apply")
-                            color: vchip.on ? Colours.primary : Colours.onSurfaceVariant
-                            font.pixelSize: Design.fontLabel
-                            textFormat: Text.PlainText
-                        }
-
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: {
-                                specimen.previewBehaviour = vchip.modelData.behaviour;
-                                AppearanceBackend.applyFont(vchip.modelData.rawName);
-                            }
+                        label: vchip.modelData.behaviour === "mono" ? "Mono" : (vchip.modelData.behaviour === "propo" ? "Propo" : "Apply")
+                        tone: "ghost"
+                        active: vchip.modelData.active
+                        onActivated: {
+                            specimen.previewBehaviour = vchip.modelData.behaviour;
+                            AppearanceBackend.applyFont(vchip.modelData.rawName);
                         }
                     }
                 }

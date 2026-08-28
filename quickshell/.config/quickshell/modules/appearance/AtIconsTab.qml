@@ -602,10 +602,15 @@ Item {
                     onActivated: AppearanceBackend.applyIconTheme(root._effectiveSelected)
                 }
 
+                // Operator round 4, item 1 — wired to `WbButton.active` so
+                // Compare visually toggles (renders like hover-at-rest)
+                // rather than only changing its own label, per round 3's
+                // recorded limitation.
                 WbButton {
                     visible: root._baseline.length > 0
                     label: detail.compareOn ? "Hide compare" : "Compare with " + root._baseline
                     tone: "ghost"
+                    active: detail.compareOn
                     onActivated: detail.compareOn = !detail.compareOn
                 }
 
