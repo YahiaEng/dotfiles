@@ -6,8 +6,8 @@ status: milestone-complete
 stopped_at: "260828-75k COMPLETE AND OPERATOR-CONFIRMED (2026-08-28). An Octopi replacement in four surfaces over ONE PackagesBackend singleton: the D4 workbench window (sortable ledger, multi-select, removal-cascade preview), a thin Settings > Packages page, a `pkg` launcher route painted in the accent colour, and a repaired bar pill with a popout. Octopi is off the host. NOTHING IS OWED. The feature request uncovered a DEFECT first: the bar pill polled checkupdates alone and read 3 while 4 were pending, blind to the AUR. Measurements that decided the design: `pacman -Qi` returns all 1420 records with every field in 0.20s/1.33MB (so no cache, no daemon), and `pacman -Rs --print --print-format` resolves the FULL removal cascade WITHOUT root (6 orphans -> 11 real removals) which is the one capability that justified a whole window. Retired UpdatesPage.qml and UpdatesMode.qml, absorbing the per-package armed update. SIX TRAPS RECORDED IN THE SUMMARY, three of them mine: `find | head` truncated a survey and I drew an architectural conclusion from it TWICE (every module dir has a qmldir; the failures were undeclared types) which misfiled two files; menu leaf labels carry invisible Nerd Font glyphs so an edit matched on the visible label silently no-ops; `follow_mouse=1` makes Qt Window.active a HOVER signal so click-outside needs HyprlandFocusGrab; a drag delta measured in the dragged thing's own frame drifts with speed, anchor on scene coords at press; pacman writes the error summary to stderr but the reasons to stdout; qmllint is blind here (rc=0 on a truncated file, positive-control verified). NEXT REAL DECISION, unchanged: v5.0 has no roadmap - scope it with /gsd-new-milestone after /gsd-review-backlog."
 last_updated: "2026-08-28T11:05:00.000Z"
 last_activity: 2026-08-28
-last_activity_desc: "Atelier operator round 4 — fixed WbButton at SOURCE (the repeat-complaint class), added a poison-tested button-lint gate, made catalogue rows selectable, and closed the QQC2 palette scrim leak."
-state_head: 070f5f85
+last_activity_desc: "Atelier operator round 5 — the settings flash was a shell-wide colour-interpolation artifact (28 sites); added a shared row press surface and a poison-tested transparent-lint gate."
+state_head: e9f68c80
 progress:
   total_phases: 6
   completed_phases: 6
@@ -1405,7 +1405,54 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — Atelier round 4 done. Still NOT operator-verified.
+### ▶ RESUME HERE — Atelier round 5 done. Colours + Atelier flash CONFIRMED by operator.
+
+**Operator confirmed round 4: "Colors are more consistent", Atelier flash gone.**
+Round 5 (`55a8d8d4`, `edb32364`, `e9f68c80`) chased the two that remained.
+
+**THE FLASH WAS NEVER A SETTINGS BUG — IT IS A COLOUR-INTERPOLATION ARTIFACT,
+SHELL-WIDE.** `"transparent"` in QML is `#00000000` — **BLACK** at zero alpha —
+so a `ColorAnimation` from `"transparent"` to `Colours.primary` interpolates
+through dark tones (midpoint ~`rgba(127,60,99,127)`) and drags a dark smear
+instead of fading the accent in. **28 sites across 24 files** — settings,
+packages, bar, dashboard, centre, security, filepicker. The correct off-value is
+`Qt.alpha(<same hue>, 0)`: same zero alpha, right hue, clean fade.
+
+**THE ATELIER HAD ONLY STOPPED FLASHING BY ACCIDENT.** Round 4 made its
+selection instant, which sidesteps the animation — it never fixed the artifact.
+A fix that works for the wrong reason will not generalise, and this one did not.
+
+**"No mouse feedback" was literal.** Zero press states existed in the 8 settings
+row components (each declaring its OWN `rowFocused` — 8 copies, no shared base);
+a row painted only a border ring over a transparent body. Now one shared
+`settings/common/RowSurface.qml` paints rest/hover/focus/**press** for 7 of 8,
+press immediate (no Behavior), hover still animated. Two documented premise
+corrections rather than silent restructuring: `InfoRow` is non-interactive so it
+gets no press wire, and `WallpaperTile`'s layered overlay does not fit the slot
+so the idiom was applied by hand. `SliderRow`'s new `TapHandler` is
+`gesturePolicy: TapHandler.PassiveOnly`, so it never takes an exclusive grab and
+the track's own MouseArea keeps the drag.
+
+**THIRD GATE: `hypr/.config/hypr/scripts/transparent-lint`**, sibling to
+`button-lint`, whole-tree scope. **I poison-tested it independently** — reverting
+one real site (`security/FindingRow.qml`) made it report 1 check failed;
+restoring returned 192/0. The executor also found and fixed a false positive in
+its own gate while hardening it against the real tree, which is why a
+fixtures-only self-test is not enough.
+
+**Instrument note for next time:** my own quick re-census flagged 8 "remaining"
+sites that were all FALSE POSITIVES — in each the `Behavior` belonged to
+`border.color` while the `"transparent"` was a static base fill or a
+deliberately un-animated press fill. The gate was the better instrument; my
+grep-with-a-window was the blunt one.
+
+**WHAT IS OWED:** the round-5 checklist plus everything earlier. Nothing visual
+has ever been verified from an agent shell.
+
+**NEXT REAL DECISION, unchanged: v5.0 has no roadmap.** v4.0 is 100%. Scope with
+`/gsd-new-milestone`; ICON-BROWSE is no longer a candidate.
+
+### Previous checkpoint — Atelier round 4 (superseded, round 5)
 
 **Round 4** — `8e9d5f58`, `69225f2e`, `070f5f85`.
 

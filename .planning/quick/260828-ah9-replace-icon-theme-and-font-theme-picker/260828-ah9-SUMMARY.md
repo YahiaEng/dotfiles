@@ -643,3 +643,241 @@ and fixed before their owning task's commit, never deferred.
 ## Self-Check: PASSED
 
 All 10 claimed files exist on disk; all 6 claimed commit hashes are present in `git log`.
+
+## Operator round 5
+
+Two population-scale items, both directly measured before touching code.
+
+**Commits:**
+- `55a8d8d4` — item 1: transparent-interpolation sweep (25 files)
+- `edb32364` — item 2: shared row press surface (`RowSurface.qml`) + WbButton press state (11 files)
+- `e9f68c80` — item 3: `transparent-lint` gate + fixtures (5 files)
+
+### Item 1 — transparent-interpolation flash, shell-wide
+
+Root cause (operator's own ground truth, confirmed by direct measurement,
+not re-derived): `"transparent"` in QML is `#00000000` — black at zero
+alpha. Every animated `color`/`border.color` ternary using the literal
+`"transparent"` as its off-branch alongside a `Behavior` interpolated
+through dark tones on the way to/from the real hue — that dark smear is
+the flash.
+
+Enumerated the population myself with a parser-equivalent method (grep +
+context read of every `"transparent"`/`Behavior on (color|border.color)`
+pair, verified per-site by reading the actual block structure, not
+counted mechanically) rather than trusting the operator's own count
+verbatim, per the standing "never guess, measure" rule. Result: **27 real
+animated-transparent sites, redistributed slightly differently than the
+operator's own per-file census but the same total** —
+`settings/common/SelectRow.qml` has 2 real sites, not 3 (the third
+candidate, `menuItem.down`'s fill, is already immediate/non-animated by
+round 4's own design — correctly not a site); `settings/NavRail.qml` has
+2, not 1 (both its `isCurrentPage` row fill and its search-result
+`border.color` ring are genuinely animated). Every other file in the
+operator's list had exactly the 1 site named.
+
+**Beyond the operator's own census:** re-scanning the whole tree for any
+animated-transparent site NOT in the 24-file list surfaced a 28th —
+`packages/WbButton.qml`'s own `color:` JS function had three
+`"transparent"` branches (disabled state, danger-tone rest, ghost-tone
+rest) under one `Behavior on color`, live on every WbButton on every
+hover/tone/disabled transition shell-wide (Update/Review/Uninstall/
+Compare/Re-check/Mark-explicit — every button in the workbench and the
+Atelier). Fixed in the same commit as the rest of the sweep, since it's
+the identical bug class.
+
+Fix shape throughout: replace the literal `"transparent"` branch with
+`Qt.alpha(<the hue this branch fades to/from>, 0)` — same zero alpha,
+correct hue, so the transition crosses "real colour fading out" to "real
+colour fading in" instead of through black. For `WbButton.qml`'s
+disabled-state branch specifically, added a `_restHue` property deriving
+the tone's own base hue (primary/error/onSurface) so the disabled fade
+also lands on the right colour family rather than an arbitrary one.
+
+Left alone (measured, not assumed): every bare, non-conditional
+`color: "transparent"` base fill that sits beside an animated
+`border.color` in the same block (the pre-round-5 shape every settings
+row used) — that property is never animated, so it never interpolates.
+Two mechanical-scan false positives were checked and confirmed harmless:
+`bar/ClockActionsCapsule.qml`'s `property color fillColour: "transparent"`
+is a property DEFAULT gated by `visible: cellItem.fillActive` (never
+visible while at its default, so the transition never renders); and
+`launcher/IconMode.qml`'s only real `color:` ternary already used
+`Qt.alpha(...)` on both branches — the nearby `"transparent"` grep hit
+was an unrelated sibling Rectangle's static border-only fill.
+
+### Item 2 — shared row press surface + WbButton press
+
+Ground truth confirmed by direct read of all 8 named row components: 6
+are `Control`-rooted (NavRow, SelectRow, SliderRow, StepperRow, TextRow,
+ToggleRow), 2 are `Item`-rooted (InfoRow, WallpaperTile) — not the
+6/3 split in the operator's own ground truth (which would total 9, one
+too many for 8 rows); the actual split is 6/2. Each declared its own
+`rowFocused` border-ring background, no shared base, and none painted
+anything on press.
+
+Built `settings/common/RowSurface.qml` — one shared `focused`/`hovered`/
+`pressed` background, declared in `qmldir`. `focused`/`hovered` keep the
+exact existing animated border-ring behaviour (OR'd together internally,
+matching every row's own prior `(rowFocused || hover) ? accent :
+transparent` shape byte-for-byte in rendered result). `pressed` is new:
+an immediate, un-animated neutral fill (`Qt.alpha(Colours.onSurface,
+0.13)`, no `Behavior` at all) — a press must read as instant, not a
+300ms fade (the exact bug item 1 just fixed, reapplied here as a design
+rule for the new state).
+
+Used as `background:` for the 7 Control/Item primitives that fit the
+slot (NavRow, SelectRow, SliderRow, StepperRow, TextRow, ToggleRow,
+InfoRow). Press wiring measured per row's actual click target rather
+than assumed uniform:
+- **NavRow** — its own whole-row `hoverArea` MouseArea already has a
+  native `pressed`; wired directly.
+- **SelectRow/SliderRow/StepperRow/ToggleRow** — none has a whole-row
+  MouseArea (each uses a passive `HoverHandler` for hover specifically
+  so it never steals clicks from an inner MouseArea — dropdownPill/
+  track/steppers/switchPill). Added a sibling `TapHandler {
+  gesturePolicy: TapHandler.PassiveOnly }` per row, same non-exclusive
+  reasoning as the existing `HoverHandler`, to observe press without
+  grabbing it.
+- **InfoRow** — no `pressed:` wire at all. Its own file header states
+  "this row does nothing when clicked" (PD-07, pre-existing, not
+  something this round introduced) — the premise that InfoRow needs
+  press feedback is false for a non-interactive row, so it gets
+  `focused:` only, deviation documented per the item's own instruction
+  rather than inventing a click target that doesn't belong.
+- **TextRow** — no `pressed:` wire. Its click target is the inner
+  `TextField`, which already paints its own background/state
+  independently; the row-level ring is a pure focus indicator.
+
+**WallpaperTile** — its layered image/badge/active-ring/hover-tint
+overlay structure doesn't fit `RowSurface`'s single `background:`-slot
+pattern (it's an image tile with multiple stacked Rectangles, not a
+Control with one swappable background), so per the constraint ("if a
+file needs structural change to accept the shared surface, say so
+rather than restructuring it silently") it does NOT use `RowSurface`
+directly. It gets the SAME idiom applied by hand instead: a new
+un-animated sibling Rectangle over its existing animated hover-tint
+Rectangle, driven by its own `hover.pressed` (the tile's existing
+whole-tile MouseArea already has a native `pressed`, no new handler
+needed).
+
+**WbButton.qml** — added the same `selectFill`/`hoverFill` split round 4
+used for the Atelier: the existing animated `color`/`Behavior on color`
+stays as the rest/hover fill unchanged, and a new instant, un-animated
+overlay Rectangle deepens one step further per tone (primary 0.38/danger
+0.28/ghost 0.16 alpha) while `area.pressed` — the button's own existing
+MouseArea already has a native `pressed`.
+
+Every press tint stays in the same restrained neutral/tone-matched
+language existing hover fills already use — never a new accent colour,
+per the operator's three prior rejections of loud accents (rounds 2-4).
+
+### Item 3 — `transparent-lint` gate, poison-tested
+
+Added as a SIBLING to `button-lint` (not an extension of it) — `button-
+lint` is deliberately scoped to `modules/appearance/`'s hand-rolled-
+button class; this defect was shell-wide and about colour-animation
+semantics, which matches `colour-lint`'s own whole-tree
+`$HOME/.config/quickshell` scope far more closely. Reused button-lint's
+comment-stripping/brace-tracking/block-parsing infrastructure rather
+than writing a second parser from scratch, extended with a `Behavior on
+<property>` block-open form so a `Behavior on color` block is
+distinguishable from `Behavior on border.color` by type — the gate
+matches the ANIMATED property exactly, not "any Behavior nearby."
+
+**A real bug was found and fixed during this gate's own hardening,
+before it was ever trusted:** the first implementation built each
+property's "value text" from a raw `lines[start:end+1]` slice. Running
+it against the real tree (not just the self-test fixtures) immediately
+surfaced a false positive on `launcher/IconMode.qml`'s icon-tile
+Rectangle — its OWN `color:` ternary contains no `"transparent"` at all,
+but a completely unrelated NESTED Rectangle's `color: "transparent"`
+(a static border-only fill three properties later) sat between two
+blank "own" lines in the raw slice and got silently absorbed. Fixed by
+tracking each span as the explicit list of un-nested line indices and
+joining only those lines' text, never a contiguous range. This is
+exactly the class of bug the "run gates once, but run new gates against
+the REAL tree before trusting them" discipline exists to catch — a gate
+that only ever sees its own fixtures never learns this failure mode.
+
+**Poison-tested against a real site, per the item's own instruction (not
+just the fixtures):** reverted `settings/common/RowSurface.qml`'s
+`border.color` to its literal-`"transparent"` pre-fix shape — gate went
+RED (`RowSurface.qml:56 animated border.color branch...`). Restored —
+gate green again. `--self-test` also passes 4/4 against its own
+committed fixtures under `tests/transparent-fixtures/` (2 compliant: the
+`Qt.alpha` idiom, and a non-animated conditional-transparent that must
+NOT be flagged; 2 poisoned: the single-line-ternary shape and the
+WbButton-style multi-line-JS-function shape). `button-lint --self-test`
+re-run afterward, unmodified — still 5/5.
+
+### Gates after this round
+
+`colour-lint` 569/0 (up from 566 — RowSurface.qml + WbButton.qml's new
+press-fill Rectangle add scannable colour-assignment anchors).
+`motion-lint` 769/0 (up from 766). `button-lint` 9/9, self-test 5/5
+(unchanged, sibling gate not modified). `qml-import-check` 0
+unresolved/192 files (up from 190 — RowSurface.qml new, plus
+transparent-lint's fixtures excluded from the real-tree scan by design).
+`settings-index-check` 191/0 (unchanged focus-row count — confirms no
+row's structure/geometry/keyboard-reachability changed, only its
+background implementation). New gate `transparent-lint`: 192/0 clean on
+the real tree (191 files + the scan-count floor check), self-test 4/4,
+poison-tested against a real site as required.
+`~/.cache/quickshell.log` read after every edit via ANSI-stripped tail;
+zero new errors after any edit in this round, `Configuration Loaded`
+confirmed after each hot reload.
+
+### Deviations from plan
+
+**1. [Item 2 premise correction] InfoRow does not get press feedback.**
+The item named all 8 rows uniformly; direct read of InfoRow's own header
+comment ("this row does nothing when clicked", pre-existing PD-07
+design, not introduced this round) shows it has no click target at all.
+`RowSurface`'s `pressed` prop is simply never wired for this row —
+documented rather than inventing a click gesture that contradicts the
+row's own stated design.
+
+**2. [Item 2 structural note] WallpaperTile does not consume
+`RowSurface` directly.** Its layered image/badge/ring overlay structure
+doesn't fit the single-`background:`-slot pattern the other 7 rows
+share. Applied the identical idiom (immediate, un-animated, neutral
+tint) by hand as a sibling overlay Rectangle instead of forcing the
+shared component in — flagged per the constraint rather than silently
+restructuring the tile.
+
+**3. [Item 1 addition, Rule 1 — bug] `WbButton.qml` swept too.** Not in
+the operator's named 24-file/27-site list, found by re-scanning the
+whole tree. Same bug class (animated `"transparent"` branches), fixed in
+the same commit as the rest of item 1.
+
+None of Rules 2-4 applied — no missing critical functionality discovered
+beyond the two feedback gaps the operator already named, no architectural
+changes needed.
+
+### Operator checklist — round 5 (nothing below could be seen from this shell)
+
+Same standing limitation as every prior round: no input-injection tool,
+no `grim` (crashes this NVIDIA host), restarting quickshell/
+`quickshell-doctor` both forbidden from this shell. All of the following
+are new with this round and remain **unrun**:
+
+1. Open Settings and hover, then click-and-hold, any row across every
+   page (NavRow/SelectRow/SliderRow/StepperRow/TextRow/ToggleRow/
+   InfoRow) — does the press now read as an immediate response (a visible
+   tint appearing the instant the mouse goes down), distinct from the
+   animated focus/hover ring?
+2. Open the Wallpaper picker and press-and-hold a tile — same question,
+   for the tile's own deeper hover-tint press state.
+3. Click any `WbButton` (Workbench Update/Review/Uninstall, Atelier
+   Compare/Re-check/Mark-explicit) and hold — does it now visibly deepen
+   further on press, on top of its existing hover fill?
+4. Open any settings dropdown menu (SelectRow's own popup) and open the
+   Atelier's rail/tab/catalogue selections — does the previously-reported
+   flash (a dark smear before the real colour settles) read as gone now
+   that every animated transition fades through the correct hue instead
+   of through black?
+5. Does `SliderRow`'s row-level press tint interfere with actually
+   dragging the slider track, or does the drag gesture still work
+   uncontested (the `TapHandler`'s `PassiveOnly` policy is designed not
+   to compete, but only a live drag can confirm it doesn't)?
