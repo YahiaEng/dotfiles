@@ -32,20 +32,41 @@ Column {
     width: parent ? parent.width : 400
     spacing: Design.spacingLg
 
-    // Domains present in the findings, ordered by their own worst rank.
-    // Derived, never a fixed list: a domain with nothing to say does not
-    // earn a heading.
+    // ── SECTION ORDER IS FIXED. THIS IS THE POINT. ────────────────────
+    // The first version ordered domains by their own worst finding, so
+    // enabling the firewall moved the whole Network section from directly
+    // under Overview to below Vulnerabilities — operator round 5. A
+    // settings page you navigate by muscle memory must not rearrange
+    // itself as live state changes; you go to look at your disks and the
+    // heading has moved because something unrelated got better.
+    //
+    // Severity is still expressed, in the two places where it costs
+    // nothing: the verdict header names what is worst globally, and rows
+    // are still ranked worst-first WITHIN each section (that ordering
+    // comes from SecurityBackend.findings and is never re-derived here).
+    // Only the section order is now stable.
+    //
+    // A domain with nothing to say still earns no heading — the list is
+    // filtered, not padded.
+    readonly property var domainOrder: ["Malware", "Vulnerabilities", "Network", "Devices"]
+
     readonly property var orderedDomains: {
-        var seen = {};
-        var out = [];
+        var present = {};
         var f = SecurityBackend.findings;
-        for (var i = 0; i < f.length; ++i) {
-            if (!seen[f[i].domain]) {
-                seen[f[i].domain] = true;
-                // findings is already sorted worst-first, so first
-                // sighting of a domain IS its worst rank.
-                out.push(f[i].domain);
-            }
+        for (var i = 0; i < f.length; ++i)
+            present[f[i].domain] = true;
+
+        var out = [];
+        for (var d = 0; d < root.domainOrder.length; ++d) {
+            if (present[root.domainOrder[d]])
+                out.push(root.domainOrder[d]);
+        }
+        // Anything the backend reports under a domain this list does not
+        // know about is appended rather than dropped — a new domain must
+        // never silently vanish from the page.
+        for (var k in present) {
+            if (root.domainOrder.indexOf(k) === -1)
+                out.push(k);
         }
         return out;
     }
