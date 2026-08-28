@@ -158,6 +158,79 @@ are still independently correct and gate-passing (the deletions don't affect
 `hypr-equivalence-check` at all); this is a packaging deviation, not a
 functional one.
 
+## Operator Round 1 — nine defects, all nine closed
+
+Reported after live use. Five commits, `534fcafd`..`6075ef1f`, all pushed.
+**The recurring theme: the build had drifted from the study artifact**, which
+the operator correctly held as the source of truth.
+
+| # | Defect | Root cause | Fix |
+|---|--------|-----------|-----|
+| 1 | No uninstall | Never built — `grep -c "uninstall\|-Rs"` = 0 | `pacman -Qoq` ownership resolution + confirm overlay + terminal handoff (`6075ef1f`) |
+| 2a | No title bar | `title: "Appearance"` was set but no header row rendered | The study's `.surf-hd`: name + live `N themes · M families` sub (`534fcafd`) |
+| 2b+2d | Fonts grouped wrong / duplicates | **One defect, and it was presentation, not measurement** | Group by family in the rail; variants in the detail pane (`6668476d`) |
+| 2c | Rails not resizable | No grips existed in any appearance file | Shared `AtRailGrip`, scene-anchored, persisted (`eb83bf3e`) |
+| 2e | Icons had no detail pane | Bare `GridView`, no rail, no compare | Rail + detail + compare, previewing at **22px** (`4bbbaf5e`) |
+| 3 | No drag-to-move | Never built | `startSystemMove()` from the title bar (`534fcafd`) |
+| 4 | Size reset on reopen | Nothing persisted; size recomputed from screen every open | `width`/`height` watched and persisted, clamped (`534fcafd`) |
+
+**THE ONE THAT MATTERED MOST WAS MINE, AND IT WAS A PRESENTATION BUG WEARING A
+MEASUREMENT'S CLOTHES.** The M2 collapse in `AppearanceBackend.qml:328-390` was
+CORRECT all along — it emits 13 families x 2 behaviours, exactly as measured.
+But `AtFontsTab.qml:68` rendered those 26 rows in a FLAT list keyed on
+`modelData.family`, so the list read "FiraCode / FiraCode / JetBrainsMono /
+JetBrainsMono / …". **A correct measurement, thrown away one layer up.** The
+operator read it as "you did not deal with duplicate fonts" and was right about
+the symptom while the cause sat in the view, not the model. Defects 2b and 2d
+were never two defects.
+
+**THE ICONS TAB QUIETLY DEFEATED ITS OWN FOUNDING MEASUREMENT.** It previewed at
+48px — the exact size at which M1 proved Papirus / Papirus-Dark / Papirus-Light
+are byte-identical. The tab could not distinguish three of the eight themes it
+listed, which is the whole reason the 22px finding existed. Now 22px.
+
+**TWO ITEMS WERE VERIFIED POSSIBLE BEFORE BEING PROMISED**, rather than assumed:
+`startSystemMove`/`startSystemResize` are real methods on
+`FloatingWindowInterface`, and `width`/`height` are writable (not read-only) on
+`ProxyWindowBase` — both read out of
+`/usr/lib/qt6/qml/Quickshell/_Window/quickshell-window.qmltypes`. Also confirmed
+no windowrule pins the Atelier's geometry, so QML owns its size.
+
+**UNINSTALL IS NOT ONE-TO-ONE, AND A NAIVE VERSION WOULD HAVE BEEN DESTRUCTIVE.**
+`Adwaita` resolves to **two** packages — `adwaita-cursors` AND
+`adwaita-icon-theme` — so removing "the Adwaita icon theme" on a single-package
+assumption takes the cursor theme with it. Every affected package is now listed
+before anything runs. Separately, `~/.local/share/icons/Papirus` and
+`Papirus-Dark` are **unowned** user-directory copies that shadow the system
+ones; those have no package to remove and are shown as an explicit path
+deletion. Active theme/font carries its own warning. Privilege posture matches
+`PackagesBackend` exactly — verified 0 hits for `pkexec|sudo|--noconfirm`
+outside comments.
+
+**Recovered work, not re-done work.** The executing agent died mid-round with
+defect 1 uncommitted (5 modified files + an untracked `AtUninstallConfirm.qml`).
+The work was assessed on disk rather than assumed lost or assumed good: it
+loaded clean (zero errors after the last `Configuration Loaded`, by line
+position), passed all four gates, and matched the brief on every case, so it was
+committed as-is.
+
+Gates after the round: `colour-lint` 566/0, `motion-lint` 751/0,
+`qml-import-check` 0 unresolved / 190 files, `settings-index-check` 191/0.
+
+### Still owed after round 1
+
+Everything below the line remains unrun — no agent shell on this host can
+click, screenshot, or restart. Round 1 adds these:
+
+1. Drag the title bar — does the window move, and do tab clicks still register?
+2. Resize, close, reopen — does it come back the size you left it?
+3. Fonts tab — 13 family rows, not 26; clicking one shows its variants.
+4. Icons tab — do Papirus / Papirus-Dark / Papirus-Light look **different** at 22px? This is the founding measurement; if 22px does not separate them either, the preview needs a different probe set.
+5. Compare button on the Icons detail pane.
+6. Drag each rail (Icons, Fonts, Catalogue) — width persists across reopen.
+7. Uninstall an icon theme; confirm the package list is right before letting it run. **Try `Adwaita` specifically** — it must list two packages.
+8. Uninstall an unowned user-dir theme (`~/.local/share/icons/Papirus`) — it should offer a path deletion, not a package removal.
+
 ## Operator Checklist — everything below needs a human
 
 None of the 17 items in the plan's own `<operator_checklist>` could be run
