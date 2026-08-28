@@ -37,13 +37,51 @@ Item {
     readonly property int restWidth: 4
     readonly property int hoverWidth: 8
 
+    // ── THE GUTTER (quick task 260829-gtr) ─────────────────────────────
+    // Measured, not assumed: with the bar anchored to `flickable.right` and
+    // nothing reserving space for it, it painted ON TOP of the content in
+    // all 20 consumers. In the settings nav rail the row pill spans
+    // x 8..588 and the bar landed at 581..584 — inside the pill, 8px short
+    // of its own right edge. That is the "scrollbar clipping the menu
+    // items" report.
+    //
+    // The fix reserves width instead of overlaying it. Every one of the 20
+    // consumers anchors its Flickable's right edge to a parent (via
+    // `anchors.fill` or an explicit `anchors.right`) and NOT ONE sets an
+    // explicit `width` — enumerated, not sampled — so narrowing the
+    // Flickable propagates to every content binding for free: a Column at
+    // `width: flick.width`, a delegate at `ListView.view.width`, all of it.
+    // That is why this reserves on the Flickable rather than asking 20 call
+    // sites to inset their own content.
+    readonly property int gutter: hoverWidth + 4
+
+    // Additive, and it has to be. Two consumers (PageBase, PanelDialog) set
+    // `anchors.margins` for their own padding, and in Qt a specific
+    // `anchors.rightMargin` OVERRIDES `anchors.margins` for that edge —
+    // assigning the gutter alone would silently delete their padding. So
+    // the effective margin is read first and the gutter added to it.
+    // Guarded because a hot reload re-runs this on a Flickable that may
+    // already carry the gutter; without `_reserved` the margin would grow
+    // by 12px on every QML save.
+    property bool _reserved: false
+    Component.onCompleted: {
+        if (_reserved || !flickable)
+            return;
+        const a = flickable.anchors;
+        const base = a.rightMargin || a.margins || 0;
+        a.rightMargin = base + gutter;
+        _reserved = true;
+    }
+
     anchors.right: flickable.right
     anchors.top: flickable.top
     anchors.bottom: flickable.bottom
-    anchors.rightMargin: 2
+    // Sits in the reserved gutter, just outside the content's right edge,
+    // rather than over it. The 2px keeps it off the very edge of the box.
+    anchors.rightMargin: -gutter + 2
     width: hoverWidth
-    // Sits above the flicked content. A scroll indicator that the content
-    // can paint over is not an indicator.
+    // Still above the content: a scroll indicator the content can paint
+    // over is not an indicator. The gutter means it no longer has to be.
     z: 100
     visible: scrollable
 
