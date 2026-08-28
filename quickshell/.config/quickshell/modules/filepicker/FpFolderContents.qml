@@ -115,7 +115,7 @@ Item {
                 anchors.fill: parent
                 anchors.bottomMargin: Design.spacingSm
                 radius: 16
-                color: cell.current ? Colours.surfaceVariant : "transparent"
+                color: cell.current ? Colours.surfaceVariant : Qt.alpha(Colours.surfaceVariant, 0)
 
                 Behavior on color {
                     enabled: Motion.motionEnabled

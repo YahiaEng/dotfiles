@@ -83,7 +83,7 @@ Item {
                     anchors.fill: parent
                     radius: parent.radius
                     visible: !tabDelegate.selected
-                    color: tabArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent"
+                    color: tabArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : Qt.alpha(Colours.onSurface, 0)
 
                     Behavior on color {
                         enabled: Motion.motionEnabled

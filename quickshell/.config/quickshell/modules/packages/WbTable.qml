@@ -280,7 +280,7 @@ Item {
             width: list.width
             height: 32
             radius: 6
-            color: row.focused ? Colours.primaryContainer : (rowArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.05) : "transparent")
+            color: row.focused ? Colours.primaryContainer : (rowArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.05) : Qt.alpha(Colours.onSurface, 0))
 
             Behavior on color {
                 enabled: Motion.motionEnabled

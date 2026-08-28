@@ -1155,7 +1155,7 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: Design.spacingSm
-                color: headlineMouseArea.containsMouse ? BarRoles.notifSurfaceHover : "transparent"
+                color: headlineMouseArea.containsMouse ? BarRoles.notifSurfaceHover : Qt.alpha(BarRoles.notifSurfaceHover, 0)
 
                 Behavior on color {
                     enabled: Motion.motionEnabled

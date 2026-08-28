@@ -570,7 +570,7 @@ Item {
         Rectangle {
             id: segFill
             anchors.fill: parent
-            color: segItem.selected ? Colours.primary : "transparent"
+            color: segItem.selected ? Colours.primary : Qt.alpha(Colours.primary, 0)
             topLeftRadius: segItem.segIndex === 0 ? height / 2 : 0
             bottomLeftRadius: segItem.segIndex === 0 ? height / 2 : 0
             topRightRadius: segItem.segIndex === segItem.segCount - 1 ? height / 2 : 0

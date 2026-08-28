@@ -134,7 +134,7 @@ SectionPopout {
             width: parent.width
             height: 30
             radius: height / 2
-            color: PackagesBackend.dbLocked ? "transparent" : (upgradeArea.containsMouse ? Qt.lighter(Colours.primary, 1.1) : Colours.primary)
+            color: PackagesBackend.dbLocked ? Qt.alpha(Colours.primary, 0) : (upgradeArea.containsMouse ? Qt.lighter(Colours.primary, 1.1) : Colours.primary)
             border.width: 1
             border.color: PackagesBackend.dbLocked ? Qt.alpha(Colours.outline, 0.4) : Colours.primary
 

@@ -112,7 +112,7 @@ Control {
         color: "transparent"
         radius: 12
         border.width: 2
-        border.color: (root.rowFocused || hoverArea.containsMouse) ? Colours.primary : "transparent"
+        border.color: (root.rowFocused || hoverArea.containsMouse) ? Colours.primary : Qt.alpha(Colours.primary, 0)
 
         Behavior on border.color {
             enabled: Motion.motionEnabled

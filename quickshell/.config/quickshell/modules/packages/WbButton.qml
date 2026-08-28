@@ -45,14 +45,22 @@ Rectangle {
     height: implicitHeight
     radius: height / 2
 
+    // The zero-alpha rest colour of each tone matches that tone's OWN hue
+    // (Qt.alpha(hue, 0)) rather than the literal `"transparent"`
+    // (`#00000000` — black at zero alpha). `Behavior on color` below
+    // interpolates through whatever the two endpoints are; a black
+    // endpoint made every rest<->hover/disabled transition smear through
+    // a dark tone before landing on the real colour (operator round 5).
+    readonly property color _restHue: root.tone === "primary" ? Colours.primary : (root.tone === "danger" ? Colours.error : Colours.onSurface)
+
     color: {
         if (!root._live)
-            return "transparent";
+            return Qt.alpha(root._restHue, 0);
         if (root.tone === "primary")
             return root._hovered ? Qt.alpha(Colours.primary, 0.28) : Qt.alpha(Colours.primary, 0.16);
         if (root.tone === "danger")
-            return root._hovered ? Qt.alpha(Colours.error, 0.18) : "transparent";
-        return root._hovered ? Qt.alpha(Colours.onSurface, 0.09) : "transparent";
+            return root._hovered ? Qt.alpha(Colours.error, 0.18) : Qt.alpha(Colours.error, 0);
+        return root._hovered ? Qt.alpha(Colours.onSurface, 0.09) : Qt.alpha(Colours.onSurface, 0);
     }
 
     border.width: 1

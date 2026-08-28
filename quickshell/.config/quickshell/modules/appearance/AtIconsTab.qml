@@ -166,7 +166,7 @@ Item {
                         anchors.fill: parent
                         radius: parent.radius
                         visible: !railRow.selected
-                        color: railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent"
+                        color: railArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : Qt.alpha(Colours.onSurface, 0)
 
                         Behavior on color {
                             enabled: Motion.motionEnabled

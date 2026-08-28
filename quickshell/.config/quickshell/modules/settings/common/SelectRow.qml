@@ -94,7 +94,7 @@ Control {
         radius: 12
         color: "transparent"
         border.width: 2
-        border.color: (root.rowFocused || rowHover.hovered) ? Colours.primary : "transparent"
+        border.color: (root.rowFocused || rowHover.hovered) ? Colours.primary : Qt.alpha(Colours.primary, 0)
 
         Behavior on border.color {
             enabled: Motion.motionEnabled
@@ -380,7 +380,7 @@ Control {
                     // without touching the existing highlighted ring.
                     color: menuItem.down ? Qt.alpha(Colours.primary, 0.12) : "transparent"
                     border.width: 2
-                    border.color: menuItem.highlighted ? Colours.primary : "transparent"
+                    border.color: menuItem.highlighted ? Colours.primary : Qt.alpha(Colours.primary, 0)
 
                     Behavior on border.color {
                         enabled: Motion.motionEnabled

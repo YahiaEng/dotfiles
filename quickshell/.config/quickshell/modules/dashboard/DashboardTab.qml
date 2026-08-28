@@ -949,7 +949,7 @@ Item {
                                 width: Math.min(parent.width, parent.height) - 4
                                 height: width
                                 radius: width / 2
-                                color: dayCell.isToday ? Colours.primary : "transparent"
+                                color: dayCell.isToday ? Colours.primary : Qt.alpha(Colours.primary, 0)
                                 Behavior on color {
                                     enabled: Motion.motionEnabled
                                     ColorAnimation {

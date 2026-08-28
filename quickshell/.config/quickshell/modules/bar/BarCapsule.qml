@@ -76,7 +76,7 @@ Rectangle {
     // 2px margin upstream, i.e. a 4px gap.
     property int contentGap: Design.barCellGap
 
-    color: !surfaced ? "transparent" : (hovered ? BarRoles.capsuleHover : BarRoles.capsule)
+    color: !surfaced ? Qt.alpha(BarRoles.capsule, 0) : (hovered ? BarRoles.capsuleHover : BarRoles.capsule)
     Behavior on color {
         enabled: Motion.motionEnabled
         ColorAnimation {

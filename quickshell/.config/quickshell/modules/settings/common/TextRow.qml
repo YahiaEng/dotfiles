@@ -90,7 +90,7 @@ Control {
         color: "transparent"
         radius: 12
         border.width: 2
-        border.color: (root.rowFocused || textField.activeFocus) ? Colours.primary : "transparent"
+        border.color: (root.rowFocused || textField.activeFocus) ? Colours.primary : Qt.alpha(Colours.primary, 0)
 
         Behavior on border.color {
             enabled: Motion.motionEnabled

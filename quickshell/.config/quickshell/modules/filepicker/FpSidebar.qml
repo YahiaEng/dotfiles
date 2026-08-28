@@ -131,7 +131,7 @@ Rectangle {
                 width: parent ? parent.width : 0
                 height: placeRow.implicitHeight + Design.spacingMd * 2
                 radius: height / 2
-                color: place.selected ? Colours.primaryContainer : (placeHover.containsMouse ? Colours.surface : "transparent")
+                color: place.selected ? Colours.primaryContainer : (placeHover.containsMouse ? Colours.surface : Qt.alpha(Colours.surface, 0))
 
                 Behavior on color {
                     enabled: Motion.motionEnabled

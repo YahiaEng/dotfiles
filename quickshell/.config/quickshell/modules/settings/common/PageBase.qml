@@ -92,7 +92,7 @@ Item {
                     radius: height / 2
                     color: "transparent"
                     border.width: 2
-                    border.color: (backHover.hovered) ? Colours.primary : "transparent"
+                    border.color: (backHover.hovered) ? Colours.primary : Qt.alpha(Colours.primary, 0)
 
                     Behavior on border.color {
                         enabled: Motion.motionEnabled

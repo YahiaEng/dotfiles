@@ -490,7 +490,7 @@ PanelWindow {
                             // the count capsule used, so the band still
                             // reads as this shell's established pill
                             // language rather than new chrome.
-                            color: tabButtonDelegate._current ? BarRoles.capsule : "transparent"
+                            color: tabButtonDelegate._current ? BarRoles.capsule : Qt.alpha(BarRoles.capsule, 0)
                             radius: height / 2
 
                             Behavior on color {

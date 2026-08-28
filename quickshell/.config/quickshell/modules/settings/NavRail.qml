@@ -144,7 +144,7 @@ Item {
                         // (label + description) at the settings scale, where
                         // it used to carry one at the shell scale.
                         height: 72
-                        color: isCurrentPage ? Colours.secondaryContainer : "transparent"
+                        color: isCurrentPage ? Colours.secondaryContainer : Qt.alpha(Colours.secondaryContainer, 0)
 
                         topLeftRadius: isCurrentPage ? 20 : (isCategoryStart ? 16 : 4)
                         topRightRadius: navItem.topLeftRadius
@@ -263,7 +263,7 @@ Item {
                         radius: 12
                         color: "transparent"
                         border.width: 2
-                        border.color: resultHover.containsMouse ? Colours.primary : "transparent"
+                        border.color: resultHover.containsMouse ? Colours.primary : Qt.alpha(Colours.primary, 0)
 
                         Behavior on border.color {
                             enabled: Motion.motionEnabled

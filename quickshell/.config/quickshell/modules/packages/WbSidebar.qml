@@ -114,7 +114,7 @@ Item {
                 width: root.width - Design.spacingSm * 2
                 height: 38
                 radius: 12
-                color: srcRow.active ? Colours.primaryContainer : (srcArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : "transparent")
+                color: srcRow.active ? Colours.primaryContainer : (srcArea.containsMouse ? Qt.alpha(Colours.onSurface, 0.06) : Qt.alpha(Colours.onSurface, 0))
 
                 Behavior on color {
                     enabled: Motion.motionEnabled
@@ -189,7 +189,7 @@ Item {
             height: 38
             radius: 12
             visible: root.backend.pendingCount > 0
-            color: root.backend.dbLocked ? "transparent" : (updateAllArea.containsMouse ? Qt.lighter(Colours.primary, 1.1) : Colours.primary)
+            color: root.backend.dbLocked ? Qt.alpha(Colours.primary, 0) : (updateAllArea.containsMouse ? Qt.lighter(Colours.primary, 1.1) : Colours.primary)
 
             Behavior on color {
                 enabled: Motion.motionEnabled
