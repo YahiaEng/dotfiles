@@ -163,11 +163,15 @@ register_hypr_leaf("fadeShadow", "fade_shadow")
 register_hypr_leaf("fadeDim", "fade_dim")
 
 -- ── Border ───────────────────────────────────────
-if tokens.motion.speed.ambient ~= nil and registered_curves["motion-linear"] then
+-- 260829-rhy: this reads its OWN indicator channel, not `ambient`. `ambient`
+-- is a loop period for continuous QML motion and is per-style now; the border
+-- leaf is a one-shot focus-change transition and must stay pinned, or every
+-- style with a different ambient breaks hypr-equivalence-check's baseline.
+if tokens.motion.speed.indicator_border_transition ~= nil and registered_curves["motion-linear"] then
     hl.animation({
         leaf = "border",
         enabled = true,
-        speed = tokens.motion.speed.ambient,
+        speed = tokens.motion.speed.indicator_border_transition,
         bezier = "motion-linear",
     })
 end

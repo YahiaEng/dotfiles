@@ -3,6 +3,11 @@
   "_comment_13_07_removal": "13-07 removed D-21's temporary A/B curve-comparison toggle (the top-level object that used to sit here, named 'curve' + '_sets') and D-11's marked non-MD3 'x-' prefixed easing extension (the five character curves this project's default vocabulary never adopted) — no D-22 retune ever adopted any of them, because the soak gate that would have produced a retune verdict was waived by explicit operator decision rather than passed (see 13-MOTION-SOAK-VERDICT.md). The six feel-changing Hyprland slots (windows-in/out/move, fade-in/out, workspaces) that used to read the removed per-slot curve variable now reference the toggle's former MD3-default mapping directly as literals in animations.conf. The shipped easing vocabulary below is pure MD3.",
   "_comment_260821_swp_reversal": "quick-260821-swp reinstates, as a genuine user-facing setting, the kind of per-style curve data plan 13-07 removed above as a measuring instrument — this time under a 'styles' table rather than a temporary A/B toggle, and never re-adopting the deleted 'x-' character easings by name. TOKEN-06's 'MD3 is better, spring is too fast' verdict was a tuning-parameter rejection, not a mechanism rejection (a future spring revisit was explicitly left open) — this task does not revisit springs, it revisits SHAPE via bezier-only per-style curves (R-1), so neither prior decision is being overturned, only the axis this repo exposes to the user.",
   "durations": {
+    "_comment_260829_micro": "quick task 260829-rhy. M3's own duration scale starts at short1 (50ms), which is coarser than a STAGGER OFFSET needs: with only 50/100/150 available, five styles cannot hold five distinct cascade rhythms. These four sit below short1 on the same naming convention and exist for the stagger-offset channel. 45 rather than 40 for the tightest: floor_ms IS 40 and every duration is clamped UP to it (`if $scaled < $floor then $floor else $scaled end`), so a 40ms token would be indistinguishable from the floor itself and would stop scaling under the accessibility multiplier. extra-long5 extends the other end for `ambient`, a LOOP PERIOD where 1000ms was previously the ceiling and every style sat on it.",
+    "micro1": 45,
+    "micro2": 60,
+    "micro3": 80,
+    "micro4": 100,
     "short1": 50,
     "short2": 100,
     "short3": 150,
@@ -18,7 +23,8 @@
     "extra-long1": 700,
     "extra-long2": 800,
     "extra-long3": 900,
-    "extra-long4": 1000
+    "extra-long4": 1000,
+    "extra-long5": 1200
   },
   "_comment_spatial_easings": "spatial-in/spatial-out/spatial-move (R-2) are the ONLY three easing names a style may ever push a control-point Y above 1.0 on — every other name below stays monotonic within [0,1] in every style, forever, so a fade or a colour can never be given overshoot by construction. Seeded here identical to emphasized-decelerate/emphasized-accelerate/standard so this task's Task 1 restructure moves nothing on screen; Task 2 gives each non-md3 style its own points for these three names only.",
   "_comment_multi_segment_easings": "An easing is normally FOUR numbers - one cubic's two control points, with the (1,1) endpoint appended at render time. `emphasized` is the exception: TEN numbers, which render to twelve, which is Qt's BezierSpline layout of SIX numbers per cubic SEGMENT (c1x,c1y,c2x,c2y,endX,endY) and therefore TWO segments. That is Material 3's real emphasized easing and it cannot be expressed as a single cubic. IT IS A QML-ONLY EASING BY NECESSITY: Hyprland's hl.curve takes exactly two control points, so lib/motion.sh SKIPS any easing that is not four numbers when registering Hyprland curves and when writing CSS cubic-bezier(), rather than truncating it into a plausible-looking wrong curve. No hypr_leaves entry in any style may name it - register_hypr_leaf would find no registered curve and would drop the leaf entirely.",
@@ -59,9 +65,11 @@
     "leaf-long4": { "duration": "long4", "easing": "standard" },
     "colour": { "duration": "short4", "easing": "effects" }
   },
+  "_comment_260829_border_transition": "quick task 260829-rhy. Hyprland's `border` leaf (the focus-change border colour transition) used to read `ambient` directly in animations.lua. That was a latent coupling smell — `ambient` is a LOOP PERIOD for continuous QML motion (breathing, pulsing), not a one-shot transition duration — and it became a real problem the moment `ambient` was made per-style: hypr-equivalence-check pins the border leaf at the baseline's 10.0ds, so every style with a different ambient failed the gate. Decoupled rather than waived. The border transition keeps the 1000ms the baseline pins and lives in `indicators`, which styles cannot override; `ambient` is now QML-only, which is what it was always for.",
   "indicators": {
     "blink-slow": { "duration_ms": 1000, "easing": "css-linear" },
     "blink-fast": { "duration_ms": 500, "easing": "css-linear" },
+    "border-transition": { "duration_ms": 1000, "easing": "linear" },
     "border-rotate": { "duration_ms": 10000, "easing": "linear" }
   },
   "_comment_accessibility": "The reduced-motion/animations-off axis, orthogonal to style (BRIEF: 'off'/'reduced' do NOT become styles). Same {multiplier, animations_enabled} shape the removed 'scales' table carried, so every reader below the resolution point (Motion.qml's ambientDuration divide-back-out logic, the gate's scaled-speed forgiveness) needs no rewrite. 'lively' (1.25x) has no home here — the multiplier axis is absorbed by per-style durations; a legacy 'lively' value migrates to style md3 + accessibility full (a deliberate, stated loss).",
@@ -94,11 +102,13 @@
       "_comment_260829_merge": "quick task 260829-grv: `smooth` was folded into this style and deleted. Measured cause: md3 and smooth were the ONLY two monotonic styles in the set (both peak exactly 1.000 — every other style overshoots), so they shared one whole personality niche and differed ONLY in tempo, md3 running 50-100ms faster on every single channel. That is a speed dial wearing two names, which is precisely what 260821-swp abolished when it replaced the motion-scale duration multiplier with style-as-personality. md3 is the survivor because it is MOTION_DEFAULT_STYLE, the fallback target for any invalid persisted value, and the reference the other styles' derived emphasized pairs are validated against. Operator's call was `keep md3's curves, take smooth's calmer timing`, so `easings` stays empty — these are still the untouched M3 spec curves, which keeps the emphasized derivation's validation anchor intact — and only the durations below moved to smooth's values. NOTE the Hyprland leaves follow for free: a leaf with no `speed_key` uses its own CURVE name as the speed name (register_hypr_leaf's documented default), so windows_in reads `spatial-in`'s 400ms here rather than needing a hypr_leaves block. That is why this style still overrides no leaves at all.",
       "easings": {},
       "semantic": {
+        "stagger-offset": { "duration": "short1", "easing": "standard" },
+        "ambient": { "duration": "extra-long4", "easing": "linear" },
         "standard": { "duration": "medium1", "easing": "standard" },
-        "standard-slow": { "duration": "long4", "easing": "standard" },
-        "emphasized-in": { "duration": "medium4", "easing": "emphasized-decelerate" },
-        "emphasized-out": { "duration": "short4", "easing": "emphasized-accelerate" },
-        "colour": { "duration": "medium2", "easing": "effects" },
+        "standard-slow": { "duration": "long2", "easing": "standard" },
+        "emphasized-in": { "duration": "medium3", "easing": "emphasized-decelerate" },
+        "emphasized-out": { "duration": "short3", "easing": "emphasized-accelerate" },
+        "colour": { "duration": "medium1", "easing": "effects" },
         "spatial-in": { "duration": "medium4", "easing": "spatial-in" },
         "spatial-out": { "duration": "short4", "easing": "spatial-out" },
         "spatial-move": { "duration": "medium1", "easing": "spatial-move" }
@@ -120,6 +130,8 @@
         "effects": [0.05, 0.5, 0.1, 1]
       },
       "semantic": {
+        "stagger-offset": { "duration": "micro1", "easing": "standard" },
+        "ambient": { "duration": "extra-long1", "easing": "linear" },
         "standard": { "duration": "short3", "easing": "standard" },
         "standard-slow": { "duration": "short4", "easing": "standard" },
         "emphasized-in": { "duration": "short4", "easing": "emphasized-decelerate" },
@@ -159,6 +171,8 @@
         "effects": [0.3, 0, 0.5, 1]
       },
       "semantic": {
+        "stagger-offset": { "duration": "micro3", "easing": "standard" },
+        "ambient": { "duration": "extra-long2", "easing": "linear" },
         "standard": { "duration": "short4", "easing": "standard" },
         "standard-slow": { "duration": "long2", "easing": "standard" },
         "emphasized-in": { "duration": "long1", "easing": "emphasized-decelerate" },
@@ -199,6 +213,8 @@
         "effects": [0.5, 0, 0.4, 1]
       },
       "semantic": {
+        "stagger-offset": { "duration": "micro4", "easing": "standard" },
+        "ambient": { "duration": "extra-long5", "easing": "linear" },
         "standard": { "duration": "medium2", "easing": "standard" },
         "standard-slow": { "duration": "extra-long1", "easing": "standard" },
         "emphasized-in": { "duration": "long3", "easing": "emphasized-decelerate" },
@@ -240,6 +256,8 @@
       "_comment_shell_durations": "Ported from the same tokens.hpp (AnimDurationTokens defaults): small 200, normal 400, large 600, extraLarge 1000, expressiveFastSpatial 350, expressiveDefaultSpatial 500, expressiveSlowSpatial 650, expressiveFastEffects 150, expressiveDefaultEffects 200, expressiveSlowEffects 300. Every one of those values already exists in this repo's durations table, so nothing was rounded or invented. Mapping: standard -> Anim.Standard (normal 400); standard-slow -> Anim.StandardLarge (large 600); emphasized-in/-out -> Caelestia's emphasizedDecel/emphasizedAccel tokens at normal 400 / small 200; spatial-in and spatial-move -> expressiveDefaultSpatial 500; spatial-out -> expressiveFastSpatial 350. 'ambient' is left at base because base ALREADY equals Caelestia's extraLarge 1000, and 'stagger-offset' is left at base because Caelestia has no counterpart for it.",
       "_comment_shell_fully_ported": "The two tokens an earlier revision could not carry are now BOTH ported, after the operator ruled that expanding this repo's motion language beats dropping Caelestia values. (1) `emphasized` is Caelestia's real MD3 two-segment spline and is what emphasized-in/-out now use, at Anim.Emphasized's normal 400 / small 200 - Caelestia drives BOTH directions from that one curve rather than from a decel/accel pair, so pointing both at it is the faithful reading. It is QML-only of necessity; see _comment_multi_segment_easings at the top of this file. (2) `colour` is a dedicated colour/effects channel carrying Caelestia's CAnim token, expressiveSlowEffects at 300ms - every ColorAnimation and colour Behavior in the shell binds it now instead of the generic `standard` pair. quick-260821-swp had rejected such a channel as 90 retargets and default-unsafe, and the SAFETY half of that objection is answered structurally rather than by promise: `colour` and its `effects` easing sit on the permanently-monotonic side of the R-2 split, so a colour still cannot overshoot in any style - which matters more than for opacity, because an overshooting colour interpolation extrapolates PAST the target where opacity would clamp.",
       "semantic": {
+        "stagger-offset": { "duration": "micro2", "easing": "standard" },
+        "ambient": { "duration": "extra-long3", "easing": "linear" },
         "standard": { "duration": "medium4", "easing": "standard" },
         "standard-slow": { "duration": "long4", "easing": "standard" },
         "emphasized-in": { "duration": "medium4", "easing": "emphasized" },
