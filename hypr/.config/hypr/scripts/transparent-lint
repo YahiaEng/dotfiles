@@ -1,0 +1,503 @@
+#!/usr/bin/env bash
+# ╔══════════════════════════════════════════════════════╗
+# ║               TRANSPARENT-LINT (260828-ah9)             ║
+# ║  Deny-by-default animated-transparent-literal gate for  ║
+# ║  the whole quickshell surface. Report-only — never       ║
+# ║  mutates any file. Exits nonzero if ANY animated         ║
+# ║  color/border.color branch uses the literal              ║
+# ║  `"transparent"`.                                        ║
+# ╚══════════════════════════════════════════════════════╝
+#
+# WHY THIS EXISTS (operator round 5, item 1/3): `"transparent"` in QML is
+# `#00000000` — black at zero alpha, not "no colour." A `ColorAnimation`
+# from `"transparent"` to `Colours.primary` (or any other role) therefore
+# interpolates THROUGH dark tones on the way to the real hue — a visible
+# dark smear, reported as a "flash," on every rest<->hover/focus/press
+# transition that used the literal. This was shell-wide: 27 real sites
+# across 24 files, plus a 28th (`packages/WbButton.qml`) this gate's own
+# author found only by re-scanning the whole tree by hand — proof this
+# class recurs exactly the way `button-lint`'s own header describes for
+# hand-rolled buttons, and needs the same structural gate rather than a
+# one-time sweep. `colour-lint`'s own CHECK B4 explicitly treats
+# `"transparent"` as an ALLOWED literal (a real, correct value for a
+# genuinely non-animated property) — this gate does not relitigate that;
+# it adds the one fact colour-lint cannot see: whether that SAME property
+# is also animated by a sibling `Behavior` in the same block.
+#
+# THE RULE — within the same QML block (Rectangle/Item/Control/etc, direct
+# children only, mirrors button-lint's own direct-child discipline), a
+# property assignment for `color:` or `border.color:` is flagged when
+# BOTH hold:
+#   1. Its own value text (the assignment through to the next sibling
+#      property line — covers both a single-line ternary AND a multi-line
+#      JS function body, e.g. `color: { if (...) return "transparent"; }`)
+#      contains the literal `"transparent"` AND a conditional marker (`?`
+#      or `if`) — a bare, unconditional `color: "transparent"` with no
+#      branching logic never actually re-evaluates, so it is not flagged
+#      even if a sibling Behavior happens to exist on the same property.
+#   2. That SAME block has a direct-child `Behavior on color` (for a
+#      `color:` hit) or `Behavior on border.color` (for a `border.color:`
+#      hit) — matched PER PROPERTY, not "any Behavior within N lines": a
+#      block with `Behavior on border.color` but a plain, non-conditional
+#      `color: "transparent"` base fill (every settings row's own prior
+#      shape) is correctly NOT flagged, since the animated property and
+#      the transparent-literal property differ.
+#
+# Fix shape this gate expects in place of the literal: `Qt.alpha(<hue>, 0)`
+# — same zero alpha, correct hue, so the animation crosses
+# fading-out-the-real-colour to fading-in-the-real-colour instead of
+# through black. See the round 5 SUMMARY for the full site-by-site list.
+#
+# Usage:
+#   transparent-lint [target-dir]
+#       No argument: scans the real deployed quickshell surface set
+#       ($HOME/.config/quickshell), same root colour-lint/motion-lint use.
+#       With an argument: treats target-dir as the SOLE root — same code
+#       path serves a throwaway/poisoned fixture directory as serves the
+#       real tree (button-lint precedent: "a gate that cannot fail is not
+#       a gate").
+#
+#   transparent-lint --self-test
+#       Runs this script against each of the committed fixtures under
+#       tests/transparent-fixtures/ (one at a time, in isolation) and
+#       asserts the expected verdict: compliant fixtures exit 0, poisoned
+#       fixtures exit non-zero.
+#
+# Never runs theme-apply, never edits anything — pure read-only analysis.
+
+set -uo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)"
+FIXTURES_DIR="$SCRIPT_DIR/tests/transparent-fixtures"
+DEFAULT_TARGET="$HOME/.config/quickshell"
+
+PASS=0
+FAIL=0
+
+check() {
+    local desc="$1"
+    local ok="$2"
+    if [[ "$ok" == "0" ]]; then
+        printf '  [PASS] %s\n' "$desc"
+        PASS=$((PASS + 1))
+    else
+        printf '  [FAIL] %s\n' "$desc"
+        FAIL=$((FAIL + 1))
+    fi
+}
+
+_transparent_lint_checks() {
+    python3 - "$FIXTURES_DIR" "${ROOTS[@]}" <<'PYEOF'
+import os
+import re
+import sys
+
+fixtures_dir = os.path.realpath(sys.argv[1])
+roots = sys.argv[2:]
+
+results = []  # (tag, status, detail)
+
+
+def emit(tag, status, detail):
+    results.append((tag, status, detail))
+
+
+def dump():
+    for tag, status, detail in results:
+        print(f'{tag}\t{status}\t{detail}')
+
+
+# ── Comment strippers — verbatim from colour-lint/button-lint. ──────────
+def strip_block_comments(text):
+    out = []
+    i = 0
+    n = len(text)
+    while i < n:
+        if text[i] == '/' and i + 1 < n and text[i + 1] == '*':
+            j = text.find('*/', i + 2)
+            end = n if j == -1 else j + 2
+            for ch in text[i:end]:
+                out.append('\n' if ch == '\n' else ' ')
+            i = end
+        else:
+            out.append(text[i])
+            i += 1
+    return ''.join(out)
+
+
+def strip_qml_comments(text):
+    text = strip_block_comments(text)
+    lines = text.split('\n')
+    out = []
+    for line in lines:
+        in_string = None
+        cut = -1
+        i = 0
+        n = len(line)
+        while i < n:
+            ch = line[i]
+            if in_string:
+                if ch == '\\' and i + 1 < n:
+                    i += 2
+                    continue
+                if ch == in_string:
+                    in_string = None
+            elif ch in ('"', "'"):
+                in_string = ch
+            elif ch == '/' and i + 1 < n and line[i + 1] == '/':
+                cut = i
+                break
+            i += 1
+        out.append(line[:cut] if cut != -1 else line)
+    return '\n'.join(out)
+
+
+def brace_delta(line):
+    delta = 0
+    in_string = None
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if in_string:
+            if ch == '\\' and i + 1 < n:
+                i += 2
+                continue
+            if ch == in_string:
+                in_string = None
+        elif ch in ('"', "'"):
+            in_string = ch
+        elif ch == '{':
+            delta += 1
+        elif ch == '}':
+            delta -= 1
+        i += 1
+    return delta
+
+
+# A component-open line: optional `propName:` prefix, then a `Type`
+# (dotted identifiers allowed), then `{` alone to end of line — same as
+# button-lint's own BLOCK_OPEN_RE.
+BLOCK_OPEN_RE = re.compile(
+    r'^\s*(?:[A-Za-z_][A-Za-z0-9_]*\s*:\s*)?([A-Za-z_][A-Za-z0-9_.]*)\s*\{\s*$'
+)
+# `Behavior on <property> {` — the one shape BLOCK_OPEN_RE cannot match
+# (no `propName:` prefix precedes `Behavior`, and `on <property>` sits
+# between the type name and the brace). Captured separately so a
+# `Behavior on color` block is distinguishable from a `Behavior on
+# border.color` block — this gate must match the ANIMATED property
+# exactly, not merely "any Behavior in this block."
+BEHAVIOR_OPEN_RE = re.compile(
+    r'^\s*Behavior\s+on\s+([A-Za-z_][A-Za-z0-9_.]*)\s*\{\s*$'
+)
+# A top-level property-assignment line: `name: value...`. Deliberately
+# anchored at line start (after whitespace) so a JS statement inside a
+# function body (`return x ? y : z;`, `if (cond)`) never matches — none of
+# those put an identifier immediately before a `:` at the start of the
+# line, which is exactly what lets a multi-line `color: { ... }` JS
+# function body be collected as ONE property span below rather than
+# splitting on every internal line.
+PROP_LINE_RE = re.compile(r'^\s*([A-Za-z_][A-Za-z0-9_.]*)\s*:\s*(.*)$')
+TRANSPARENT_RE = re.compile(r'"transparent"')
+CONDITIONAL_RE = re.compile(r'\?|(?:^|[^A-Za-z0-9_])if\s*\(')
+
+
+class Block:
+    __slots__ = ('type', 'start', 'end', 'parent', 'children')
+
+    def __init__(self, btype, start, parent):
+        self.type = btype
+        self.start = start
+        self.end = None
+        self.parent = parent
+        self.children = []
+
+
+def parse_blocks(lines):
+    """Same running-depth-stack construction as button-lint's own
+    parse_blocks — a block's parent is whatever was on top of the stack
+    the moment it opened, a true direct-child relationship independent of
+    any non-component brace nesting (function bodies, inline JS object/
+    array literals) in between. `Behavior on X {` blocks are recognized
+    here too (via BEHAVIOR_OPEN_RE), tagged with type `Behavior:X` so a
+    parent's `.children` lets this gate match the ANIMATED property
+    exactly."""
+    depth = 0
+    stack = []  # list of (Block, open_depth)
+    top_level = []
+    for i, line in enumerate(lines):
+        bm = BEHAVIOR_OPEN_RE.match(line)
+        if bm:
+            blk = Block(f'Behavior:{bm.group(1)}', i, stack[-1][0] if stack else None)
+            if stack:
+                stack[-1][0].children.append(blk)
+            else:
+                top_level.append(blk)
+            stack.append((blk, depth))
+        else:
+            m = BLOCK_OPEN_RE.match(line)
+            if m:
+                blk = Block(m.group(1), i, stack[-1][0] if stack else None)
+                if stack:
+                    stack[-1][0].children.append(blk)
+                else:
+                    top_level.append(blk)
+                stack.append((blk, depth))
+        depth += brace_delta(line)
+        while stack and stack[-1][1] == depth:
+            blk, _ = stack.pop()
+            blk.end = i
+    return top_level
+
+
+def iter_all(blocks):
+    for b in blocks:
+        yield b
+        yield from iter_all(b.children)
+
+
+def own_line_indices(block, lines_len):
+    """Lines belonging to `block` but not to any nested recognized child
+    block. A JS function body (`color: { ... }`) is NOT itself a
+    recognized block (no type name follows `color:` before `{`), so its
+    internal if/return lines stay as OWN lines of the enclosing block —
+    exactly what lets the property-span walk below treat the whole
+    function body as one `color:` span."""
+    covered = set()
+    for c in block.children:
+        end = c.end if c.end is not None else block.end
+        covered.update(range(c.start, end + 1))
+    lo = block.start + 1
+    hi = block.end if block.end is not None else lines_len
+    return [j for j in range(lo, hi) if j not in covered]
+
+
+def find_property_spans(block, lines):
+    """Within block's own (unnested) lines, group into spans per top-level
+    property name — a span runs from a `name: value` OWN line up to (but
+    not including) the next OWN line that itself starts a new top-level
+    property assignment. Covers both a single-line ternary and a
+    multi-line JS function body under the same property name.
+
+    Each span is the explicit LIST of own-line indices it covers — NOT a
+    (start, end) range for a contiguous `lines[start:end+1]` slice. A
+    contiguous slice would silently re-include any NESTED child block's
+    lines that fall between two own-lines (e.g. a sibling `Rectangle`
+    with its own unrelated `color: "transparent"`, excluded from `own`
+    but still physically between two of this span's own-lines) — exactly
+    the false positive this gate hit on `IconMode.qml`'s icon tile during
+    its own self-test hardening (round 5): the nested border-ring
+    Rectangle's `color: "transparent"` leaked into the OUTER tile's
+    `color:` span text purely because both landed inside one raw line
+    range, despite `own_line_indices` correctly excluding the nested
+    block's lines from `own` itself."""
+    own = own_line_indices(block, len(lines))
+    spans = {}  # prop_name -> list of [own_line_idx, own_line_idx, ...]
+    i = 0
+    n = len(own)
+    while i < n:
+        m = PROP_LINE_RE.match(lines[own[i]])
+        if m:
+            prop = m.group(1)
+            start = i
+            j = i + 1
+            while j < n and not PROP_LINE_RE.match(lines[own[j]]):
+                j += 1
+            spans.setdefault(prop, []).append(own[start:j])
+            i = j
+        else:
+            i += 1
+    return spans
+
+
+lines_global = []
+
+
+def check_transparent_surface(path):
+    global lines_global
+    try:
+        raw = open(path, encoding='utf-8').read()
+    except OSError as exc:
+        emit('ABORT', 'FAIL',
+             f'{path}: unreadable ({exc}) — aborting scan, remaining '
+             'surfaces not checked this run')
+        return False
+    body = strip_qml_comments(raw)
+    lines = body.split('\n')
+    lines_global = lines
+    top_level = parse_blocks(lines)
+
+    hits = []
+    for blk in iter_all(top_level):
+        if blk.end is None or blk.type.startswith('Behavior:'):
+            continue
+        spans = find_property_spans(blk, lines)
+        for prop in ('color', 'border.color'):
+            for own_idxs in spans.get(prop, []):
+                span_text = '\n'.join(lines[j] for j in own_idxs)
+                if not TRANSPARENT_RE.search(span_text):
+                    continue
+                if not CONDITIONAL_RE.search(span_text):
+                    continue
+                behavior_prop = prop
+                has_behavior = any(
+                    c.type == f'Behavior:{behavior_prop}' for c in blk.children
+                )
+                if has_behavior:
+                    hits.append((own_idxs[0] + 1, prop))
+
+    if hits:
+        for line_no, prop in hits:
+            emit('TR', 'FAIL',
+                 f'{path}:{line_no} animated `{prop}` branch uses the '
+                 'literal "transparent" (black at zero alpha) alongside a '
+                 f'`Behavior on {prop}` in the same block — replace with '
+                 '`Qt.alpha(<the hue this branch fades to/from>, 0)` so the '
+                 'transition keeps the correct hue instead of smearing '
+                 'through black.')
+    else:
+        emit('TR', 'PASS', f'{path}: no animated transparent-literal branch')
+    return True
+
+
+def collect_qml_files(roots):
+    files = []
+    for root in roots:
+        if not os.path.isdir(root):
+            continue
+        for dirpath, _dirnames, filenames in os.walk(root, followlinks=True):
+            for fn in filenames:
+                if not fn.endswith('.qml'):
+                    continue
+                full = os.path.join(dirpath, fn)
+                if exclude_fixtures and under_fixtures_dir(full):
+                    continue
+                files.append(full)
+    return files
+
+
+exclude_fixtures = not any(
+    os.path.realpath(r) == fixtures_dir or os.path.realpath(r).startswith(fixtures_dir + os.sep)
+    for r in roots
+)
+
+
+def under_fixtures_dir(path):
+    real = os.path.realpath(path)
+    return real == fixtures_dir or real.startswith(fixtures_dir + os.sep)
+
+
+qml_files = sorted(collect_qml_files(roots))
+total_scanned = len(qml_files)
+roots_desc = ', '.join(roots) if roots else '(no roots)'
+
+if total_scanned == 0:
+    emit('C', 'FAIL', f'transparent-lint scanned 0 surfaces under {roots_desc}; check the root path(s).')
+else:
+    emit('C', 'PASS', f'transparent-lint scanned {total_scanned} surface(s) under {roots_desc}')
+
+for path in qml_files:
+    if not check_transparent_surface(path):
+        break
+
+dump()
+PYEOF
+}
+
+run_self_test() {
+    local -a fixtures=(
+        "compliant-qtalpha-qml.qml:0"
+        "compliant-nonanimated-transparent-qml.qml:0"
+        "poisoned-ternary-qml.qml:1"
+        "poisoned-jsfunction-qml.qml:1"
+    )
+    local st_pass=0 st_fail=0
+    local entry fname expect_nonzero src tmp out rc want_desc
+
+    echo "transparent-lint --self-test — replaying the committed fixtures"
+    echo ""
+
+    for entry in "${fixtures[@]}"; do
+        fname="${entry%%:*}"
+        expect_nonzero="${entry##*:}"
+        src="$FIXTURES_DIR/$fname"
+
+        if [[ ! -f "$src" ]]; then
+            printf '  [FAIL] self-test: fixture missing: %s\n' "$src"
+            st_fail=$((st_fail + 1))
+            continue
+        fi
+
+        tmp="$(mktemp -d)"
+        cp -- "$src" "$tmp/$fname"
+        out="$("$0" "$tmp" 2>&1)"
+        rc=$?
+        rm -rf -- "$tmp"
+
+        if [[ "$expect_nonzero" == "0" ]]; then
+            want_desc="exit 0 (compliant)"
+        else
+            want_desc="a non-zero exit (poisoned)"
+        fi
+
+        if [[ "$expect_nonzero" == "0" && "$rc" -eq 0 ]] || [[ "$expect_nonzero" == "1" && "$rc" -ne 0 ]]; then
+            printf '  [PASS] self-test: %s -> %s as expected\n' "$fname" "$want_desc"
+            st_pass=$((st_pass + 1))
+        else
+            printf '  [FAIL] self-test: %s -> exited %d, expected %s\n' "$fname" "$rc" "$want_desc"
+            printf '         output:\n%s\n' "$(printf '%s\n' "$out" | sed 's/^/           /')"
+            st_fail=$((st_fail + 1))
+        fi
+    done
+
+    echo ""
+    printf 'Self-test summary: %d passed, %d failed\n' "$st_pass" "$st_fail"
+    [[ "$st_fail" -eq 0 ]]
+}
+
+if [[ "${1:-}" == "--self-test" ]]; then
+    run_self_test
+    exit $?
+fi
+
+TARGET_DIR="${1:-}"
+
+if [[ -n "$TARGET_DIR" ]]; then
+    ROOTS=("$TARGET_DIR")
+else
+    ROOTS=("$DEFAULT_TARGET")
+fi
+
+echo "transparent-lint — animated-transparent-literal deny-by-default gate"
+if [[ -n "$TARGET_DIR" ]]; then
+    echo "  target: $TARGET_DIR"
+else
+    echo "  target: real deployed quickshell surface set"
+fi
+echo ""
+
+while IFS=$'\t' read -r tag status detail; do
+    [[ -z "$tag" ]] && continue
+    case "$tag" in
+        ABORT)
+            check "$detail" "1"
+            ;;
+        *)
+            case "$status" in
+                PASS) check "CHECK $tag: $detail" "0" ;;
+                FAIL) check "CHECK $tag: $detail" "1" ;;
+            esac
+            ;;
+    esac
+done < <(_transparent_lint_checks)
+
+if [[ "$FAIL" -eq 1 ]]; then
+    FAIL_WORD="check failed"
+else
+    FAIL_WORD="checks failed"
+fi
+
+echo ""
+printf 'Summary: %d passed, %d %s\n' "$PASS" "$FAIL" "$FAIL_WORD"
+[[ "$FAIL" -eq 0 ]]
+exit $?
