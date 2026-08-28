@@ -55,6 +55,16 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# makepkg OPTIONS with `debug` turned off, derived from the SYSTEM config
+# rather than hardcoded — if Arch changes its defaults, this follows them
+# and only flips the one option we care about. See the AUR install call in
+# section_core_rice for why.
+MAKEPKG_OPTIONS_NODEBUG="$(
+    { grep -E '^OPTIONS=' /etc/makepkg.conf 2>/dev/null || echo 'OPTIONS=(strip docs !libtool !staticlibs emptydirs zipman purge lto)'; } \
+    | head -1 | sed -E 's/^OPTIONS=\(//; s/\)$//' \
+    | sed -E 's/(^| )!?debug( |$)/\1!debug\2/'
+)"
+
 # ── Official repo packages (core — always installed) ─
 PACMAN_PKGS=(
     # Hyprland ecosystem
@@ -669,7 +679,36 @@ section_core_rice() {
 
     echo ""
     echo "Installing AUR packages..."
-    $AUR_HELPER -Sy --needed --noconfirm "${AUR_PKGS[@]}"
+    # ── Disable makepkg's `debug` option for these builds (2026-08-27) ──
+    # Arch ships `debug` in /etc/makepkg.conf's OPTIONS by default, which
+    # makes makepkg copy every SOURCE FILE into /usr/src/debug/ after
+    # package(). For a compiled package that is useful. For an icon theme
+    # it is pure waste: tela-icon-theme has no binaries and therefore no
+    # debug symbols at all, yet the copy still grinds through its whole
+    # tree — MEASURED on this host at a 1.3 GB build directory, and the
+    # operator reported install.sh appearing to hang at exactly that step
+    # ("Copying source files needed for debug symbols...").
+    #
+    # AUR_PKGS_HOST's own comment already measures tela-icon-theme at
+    # 21min and colloid-icon-theme-git at 22min — 43 of a ~62-minute
+    # install. This removes the debug half of that cost.
+    #
+    # Scoped to THIS invocation via a generated config, deliberately NOT
+    # written to ~/.makepkg.conf: that file would silently change every
+    # future AUR build the operator ever runs, which is well outside what
+    # a dotfiles installer should own. makepkg reads --config as a full
+    # replacement, so it is sourced from the system file and only OPTIONS
+    # is overridden.
+    local MAKEPKG_CONF
+    MAKEPKG_CONF="$(mktemp -t makepkg-nodebug.XXXXXX.conf)"
+    {
+        cat /etc/makepkg.conf
+        echo ""
+        echo "# Appended by install.sh — see the comment at this call site."
+        echo "OPTIONS=(${MAKEPKG_OPTIONS_NODEBUG})"
+    } > "$MAKEPKG_CONF"
+    $AUR_HELPER -Sy --needed --noconfirm --mflags "--config $MAKEPKG_CONF" "${AUR_PKGS[@]}"
+    rm -f "$MAKEPKG_CONF"
 
     echo ""
     echo "Removing unused packages and clearing cache..."
