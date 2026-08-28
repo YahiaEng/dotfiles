@@ -43,6 +43,107 @@ source "$LIB_DIR/font.sh"
 # shellcheck source=lib/motion.sh
 source "$LIB_DIR/motion.sh"
 
+# ROLE-01: derived-role fractions for the M3 tonal-surface ladder.
+#
+# Every number below was SOLVED, not chosen: each ladder role was expressed as
+# a per-channel linear blend of `surface` toward `on_surface` and the scalar
+# fitted across 3 unrelated matugen source colours x 2 modes. Channel spread
+# came out mostly under 0.007, i.e. the relationship really is one scalar per
+# role. Reconstructing matugen's own output from these fractions lands within
+# 9/255 worst-case, under 4/255 typically — the residual is because matugen
+# blends in HCT (chroma-preserving) while this is an sRGB blend, worst on warm
+# light palettes. That is fine here: this path only ever runs for hand-authored
+# static presets, which have no matugen ground truth to be wrong against.
+#
+# outline_variant is the same shape against a different pair: a blend of
+# `outline` toward `surface` at t≈0.60 (measured range 0.590–0.613).
+# scrim and shadow measured as #000000 in every mode of every palette.
+#
+# theme_engine_augment_palette <name> <palette_json> <tmp_dir>
+# Echoes the path of an augmented palette carrying the derived roles. On any
+# failure it echoes the ORIGINAL palette path and returns 0 — a preset that
+# cannot be augmented must still render exactly as it does today rather than
+# failing the whole theme switch (same best-effort discipline as mode.sh).
+theme_engine_augment_palette() {
+    local name="$1" palette="$2" tmp="$3"
+
+    if ! command -v python3 >/dev/null 2>&1; then
+        printf '%s\n' "$palette"
+        return 0
+    fi
+
+    local mode out
+    mode="$(theme_engine_detect_mode "$name")"
+    out="$tmp/augmented-palette.json"
+    mkdir -p "$tmp"
+
+    if python3 - "$palette" "$mode" "$out" <<'PYEOF' 2>>"$GENERATE_LOG"
+import json, sys
+
+src, mode, dst = sys.argv[1], sys.argv[2], sys.argv[3]
+
+# t = fraction of the way from surface to on_surface, per M3 role.
+LADDER = {
+    "dark":  {"surface_container_lowest": -0.0274, "surface_container_low": 0.0392,
+              "surface_container": 0.0591, "surface_container_high": 0.1084,
+              "surface_container_highest": 0.1605, "surface_dim": 0.0,
+              "surface_bright": 0.1819},
+    "light": {"surface_container_lowest": -0.0271, "surface_container_low": 0.0255,
+              "surface_container": 0.0521, "surface_container_high": 0.0771,
+              "surface_container_highest": 0.1032, "surface_dim": 0.1422,
+              "surface_bright": 0.0},
+}
+OUTLINE_VARIANT_T = 0.60
+
+def read(colors, key):
+    try:
+        return colors[key]["default"]["color"]
+    except (KeyError, TypeError):
+        return None
+
+def to_rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+def blend(a, b, t):
+    return "#%02x%02x%02x" % tuple(
+        max(0, min(255, round(x + t * (y - x)))) for x, y in zip(a, b)
+    )
+
+data = json.load(open(src))
+colors = data.get("colors", {})
+
+surface = read(colors, "surface")
+on_surface = read(colors, "on_surface")
+outline = read(colors, "outline")
+if not (surface and on_surface):
+    raise SystemExit("augment: palette missing surface/on_surface")
+
+s, o = to_rgb(surface), to_rgb(on_surface)
+
+derived = {}
+for role, t in LADDER[mode if mode in LADDER else "dark"].items():
+    derived[role] = blend(s, o, t)
+if outline:
+    derived["outline_variant"] = blend(to_rgb(outline), s, OUTLINE_VARIANT_T)
+derived["scrim"] = "#000000"
+derived["shadow"] = "#000000"
+
+# Never overwrite a role the preset author supplied explicitly.
+for role, value in derived.items():
+    colors.setdefault(role, {"default": {"color": value}})
+
+data["colors"] = colors
+json.dump(data, open(dst, "w"), indent=2)
+PYEOF
+    then
+        printf '%s\n' "$out"
+    else
+        printf '%s\n' "$palette"
+    fi
+    return 0
+}
+
 # theme_engine_generate <name> <tmp_dir>
 # name: "materialyou" or a validated static preset name (theme-apply already
 #       checked palettes/$name.json exists before calling this).
@@ -78,11 +179,23 @@ theme_engine_generate() {
     else
         local palette="$PALETTES_DIR/$name.json"
 
+        # ROLE-01: static presets carry 24 hand-authored colour keys and have
+        # no M3 tonal-surface ladder. matugen does NOT synthesize the missing
+        # roles from a partial palette — probed role-by-role against
+        # catppuccin.json with `surface` as a positive control, every ladder
+        # role answers "Value does not exist in the context". So the roles are
+        # derived here and handed to matugen as an augmented palette, keeping
+        # the preset files hand-authored at 24 keys and giving any future
+        # preset the new roles for free. The dynamic branch above needs none
+        # of this — matugen computes the full set from the image itself.
+        local augmented
+        augmented="$(theme_engine_augment_palette "$name" "$palette" "$tmp")" || return 1
+
         # RESEARCH Pitfall 1: matugen's -m flag is a verified no-op when
         # every color key already has a literal hex value — never add it
         # here. Mode for static presets is a wholly separate computation
         # (theme_engine_detect_mode), decoupled from matugen entirely.
-        if ! matugen json "$palette" -c "$MATUGEN_CFG" -p "$tmp" 2>"$GENERATE_LOG"; then
+        if ! matugen json "$augmented" -c "$MATUGEN_CFG" -p "$tmp" 2>"$GENERATE_LOG"; then
             return 1
         fi
     fi

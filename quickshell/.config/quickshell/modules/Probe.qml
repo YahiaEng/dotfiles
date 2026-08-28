@@ -7,7 +7,7 @@
 // instrument, never a shipped surface.
 //
 // Content, top to bottom (12-UI-SPEC.md "Token Inspector — Surface
-// Contract"): header banner, Colour Roles grid (19 roles — see the
+// Contract"): header banner, Colour Roles grid (33 roles — see the
 // Colours.qml "17 vs 19" note below), Motion — Semantic Pairs, Replay,
 // then Phase 11's four original instruments UNCHANGED underneath (counter
 // button, text field, hand-edited JSON state label, screen label) — this

@@ -2,9 +2,9 @@
 // Center's severity ramp, and the one place allowed to define it.
 //
 // ── WHY THIS FILE EXISTS ───────────────────────────────────────────────
-// `Colours.qml` exposes 19 roles (measured 260827-np1): primary,
-// secondary, tertiary, surface, surfaceVariant, background, outline,
-// error and their `on*` counterparts. There is no `warning`, no
+// `Colours.qml` exposes 33 roles (19 when measured in 260827-np1; the
+// M3 tonal-surface ladder, outlineVariant, scrim and shadow were added by
+// quick task 260828-u0r). Still no `warning`, no
 // `success`, and no ramp. A CVE list needs four steps and a scanner
 // verdict needs two more, so severity has to be DERIVED — and derived in
 // exactly one place, because a ramp scattered across five call sites

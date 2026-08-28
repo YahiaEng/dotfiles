@@ -102,11 +102,27 @@ Singleton {
             property string secondary: "#FF00FF"
             property string secondaryContainer: "#FF00FF"
             property string tertiary: "#FF00FF"
+            property string tertiaryContainer: "#FF00FF"
             property string surface: "#FF00FF"
             property string surfaceVariant: "#FF00FF"
+            // ROLE-01: the M3 tonal-surface ladder. Emitted for BOTH branches
+            // — matugen computes it natively for the wallpaper branch, and
+            // lib/generate.sh derives it for static presets before matugen
+            // sees them, so the two modes carry an identical role set.
+            property string surfaceContainerLowest: "#FF00FF"
+            property string surfaceContainerLow: "#FF00FF"
+            property string surfaceContainer: "#FF00FF"
+            property string surfaceContainerHigh: "#FF00FF"
+            property string surfaceContainerHighest: "#FF00FF"
+            property string surfaceDim: "#FF00FF"
+            property string surfaceBright: "#FF00FF"
             property string background: "#FF00FF"
             property string outline: "#FF00FF"
+            property string outlineVariant: "#FF00FF"
             property string error: "#FF00FF"
+            property string errorContainer: "#FF00FF"
+            property string scrim: "#FF00FF"
+            property string shadow: "#FF00FF"
         }
     }
 
@@ -133,14 +149,17 @@ Singleton {
             property string onSecondary: "#FF00FF"
             property string onSecondaryContainer: "#FF00FF"
             property string onTertiary: "#FF00FF"
+            property string onTertiaryContainer: "#FF00FF"
             property string onSurface: "#FF00FF"
             property string onSurfaceVariant: "#FF00FF"
             property string onBackground: "#FF00FF"
             property string onError: "#FF00FF"
+            property string onErrorContainer: "#FF00FF"
         }
     }
 
-    // One readonly alias per role (D-11's 19-key QML palette contract) so
+    // One readonly alias per role (D-11's QML palette contract, grown from 19
+    // to 33 keys by quick task 260828-u0r) so
     // consumers write `Colours.primary` — never reach into `base`/`onRoles`
     // directly. Both an X and its onX alias coexist here safely (verified):
     // the compiler bug above is specific to the underlying STORAGE object,
@@ -155,15 +174,29 @@ Singleton {
     readonly property alias onSecondaryContainer: onRoles.onSecondaryContainer
     readonly property alias tertiary: base.tertiary
     readonly property alias onTertiary: onRoles.onTertiary
+    readonly property alias tertiaryContainer: base.tertiaryContainer
+    readonly property alias onTertiaryContainer: onRoles.onTertiaryContainer
     readonly property alias surface: base.surface
     readonly property alias onSurface: onRoles.onSurface
     readonly property alias surfaceVariant: base.surfaceVariant
     readonly property alias onSurfaceVariant: onRoles.onSurfaceVariant
+    readonly property alias surfaceContainerLowest: base.surfaceContainerLowest
+    readonly property alias surfaceContainerLow: base.surfaceContainerLow
+    readonly property alias surfaceContainer: base.surfaceContainer
+    readonly property alias surfaceContainerHigh: base.surfaceContainerHigh
+    readonly property alias surfaceContainerHighest: base.surfaceContainerHighest
+    readonly property alias surfaceDim: base.surfaceDim
+    readonly property alias surfaceBright: base.surfaceBright
     readonly property alias background: base.background
     readonly property alias onBackground: onRoles.onBackground
     readonly property alias outline: base.outline
+    readonly property alias outlineVariant: base.outlineVariant
     readonly property alias error: base.error
     readonly property alias onError: onRoles.onError
+    readonly property alias errorContainer: base.errorContainer
+    readonly property alias onErrorContainer: onRoles.onErrorContainer
+    readonly property alias scrim: base.scrim
+    readonly property alias shadow: base.shadow
 
     // Ordered {name, hex} list for the token inspector's swatch repeater
     // (D-15) — the ONE definition of "every colour role", never
@@ -180,14 +213,28 @@ Singleton {
         { name: "onSecondaryContainer", hex: onSecondaryContainer },
         { name: "tertiary", hex: tertiary },
         { name: "onTertiary", hex: onTertiary },
+        { name: "tertiaryContainer", hex: tertiaryContainer },
+        { name: "onTertiaryContainer", hex: onTertiaryContainer },
         { name: "surface", hex: surface },
         { name: "onSurface", hex: onSurface },
         { name: "surfaceVariant", hex: surfaceVariant },
         { name: "onSurfaceVariant", hex: onSurfaceVariant },
+        { name: "surfaceContainerLowest", hex: surfaceContainerLowest },
+        { name: "surfaceContainerLow", hex: surfaceContainerLow },
+        { name: "surfaceContainer", hex: surfaceContainer },
+        { name: "surfaceContainerHigh", hex: surfaceContainerHigh },
+        { name: "surfaceContainerHighest", hex: surfaceContainerHighest },
+        { name: "surfaceDim", hex: surfaceDim },
+        { name: "surfaceBright", hex: surfaceBright },
         { name: "background", hex: background },
         { name: "onBackground", hex: onBackground },
         { name: "outline", hex: outline },
+        { name: "outlineVariant", hex: outlineVariant },
         { name: "error", hex: error },
-        { name: "onError", hex: onError }
+        { name: "onError", hex: onError },
+        { name: "errorContainer", hex: errorContainer },
+        { name: "onErrorContainer", hex: onErrorContainer },
+        { name: "scrim", hex: scrim },
+        { name: "shadow", hex: shadow }
     ]
 }
