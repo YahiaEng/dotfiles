@@ -158,6 +158,106 @@ Singleton {
     property var _previewQueue: []
     property string _previewRunningTheme: ""
 
+    // ── DISK CACHE (quick task 260829-2ov) ──────────────────────────────
+    // Operator: "the icon preview take a long time to load. Perhaps cache
+    // them." There WAS a cache — `_previewCache` above — but only in
+    // memory, so every shell start paid the full sweep again. MEASURED
+    // before any change: 27,734ms to fill the launcher's 8-theme strip,
+    // serially, because each probe shells out and Papirus alone cost
+    // ~6.4s. `icon-theme-picker.sh`'s own one-pass rewrite took that to
+    // 3,862ms; this takes every run after the first to ~0.
+    //
+    // ── SELF-CORRECTING RATHER THAN FINGERPRINTED ───────────────────────
+    // Cached values are absolute paths, so a theme package updated in
+    // place could leave them dangling — and a stale cache that silently
+    // renders blank tiles is exactly the failure this tree keeps
+    // recording. Rather than guess a validity key (a theme list, an
+    // index.theme mtime — each of which is right about some updates and
+    // wrong about others), the cache is treated as a HINT: it is served
+    // instantly on the first ask, AND that same ask queues one real probe
+    // for that theme, which overwrites it. Worst case is a few seconds of
+    // a stale tile that then fixes itself, with no key to get wrong.
+    //
+    // `_previewRefreshed` is what makes that terminate. `previewFor()` is
+    // called FROM BINDINGS, and the refresh mutates `_previewCache`, which
+    // re-evaluates those bindings, which call `previewFor()` again — an
+    // unbounded probe loop without a once-per-theme-per-session latch.
+    property var _previewRefreshed: ({})
+    readonly property string _previewCachePath: Quickshell.env("HOME") + "/.local/state/quickshell/icon-preview-cache.json"
+
+    // watchChanges is deliberately FALSE: this file has exactly one writer
+    // (this singleton) and re-reading our own write would only re-enter the
+    // load path. See [[live-shell-ignores-disk-state-edits]] — an edit to
+    // this file on disk will NOT be picked up by a running shell, which is
+    // correct here and worth knowing before debugging it.
+    // ── THE READ IS ASYNCHRONOUS, AND ASSUMING OTHERWISE ATE THE CACHE ──
+    // Measured, not reasoned: reading `previewCacheFile.text()` from
+    // `Component.onCompleted` returned "" even with a good 8KB file on disk,
+    // so the load silently no-opped and the session's FIRST probe result
+    // saved a cache containing only what it had probed so far — the file
+    // went from 7 themes to 4. FileView loads off-thread and announces it
+    // with `loaded`/`loadFailed`, so the load is driven by those signals and
+    // `_previewCacheReady` gates every write. Until one of them fires this
+    // singleton does not know what is on disk and MUST NOT overwrite it.
+    property bool _previewCacheReady: false
+
+    FileView {
+        id: previewCacheFile
+        path: root._previewCachePath
+        // Eager, because the launcher's `icon` strip can be opened seconds
+        // after start and a cache that arrives late is a cache that did not
+        // help. Never `watchChanges`: this file has exactly one writer (this
+        // singleton) and re-reading our own write only re-enters the load
+        // path. See [[live-shell-ignores-disk-state-edits]] — editing this
+        // file on disk will NOT reach a running shell, which is correct here
+        // and worth knowing before debugging it.
+        preload: true
+        watchChanges: false
+        // A missing cache is the NORMAL first-boot state, not a fault. Left
+        // at the default this logs `Read of …icon-preview-cache.json failed:
+        // File does not exist.` on every fresh install — measured, it does —
+        // and a warning that fires when nothing is wrong is how a log stops
+        // being read.
+        printErrors: false
+
+        onLoaded: root._loadPreviewCache()
+        // A read that failed for ANY reason still unblocks writing: on a
+        // fresh install the only reason is "no file yet", and refusing to
+        // write then would mean the cache could never be created at all.
+        onLoadFailed: root._previewCacheReady = true
+    }
+
+    function _loadPreviewCache(): void {
+        var raw = previewCacheFile.text() || "";
+        if (raw.trim().length > 0) {
+            try {
+                var parsed = JSON.parse(raw);
+                if (parsed && typeof parsed === "object" && parsed.themes)
+                    root._previewCache = parsed.themes;
+            } catch (e) {
+                console.warn("AppearanceBackend: icon preview cache is unreadable, starting empty — " + e);
+            }
+        }
+        root._previewCacheReady = true;
+    }
+
+    function _savePreviewCache(): void {
+        // Never write over a file we have not read yet — that is exactly how
+        // 7 cached themes became 4.
+        if (!root._previewCacheReady)
+            return;
+        try {
+            previewCacheFile.setText(JSON.stringify({
+                schema: 1,
+                themes: root._previewCache
+            }));
+        } catch (e) {
+            // A cache that cannot be written is a slow next start, never a
+            // broken one — the in-memory copy still serves this session.
+            console.warn("AppearanceBackend: could not persist icon preview cache — " + e);
+        }
+    }
+
     // Returns the cached probe rows for `theme` — `[{probe, path}]`, where
     // `path` is `"-"` for a probe that resolved in no size under any name
     // in its chain (M3: a miss is shown, not hidden). Returns `[]` and
@@ -167,8 +267,24 @@ Singleton {
     function previewFor(theme: string): var {
         if (!theme)
             return [];
-        if (root._previewCache.hasOwnProperty(theme))
+        if (root._previewCache.hasOwnProperty(theme)) {
+            // Serve the (possibly disk-loaded) value NOW, and schedule one
+            // real probe per theme per session behind it — see the disk
+            // cache's own note above for why this is a hint-plus-refresh
+            // rather than a fingerprint.
+            //
+            // THE LATCH IS CHECKED IN `_refreshOnce`, NOT HERE, AND THAT IS
+            // LOAD-BEARING. This function is called FROM BINDINGS. Reading
+            // `_previewRefreshed` here made the binding depend on it and
+            // writing it here made the binding mutate it — a binding that
+            // writes what it reads, which Qt reported live as
+            // `Binding loop detected for property "_rows"` from
+            // IconMode.qml. Deferring BOTH halves leaves this call site
+            // reading nothing and writing nothing, exactly like the
+            // cache-miss branch below has always done.
+            Qt.callLater(root._refreshPreviewOnce, theme);
             return root._previewCache[theme];
+        }
         // Qt.callLater, NOT a direct call (fixed 2026-08-28, quick task
         // 260828-pol). This function is invoked FROM BINDINGS
         // (AtIconsTab's `_rows`/`_coverage`/`_diffRows`), and on a cache
@@ -182,6 +298,20 @@ Singleton {
         // is a no-op, and the caller still re-reads when the cache lands.
         Qt.callLater(root._queuePreview, theme);
         return [];
+    }
+
+    // One real probe per theme per session, behind a served cache hit. Runs
+    // outside any binding (always via `Qt.callLater`), so reading and writing
+    // the latch here is safe where doing it in `previewFor()` was not.
+    function _refreshPreviewOnce(theme) {
+        if (root._previewRefreshed.hasOwnProperty(theme))
+            return;
+        var seen = {};
+        for (var s in root._previewRefreshed)
+            seen[s] = true;
+        seen[theme] = true;
+        root._previewRefreshed = seen;
+        root._queuePreview(theme);
     }
 
     function _queuePreview(theme) {
@@ -265,6 +395,12 @@ Singleton {
                     cache[k] = root._previewCache[k];
                 cache[theme] = rows;
                 root._previewCache = cache;
+                // A probe that timed out or failed caches as `[]`; persisting
+                // that would make the empty state survive a restart, which is
+                // the exact stall the watchdog's own comment records for the
+                // Papirus trio. Only a real result is written to disk.
+                if (rows.length > 0)
+                    root._savePreviewCache();
             }
             root._pumpPreviewQueue();
         }
