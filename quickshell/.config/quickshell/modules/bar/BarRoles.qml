@@ -139,6 +139,27 @@ Singleton {
     readonly property color notifSurfaceFg: Colours.onSurface
     readonly property color notifSurfaceHover: Qt.rgba(root.surfaceColour.r, root.surfaceColour.g, root.surfaceColour.b, 0.52)
 
+    // ── Popout content (quick task 260828-so7) ──────────────────────────
+    // The body foreground for popout CONTENT, as opposed to the capsule
+    // foregrounds above. One role, one consumer today: UpdatesPopout.qml.
+    //
+    // WHY IT EXISTS RATHER THAN REUSING notifSurfaceFg, which is the same
+    // Colours.onSurface value: that role is notification-scoped by name and
+    // by its header above ("the popup card, centre frame and toast all read
+    // these three rows"). Borrowing it here would make a popout read as a
+    // notification surface to the next person who greps for its consumers,
+    // and would tie popout text to any future change made for notifications'
+    // sake. Same value today, different reason to change tomorrow.
+    //
+    // WHY IT IS ONLY ONE ROLE: the other six references UpdatesPopout.qml
+    // needed already existed (warn / outlineColour / accent / onAccent /
+    // capsuleFg), so this is the single genuine gap. It is deliberately the
+    // first role for popout content — WINDOWS.md row 57 records that the
+    // nine exempt SectionPopout-family files should eventually migrate onto
+    // BarRoles and shrink QSD_BAR_COLOUR_ROLE_EXEMPT; this is the anchor
+    // that migration starts from, not a one-off.
+    readonly property color popoutFg: Colours.onSurface
+
     // ── Do-not-disturb deliberately owns NO role pair here (Phase 21
     //    Plan 05, D-21-27-R). A `dndSurface`/`dndSurfaceFg` pair (accent
     //    blended at 0.28, plus onSurface) briefly lived at this spot to

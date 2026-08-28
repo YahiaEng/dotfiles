@@ -20,12 +20,34 @@
 // that can still be alive to fire the completion notification; a popout
 // is destroyed the moment it dismisses.
 //
-// ── WHY IT LIVES IN packages/ AND NOT bar/ ────────────────────────────
-// modules/bar/ has NO explicit qmldir — it relies on Quickshell's
-// directory-scanner synthesis, and a file added there did not resolve on
-// hot reload ("UpdatesPopout is not a type", which took the whole bar
-// down until it was moved). modules/packages/ has an explicit manifest
-// this file is declared in, and the popout is package-domain anyway.
+// ── WHY IT LIVES IN bar/ ──────────────────────────────────────────────
+// CORRECTED 2026-08-28 (quick task 260828-so7). This section used to be
+// headed "WHY IT LIVES IN packages/ AND NOT bar/" and claimed modules/bar/
+// has no explicit qmldir. Both halves are false, and the file they described
+// is this one: there is exactly ONE copy, here at modules/bar/, declared in
+// modules/bar/qmldir:131 — and that qmldir has existed all along (it also
+// carries the `singleton BarRoles` line this file now depends on).
+//
+// What actually happened is the trap 260828-75k recorded in its own SUMMARY:
+// every module dir HAS a qmldir, and the "UpdatesPopout is not a type" hot
+// reload failure was an UNDECLARED TYPE, not a missing manifest. Adding the
+// qmldir entry fixed it; moving the file was never the cure. The lesson is
+// kept because it is a real trap — only the diagnosis is corrected.
+//
+// ── COLOURS COME FROM BarRoles, NOT Colours ───────────────────────────
+// Also 260828-so7. Every colour here routes through BarRoles (the bar-scoped
+// role layer) rather than the global Colours singleton. The nine sibling
+// popouts are exempted from that rule by QSD_BAR_COLOUR_ROLE_EXEMPT in
+// quickshell-doctor, but that exemption is phase 18.1's SCOPE FENCE and this
+// file postdates it — so the fence never covered it, and quickshell-doctor's
+// bar-colour-role-routing check named this file as its one offender on the
+// gate's first live run. WINDOWS.md row 57 says that exemption should shrink,
+// never grow, so this file was routed instead of exempted. Every mapping is
+// value-identical (warn == Colours.tertiary, accent == Colours.primary, and
+// so on), so nothing about how this card looks changed.
+//
+// Alpha stays on Qt.alpha(), never Qt.rgba(role.r, ...) — see BarRoles.qml's
+// own header for why reading .r/.g/.b off a string-typed role renders BLACK.
 import QtQuick
 import ".."
 import "../dashboard"
@@ -83,7 +105,7 @@ SectionPopout {
                     width: Math.min(implicitWidth, line.width * 0.45)
                     text: line.modelData.name
                     font.pixelSize: Design.fontLabel
-                    color: Colours.onSurface
+                    color: BarRoles.popoutFg
                     elide: Text.ElideRight
                     textFormat: Text.PlainText
                 }
@@ -93,7 +115,7 @@ SectionPopout {
                     visible: line.modelData.source === "aur"
                     text: "AUR"
                     font.pixelSize: 10
-                    color: Colours.tertiary
+                    color: BarRoles.warn
                     textFormat: Text.PlainText
                 }
 
@@ -106,7 +128,7 @@ SectionPopout {
                     // the name.
                     text: line.modelData.from.length > 0 ? (line.modelData.from + " → " + line.modelData.to) : ""
                     font.pixelSize: Design.fontLabel
-                    color: Colours.outline
+                    color: BarRoles.outlineColour
                     elide: Text.ElideLeft
                     textFormat: Text.PlainText
                 }
@@ -118,7 +140,7 @@ SectionPopout {
             visible: root._updates.length > root._cap
             text: "and " + (root._updates.length - root._cap) + " more"
             font.pixelSize: Design.fontLabel
-            color: Colours.outline
+            color: BarRoles.outlineColour
             textFormat: Text.PlainText
         }
 
@@ -134,9 +156,9 @@ SectionPopout {
             width: parent.width
             height: 30
             radius: height / 2
-            color: PackagesBackend.dbLocked ? Qt.alpha(Colours.primary, 0) : (upgradeArea.containsMouse ? Qt.lighter(Colours.primary, 1.1) : Colours.primary)
+            color: PackagesBackend.dbLocked ? Qt.alpha(BarRoles.accent, 0) : (upgradeArea.containsMouse ? Qt.lighter(BarRoles.accent, 1.1) : BarRoles.accent)
             border.width: 1
-            border.color: PackagesBackend.dbLocked ? Qt.alpha(Colours.outline, 0.4) : Colours.primary
+            border.color: PackagesBackend.dbLocked ? Qt.alpha(BarRoles.outlineColour, 0.4) : BarRoles.accent
 
             Behavior on color {
                 enabled: Motion.motionEnabled
@@ -152,7 +174,7 @@ SectionPopout {
                 text: PackagesBackend.dbLocked ? "pacman is already running" : "Update all"
                 font.pixelSize: Design.fontLabel
                 font.weight: Design.weightEmphasis
-                color: PackagesBackend.dbLocked ? Qt.alpha(Colours.onSurfaceVariant, 0.55) : Colours.onPrimary
+                color: PackagesBackend.dbLocked ? Qt.alpha(BarRoles.capsuleFg, 0.55) : BarRoles.onAccent
                 textFormat: Text.PlainText
             }
 
