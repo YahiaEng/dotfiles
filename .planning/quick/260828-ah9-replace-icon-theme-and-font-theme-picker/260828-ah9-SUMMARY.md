@@ -6,7 +6,12 @@ status: complete
 actuals:
   tokens: 43616
   tasks: 5
-  commits: 6
+  commits: 29
+  operator_rounds: 5
+outcome: operator-approved 2026-08-28 — "Approved. Close this phase and save out work."
+gates_added:
+  - hypr/.config/hypr/scripts/button-lint
+  - hypr/.config/hypr/scripts/transparent-lint
 commits:
   - 340b59bc  # Task 1: AppearanceBackend singleton — one backend, four readers
   - 4a5caf2e  # Task 2: Atelier window — FloatingWindow, tab bar, Icons/Fonts tabs
