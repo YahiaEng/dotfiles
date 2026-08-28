@@ -61,6 +61,17 @@ Rectangle {
                 // apparently highlighted is otherwise a mystery.
                 text: {
                     const e = root.picker.currentEntry;
+                    // Directory mode names the folder Select will return,
+                    // including the implicit "the one you are in" case —
+                    // otherwise pressing Select with nothing highlighted
+                    // is a guess.
+                    if (root.picker.selectDirectories) {
+                        if (e && e.isDir)
+                            return e.name;
+                        const p = root.picker.currentPath;
+                        const cut = p.lastIndexOf("/");
+                        return "This folder — " + (cut <= 0 ? p : p.slice(cut + 1));
+                    }
                     if (e && !e.isDir)
                         return root.picker.selectionValid ? e.name : (e.name + " — not a " + root.picker.filterLabel.toLowerCase().replace(/s$/, ""));
                     return root.picker.filterLabel + " (" + root.picker.nameFilters.join(", ") + ")";

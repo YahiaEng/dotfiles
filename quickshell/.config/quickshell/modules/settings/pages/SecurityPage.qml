@@ -28,6 +28,7 @@ import "../common"
 import "../../"
 import "../../dashboard"
 import "../../security"
+import "../../filepicker"
 
 PageBase {
     id: root
@@ -86,34 +87,39 @@ PageBase {
         title: "Scanning"
         icon: "policy"
 
-        SelectRow {
+        NavRow {
             label: "Scan target"
             icon: "folder"
-            // Was an InfoRow. Operator round 4: "clicking on Scan target
-            // does nothing" — because InfoRow is explanatory by design and
-            // has no activated() signal at all. It looked like a control,
-            // so it became one.
-            subtext: SecurityBackend.scanTarget
-            model: [
-                {
-                    value: "home",
-                    display: "Home folder"
-                },
-                {
-                    value: "downloads",
-                    display: "Downloads"
-                },
-                {
-                    value: "documents",
-                    display: "Documents"
-                },
-                {
-                    value: "root",
-                    display: "Whole filesystem (slow)"
-                }
-            ]
-            currentValue: Prefs.getValue("security.scanTarget")
-            onSelected: value => Prefs.setValue("security.scanTarget", value)
+            // Was a SelectRow with four fixed choices (operator round 6:
+            // "a dropdown list with limited options instead of opening a
+            // dialog box to select scan directory"). Now it opens the
+            // shell's own FilePicker in the directory mode this task
+            // added to it — no second picker implementation.
+            subtext: SecurityBackend.scanTargetMissing ? SecurityBackend.scanTarget + " — this folder no longer exists" : SecurityBackend.scanTarget
+            onActivated: targetPicker.open()
+        }
+
+        FilePicker {
+            id: targetPicker
+
+            title: "Choose a folder to scan"
+            selectDirectories: true
+            startPath: SecurityBackend.scanTarget
+
+            onAccepted: path => Prefs.setValue("security.scanTarget", String(path))
+
+            // The picker is a second toplevel and Settings' focus grab is
+            // exclusive, so it must join the grab while open or its clicks
+            // land on the window behind. Reassignment, not an in-place
+            // push: `extraGrabWindows` is a plain JS array behind a
+            // `property var` and mutating it emits no change signal.
+            // Keyed on `item`, not `active` — the window only exists once
+            // the LazyLoader has built it, and registering a null would
+            // put a null in the grab's list. Same shape WallpaperPage's
+            // Browse picker already uses.
+            onItemChanged: {
+                root.sState.extraGrabWindows = targetPicker.item ? [targetPicker.item] : [];
+            }
         }
 
         InfoRow {

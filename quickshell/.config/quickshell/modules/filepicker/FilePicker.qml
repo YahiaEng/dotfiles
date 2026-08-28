@@ -37,6 +37,18 @@ LazyLoader {
     // Where the picker opens. Empty means $HOME.
     property string startPath: ""
 
+    // ── Directory mode (quick task 260827-np1, operator round 6) ──────
+    // The picker was file-only: `selectionValid` below rejects anything
+    // with `isDir`, so a caller that needs a FOLDER had no way to ask.
+    // Added generically rather than special-cased for one call site —
+    // "pick a directory" is an ordinary thing for a file picker to do.
+    //
+    // In this mode Select resolves to the highlighted folder when one is
+    // highlighted, and otherwise to the folder you are CURRENTLY IN,
+    // which is how every desktop folder chooser behaves: you navigate
+    // into the thing you want and press Select.
+    property bool selectDirectories: false
+
     signal accepted(string path)
     signal rejected
 
@@ -61,10 +73,20 @@ LazyLoader {
         readonly property url folderUrl: "file://" + win.currentPath
         readonly property var nameFilters: loader.nameFilters
         readonly property string filterLabel: loader.filterLabel
+        // Mirrored onto `win` because the sub-components are handed
+        // `picker: win`, not the loader — an unmirrored property reads
+        // `undefined` in FpFooter with no error at all.
+        readonly property bool selectDirectories: loader.selectDirectories
 
         readonly property var currentEntry: body.currentEntry
         readonly property bool selectionValid: {
             const e = win.currentEntry;
+            if (loader.selectDirectories) {
+                // Always confirmable: with no highlight the current
+                // folder is the answer, so there is no dead-button state
+                // to explain.
+                return !e || e.isDir;
+            }
             if (!e || e.isDir)
                 return false;
             if (win.nameFilters.indexOf("*") !== -1)
@@ -173,8 +195,16 @@ LazyLoader {
 
                     onCancelled: loader.rejected()
                     onConfirmed: {
-                        if (win.selectionValid)
-                            loader.accepted(win.currentEntry.path);
+                        if (!win.selectionValid)
+                            return;
+                        if (loader.selectDirectories) {
+                            // Highlighted folder if there is one, else the
+                            // folder we are standing in.
+                            const e = win.currentEntry;
+                            loader.accepted(e && e.isDir ? e.path : win.currentPath);
+                            return;
+                        }
+                        loader.accepted(win.currentEntry.path);
                     }
                 }
             }

@@ -671,13 +671,25 @@ Singleton {
     //  Scanning — the work that outlives every surface
     // ═══════════════════════════════════════════════════════════════
 
-    // Chosen by the operator (Settings -> Security -> Scan target) and
-    // persisted, so a scan started tomorrow covers the same ground. The
-    // fallback is HOME, which is what it was before this became a knob.
+    // ── Scan target ───────────────────────────────────────────────────
+    // An absolute path chosen through the shell's own file picker
+    // (operator round 6 — the fixed dropdown was too limited).
+    //
+    // A free-form path is fine HERE specifically because the scan is
+    // unprivileged: `clamscan` runs as the user, so it can only read what
+    // the operator could already read by running clamscan themselves.
+    // This is NOT true of anything that goes through `runAction()`, which
+    // is why that path still takes fixed verbs and no arguments at all.
+    // (An earlier comment here claimed a path would be a privilege risk;
+    // it conflated the two, and this corrects it.)
+    //
+    // Empty means HOME. The three legacy keyword values are migrated in
+    // place so an existing prefs.json keeps working rather than silently
+    // resolving to an empty path.
     readonly property string scanTarget: {
-        var v = Prefs.getValue("security.scanTarget");
+        var v = Prefs.getValue("security.scanTarget") || "";
         var home = Quickshell.env("HOME") || "/home";
-        if (!v || v === "home")
+        if (v === "" || v === "home")
             return home;
         if (v === "downloads")
             return home + "/Downloads";
@@ -685,22 +697,38 @@ Singleton {
             return home + "/Documents";
         if (v === "root")
             return "/";
-        return home;
+        return v;
     }
 
+    // Shortened for display — a deep path would push a settings row's
+    // subtext into an ellipsis and tell the operator nothing.
     readonly property string scanTargetLabel: {
-        var v = Prefs.getValue("security.scanTarget");
-        switch (v) {
-        case "downloads":
-            return "Downloads";
-        case "documents":
-            return "Documents";
-        case "root":
-            return "Whole filesystem";
-        default:
+        var home = Quickshell.env("HOME") || "/home";
+        var t = root.scanTarget;
+        if (t === home)
             return "Home folder";
+        if (t === "/")
+            return "Whole filesystem";
+        if (t.indexOf(home + "/") === 0)
+            return "~" + t.substring(home.length);
+        return t;
+    }
+
+    // Whether the chosen target still exists. A folder can be renamed or
+    // unmounted between choosing it and scanning it, and clamscan's own
+    // failure for that is a non-zero exit with no useful UI signal.
+    property bool scanTargetMissing: false
+
+    Process {
+        id: scanTargetProbe
+        running: false
+        command: ["test", "-d", root.scanTarget]
+        onExited: (code, status) => {
+            root.scanTargetMissing = (code !== 0);
         }
     }
+
+    onScanTargetChanged: scanTargetProbe.running = true
 
     function startVirusScan() {
         if (root.scanRunning || !root.hasTool("clamav"))

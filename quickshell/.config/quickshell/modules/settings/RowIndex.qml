@@ -281,7 +281,7 @@ Singleton {
         // have no stable label to jump to and are deliberately not a
         // row primitive settings-index-check scans.
         { pageIdx: 15, section: "Dashboard", label: "Security tab on the dashboard", keywords: "security dashboard tab drawer bento fifth" },
-        { pageIdx: 15, section: "Scanning", label: "Scan target", keywords: "security scan target path home directory clamav virus" },
+        { pageIdx: 15, section: "Scanning", label: "Scan target", keywords: "security scan target path folder directory browse choose clamav virus" },
         { pageIdx: 15, section: "Scanning", label: "Virus signatures", keywords: "security virus signatures clamav freshclam database malware" },
         { pageIdx: 15, section: "Scanning", label: "Disk health source", keywords: "security disk health smart smartd snapshot drive nvme" },
         { pageIdx: 15, section: "Scanning", label: "Privileged actions", keywords: "security privileged polkit password root pkexec firewall install" },
