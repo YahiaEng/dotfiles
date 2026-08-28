@@ -35,3 +35,7 @@ AtFontsTab 1.0 AtFontsTab.qml
 
 # AtCatalogueTab (Task 3, D-04) — the third pane, browse + install.
 AtCatalogueTab 1.0 AtCatalogueTab.qml
+
+# Operator round 1 (2c/2e) — the shared resizable-rail grip, reused by
+# AtIconsTab/AtFontsTab/AtCatalogueTab rather than three divergent copies.
+AtRailGrip 1.0 AtRailGrip.qml
