@@ -22,3 +22,19 @@
 module qs.modules.packages
 
 singleton PackagesBackend 1.0 PackagesBackend.qml
+
+# ── Surfaces ──
+# D4, the main surface: its own FloatingWindow behind a LazyLoader, the
+# FilePicker pattern. NOT a singleton — shell.qml mounts one instance, the
+# same posture Bar/Dashboard/Overview have in modules/qmldir.
+Workbench 1.0 Workbench.qml
+
+# The workbench's three panes, split the way FilePicker splits its own
+# (FpSidebar / FpFolderContents / FpFooter) rather than one 1000-line file.
+WbSidebar 1.0 WbSidebar.qml
+WbTable 1.0 WbTable.qml
+WbDetail 1.0 WbDetail.qml
+
+# One button shape for all three panes, so a disabled action explains
+# itself the same way everywhere.
+WbButton 1.0 WbButton.qml

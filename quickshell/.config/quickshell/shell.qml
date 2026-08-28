@@ -46,6 +46,7 @@ import "modules/settings"
 import "modules/launcher"
 import "modules/lock"
 import "modules/screensaver"
+import "modules/packages"
 
 ShellRoot {
     id: root
@@ -1377,6 +1378,33 @@ ShellRoot {
     // pushed imperatively into an item that may not exist yet the instant
     // the loader activates.
     property int settingsInitialPageIdx: 0
+
+    // ── The package workbench (quick task 260828-75k, D4) ─────────────
+    //    Its own toplevel behind a LazyLoader, the FilePicker pattern: the
+    //    window is constructed on first open, so declaring it here costs
+    //    nothing until something calls open(). The BACKEND deliberately
+    //    lives outside this loader (it is a singleton), so closing the
+    //    window does not discard the 1420-record model or abandon a
+    //    removal preview that is still resolving.
+    Workbench {
+        id: packagesWorkbench
+    }
+
+    IpcHandler {
+        target: "packages-window"
+
+        function open(): void {
+            packagesWorkbench.open();
+        }
+
+        function openOn(name: string): void {
+            packagesWorkbench.openOn(name);
+        }
+
+        function close(): void {
+            packagesWorkbench.close();
+        }
+    }
 
     LazyLoader {
         id: settingsLoader

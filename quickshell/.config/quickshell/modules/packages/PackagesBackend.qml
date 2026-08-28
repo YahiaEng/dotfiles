@@ -317,7 +317,12 @@ Singleton {
         if (root.foreign[name] === true)
             return "AUR";
         var r = root.repoOf[name];
-        return r ? r : "local";
+        if (r)
+            return r;
+        // NOT "local" — that is a specific pacman word (the local db) and
+        // using it as a fallback labelled every repo package "local" until
+        // the catalogue loaded. An unknown repo is stated as unknown.
+        return root.catalogueProbed ? "?" : "…";
     }
 
     function isOrphan(name: string): bool {
@@ -577,10 +582,32 @@ Singleton {
         onExited: (code, status) => {
             root.previewRunning = false;
             if (code !== 0) {
-                // pacman's own explanation, cleaned of its "error:" and
-                // ":: " prefixes so it reads as a sentence in a panel.
-                var lines = (previewErrCollector.text || "").split("\n").map(l => l.replace(/^(error:|::)\s*/, "").trim()).filter(l => l.length > 0);
-                root.previewError = lines.length > 0 ? lines.join("\n") : "pacman refused this removal.";
+                // MEASURED, and not what it looks like: pacman writes the
+                // `error:` SUMMARY to stderr but the `:: removing X breaks
+                // dependency 'Y' required by Z` REASONS to STDOUT. Reading
+                // stderr alone (the first version here) produced "failed to
+                // prepare transaction (could not satisfy dependencies)" with
+                // the useful half missing — caught by running the refuse
+                // path rather than by reasoning about it.
+                //
+                // The reasons are also near-duplicates: harfbuzz emits ~30
+                // lines naming only a handful of distinct packages, once per
+                // soname. What the operator needs is the SET of packages
+                // that still need this one, so that is what is extracted.
+                var head = (previewErrCollector.text || "").split("\n").map(l => l.replace(/^error:\s*/, "").trim()).filter(l => l.length > 0);
+                var needers = [];
+                var reasons = (previewCollector.text || "").split("\n");
+                for (var r = 0; r < reasons.length; ++r) {
+                    var m = reasons[r].match(/required by (\S+)\s*$/);
+                    if (m && needers.indexOf(m[1]) < 0)
+                        needers.push(m[1]);
+                }
+                var msg = head.length > 0 ? head[0] : "pacman refused this removal.";
+                if (needers.length > 0) {
+                    var shown = needers.length > 8 ? needers.slice(0, 8).join(", ") + " and " + (needers.length - 8) + " more" : needers.join(", ");
+                    msg += "\n\nStill needed by: " + shown;
+                }
+                root.previewError = msg;
                 root.previewCascade = [];
                 return;
             }
@@ -728,6 +755,12 @@ Singleton {
     Component.onCompleted: {
         root.refreshLocal();
         root.refreshUpdates();
+        // Loaded at startup rather than deferred to the Repos filter. The
+        // first version deferred it, which left the Source column reading
+        // a fallback for every repo package until the operator happened to
+        // click Repos — caught on the first render. Measured at 0.17 s for
+        // all 15,412 entries, which is not worth deferring anything for.
+        root.refreshCatalogue();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -759,6 +792,13 @@ Singleton {
                 pendingAur: root.aurUpdates.length,
                 totalSizeMiB: Math.round(root.totalSizeMiB),
                 dbLocked: root.dbLocked,
+                preview: {
+                    asked: root.previewFor,
+                    running: root.previewRunning,
+                    error: root.previewError,
+                    cascade: root.previewCascade.map(c => c.name),
+                    reclaimMiB: Math.round(root.previewReclaimMiB)
+                },
                 probed: {
                     packages: root.packagesProbed,
                     foreign: root.foreignProbed,
@@ -771,6 +811,18 @@ Singleton {
 
         function refresh(): void {
             root.refreshAll();
+        }
+
+        // `preview` + the preview block in `status` exist for the same
+        // reason `status` itself does: the removal cascade is the one
+        // capability that justified building a whole window, and its
+        // correctness cannot be read off a rendered pane. Names arrive
+        // comma-separated and go through previewRemoval, which validates
+        // every one against _NAME_RE before it reaches an argv array.
+        function preview(names: string): string {
+            var list = (names || "").split(",").map(n => n.trim()).filter(n => n.length > 0);
+            root.previewRemoval(list);
+            return "previewing " + list.length + " package(s); read the result from status";
         }
     }
 }
