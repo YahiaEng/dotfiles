@@ -4,9 +4,10 @@ quick_id: 260828-so7
 slug: fix-three-quickshell-doctor-failures-lau
 date: 2026-08-28
 status: complete
+operator_approved: 2026-08-28
 tasks_completed: 3
 commits: 4
-commit_range: 334064e9..HEAD
+commit_range: 334064e9..053a53e6
 gates:
   quickshell-doctor-self-test: "61 passed, 0 failed"
   quickshell-doctor-live: "28 passed, 0 failed"
