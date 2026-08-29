@@ -122,6 +122,17 @@ function buildOutline(params) {
     var a0 = params.alongStart === undefined ? 0 : params.alongStart;
     var surfaceDepth = params.surfaceDepth, flip = !!params.flip;
     var squareEnd = !!params.squareEnd;
+    // Rounds the OUTER corner of a square end (quick task 260829-2ov). 0 (the
+    // default) keeps the butt end exactly as it was. Used where a run ends AT
+    // a screen corner and turns into a perpendicular run rather than being
+    // carried on by something else: the horizontal bar's band turning into
+    // the right rail, and the bottom rail turning up into it.
+    //
+    // MUST be <= t. The arc lands at depth `squareEndRadius`, and the inner
+    // face is at depth `t`, so a larger radius would put the arc's end past
+    // the face it is supposed to meet and the outline would self-intersect —
+    // the same class of silent breakage `bulge: false` exists to avoid.
+    var squareEndRadius = params.squareEndRadius === undefined ? 0 : params.squareEndRadius;
     var bulge = params.bulge === undefined ? true : !!params.bulge;
     var axis = params.axis || "horizontal";
     var vertical = axis === "vertical";
@@ -169,7 +180,17 @@ function buildOutline(params) {
         // continues it past this surface's boundary. A pill cap here
         // reads as a rounded lump mid-rail once the continuation is
         // drawn, which is exactly what it looked like.
-        p += " L " + P(along, Y(0));
+        if (squareEndRadius > 0) {
+            p += " L " + P(along - squareEndRadius, Y(0));
+            // Sweep resolved against the centre this geometry demands, never
+            // hand-picked — the file-wide rule. Quarter arc, so inside
+            // `_arcCentre`'s documented domain.
+            p += " A " + squareEndRadius + " " + squareEndRadius + " 0 0 "
+                + S(along - squareEndRadius, Y(0), along, Y(squareEndRadius), squareEndRadius, along - squareEndRadius, Y(squareEndRadius))
+                + " " + P(along, Y(squareEndRadius));
+        } else {
+            p += " L " + P(along, Y(0));
+        }
         p += " L " + P(along, Y(t));
     } else {
         p += " L " + P(along - re, Y(0));

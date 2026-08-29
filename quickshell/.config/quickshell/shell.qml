@@ -2058,6 +2058,19 @@ ShellRoot {
             dashboardShortcut.toggle();
         }
     }
+    // The same summon, from the bar itself, for the orientation where the bar
+    // IS the top edge and no top strip is mounted (quick task 260829-2ov,
+    // operator round 3: "add the top strip bulge summoning behaviour back").
+    // Deliberately the SAME two lines rather than a variant: one dwell, one
+    // `dashboardHoverSummoned` flag, one `toggle()` — a second, divergent
+    // path to `dashboardLoader.active` is what `toggle()` exists to prevent.
+    Connections {
+        target: barInstance
+        function onDashboardDwellTriggered() {
+            root.dashboardHoverSummoned = true;
+            dashboardShortcut.toggle();
+        }
+    }
     Connections {
         target: edgeBarBottomLoader.item
         function onBulgeHoverTriggered() {

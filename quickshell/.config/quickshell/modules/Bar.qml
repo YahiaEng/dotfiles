@@ -280,6 +280,80 @@ PanelWindow {
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
 
+    // ── INPUT MASK, AND THE DASHBOARD'S DWELL TARGET ────────────────────
+    // This file had no mask because it had no overhang worth excluding. The
+    // horizontal weld gives it one: the surface now runs
+    // `_weldFlareOverhang` past its own reserved band so the corner flare
+    // and the bulge have somewhere to be drawn, and an unmasked layer
+    // surface takes input everywhere it is mapped — which would have made a
+    // 2550x20 invisible strip across the top of every window swallow clicks.
+    //
+    // In every other case `barInputArea` IS the whole surface, so the mask
+    // is a no-op and the vertical bar's own long-standing 32px leftward
+    // overhang keeps behaving exactly as it always has. Not widened here:
+    // that is a separate, pre-existing question.
+    Item {
+        id: barInputArea
+        x: 0
+        y: 0
+        width: barWindow.width
+        height: barWindow._continuousWeldH ? barWindow._weldSlabDepth : barWindow.height
+    }
+
+    // The bulge's overhang rectangle, and nothing else — the same shape
+    // `EdgeBar.qml` masks its own bulge hit region to, at the same
+    // `edgeBarHoverDepth`, so the target is no harder to hit than the one it
+    // replaces. Zero-area whenever the bulge is not drawn, so it admits no
+    // input then.
+    Item {
+        id: dashDwellArea
+        width: barWindow._dashBulgeVisible ? barWindow._dashBulgeWidth : 0
+        height: barWindow._dashBulgeVisible ? Design.edgeBarHoverDepth : 0
+        x: barWindow._dashBulgeXl
+        y: barWindow._weldSlabDepth
+
+        HoverHandler {
+            id: dashDwellHover
+            onHoveredChanged: {
+                if (dashDwellHover.hovered) {
+                    if (barWindow._dashDwellArmed)
+                        dashDwellTimer.restart();
+                } else {
+                    dashDwellTimer.stop();
+                    // Re-armed only by a genuine hover EXIT, never by time
+                    // alone — EdgeBar.qml's own rule, so one dwell summons
+                    // once and a pointer parked on the bulge does not
+                    // re-trigger.
+                    barWindow._dashDwellArmed = true;
+                }
+            }
+        }
+    }
+
+    property bool _dashDwellArmed: true
+
+    Timer {
+        id: dashDwellTimer
+        interval: Design.edgeBarDwellMs
+        repeat: false
+        onTriggered: {
+            barWindow._dashDwellArmed = false;
+            barWindow.dashboardDwellTriggered();
+        }
+    }
+
+    // Fired once per dwelled hover. shell.qml decides what it means, exactly
+    // as it does for `EdgeBar.bulgeHoverTriggered` — this is the same
+    // contract on a different surface, not a second mechanism.
+    signal dashboardDwellTriggered()
+
+    mask: Region {
+        item: barInputArea
+        Region {
+            item: dashDwellArea
+        }
+    }
+
     // Never Overlay: always-on chrome sits below transient dialogs and
     // below an ext-session-lock surface, unlike Overview's deliberately
     // top-most Overlay layer.
@@ -580,6 +654,27 @@ PanelWindow {
     // reserves nothing (see `reservedZoneExtent`) — the same non-reserving
     // overhang the strips' own bulges use.
     readonly property real _weldFlareOverhang: barWindow._continuousWeldH ? Design.edgeBarWeldFlareRadius : 0
+
+    // The outer radius of the two corners where the horizontal frame turns —
+    // see the slab's `squareEndRadius` for the derivation (inner flare +
+    // rail thickness, which is also the vertical frame's own corner radius).
+    readonly property real _weldOuterCornerRadius: Design.edgeBarWeldFlareRadius + Design.edgeBarThickness
+
+    // ── The dashboard's landmark and dwell target (operator round 3) ─────
+    // Width is the dashboard's own, exactly as `edgeBarBulgeWidthTop` gave
+    // the retired strip. Centred, because the dashboard is centred — the
+    // principle this shell already states as "a bulge sized to the panel, at
+    // the panel's position".
+    readonly property real _dashBulgeWidth: Math.min(barWindow.width, Design.edgeBarBulgeWidthTop)
+    readonly property real _dashBulgeXl: (barWindow.width - barWindow._dashBulgeWidth) / 2
+    readonly property real _dashBulgeXr: barWindow._dashBulgeXl + barWindow._dashBulgeWidth
+    // The span must clear both caps, or `buildOutline` draws a shoulder
+    // outside the run and the fill does not reach it — the failure
+    // `_weldSlabWidth`'s own `f: 0` note records. A frame narrower than the
+    // dashboard simply drops the bulge rather than drawing a broken one.
+    readonly property bool _dashBulgeVisible: barWindow._continuousWeldH
+        && barWindow._dashBulgeXl > barWindow._weldSlabDepth / 2 + Design.edgeBarFilletRadius
+        && barWindow._dashBulgeXr < barWindow.width - barWindow._weldOuterCornerRadius - Design.edgeBarFilletRadius
 
     // ── Gradient continuity with the strip ──────────────────────────────
     // Phase comes from the shared clock (GradientPhase.qml) so this cannot
@@ -1245,15 +1340,24 @@ PanelWindow {
                 // side facing the rail — which is the unmirrored case.
                 path: EdgeBarPath.buildOutline({
                     t: barWindow._weldSlabDepth,
-                    b: 0,
+                    b: barWindow._dashBulgeVisible ? Design.edgeBarBulgeExtra : 0,
                     re: barWindow._weldSlabDepth / 2,
-                    f: 0,
-                    rc: 0,
+                    f: Design.edgeBarFilletRadius,
+                    rc: Design.edgeBarBulgeCornerRadius,
                     along: Math.max(barWindow._weldSlabDepth, barWindow.width),
                     alongStart: 0,
-                    xl: 0,
-                    xr: 0,
-                    bulge: false,
+                    // ── THE DASHBOARD'S BULGE, RESTORED (operator round 3)
+                    // Unmounting the top strip took the dashboard's landmark
+                    // and its dwell-summon with it. Both come back HERE, on
+                    // the run that is now the top edge — same width
+                    // (`edgeBarBulgeWidthTop`, the dashboard's own), same
+                    // depth (`edgeBarBulgeExtra`), same shoulder and corner
+                    // radii the strip used. D-3 still holds: nothing below is
+                    // bound to a hover or open state, so it is a permanent
+                    // landmark rather than a reactive swell.
+                    bulge: barWindow._dashBulgeVisible,
+                    xl: barWindow._dashBulgeXl,
+                    xr: barWindow._dashBulgeXr,
                     // The right end BUTTS the right rail rather than capping
                     // (quick task 260829-2ov). This is the identical call the
                     // strips make for the identical reason — `EdgeBar.qml`'s
@@ -1263,6 +1367,17 @@ PanelWindow {
                     // end keeps its pill cap, which is the silhouette's one
                     // open end.
                     squareEnd: true,
+                    // ── THE OUTER CORNER, DERIVED (operator round 3: "the
+                    //    top right and bottom right corners are sharp") ─────
+                    // The INNER corner here is already the flare, radius
+                    // `edgeBarWeldFlareRadius` (20). A turn of constant
+                    // material thickness has outer = inner + thickness, and
+                    // the run it turns into is `edgeBarThickness` (6) thick —
+                    // so 26. That is not a coincidence to be tuned away from:
+                    // 26 is exactly `_weldSlabWidth / 2`, the radius of the
+                    // pill cap the VERTICAL frame already turns its own two
+                    // screen corners with. Same corner, same number.
+                    squareEndRadius: barWindow._weldOuterCornerRadius,
                     surfaceDepth: barWindow._weldSlabDepth,
                     flip: false,
                     axis: "horizontal"
@@ -1342,8 +1457,27 @@ PanelWindow {
                     const x = weldFlareH._corner;
                     if (f <= 0)
                         return "";
+                    // ── THE POLYGON RUNS PAST THE ARC, ON PURPOSE ───────
+                    // Operator round 3: "the top right flare has a weird
+                    // visual bug… missing pixels/colors". MEASURED at
+                    // x2530..2559, y48..79: exactly ONE row, y=56, carried
+                    // two single-pixel holes — x2554 and x2559 — while every
+                    // other row was solid. y=56 is where three edges land on
+                    // the same coordinate: this patch's right edge, the right
+                    // rail's left edge, and the rail's own first row. Each
+                    // antialiased to partial coverage and the desktop showed
+                    // through the sum.
+                    //
+                    // Butting geometry exactly is what produced it, so the
+                    // patch now runs to the surface's right edge instead of
+                    // stopping at the rail's inner face. Everything past `x`
+                    // is territory the rail paints anyway, in the same
+                    // gradient through the same mapping, so the overlap is
+                    // invisible — and an overlap cannot leave a seam.
+                    const w = barWindow.width;
                     return "M " + (x - f) + " 0"
-                        + " L " + x + " 0"
+                        + " L " + w + " 0"
+                        + " L " + w + " " + f
                         + " L " + x + " " + f
                         + " A " + f + " " + f + " 0 0 0 " + (x - f) + " 0"
                         + " Z";

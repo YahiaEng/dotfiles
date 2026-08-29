@@ -629,6 +629,19 @@ PanelWindow {
         // the far end — the bar's own slab in the vertical orientation, the
         // right rail in the horizontal one.
         squareEnd: edgeBarWindow.style === "continuous",
+        // ── THE SCREEN-CORNER TURN (quick task 260829-2ov, operator round
+        //    3: "the top right and bottom right corners are sharp") ───────
+        // Only a run that ends AT a screen corner turns there; a run that
+        // ends INTO the bar is carried on and must stay butt-flat, which is
+        // what `runsToCorner` distinguishes. `edgeBarThickness` is the
+        // largest radius a run of that thickness can express at its own end
+        // — the arc lands at depth `squareEndRadius` and the inner face is
+        // at depth `t`, so anything larger self-intersects (the builder
+        // states this). A wider turn here would have to be a shape spanning
+        // BOTH rails, since neither surface reaches past its own reservation;
+        // the bar's own corner is bigger precisely because its band is
+        // deep enough to hold it alone.
+        squareEndRadius: edgeBarWindow.runsToCorner ? Design.edgeBarThickness : 0,
         // Halo's two vertical rails are plain runs (see `_hasBulge`).
         bulge: edgeBarWindow._hasBulge,
         xl: edgeBarWindow._xl,
