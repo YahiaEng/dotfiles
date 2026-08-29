@@ -1279,8 +1279,18 @@ section_gaming() {
         # libvirtd reads its hook directory at startup only — a newly
         # installed hook is inert until it restarts.
         sudo systemctl restart libvirtd 2>/dev/null || true
-        echo "  VFIO hooks installed. The passthrough VM additionally needs"
-        echo "  SVM enabled in UEFI — see docs/vfio-passthrough.md."
+        # Report the ACTUAL firmware state rather than a fixed reminder. The
+        # first version printed "additionally needs SVM enabled in UEFI"
+        # unconditionally, which read as an outstanding action on a host
+        # where SVM was already on — a message that is wrong half the time
+        # trains the operator to skip reading it.
+        if grep -qw svm /proc/cpuinfo; then
+            echo "  VFIO hooks installed. AMD-V is enabled — see"
+            echo "  docs/vfio-passthrough.md before the first VM start."
+        else
+            echo "  VFIO hooks installed. The passthrough VM additionally needs"
+            echo "  SVM enabled in UEFI — see docs/vfio-passthrough.md."
+        fi
     fi
 
     # ── initramfs rebuild ────────────────────────────────────────
