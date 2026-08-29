@@ -125,30 +125,105 @@ If `/dev/kvm` exists but is not group-accessible, add yourself:
 
 ### 2. Install and start the stack
 
-`install.sh` now carries every package. On this already-installed host:
+One command. `install.sh --gaming-only` runs just this section — the packages,
+the sysctl and NVIDIA module tuning, the VFIO hooks, the initramfs rebuild,
+and libvirtd with its default network — without re-walking a full install
+(which on this host would rebuild the AUR packages; `tela-icon-theme` alone
+measures 21 minutes).
 
 ```bash
-sudo pacman -S --needed qemu-full libvirt edk2-ovmf swtpm dnsmasq virt-manager
-sudo systemctl enable --now libvirtd
-sudo virsh net-start default
-sudo virsh net-autostart default
+./install.sh --gaming-only
 ```
 
-`virsh net-start default` is easy to skip and is the most common cause of
-"the guest has no network" — the NAT bridge does not come up on its own.
+It prompts for sudo once and keeps the credential alive for its own calls.
 
-### 3. Fetch the ISOs
+Two things it does that are easy to miss if you install by hand:
+
+- **`mkinitcpio -P`.** modprobe.d options are read *when the module loads*,
+  and nvidia is pulled into the initramfs here by mkinitcpio's autodetect even
+  though `MODULES=()` is empty. So nvidia loads early and reads the
+  *initramfs's* copy of `/etc/modprobe.d` — without the rebuild,
+  `nvidia-gaming.conf` is inert and the tuning silently does nothing.
+- **`virsh net-start default`.** Installing libvirt does not start its NAT
+  network, and a guest on an inactive network has no connectivity with no
+  obvious cause. This is the most common "the VM has no internet" report.
+
+Confirm the tuning actually reached the module:
 
 ```bash
-sudo mkdir -p /var/lib/libvirt/images
-# Windows 11 ISO from microsoft.com -> /var/lib/libvirt/images/Win11.iso
-# virtio-win ISO from fedorapeople.org -> /var/lib/libvirt/images/virtio-win.iso
-sudo qemu-img create -f qcow2 /var/lib/libvirt/images/win11-gaming.qcow2 200G
+modprobe --dry-run --show-depends nvidia | grep NVreg_Initialize
+# -> ... nvidia.ko.zst ... NVreg_InitializeSystemMemoryAllocations=0 ...
 ```
 
-The **virtio-win ISO is not optional**. The Windows installer cannot see a
-virtio disk without loading a driver from it, and presents "no drives found"
-with no hint as to why.
+### 3. Storage pool, disk and ISOs
+
+**Do this through libvirt, not through sudo.** Membership of the `libvirt`
+group (already granted here) gives unprivileged access to the *system* daemon
+at `qemu:///system`, and libvirtd runs as root — so it performs the privileged
+writes into `/var/lib/libvirt/images` on your behalf. No `sudo` is needed for
+any of this section.
+
+Two traps this avoids:
+
+- `/var/lib/libvirt/images` is `root:root 755`, so you cannot write there
+  directly however you got the file.
+- Keeping images in your home instead does not work: `/home/aorus` is `750`,
+  and qemu runs as **`libvirt-qemu`** (uid 954), which cannot traverse it. The
+  VM fails to start with a permission error that points at the image rather
+  than at the directory above it.
+
+```bash
+export LIBVIRT_DEFAULT_URI=qemu:///system
+
+# One-time: the default pool does not exist on a fresh libvirt install.
+virsh pool-define-as default dir --target /var/lib/libvirt/images
+virsh pool-build default && virsh pool-start default && virsh pool-autostart default
+
+# Guest system disk. NOTE: no --prealloc-metadata. That flag fully allocates
+# on ext4 and consumed the whole 200 GiB up front when this was first run;
+# without it the image starts at ~196 KiB and grows as used.
+virsh vol-create-as default win11-gaming.qcow2 200G --format qcow2
+```
+
+Importing an ISO you have downloaded (the same two commands work for either
+ISO — create a volume of the right size, then stream the file into it):
+
+```bash
+SRC=~/Downloads/Win11.iso                 # wherever you saved it
+SIZE=$(stat -c%s "$SRC")
+virsh vol-create-as default Win11.iso "$SIZE" --format raw
+virsh vol-upload --pool default Win11.iso "$SRC"
+virsh vol-list default --details          # confirm
+```
+
+#### The virtio-win ISO is not optional
+
+The Windows installer cannot see a virtio disk without loading a driver from
+it, and presents "no drives found" with no hint as to why. It comes from
+Red Hat and has a stable URL, so it can be fetched directly:
+
+```bash
+curl -L -o ~/vm-staging/virtio-win.iso \
+  https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/virtio-win.iso
+```
+
+#### The Windows 11 ISO needs a browser
+
+Microsoft's download API **cannot be scripted**. The session flow can be
+walked as far as the SKU list, but the final link request returns:
+
+```
+{"Errors":[{"Key":"ErrorSettings.SentinelReject",
+            "Value":"Sentinel marked this request as rejected."}]}
+```
+
+That is deliberate anti-automation on Microsoft's side, not a broken request —
+the same call succeeds from a browser. So fetch it by hand:
+
+1. Open <https://www.microsoft.com/software-download/windows11>
+2. Under **Download Windows 11 Disk Image (ISO)**, pick *Windows 11 (multi-edition ISO)*
+3. Choose your language, then **64-bit Download** (the link is valid 24 hours)
+4. Import it with the `vol-create-as` / `vol-upload` pair above
 
 ### 4. Define the domain
 
