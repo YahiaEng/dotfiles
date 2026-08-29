@@ -9,6 +9,7 @@ commits:
   - 306e47c5 fix — CommandMode needs the `../dashboard` import
   - 50d93b5f fix — icon strip clips, and loads in ~0 instead of 27.7s (round 2)
   - fb0ab0b8 feat — horizontal Continuous is a three-sided frame (round 2)
+  - 36e6e9b7 fix — dashboard bulge back, round corners, flare seam (round 3)
 ---
 
 # 260829-2ov — SUMMARY
@@ -262,3 +263,75 @@ probe saved a cache holding only what it had probed — 7 themes became 4).
    activation and absence-of-errors are verified; **layout is not.**
 2. **The horizontal frame in daily use.** Every corner is measured and
    captured, but it was flipped to and back rather than lived in.
+
+
+---
+
+# ROUND 3 — three more on the horizontal frame
+
+## R3-1 — the bulge and its dwell-summon are back
+
+On the bar's own slab, with the retired strip's exact numbers:
+`edgeBarBulgeWidthTop` (the dashboard's own width), `edgeBarBulgeExtra` depth,
+the same shoulder and corner radii. D-3 still holds — nothing about it is
+bound to a hover or open state. Measured across the left shoulder at
+x880..940: the rim ends at y=55 left of x=903 and continues to y=59 right of
+it, with the fillet on the diagonal between. The summon reuses
+`dashboardShortcut.toggle()` verbatim, which is what keeps one dwell, one
+`dashboardHoverSummoned` flag and one write to `dashboardLoader.active`.
+
+**It surfaced a bug I had shipped an hour earlier.** `_weldFlareOverhang` runs
+the surface 20px past its reserved band so the flare has somewhere to be
+drawn, and `Bar.qml` has never had an input mask — so a **2550x20 invisible
+strip across the top of every window was swallowing clicks.** There is a mask
+now; in every case but the horizontal weld `barInputArea` IS the whole
+surface, so it is a no-op elsewhere and the vertical bar's long-standing 32px
+leftward overhang is untouched.
+
+## R3-2 — the two right corners are round, and deliberately unequal
+
+`buildOutline` gained `squareEndRadius` (outer corner of a square end, same
+verify-the-centre sweep resolution as every other arc there; must stay `<= t`
+or the outline self-intersects).
+
+**The band turns with 26, derived twice.** The inner corner is already the
+flare at `edgeBarWeldFlareRadius` (20); a turn of constant material thickness
+has outer = inner + thickness; the run it turns into is `edgeBarThickness` (6)
+thick. 20 + 6 = 26 — which is also exactly `_weldSlabWidth / 2`, the radius the
+VERTICAL frame already turns its own screen corners with.
+
+**The bottom rail turns with 6, and that is a limit rather than a taste
+call:** 6 is the largest radius a 6px run can express at its own end. A wider
+turn there must be a shape spanning BOTH rails, because neither surface
+reaches past its own reservation — the right rail stops at y=1434 and the
+bottom rail's surface starts at y=1424. The bar's corner is bigger only
+because its 50px band can hold the whole turn alone. **Flagged for the
+operator:** if the two should match, the corner-patch work is the route.
+
+## R3-3 — the flare's "missing pixels" was one row
+
+Measured at x2530..2559, y48..79: **y=56 carried two single-pixel holes, x2554
+and x2559, and every other row was solid.** y=56 is where three edges land on
+the same coordinate — the flare patch's right edge, the right rail's left
+edge, and the rail's own first row — each antialiased to partial coverage,
+with the desktop showing through the sum. Butting geometry exactly is what
+produced it, so the patch now runs to the surface's right edge; everything
+past that point is territory the rail paints anyway, in the same gradient
+through the same mapping, so the overlap is invisible and an overlap cannot
+leave a seam. Re-measured: y=56 solid across x2540..2559.
+
+## Round 3 gates
+
+edgebar-path golden 123/123 · `quickshell-doctor` 28/0 · `colour-lint` 575/0 ·
+`motion-lint` 814/0 · `qml-import-check` 0 unresolved/193 ·
+`singleton-prop-check` 0 · `transparent-lint` 194/0. Verified in horizontal
+and restored to vertical byte-identical (`reserved [0,6,50,6]`, bar
+`2478,0 76x1440`).
+
+## Round 3 — what still needs the operator
+
+1. **The dwell itself.** The bulge renders and the signal is wired, but firing
+   it needs a pointer parked on the bar's underside centre for
+   `edgeBarDwellMs`, which cannot be done from the agent shell. Hover just
+   below the middle of the horizontal bar and the dashboard should open.
+2. **Whether the two right corners should match** — see R3-2.

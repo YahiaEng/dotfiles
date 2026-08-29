@@ -4,9 +4,9 @@ milestone: v4.0
 current_phase: 22
 status: milestone-complete
 stopped_at: "THREE OPERATOR ITEMS SHIPPED 2026-08-29 (7350ce2e, b6cfc7b7, 306e47c5). ONE THING OWED AND IT IS A LOOK, NOT A FIX: the `cmd` palette's rendered rows could not be screenshotted — the launcher dismisses the instant the pointer leaves it (follow_mouse + HyprlandFocusGrab) and there is no input-injection path here, so load and activation are verified and LAYOUT IS NOT. Type `cmd`, check the two-column row (leaf name left, breadcrumb right), then `cmd theme` + Enter. Also judge the horizontal Continuous bar in daily use — measured at both ends and mid-screen but only flipped to and back. Note the composition it ACTUALLY produces: 4px rim above the bar, and a fused 10px gradient edge BELOW it, because the strip lands under a horizontal bar rather than over it. (1) `cmd` is a SEPARATE file from MenuMode, not a mode switch inside it — the two disagree on both of MenuMode's load-bearing properties (navStack, and `_stickyModes` membership, which exists precisely so a keystroke cannot re-route the surface). (2) THE GLYPH INSET IS ARITHMETIC: the core is 44 wide, its cap centred y=32 r=22, and barContent was inset by _weldCapDepth alone — so a 44-WIDE capsule box started at the cap's APEX, corners outside the shape. A 44-wide box first fits in a 44-wide pill at the TANGENT, 10+22=32; measured after at glyph centre 43 vs predicted 44. (3) THE PLAN'S ASSUMPTION WAS WRONG: baredge-top sits at y=48 with a horizontal bar up, BELOW it, because a non-negative exclusive zone is positioned inside every existing zone. Reserving the whole slab lands the strip flush and the shared gradient mapping makes the seam invisible. DURABLE TRAP, NEW INSTANCE: every gate passed through a live ReferenceError — a lazily-loaded component is a gate blind spot BY CONSTRUCTION, and only opening the surface and reading the log saw it. SECOND, CHEAPER RECOVERY FOR THE INODE TRAP: an in-place append to a file whose watch is still alive (shell.qml) forces a whole-config reload and re-reads the orphaned file — no unit restart, no cgroup argument. STILL OWED FROM THE PREVIOUS SESSION: judge `precise` (the desktop is on it), and the four 1px dividers moved outline -> outlineVariant. NEXT REAL DECISION unchanged: v5.0 has no roadmap — /gsd-review-backlog then /gsd-new-milestone."
-last_updated: "2026-08-29T03:05:00.000Z"
+last_updated: "2026-08-29T03:45:00.000Z"
 last_activity: 2026-08-29
-last_activity_desc: "Round 2 of 260829-2ov: horizontal Continuous became a three-sided frame, the icon strip stopped clipping, and its previews went from 27.7s to a disk cache."
+last_activity_desc: "Round 3 of 260829-2ov: the dashboard bulge and dwell-summon restored on the bar, both right corners rounded, and the flare seam fixed."
 state_head: 8b74c021
 progress:
   total_phases: 6
@@ -1416,7 +1416,41 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — round 2 shipped; the horizontal frame awaits your eye
+### ▶ RESUME HERE — round 3 shipped; two things want your judgement
+
+Round 3 (`36e6e9b7`) closed all three follow-ups on the horizontal frame.
+
+**1. HOVER JUST BELOW THE MIDDLE OF THE HORIZONTAL BAR.** The dashboard's
+bulge and its dwell-summon are back, on the bar's own slab now that it is the
+top edge — same width, depth and radii the retired strip used. The bulge
+renders (measured, 4px protrusion with its shoulder fillet at x≈903) and the
+signal is wired, but **firing the dwell needs a pointer parked on it**, which
+cannot be done from the agent shell.
+
+**2. DO THE TWO RIGHT CORNERS NEED TO MATCH?** Both are round now, and
+deliberately unequal. The band turns with **26** — derived, and it is the same
+number the vertical frame turns its own screen corners with. The bottom rail
+turns with **6**, which is a hard limit rather than a choice: 6 is the largest
+radius a 6px run can express at its own end, and a wider turn there needs a
+shape spanning BOTH rails because neither surface reaches past its own
+reservation. Say the word and that corner-patch work is the route.
+
+**Also fixed:** the flare's "missing pixels" was one row — y=56 carried two
+single-pixel holes where three antialiased edges met on the same coordinate.
+The patch now overlaps the rail instead of butting it.
+
+**And a bug of mine that round 3 caught:** the flare overhang had left a
+2550x20 invisible strip across the top of every window swallowing clicks,
+because `Bar.qml` had no input mask. It has one now, and it is a no-op in
+every other case.
+
+**Still owed from the previous session:** judge `precise` (the desktop is on
+it) and the four 1px dividers that moved to `outlineVariant`.
+
+**NEXT REAL DECISION, unchanged:** v5.0 has no roadmap — `/gsd-review-backlog`
+then `/gsd-new-milestone`.
+
+### Previous checkpoint — round 2 shipped; the horizontal frame awaits your eye
 
 Round 2 (`50d93b5f`, `fb0ab0b8`) answered all three follow-ups.
 
