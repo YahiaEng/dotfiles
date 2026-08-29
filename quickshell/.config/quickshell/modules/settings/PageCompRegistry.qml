@@ -132,6 +132,10 @@ Singleton {
     readonly property Component packagesComp: Component {
         PackagesPage {}
     }
+    readonly property Component virtualizationComp: Component {
+        VirtualizationPage {}
+    }
+
     readonly property Component aboutComp: Component {
         AboutPage {}
     }
@@ -157,6 +161,7 @@ Singleton {
         languageRegionComp,
         securityComp,
         packagesComp,
+        virtualizationComp,
         aboutComp
     ]
 
@@ -182,6 +187,7 @@ Singleton {
         "language-region",
         "security",
         "packages",
+        "virtualization",
         "about"
     ]
 

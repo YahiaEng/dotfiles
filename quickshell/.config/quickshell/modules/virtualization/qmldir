@@ -1,0 +1,18 @@
+# qmldir — explicit module manifest for quickshell/modules/virtualization/
+# (quick task 260829-vfi). Mirrors every sibling module manifest's own
+# standing instruction (see modules/security/qmldir, modules/osd/qmldir):
+# any .qml type added to this directory that is NOT declared below becomes
+# unresolvable, with no load error — it simply reads `undefined` forever.
+# qml-import-check enforces this. Any FUTURE type added here MUST be
+# declared in the same commit that creates it.
+#
+# ── THE `singleton` KEYWORD IS LOAD-BEARING ───────────────────────────
+# VirtualizationBackend carries `pragma Singleton` AND is marked
+# `singleton` below. modules/qmldir's own header records why both are
+# required, binary-verified in 12-06: without the qmldir keyword, a bare
+# `VirtualizationBackend.vmState`-style access resolves to `undefined`
+# forever and the object is never constructed. Removing either one is a
+# silent, error-free failure.
+module qs.modules.virtualization
+
+singleton VirtualizationBackend 1.0 VirtualizationBackend.qml

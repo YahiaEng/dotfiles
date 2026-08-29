@@ -43,3 +43,4 @@ SecurityPage 1.0 SecurityPage.qml
 # same commit that creates PackagesPage.qml, per this manifest's own
 # standing rule.
 PackagesPage 1.0 PackagesPage.qml
+VirtualizationPage 1.0 VirtualizationPage.qml

@@ -183,6 +183,13 @@ Singleton {
             slug: "packages"
         },
         {
+            label: "Virtualization",
+            icon: "computer",
+            description: "Windows VM and linked drives",
+            category: "system",
+            slug: "virtualization"
+        },
+        {
             label: "About",
             icon: "info",
             description: "System information, credits",
