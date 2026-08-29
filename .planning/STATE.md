@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "THREE OPERATOR ITEMS SHIPPED 2026-08-29 (7350ce2e, b6cfc7b7, 306e47c5). ONE THING OWED AND IT IS A LOOK, NOT A FIX: the `cmd` palette's rendered rows could not be screenshotted — the launcher dismisses the instant the pointer leaves it (follow_mouse + HyprlandFocusGrab) and there is no input-injection path here, so load and activation are verified and LAYOUT IS NOT. Type `cmd`, check the two-column row (leaf name left, breadcrumb right), then `cmd theme` + Enter. Also judge the horizontal Continuous bar in daily use — measured at both ends and mid-screen but only flipped to and back. Note the composition it ACTUALLY produces: 4px rim above the bar, and a fused 10px gradient edge BELOW it, because the strip lands under a horizontal bar rather than over it. (1) `cmd` is a SEPARATE file from MenuMode, not a mode switch inside it — the two disagree on both of MenuMode's load-bearing properties (navStack, and `_stickyModes` membership, which exists precisely so a keystroke cannot re-route the surface). (2) THE GLYPH INSET IS ARITHMETIC: the core is 44 wide, its cap centred y=32 r=22, and barContent was inset by _weldCapDepth alone — so a 44-WIDE capsule box started at the cap's APEX, corners outside the shape. A 44-wide box first fits in a 44-wide pill at the TANGENT, 10+22=32; measured after at glyph centre 43 vs predicted 44. (3) THE PLAN'S ASSUMPTION WAS WRONG: baredge-top sits at y=48 with a horizontal bar up, BELOW it, because a non-negative exclusive zone is positioned inside every existing zone. Reserving the whole slab lands the strip flush and the shared gradient mapping makes the seam invisible. DURABLE TRAP, NEW INSTANCE: every gate passed through a live ReferenceError — a lazily-loaded component is a gate blind spot BY CONSTRUCTION, and only opening the surface and reading the log saw it. SECOND, CHEAPER RECOVERY FOR THE INODE TRAP: an in-place append to a file whose watch is still alive (shell.qml) forces a whole-config reload and re-reads the orphaned file — no unit restart, no cgroup argument. STILL OWED FROM THE PREVIOUS SESSION: judge `precise` (the desktop is on it), and the four 1px dividers moved outline -> outlineVariant. NEXT REAL DECISION unchanged: v5.0 has no roadmap — /gsd-review-backlog then /gsd-new-milestone."
-last_updated: "2026-08-29T03:45:00.000Z"
+stopped_at: "QUICK TASK 260829-2ov CLOSED AND APPROVED BY THE OPERATOR 2026-08-29, four rounds, all pushed (7350ce2e, b6cfc7b7, 306e47c5, 50d93b5f, fb0ab0b8, 36e6e9b7, 8794ea83). NOTHING IS OWED. Desktop left on HORIZONTAL — the operator flipped it there. DELIVERED: the `cmd` command palette over MenuTree; the vertical weld's end glyphs moved to the core pill's CAP TANGENT (a 44-wide capsule cannot fit inside a 44-wide pill above it, 10+22=32, re-measured at glyph centre 43 vs predicted 44); horizontal Continuous rebuilt as a THREE-SIDED FRAME on one rule that made everything else fall out — Continuous draws three runs, the bar is one of them, the fourth side is open — with both right corners rounded (band 26, the same number the vertical frame turns its own screen corners with; bottom rail 6, the most a 6px run can express at its own end); the dashboard's bulge and dwell-summon rehomed onto the bar; and the `icon` strip fixed (clipping was arithmetic — 1112px of tiles in a 608px box in a bare Row — and 27.7s became 3.9s by replacing 60 tree walks per theme with one, then ~0 with a disk cache). THE LESSON OF THE LAST ROUND, NOW A MEMORY: I re-derived the bulge instead of porting EdgeBar.qml's, and shipped a static stub missing the animation, the surfaceOpen hold, the write-don't-read hover push and the per-frame fillet split — all three of the operator's symptoms had that one cause. Port a solved mechanism name-for-name; a re-derivation reproduces only the parts you thought of. OTHER DURABLE FINDINGS SAVED: FileView reads are ASYNCHRONOUS (text() at Component.onCompleted returned "" against a good 8KB file and the first write truncated 7 cached themes to 4); a lazily-loaded QML component is a gate blind spot BY CONSTRUCTION (six green gates passed a live ReferenceError); a non-negative exclusive zone lands a strip BELOW a bar on the same edge, which falsified this task's own design sketch; and there is NO pointer-injection path on this host by any route. THREE KNOWN-OPEN, NONE BLOCKING: hover on the bar's bulge is unverifiable from the agent shell (it now logs `hovered=` so a real report carries data); whether the two right corners should match (needs a corner shape spanning both rails); and bar.autoHideOnIdle is on by the operator's choice. STILL OWED FROM THE PREVIOUS SESSION: judge `precise`, and the four 1px dividers that moved to outlineVariant. NEXT REAL DECISION: v5.0 has no roadmap — /gsd-review-backlog then /gsd-new-milestone."
+last_updated: "2026-08-29T04:15:00.000Z"
 last_activity: 2026-08-29
-last_activity_desc: "Round 4 of 260829-2ov: the bar bulge ported from EdgeBar rather than re-derived — animated, hover- and dashboard-driven."
+last_activity_desc: "Quick task 260829-2ov closed and approved after four rounds: cmd palette, weld glyph inset, horizontal three-sided frame with rounded corners and a rehomed dashboard bulge, and the icon strip fixed."
 state_head: 8b74c021
 progress:
   total_phases: 6
@@ -33,7 +33,7 @@ Phase: 22
 Plan: Not started
 Status: All phases complete
 Progress: [██████████] 100%
-Last activity: 2026-08-29 - Completed quick task 260829-2ov round 2: horizontal three-sided frame, icon strip clip + preview cache.
+Last activity: 2026-08-29 - Quick task 260829-2ov closed and approved (four rounds, 7 commits, pushed).
 
 ## Performance Metrics
 
@@ -1416,7 +1416,52 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — the bulge is ported, not re-derived; one hover settles it
+### ▶ RESUME HERE — 260829-2ov is CLOSED AND APPROVED. Nothing is owed.
+
+Quick task 260829-2ov shipped over four rounds and the operator approved it
+(`7350ce2e`, `b6cfc7b7`, `306e47c5`, `50d93b5f`, `fb0ab0b8`, `36e6e9b7`,
+`8794ea83`, all pushed). The desktop is on **horizontal** — the operator
+flipped it there themselves and it was deliberately left that way.
+
+**What now exists that did not before:**
+
+- `cmd` in the launcher — MenuTree's 35 leaves as one fuzzy command palette.
+- The vertical weld's end glyphs sit at the core pill's **cap tangent**
+  (10 + 22 = 32) instead of its zero-width apex.
+- **Horizontal Continuous is a three-sided frame**, on one rule that made
+  everything else fall out: *Continuous draws three runs, the bar is one of
+  them, the fourth side is open.* Vertical → top + bottom rails, bar right.
+  Horizontal → right + bottom rails, bar TOP, left open. Both right corners
+  round; the band turns with 26 (the same number the vertical frame uses),
+  the bottom rail with 6.
+- The dashboard's bulge and dwell-summon live on the bar in that orientation,
+  ported from `EdgeBar.qml` name-for-name.
+- The `icon` strip clips and scrolls, and its previews went **27.7s → 3.9s**
+  (one traversal instead of 60 per theme) **→ ~0** (a disk cache).
+
+**Three things are known-open, none blocking:**
+
+1. **Hover on the bar's bulge is unverified from the agent shell** — no
+   injection path exists here at all (checked: `ydotool`/`dotool` absent,
+   `wtype` types text, `movecursor` is not a dispatcher on this Lua build).
+   The mechanism is proven end-to-end through `dashboardOpen`, which feeds the
+   identical input. If a hover ever seems dead,
+   `grep dashbulge ~/.cache/quickshell.log` reports `hovered=` directly.
+2. **Whether the two right corners should match.** 6 is the most a 6px run can
+   express at its own end; matching them needs a corner shape spanning both
+   rails, since neither surface reaches past the other's reservation.
+3. **`bar.autoHideOnIdle` is on** — the frame stays painted and only the
+   glyphs hide, identically in both orientations. Off with
+   `qs ipc call prefs set bar.autoHideOnIdle false`.
+
+**Still owed from the PREVIOUS session (not this task):** judge the `precise`
+motion style, and the four 1px dividers that moved `outline` →
+`outlineVariant`.
+
+**NEXT REAL DECISION:** v5.0 has no roadmap — `/gsd-review-backlog` then
+`/gsd-new-milestone`.
+
+### Previous checkpoint — the bulge is ported, not re-derived; one hover settles it
 
 Round 4 (`8794ea83`). You were right that round 3 re-invented a solved
 mechanism — the bulge is now `EdgeBar.qml`'s, name for name: absent at rest,

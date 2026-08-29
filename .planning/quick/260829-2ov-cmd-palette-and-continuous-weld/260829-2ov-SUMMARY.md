@@ -11,6 +11,7 @@ commits:
   - fb0ab0b8 feat — horizontal Continuous is a three-sided frame (round 2)
   - 36e6e9b7 fix — dashboard bulge back, round corners, flare seam (round 3)
   - 8794ea83 fix — port the bulge swell instead of re-deriving it (round 4)
+operator_verdict: approved 2026-08-29 after round 4
 ---
 
 # 260829-2ov — SUMMARY
@@ -397,3 +398,22 @@ Hover cannot be produced from the agent shell: there is no injection path and
 that a hover now writes its own verdict —
 `grep dashbulge ~/.cache/quickshell.log` after hovering reports `hovered=`
 directly, so the next report comes with data rather than a symptom.
+
+
+---
+
+# CLOSED — approved by the operator after round 4
+
+Four rounds, seven code commits, all pushed. The desktop was left on
+**horizontal**, where the operator had flipped it.
+
+**The one lesson worth carrying out of this task** is round 4's: I re-derived
+a solved mechanism instead of porting it, and every symptom the operator
+reported traced to that single decision. Saved as
+`port-the-mechanism-dont-rederive`.
+
+**Three things are open and none of them block anything** — hover on the bar's
+bulge cannot be driven from the agent shell (it logs `hovered=` now, so a real
+report carries data); whether the two right corners should match (needs a
+corner shape spanning both rails); and `bar.autoHideOnIdle` remains on by the
+operator's choice.
