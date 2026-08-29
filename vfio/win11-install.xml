@@ -230,6 +230,22 @@
     </video>
     <input type='tablet' bus='usb'/>
     <input type='keyboard' bus='usb'/>
+    <!-- Emulated audio, INSTALL MODE ONLY. This mode passes no hardware
+         at all, so without this the guest has no sound device whatsoever
+         and Windows correctly reports "no audio devices are installed".
+         ich9 is the Intel HD Audio controller Windows drives with its own
+         in-box driver — no extra driver needed — and the stream is carried
+         over the existing SPICE channel to virt-manager.
+
+         Gaming mode deliberately has NO <sound>: it passes the REAL audio
+         hardware instead (onboard analog 09:00.4, plus the Logitech PRO X
+         headset on the passed USB controller 09:00.3), which is lower
+         latency than any emulated device. -->
+    <sound model='ich9'>
+      <audio id='1'/>
+    </sound>
+    <audio id='1' type='spice'/>
+
     <channel type='spicevmc'>
       <target type='virtio' name='com.redhat.spice.0'/>
     </channel>
