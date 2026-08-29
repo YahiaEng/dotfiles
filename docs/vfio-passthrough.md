@@ -413,11 +413,26 @@ stopped and the GPU bound to `vfio-pci`, and only *then* did qemu discover it
 could not open the boot disk — so the domain died and the operator was
 dropped at an SDDM login with nothing on screen explaining why.
 
-Two things changed. The hook now **checks that exit status and aborts before
-the teardown**, so `virsh start` prints an error with the desktop still up;
-libvirt aborts the start when a `prepare/begin` hook exits non-zero, and a
+Three things changed. The hook now **checks that exit status and aborts
+before the teardown**, so `virsh start` prints an error with the desktop still
+up; libvirt aborts the start when a `prepare/begin` hook exits non-zero, and a
 missing mapping can never be recovered by continuing. And bare-metal mode
 builds nothing at all, so it has nothing there that *can* fail.
+
+The third is the half that fix missed, and it cost a screen of its own an
+hour later. **libvirt fires `release/end` even for a domain that failed to
+start** — including one this hook itself refused. `vfio-gpu-unbind` is
+destructive on its own: it unbinds the GPU from whatever holds it,
+`modprobe -r`s the nvidia modules, reloads them and restarts `sddm`. Running
+it when nothing was ever bound is a gratuitous full display-stack cycle, and
+that is precisely what blanked the screen at 10:19 on 2026-08-29 — the abort
+was correct, the asymmetry was the bug.
+
+`release/end` now asks the kernel what actually owns the GPU and restores only
+if it is on `vfio-pci`. Gated on ground truth rather than a marker file
+deliberately: a flag can desynchronise, and the dangerous direction is
+skipping a restore that *was* needed, which reading the live driver cannot get
+wrong.
 
 The filesystem-state decision still belongs at link time, where refusing
 costs one toggle. The only check `rebuild` keeps is the concurrent-mount one,

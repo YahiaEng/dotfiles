@@ -103,8 +103,30 @@ case "$OP/$SUBOP" in
         ;;
     release/end)
         [ -x "$DRIVES" ] && "$DRIVES" teardown >>"$LOG" 2>&1
+        # ── ONLY RESTORE WHAT WAS ACTUALLY TAKEN ──────────────────────
+        # libvirt fires release/end even for a domain that FAILED to
+        # start — including one this hook itself refused at prepare/begin.
+        # vfio-gpu-unbind is destructive on its own: it unbinds the GPU
+        # from whatever holds it, modprobe -r's the nvidia modules,
+        # reloads them and restarts sddm. Running it when nothing was
+        # ever bound is a gratuitous full display-stack cycle.
+        #
+        # That is exactly what happened on 2026-08-29 10:19: the
+        # prepare/begin refusal correctly skipped the BIND, then this
+        # branch ran the UNBIND anyway and blanked the operator's screen.
+        # The abort was right; this asymmetry was the bug.
+        #
+        # Gated on GROUND TRUTH rather than a marker file: ask the kernel
+        # what currently owns the GPU. A flag can desynchronise and the
+        # dangerous direction is skipping a restore that WAS needed —
+        # reading the live driver cannot get that wrong.
         if [ "$HAS_PCI_PASSTHROUGH" = yes ]; then
-            exec /usr/local/bin/vfio-gpu-unbind
+            gpu_drv=$(basename "$(readlink -f /sys/bus/pci/devices/0000:07:00.0/driver 2>/dev/null)" 2>/dev/null || echo none)
+            if [ "$gpu_drv" = "vfio-pci" ]; then
+                exec /usr/local/bin/vfio-gpu-unbind
+            fi
+            printf '%s [hook] GPU is on %s, not vfio-pci — nothing was handed over, skipping restore\n' \
+                "$(date -Is)" "$gpu_drv" >> "$LOG"
         fi
         exit 0
         ;;
