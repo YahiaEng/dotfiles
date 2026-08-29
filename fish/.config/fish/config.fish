@@ -172,6 +172,16 @@ set -gx BUN_INSTALL $HOME/.bun
 set -gx EDITOR nvim
 set -gx VISUAL nvim
 
+# ── libvirt (260829-vfi) ─────────────────────────────
+# Point virsh/virt-manager at the SYSTEM daemon. A non-root user's virsh
+# defaults to qemu:///session — a separate, per-user libvirt with its own
+# (empty) domain list — so `virsh start win11-gaming` fails with
+# "failed to get domain" even though the domain exists. The VM lives in
+# qemu:///system because that is where PCI passthrough, the /etc/libvirt
+# hooks and the shared storage pool live; membership of the `libvirt`
+# group is what makes reaching it unprivileged.
+set -gx LIBVIRT_DEFAULT_URI qemu:///system
+
 # ── PATH ─────────────────────────────────────────────
 # Parity: the retired .zshrc's exports for cargo, local bin, bun, spicetify.
 # (~/.local/bin is also covered by the uv-generated conf.d/uv.env.fish on
