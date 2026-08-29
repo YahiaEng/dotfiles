@@ -669,6 +669,16 @@ ShellRoot {
         // Continuous, the one style where the bar and the rail share a
         // single silhouette.
         edgeBarStyle: root.edgeBarStyle
+        // The dashboard's bulge, when the bar IS the top edge (quick task
+        // 260829-2ov, operator round 4). Threaded from the SAME two sources
+        // the top strip reads — `edgeBarAnimatedBulgeEffective` and the
+        // dashboard's own loader — so the bar's bulge and a rail's bulge
+        // cannot drift into different behaviours.
+        animatedBulge: root.edgeBarAnimatedBulgeEffective
+        // Holds the swell for as long as the surface it summoned is up, so
+        // the bulge does not collapse under the dashboard the moment the
+        // pointer leaves it and enters the panel.
+        dashboardOpen: dashboardLoader.active
         audioBackend: audioBackendInstance
         mediaBackend: mediaBackendInstance
         systemResources: systemResourcesInstance

@@ -307,14 +307,35 @@ PanelWindow {
     // input then.
     Item {
         id: dashDwellArea
-        width: barWindow._dashBulgeVisible ? barWindow._dashBulgeWidth : 0
-        height: barWindow._dashBulgeVisible ? Design.edgeBarHoverDepth : 0
+        // The bulge's WIDTH, so what is seen and what triggers are the same
+        // object on the axis the pointer actually aims along (P-3) — and the
+        // WHOLE overhang in depth, not `edgeBarHoverDepth`, because the
+        // overhang here is 20 and stopping short of the surface's own bottom
+        // edge would leave a 4px dead band that a pointer travelling upward
+        // crosses first. `_dashBulgeSpanValid`, not `_dashBulgeVisible`:
+        // the target must stay live while the bulge is RETRACTED, or an
+        // animated bulge could never be hovered out of depth 0.
+        // SIZED OFF THE ORIENTATION, NOT OFF THE BULGE. `_dashBulgeSpanValid`
+        // is false at construction (`edgeBarStyle` defaults to "off" until
+        // shell.qml's binding resolves, and `BarEntryModel.isVertical` is
+        // false before its FileView lands), so keying the size on it made
+        // this item 0x0 at the moment the mask was first built and non-zero
+        // only afterwards. The mask is derived from these items, and a
+        // region that has to be rebuilt after a resize is one more thing
+        // that has to work — this one now takes its size once, when the
+        // orientation settles, and never toggles again. An invalid span is
+        // handled where it matters instead: the dwell below refuses to fire.
+        width: barWindow._continuousWeldH ? barWindow._dashBulgeWidth : 0
+        height: barWindow._continuousWeldH ? barWindow._weldFlareOverhang : 0
         x: barWindow._dashBulgeXl
         y: barWindow._weldSlabDepth
 
         HoverHandler {
             id: dashDwellHover
             onHoveredChanged: {
+                // Pushed up to the window root for the swell binding — see
+                // `_dashBulgeHovered` for why it is not read directly.
+                barWindow._dashBulgeHovered = dashDwellHover.hovered;
                 if (dashDwellHover.hovered) {
                     if (barWindow._dashDwellArmed)
                         dashDwellTimer.restart();
@@ -338,7 +359,10 @@ PanelWindow {
         repeat: false
         onTriggered: {
             barWindow._dashDwellArmed = false;
-            barWindow.dashboardDwellTriggered();
+            // The span guard lives here rather than on the hit region's own
+            // size — see that item's note.
+            if (barWindow._dashBulgeSpanValid)
+                barWindow.dashboardDwellTriggered();
         }
     }
 
@@ -672,9 +696,86 @@ PanelWindow {
     // outside the run and the fill does not reach it — the failure
     // `_weldSlabWidth`'s own `f: 0` note records. A frame narrower than the
     // dashboard simply drops the bulge rather than drawing a broken one.
-    readonly property bool _dashBulgeVisible: barWindow._continuousWeldH
-        && barWindow._dashBulgeXl > barWindow._weldSlabDepth / 2 + Design.edgeBarFilletRadius
-        && barWindow._dashBulgeXr < barWindow.width - barWindow._weldOuterCornerRadius - Design.edgeBarFilletRadius
+    readonly property bool _dashBulgeSpanValid: barWindow._continuousWeldH
+        && barWindow._dashBulgeXl > barWindow._weldSlabDepth / 2 + Design.edgeBarBulgeSwellExtra
+        && barWindow._dashBulgeXr < barWindow.width - barWindow._weldOuterCornerRadius - Design.edgeBarBulgeSwellExtra
+
+    // ── THE SWELL, PORTED FROM `EdgeBar.qml` RATHER THAN RE-INVENTED ────
+    // Round 3 shipped a STATIC bulge here and the operator was right to
+    // reject it: the strip this replaced has been hover-animated since
+    // 260824-ns3, and re-deriving the behaviour instead of porting it is
+    // what produced a landmark that sits there and does nothing.
+    //
+    // Every name below is that file's, with its reasoning intact:
+    //
+    //   `_dashBulgeHovered` is WRITTEN BY the handler, never read from it —
+    //     a binding here reaching forward to an id declared further down is
+    //     the declare-before-use trap, which surfaces as one log line and an
+    //     otherwise silent wrong answer.
+    //   `_dashB` is NOT readonly: the Behavior has to be able to drive it,
+    //     and a Behavior on a bound property animates toward each new
+    //     binding result, which is exactly the shape wanted.
+    //   `_dashF` + `_dashRc` must sum to <= `_dashB` at EVERY FRAME, not
+    //     just at the endpoints — fixed tokens cannot do that while `_dashB`
+    //     sweeps 0 -> 10, and breaking it self-intersects the outline into a
+    //     dark notch. The 0.6/0.4 split sums to exactly `_dashB` at every
+    //     value including 0.
+    //   The SURFACE never resizes with the swell. `_weldFlareOverhang` (20)
+    //     already exceeds the fully-swelled depth (10), so the surface is
+    //     pinned to a constant while only the painted outline moves — a
+    //     resizing layer surface is re-configured and re-buffered every
+    //     frame and drags its own content.
+    property bool animatedBulge: false
+    property bool dashboardOpen: false
+    property bool _dashBulgeHovered: false
+
+    readonly property bool _dashBulgeOut: barWindow.animatedBulge
+        && (barWindow._dashBulgeHovered || barWindow.dashboardOpen)
+
+    readonly property real _dashBTarget: !barWindow._dashBulgeSpanValid
+        ? 0
+        : (barWindow.animatedBulge
+            ? (barWindow._dashBulgeOut ? Design.edgeBarBulgeSwellExtra : 0)
+            : Design.edgeBarBulgeExtra)
+
+    property real _dashB: barWindow._dashBTarget
+
+    Behavior on _dashB {
+        enabled: Motion.motionEnabled && barWindow.animatedBulge
+        NumberAnimation {
+            duration: Motion.standardDuration
+            easing.type: Easing.BezierSpline
+            // Grows on `standard`, retracts along that same curve played
+            // backwards, and lands well inside `edgeBarDwellMs` (400) so the
+            // swell reads as "you are dwelling here" rather than racing the
+            // summon it is about to trigger.
+            easing.bezierCurve: barWindow._dashBulgeOut ? Motion.standardEasing : Motion.standardReverseEasing
+        }
+    }
+
+    // One line per SETTLE, on this file's existing `barbulge:` idiom — the
+    // guard keeps the two states that carry information and drops the ~60
+    // intermediate frames. A bulge on a layer surface can only be observed
+    // by a screenshot or by this, so having both means a disagreement
+    // between them is itself informative; that is exactly what caught the
+    // round-3 static bulge doing nothing.
+    readonly property real dashBulgeDepth: barWindow._dashB
+    onDashBulgeDepthChanged: if (barWindow.dashBulgeDepth <= 0.01
+        || barWindow.dashBulgeDepth >= Design.edgeBarBulgeSwellExtra - 0.01)
+        console.log("dashbulge: b=" + barWindow.dashBulgeDepth.toFixed(1)
+        + " span=" + barWindow._dashBulgeSpanValid
+        + " animated=" + barWindow.animatedBulge
+        + " hovered=" + barWindow._dashBulgeHovered
+        + " open=" + barWindow.dashboardOpen)
+
+    readonly property real _dashF: barWindow.animatedBulge ? barWindow._dashB * 0.6 : Design.edgeBarFilletRadius
+    readonly property real _dashRc: barWindow.animatedBulge ? barWindow._dashB * 0.4 : Design.edgeBarBulgeCornerRadius
+
+    // `bulge: false` is an explicit branch, never "pass b = 0" — a
+    // zero-depth bulge still emits four zero-radius arcs and a backwards
+    // face segment, and self-intersects silently. So a fully retracted
+    // animated bulge draws no bulge at all rather than a degenerate one.
+    readonly property bool _dashBulgeVisible: barWindow._dashBulgeSpanValid && barWindow._dashB > 0.01
 
     // ── Gradient continuity with the strip ──────────────────────────────
     // Phase comes from the shared clock (GradientPhase.qml) so this cannot
@@ -1340,10 +1441,10 @@ PanelWindow {
                 // side facing the rail — which is the unmirrored case.
                 path: EdgeBarPath.buildOutline({
                     t: barWindow._weldSlabDepth,
-                    b: barWindow._dashBulgeVisible ? Design.edgeBarBulgeExtra : 0,
+                    b: barWindow._dashB,
                     re: barWindow._weldSlabDepth / 2,
-                    f: Design.edgeBarFilletRadius,
-                    rc: Design.edgeBarBulgeCornerRadius,
+                    f: barWindow._dashF,
+                    rc: barWindow._dashRc,
                     along: Math.max(barWindow._weldSlabDepth, barWindow.width),
                     alongStart: 0,
                     // ── THE DASHBOARD'S BULGE, RESTORED (operator round 3)
