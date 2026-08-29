@@ -253,9 +253,11 @@ virsh start win11-gaming
 virt-manager                                     # double-click the domain to view
 ```
 
-Both XML files carry the **same name and UUID**, so `virsh define` switches the
-existing domain between shapes rather than creating a second one. Only one
-definition is active at a time, so the two can never both claim the disk.
+All **three** XML files — `win11-install.xml`, `win11-gaming.xml` and
+`win11-bare.xml` — carry the **same name and UUID**, so `virsh define` switches
+the existing domain between shapes rather than creating a second one. Only one
+definition is active at a time, so they can never both claim the disk. (The
+third is bare-metal mode; see its own section below.)
 
 At the disk step, "Load driver" → the virtio-win ISO → `viostor`, then `NetKVM`
 for networking. Without that, Setup shows "no drives found" and does not say why.
@@ -308,6 +310,105 @@ Inside Windows: install the NVIDIA driver normally, set the power mode to
 "Prefer maximum performance", and disable "Memory Integrity"
 (Core Isolation) — it is a nested-virtualisation feature that costs real
 frames inside an already-virtualised guest.
+
+---
+
+## Bare-metal mode: booting your real Windows as the VM
+
+Quick task 260829-czi. There is a **third** shape of the same domain,
+`vfio/win11-bare.xml`, which boots the Windows install that lives on
+`nvme0n1` instead of a qcow2 image. One Windows, all your games, whether you
+boot it on metal or as a guest.
+
+### How the disk is built
+
+`link-boot` builds `/dev/mapper/vm-winboot`: a virtual disk holding only the
+boot set — the ESP, the Microsoft reserved partition, C: and the recovery
+partition — at their true offsets, with `Main` excluded.
+
+```
+0            2048     linear  loop         protective MBR + GPT + entries
+2048         <span>   linear  <real disk>  p1..p4 verbatim, at true offsets
+<boot_end>   2048     linear  loop         backup GPT
+```
+
+The layout that makes this possible, measured rather than assumed: `p1..p4`
+occupy sectors **2048 → 1348306943** with no gap large enough to matter, and
+`Main` does not start until **1348308992**. The boot set is one linear range.
+
+**The synthetic GPT is a replay of the real one, not a fresh table.** This is
+the one way this mapping differs from `vm-main`'s, and it is not cosmetic:
+Windows BCD identifies its boot volume by *disk GUID + partition GUID*.
+Invent either and `bootmgfw` cannot find `\Windows`, and the guest stops at a
+recovery screen. So `build_boot_map` filters the real disk's own
+`sfdisk --dump` — drops the `Main` line, pulls `last-lba` in — and reproduces
+every type GUID, unique GUID, partition name and attribute flag byte-for-byte,
+including `RequiredPartition` on the recovery partition.
+
+The build refuses if the disk carries any partition outside the five it knows,
+if the boot set does not start at sector 2048, or if the truncated image would
+reach into `Main`.
+
+### Switching modes
+
+```bash
+virsh shutdown win11-gaming                              # if running
+pkexec /usr/local/lib/vm-drives/vm-drive-action link-boot
+virsh define ~/dotfiles/vfio/win11-bare.xml
+pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
+sudo virsh start win11-gaming
+```
+
+Back to the qcow2 guest:
+
+```bash
+virsh shutdown win11-gaming
+virsh define ~/dotfiles/vfio/win11-gaming.xml
+pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
+```
+
+**`sync-disks` is not optional.** `virsh define` replaces the domain
+definition wholesale, and the linked data drives are in none of the three XML
+files — they are added by `attach-device --config` at link time. Every mode
+switch therefore drops them while `/var/lib/vm-drives/linked` still says they
+are linked, and the guest boots without its drives for a reason you cannot
+see. `sync-disks` re-attaches whatever the state file records, and is a no-op
+when nothing was dropped.
+
+### The boot disk is on SATA, and that is deliberate
+
+`bus='sata'`, not `bus='virtio'`. This Windows was installed on bare metal and
+has never seen a virtio controller, so `viostor` is not a boot-start driver in
+its registry — a virtio boot disk gives `INACCESSIBLE_BOOT_DEVICE` on the
+first power-on. `storahci` is boot-start in every stock Windows, so AHCI works
+with no driver work at all.
+
+The consequence: the **data drives are still on virtio**, so on the first
+bare-metal boot the guest sees C: only. The virtio-win ISO is attached for
+exactly this — install the drivers from it, and Storage and Main appear.
+Moving the boot disk to virtio afterwards is a real gain and a separate job.
+
+### What this costs
+
+| Cost | Detail |
+|---|---|
+| **Fast Startup must be off** | `powercfg /h off`, once, as administrator. Fast Startup hibernates rather than shuts down; alternating metal/guest boots with an open NTFS journal corrupts C:, and the damage only shows on a later bare-metal boot. `link-boot` refuses a hibernated volume, but `rebuild` deliberately does not — see below. |
+| **BitLocker must stay off** | The guest's virtual TPM measures differently from the real one, so an encrypted volume prompts for a recovery key at every guest boot. |
+| **Reactivation** | Windows sees an emulated chipset, a different NIC MAC and a virtual TPM. The digital licence tied to your Microsoft account re-applies it. |
+| **Real damage is real** | A crash mid-write hits the install you boot on metal, not a disposable image. |
+| **No recovery channel** | `sshd` is disabled, so if the guest hangs in passthrough mode the host has no keyboard and no network way in. The reset button is the only way out. |
+
+### Why the safety checks are at link time only
+
+`rebuild` runs from the libvirt hook at **every** VM start, and a refusal there
+does not protect anything: it leaves `/dev/mapper/vm-winboot` missing, libvirt
+cannot open the boot disk, the domain fails to start, and you land back at the
+SDDM login with no explanation. That failure was observed once already, when
+device encryption reached a linked drive.
+
+So the filesystem-state decision belongs at `link-boot`, where refusing costs
+one toggle. The only check `rebuild` keeps is the concurrent-mount one, because
+host and guest writing one volume corrupts it regardless of anything else.
 
 ---
 
