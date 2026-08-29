@@ -3,9 +3,9 @@ quick_id: 260829-vfi
 title: Native gaming hardening, and a staged single-GPU VFIO passthrough VM
 status: complete
 completed: 2026-08-29
-commits: [370b139c, 94dddf99, 34eb07ae, 76c9478a]
+commits: [370b139c, 94dddf99, 34eb07ae, 76c9478a, 8253adb1, 18845cc0, 6ca622f4, f86626ca, 0c7a6cf2, and follow-ups through the VFIO cycle]
 operator_decision: "Harden native gaming + Single-GPU VFIO gaming VM; dockur/windows Docker box declined"
-gates: "bash -n 4/4; shellcheck -S warning 4/4 clean; virt-xml-validate PASS; gamerun all 6 branches exercised live; stow gaming OK"
+gates: "settings-index-check 198/0; colour-lint 581/0; qml-import-check 0-unresolved/195; singleton-prop-check 0; motion-lint 820/0; transparent-lint 196/0; shellcheck clean; virt-xml-validate PASS both modes; FULL passthrough cycle verified live"
 ---
 
 # 260829-vfi — SUMMARY
@@ -146,3 +146,92 @@ checklist with the untestable steps marked, rather than a claim that it works.
   via Fast Startup. Documented as opt-in with an explicit ask-first warning.
 - `vkbasalt` was dropped rather than routed to AUR: it is image quality, not
   performance, and did not justify an AUR dependency in a request about speed.
+
+
+---
+
+# ROUND 2 — the VM actually works
+
+Everything above was written when Track 2 was staged and untestable. The
+operator then enabled SVM, and the rest of the session took it from
+"cannot be exercised" to a Windows 11 guest booting on the passed-through
+RTX 3070 and handing the desktop back cleanly.
+
+## The plan changed twice, both times on measurement
+
+**Install mode exists because the keyboard cannot be passed.** I had
+recorded that IOMMU group 20 carried "keyboard, mouse and USB audio" and
+called it the reason input would be trouble-free. Reading device
+IDENTITIES rather than `lsusb` interface counts: the Corsair K70 is on the
+CHIPSET controller (02:00.0), which shares IOMMU group 15 with both NVMe
+drives, SATA, Ethernet and WiFi — a group that can never be passed. Group
+20 carries the mouse, a wireless mouse receiver and the headset. So the
+passthrough VM had no keyboard and Windows Setup could not be completed.
+
+Two fixes: `win11-install.xml` — zero hostdevs, SPICE display, emulated
+keyboard, installs Windows in a WINDOW without touching the session; and
+in gaming mode the keyboard as a device-level USB hostdev (1b1c:1b73),
+which needs no IOMMU group at all.
+
+**Both files are ONE domain in two shapes**, same name and UUID, switched
+with `virsh define`. That design caused the worst failure of the session.
+
+## The failure that cost a hard reboot
+
+The libvirt hook keyed on DOMAIN NAME. Both modes share the name. So
+starting install mode ran the full GPU teardown — sddm stopped, the only
+display adapter bound to vfio-pci — for a guest that passes nothing. Black
+screen, reset button. Two of my own decisions, each fine alone.
+
+libvirt passes the domain XML on STDIN; the hook now gates on
+`<hostdev type='pci'>` being actually present, and fails safe (unreadable
+stdin means "no passthrough", because a skipped teardown costs a VM that
+cannot see its GPU while a wrong one costs the display). Tested against
+both real XMLs with the exec targets stubbed — six cases, all correct —
+BEFORE installing. Recorded as [[gate-on-content-not-identifier]].
+
+## Four host-level defects the guest exposed
+
+1. **Secure Boot had no keys.** Arch's `OVMF_VARS.4m.fd` string-scans to
+   ZERO Microsoft certs while libvirt pairs it with `OVMF_CODE.secboot` —
+   Secure Boot on over an empty store, firmware refusing the
+   Microsoft-signed loader, presenting as "no bootable device". Fixed with
+   `virt-fw-vars --enroll-microsoft --microsoft-db win11 --secure-boot`.
+2. **Boot order.** `<os>` listed hd before cdrom and dropped to a menu on
+   an empty disk. Replaced with per-device `<boot order>`, the only form
+   that can say WHICH cdrom.
+3. **The firewall dropped guest DHCP.** This repo's own nftables ruleset:
+   `inet filter` input, `policy drop`. libvirt's rules are in a separate
+   table and in nftables each table's verdict is independent, so its
+   accept cannot rescue a packet this one drops. The chain counter had 99
+   drops while the guest sat on "Identifying…". Fixed with `virbr0`-scoped
+   accepts, applied WITHOUT `systemctl restart nftables` because Arch's
+   unit flushes the whole ruleset on stop.
+4. **No sound device at all** in install mode, and `qxldod` has no Windows
+   11 build so the display driver had to be `viogpudo` on a `virtio` model.
+
+## Verified live, end to end
+
+Bind and restore each complete in ~2 seconds, from the hook's own log:
+
+    08:19:04 bind    sddm stopped -> nvidia unloaded -> 4 devices to vfio-pci
+    08:19:06 guest started        (pci-passthrough=yes)
+    08:36:47 release mappings torn down -> devices unbound
+    08:36:49 nvidia reloaded -> vtcon1 rebound -> sddm started
+
+Operator confirms: Windows launched on the passed 3070, NVIDIA drivers
+installed, display and audio detected, clean shutdown, SDDM login
+returned. All four devices back on host drivers, keyboard returned.
+
+## Still open, deliberately
+
+- **sshd is DISABLED**, so gaming mode has no recovery channel: the host
+  has no keyboard while the guest runs, and a hung guest means the reset
+  button. Offered repeatedly, declined so far. This is the one remaining
+  sharp edge.
+- Drive linking is built and its guards are proven (the Storage link was
+  exercised and unlinked) but no drive is linked right now. Note that
+  `virsh define` REPLACES the definition, so switching modes drops an
+  attached drive — link after settling on a mode.
+- `vfio` modules stay loaded after restore. Harmless: the devices are
+  correctly rebound and nothing is claimed.
