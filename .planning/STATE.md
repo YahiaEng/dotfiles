@@ -4,9 +4,9 @@ milestone: v4.0
 current_phase: 22
 status: milestone-complete
 stopped_at: "260829-vfi COMPLETE AND WORKING 2026-08-29. The Windows 11 single-GPU VFIO passthrough VM boots on the passed RTX 3070 with display, audio, keyboard and mouse; shuts down cleanly back to SDDM; and BOTH data drives are linked and readable in the guest (storage = whole sda by WWN; main = nvme0n1p5 through a device-mapper linear+zero wrapper). Operator has turned Windows device encryption OFF and both volumes are plain ntfs again. VM is shut off, gaming mode defined (5 hostdevs), tree clean at cb600488. NEXT TASK, OPERATOR-REQUESTED: LINK THE WINDOWS C: PARTITION (nvme0n1p3, PARTUUID 2e3b6dd2-1146-4dde-a58d-6fb84800c624). READ THIS BEFORE STARTING IT — the helper has NO verb for that partition BY DESIGN, and I recommended against it earlier; the operator has since asked for it, so it is approved work, but CLARIFY WHICH OF TWO THINGS THEY MEAN FIRST. (a) C: as a DATA drive in the guest: technically the same dm wrapper as main, but a guest Windows given another Windows system volume writes to it — System Volume Information, restore points, indexing, chkdsk on a volume it believes dirty — for near-zero gain, since that install's Program Files and registry are meaningless to the guest. (b) C: as the VM's BOOT disk, i.e. boot the REAL bare-metal Windows as the VM: genuinely viable here because p1..p4 are CONTIGUOUS (sectors 2048..1348306943, so the whole boot set is ONE linear range) and BitLocker is off; the cost is that a VM crash mid-write hits the actual Windows install that runs League, and activation sees a changed hardware hash. Option (b) is the more interesting build and the one that would actually give one Windows with all their games. STILL OPEN: sshd is DISABLED, so gaming mode has no recovery channel — the host has no keyboard while the guest runs and a hung guest means the reset button; offered several times, declined. Also still owed from earlier sessions: judge `precise`, the four 1px dividers moved to outlineVariant, and v5.0 has no roadmap."
-last_updated: "2026-08-29T09:30:00.000Z"
+last_updated: "2026-08-29T09:45:00.000Z"
 last_activity: 2026-08-29
-last_activity_desc: "Passthrough VM fully working with both data drives linked; next task is linking the Windows C: partition, which needs a scope decision first."
+last_activity_desc: "Session resumed; C: scope decision taken — option (b), boot the real bare-metal Windows as the VM. Routing to /gsd-quick."
 state_head: cb600488
 progress:
   total_phases: 6
@@ -790,6 +790,14 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 ## Session Continuity
 
 ### RESUME HERE — 260829-vfi, linking Windows C: (2026-08-29)
+
+**SCOPE DECIDED 2026-08-29 (session resume): OPTION (b) — boot the REAL
+bare-metal Windows as the VM.** The operator picked it over option (a) when
+both were put side by side. So the build is: map `nvme0n1p1..p4` as ONE
+contiguous linear range (sectors 2048..1348306943) and make it the domain's
+boot disk, not another data drive. Option (a) is off the table; do not build
+a `linkable` verb for C: as an extra drive letter.
+
 
 **Everything else works.** VM shut off, gaming mode defined, tree clean at
 `cb600488`, both data drives linked and verified readable in the guest.
