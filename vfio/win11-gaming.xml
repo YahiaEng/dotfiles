@@ -12,6 +12,12 @@
 -->
 <domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
   <name>win11-gaming</name>
+  <!-- The UUID is what makes this file and win11-install.xml the SAME
+       domain rather than two domains fighting over one name. Without it
+       `virsh define` mints a fresh UUID and libvirt refuses:
+       "domain 'win11-gaming' already exists with uuid ...". Both files
+       must carry this line, byte-identical. -->
+  <uuid>471d37f8-e56c-49da-bd5c-c503fd33565c</uuid>
   <title>Windows 11 — single-GPU passthrough</title>
   <description>
     Passes the RTX 3070 (IOMMU group 16), the CPU USB controller carrying
