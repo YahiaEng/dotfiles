@@ -81,12 +81,25 @@ PageBase {
         title: "Linked drives"
         icon: "hard_drive"
 
+        // This row WRAPS (InfoRow is the only one in Settings that does), so
+        // it is where the long-form explanation belongs. The drive rows below
+        // are ToggleRows and elide, so their notes stay terse.
         InfoRow {
             label: "Before linking"
             icon: "info"
             subtext: "Turn off Fast Startup in Windows (powercfg /h off) and "
                    + "shut down fully. A hibernated NTFS volume written by the "
                    + "guest is corrupted, and linking is refused until it is clean."
+        }
+
+        InfoRow {
+            label: "How Main is mapped"
+            icon: "shield"
+            subtext: "Main sits on the Windows boot disk, so it is not passed "
+                   + "whole. A device-mapper table exposes only that partition; "
+                   + "every other sector reads as zeros and discards writes, so "
+                   + "the EFI partition, Windows C: and the recovery partition "
+                   + "are unreachable by the guest at the kernel level."
         }
 
         Repeater {

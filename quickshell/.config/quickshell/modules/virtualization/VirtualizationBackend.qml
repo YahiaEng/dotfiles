@@ -77,6 +77,12 @@ Singleton {
     // Identified the way the helper identifies them — by WWN and GPT
     // PARTUUID, never by kernel name, because /dev/sda and /dev/nvme1n1
     // can reorder across boots.
+    // NOTE: `note` strings are deliberately TERSE. ToggleRow elides its
+    // subtext (InfoRow is the only row in Settings that wraps — see its
+    // header), and the row already spends most of its width on
+    // "<dev> · <size> · <fstype>". Longer notes truncated mid-sentence and
+    // cut off the half that mattered: "mapped so only this …". The full
+    // explanation lives in the page's wrapping InfoRow instead.
     readonly property var _catalogue: [
         {
             key: "storage",
@@ -87,21 +93,21 @@ Singleton {
             // because sda carries its own GPT and Windows mounts it
             // natively. Saying so avoids a row that reads "/dev/sda2 …
             // whole disk" and contradicts itself.
-            note: "Attached as the whole disk — no operating system on it",
+            note: "whole disk, no OS on it",
             linkable: true
         },
         {
             key: "main",
             title: "Main",
             partuuid: "590b0c8f-7d06-4256-9ab5-0a49dd442d5f",
-            note: "On the Windows boot disk — mapped so only this partition is reachable, the rest discards writes",
+            note: "only this partition is reachable",
             linkable: true
         },
         {
             key: "windows",
             title: "Windows C:",
             partuuid: "2e3b6dd2-1146-4dde-a58d-6fb84800c624",
-            note: "System volume — a second Windows would write to it for no gain",
+            note: "not linkable by design",
             linkable: false
         }
     ]
