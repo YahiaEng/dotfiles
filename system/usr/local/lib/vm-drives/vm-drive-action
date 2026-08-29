@@ -65,6 +65,9 @@
 set -euo pipefail
 
 DOMAIN=win11-gaming
+# The domain XML shapes. Root-owned path is not required here (virsh only
+# READS these), but the set is fixed so no caller can name a file.
+REPO_VFIO=/home/aorus/dotfiles/vfio
 STATE_DIR=/var/lib/vm-drives
 STATE=$STATE_DIR/linked
 RUN_DIR=/run/vm-drives
@@ -114,12 +117,15 @@ Verbs:
                     exposes ONLY that partition; the rest of the Windows
                     boot disk reads as zeros and discards writes
   unlink-main       detach it and tear the mapping down
-  link-boot         hand the WHOLE Windows disk to the VM as its boot
-                    disk, so the real bare-metal Windows runs as the
-                    guest. Mutually exclusive with link-main: Main is a
-                    partition of that same disk and is already visible to
-                    the guest through it.
-  unlink-boot       stop doing that
+  link-boot         BARE-METAL MODE ON. Hands the WHOLE Windows disk to
+                    the VM as its boot disk, redefines the domain from
+                    win11-bare.xml and re-attaches the data drives, so the
+                    real Windows runs as the guest. This is one complete
+                    action because a Settings toggle drives it. Refused
+                    while Main is linked: Main is a partition of that same
+                    disk and the guest already sees it there.
+  unlink-boot       BARE-METAL MODE OFF. Redefines from win11-gaming.xml,
+                    so the VM boots the qcow2 guest again.
   sync-disks        re-attach the linked data drives after a mode switch
                     (`virsh define` drops them; run this straight after)
   rebuild           recreate mappings for whatever is recorded as linked
@@ -368,6 +374,51 @@ XML
   rm -f "$xml"
 }
 
+# ── Switching the domain between its XML shapes ───────────────────────
+# link-boot / unlink-boot are driven from a TOGGLE in Settings, so they
+# have to be complete actions: a toggle that only records state and left
+# `virsh define` to the operator would report bare-metal mode as ON while
+# the VM still booted the qcow2. So the verbs redefine the domain and
+# re-attach the data drives themselves.
+#
+# The XML path is resolved against a fixed allowlist, never taken from the
+# caller — same rule as everything else in this file.
+switch_mode() {
+  local shape=$1 xml
+  case "$shape" in
+    bare)   xml=$REPO_VFIO/win11-bare.xml ;;
+    gaming) xml=$REPO_VFIO/win11-gaming.xml ;;
+    *) die "unknown domain shape '$shape'" ;;
+  esac
+  [ -r "$xml" ] || die "$xml is missing — cannot switch modes"
+  virsh -c qemu:///system define "$xml" >/dev/null \
+    || die "virsh define $xml failed"
+}
+
+# Re-attach the linked data drives after a mode switch.
+#
+# `virsh define` REPLACES the domain definition wholesale, and the linked
+# data drives are in NONE of the three XML files — they are added by
+# `attach-device --config` at link time. So every mode switch silently
+# drops them while the state file still says they are linked, and the
+# guest boots without its drives for a reason the operator cannot see.
+#
+# Idempotent by construction: each disk is attached only if the defined
+# domain does not already carry that source.
+sync_disks() {
+  if state_has storage && ! disk_attached "$STORAGE_ID"; then
+    attach_disk "$STORAGE_ID" vdb
+    echo "Storage re-attached (vdb)"
+  fi
+  # Guarded on `boot` too: in bare-metal mode Main is reached through the
+  # boot disk it lives on, and attaching it again would give the guest two
+  # paths to one filesystem.
+  if state_has main && ! state_has boot && ! disk_attached "/dev/mapper/$MAIN_DM"; then
+    attach_disk "/dev/mapper/$MAIN_DM" vdc
+    echo "Main re-attached (vdc)"
+  fi
+}
+
 # Is this source device already a disk on the DEFINED domain?
 #
 # `--inactive` is deliberate: dumpxml on a running domain reports the LIVE
@@ -433,19 +484,19 @@ case "$1" in
     ;;
 
   link-boot)
-    # ── Hands the guest a bootable, REAL Windows ──────────────────────
-    # Every guard runs here, at link time, which is the only moment a
-    # refusal is useful: it costs one toggle. There is nothing to build,
-    # so `rebuild` has no boot branch to fail in.
+    # ── Turns the VM into the operator's real Windows, in one action ──
+    # Driven from the Settings toggle, so it must leave nothing for the
+    # operator to remember: verify, record, redefine the domain, re-attach
+    # the data drives.
     require_vm_off
-    # MUTUALLY EXCLUSIVE WITH main, for two independent reasons, and the
-    # first one is not a policy choice: Main is a partition of this very
-    # disk, and a dm mapping of it claims that partition exclusively, so
-    # the kernel refuses to let the whole disk and the partition be held
-    # at once. Second, even if it were possible it would be wrong — the
-    # guest would reach one filesystem by two paths and could mount both.
+    # The one refused combination, in both directions. Bare-metal mode
+    # hands over the WHOLE disk and Main is a partition of it, so the guest
+    # already sees Main there. Linking it too would present one NTFS volume
+    # to Windows twice, by two paths, which it can mount twice and corrupt.
+    # Refused rather than silently resolved, so the choice stays with the
+    # operator: turn either off and the other becomes available.
     if state_has main; then
-      die "Main is linked, and it is a partition of the very disk bare-metal mode hands over. Run 'unlink-main' first — the guest still sees Main, on the boot disk, exactly as it does on metal."
+      die "Main is linked, and it lives on the very disk this hands over — the guest sees it there already. Turn Main off first."
     fi
     disk=$(verify_boot_disk_id)
     require_not_mounted "$disk"
@@ -455,50 +506,26 @@ case "$1" in
     require_clean_ntfs "$(readlink -f "/dev/disk/by-partuuid/$SYS_PARTUUID")"
     require_clean_ntfs "$(readlink -f "/dev/disk/by-partuuid/$REC_PARTUUID")"
     state_add boot
-    cat <<NOTE
-Windows disk linked as the VM's boot disk ($disk, via $BOOT_DISK_ID).
-The guest will see C:, the recovery partition AND Main on it, exactly as
-bare metal does.
-
-Now switch the domain to bare-metal mode, and re-attach Storage, which
-\`virsh define\` drops:
-    virsh define ~/dotfiles/vfio/win11-bare.xml
-    pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
-NOTE
+    switch_mode bare
+    sync_disks >/dev/null
+    echo "Bare-metal mode ON. The VM now boots your real Windows from $disk."
+    echo "It will see C:, recovery and Main on that disk, as bare metal does."
     ;;
 
   unlink-boot)
     require_vm_off
     state_del boot
-    echo "Windows disk unlinked. Redefine a qcow2 mode before starting the VM:"
-    echo "    virsh define ~/dotfiles/vfio/win11-gaming.xml"
-    echo "Main can be linked again now (it conflicts with bare-metal mode)."
+    switch_mode gaming
+    sync_disks >/dev/null
+    echo "Bare-metal mode OFF. The VM boots the qcow2 guest again."
+    echo "Main can be linked now."
     ;;
 
   sync-disks)
-    # ── Re-attach the linked data drives after a MODE SWITCH ──────────
-    # `virsh define` REPLACES the domain definition wholesale, and the
-    # linked data drives are not in any of the three XML files — they are
-    # added by `attach-device --config` at link time. So every mode switch
-    # silently drops them while /var/lib/vm-drives/linked still says they
-    # are linked, and the guest boots without its drives for a reason the
-    # operator cannot see.
-    #
-    # Idempotent by construction: each disk is attached only if the defined
-    # domain does not already carry that source, so running this twice, or
-    # when nothing was dropped, does nothing.
+    # Exposed as a verb as well, for a mode switch done by hand with
+    # `virsh define` rather than through the Settings toggle.
     require_vm_off
-    if state_has storage && ! disk_attached "$STORAGE_ID"; then
-      attach_disk "$STORAGE_ID" vdb
-      echo "Storage re-attached (vdb)"
-    fi
-    # Guarded on `boot` as well: in bare-metal mode Main is reached
-    # through the boot disk it lives on, and attaching it again would
-    # give the guest two paths to one filesystem.
-    if state_has main && ! state_has boot && ! disk_attached "/dev/mapper/$MAIN_DM"; then
-      attach_disk "/dev/mapper/$MAIN_DM" vdc
-      echo "Main re-attached (vdc)"
-    fi
+    sync_disks
     echo "Disk attachments are in sync with the recorded link state."
     ;;
 

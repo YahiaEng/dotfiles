@@ -40,7 +40,8 @@ Singleton {
     // later-declared member throws "is not a function" and a fallback
     // chain turns that into a plausible wrong answer.
     readonly property var _ALLOWED_ACTIONS: [
-        "link-storage", "unlink-storage", "link-main", "unlink-main"
+        "link-storage", "unlink-storage", "link-main", "unlink-main",
+        "link-boot", "unlink-boot"
     ]
 
     // ── VM state ──
@@ -107,17 +108,18 @@ Singleton {
             linkable: true
         },
         {
-            key: "windows",
+            // The row is IDENTIFIED by C: (that is the partition the
+            // operator thinks of, and what gets probed for hibernation)
+            // but the toggle hands the guest the WHOLE disk C: lives on,
+            // because that is the only way to boot it — the ESP, the
+            // reserved partition and the recovery partition all have to
+            // come with it. The note says so rather than letting the row
+            // read as "C: is attached as a drive".
+            key: "boot",
             title: "Windows C:",
             partuuid: "2e3b6dd2-1146-4dde-a58d-6fb84800c624",
-            // NOT a data drive, and that has not changed. What DID change
-            // (quick task 260829-czi) is that C: is now reachable the other
-            // way: as the VM's BOOT disk, via `link-boot` and
-            // vfio/win11-bare.xml. Saying only "not linkable by design"
-            // became false the moment that shipped.
-            note: "the VM's boot disk in bare-metal mode",
-            linkable: false,
-            blocked: "Not a data drive — see bare-metal mode below"
+            note: "boot the real Windows — hands over the whole disk",
+            linkable: true
         }
     ]
 
@@ -131,6 +133,7 @@ Singleton {
     function isLinked(key) {
         return key === "storage" ? root.storageLinked
              : key === "main"    ? root.mainLinked
+             : key === "boot"    ? root.bootLinked
              : false;
     }
 
@@ -145,8 +148,18 @@ Singleton {
         // kernel refuses to hold both, so this is a kernel-level conflict,
         // not a policy the page invented. The helper refuses too; saying so
         // here means the operator reads the reason instead of an error.
+        // ── The one combination that is refused, in both directions ───
+        // Bare-metal mode hands over the WHOLE disk, and Main is a
+        // partition of it — so the guest already sees Main there. Linking
+        // it as well would present one NTFS volume to Windows TWICE, by
+        // two different paths, which it can mount twice and corrupt.
+        //
+        // Refused rather than silently resolved, so the operator keeps
+        // the choice: turn either one off and the other becomes available.
         if (d.key === "main" && root.bootLinked)
-            return "Bare-metal mode is on — Main is already on the boot disk";
+            return "Windows C: is on — Main is already on that disk";
+        if (d.key === "boot" && root.mainLinked)
+            return "Main is linked — turn it off first";
         if (!d.present)
             return "Drive not present";
         if (d.mounted)

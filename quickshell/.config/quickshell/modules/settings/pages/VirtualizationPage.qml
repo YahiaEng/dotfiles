@@ -107,15 +107,15 @@ PageBase {
         }
 
         InfoRow {
-            label: "Bare-metal mode"
+            label: "Windows C: is a mode, not a drive"
             icon: "swap_horiz"
-            subtext: "Windows C: is never a data drive, but the whole disk it "
-                   + "lives on can be the VM's boot disk, so the real Windows "
-                   + "runs as the guest and sees C:, recovery and Main just as "
-                   + "it does on metal. Unlink Main first — it is a partition "
-                   + "of that same disk and the two conflict. Then link-boot, "
-                   + "virsh define ~/dotfiles/vfio/win11-bare.xml, and "
-                   + "sync-disks. Keep hibernation and BitLocker off."
+            subtext: "Toggling it on switches the VM to boot your real "
+                   + "Windows instead of the qcow2 guest: it hands over the "
+                   + "whole disk C: lives on, so the guest sees C:, recovery "
+                   + "and Main exactly as bare metal does, and redefines the "
+                   + "domain for you. Toggling it off puts the qcow2 guest "
+                   + "back. Main turns off while it is on — it is already on "
+                   + "that disk. Keep hibernation and BitLocker off in Windows."
         }
 
         Repeater {

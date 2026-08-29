@@ -301,7 +301,7 @@ Singleton {
         { pageIdx: 16, section: "Windows VM", label: "Single-GPU", keywords: "virtualization single gpu desktop teardown hyprland sddm warning" },
         { pageIdx: 16, section: "Linked drives", label: "Before linking", keywords: "virtualization drives fast startup hibernate ntfs powercfg safety" },
         { pageIdx: 16, section: "Linked drives", label: "How Main is mapped", keywords: "virtualization drives device mapper dm zero windows boot disk partition safety mapping" },
-        { pageIdx: 16, section: "Linked drives", label: "Bare-metal mode", keywords: "virtualization windows c: boot disk bare metal link-boot win11-bare virsh define sync-disks fast startup bitlocker real install passthrough" },
+        { pageIdx: 16, section: "Linked drives", label: "Windows C: is a mode, not a drive", keywords: "virtualization windows c: boot disk bare metal toggle real install passthrough qcow2 switch mode fast startup bitlocker" },
         { pageIdx: 16, section: "Linked drives", label: "Last error", keywords: "virtualization drives link error failure pkexec" },
         { pageIdx: 17, section: "System", label: "OS", keywords: "about system os operating system distro" },
         { pageIdx: 17, section: "System", label: "Host", keywords: "about system host machine model" },
