@@ -30,7 +30,37 @@ readonly TARGET_DOMAIN=win11-gaming
 
 [ "$GUEST" = "$TARGET_DOMAIN" ] || exit 0
 
-printf '%s [hook] %s %s %s\n' "$(date -Is)" "$GUEST" "$OP" "$SUBOP" >> "$LOG"
+# ── THE NAME IS NOT ENOUGH. ASK THE DOMAIN WHAT IT ACTUALLY CONTAINS ──
+# libvirt passes the full domain XML on STDIN. Read it, because this host
+# defines the SAME domain name in two shapes — win11-install.xml (no
+# passthrough, windowed, for running Windows Setup) and win11-gaming.xml
+# (full passthrough). A name-only match cannot tell them apart.
+#
+# It failed exactly that way on 2026-08-29 06:32: starting INSTALL mode
+# ran the GPU teardown, stopped sddm and bound the only display adapter
+# to vfio-pci for a guest that passes nothing. The desktop went black,
+# the windowed VM had nowhere to draw, and the machine needed a hard
+# reboot. The log of that run is still in this file's own $LOG.
+#
+# So: tear the desktop down ONLY if the domain being started really has a
+# PCI hostdev. Failing to read the XML is treated as "no passthrough" —
+# the conservative direction, because the cost of skipping a teardown is
+# a VM that cannot see its GPU, while the cost of a wrong teardown is a
+# black screen and a hard reset.
+DOMAIN_XML=$(cat 2>/dev/null || true)
+case "$OP" in
+    prepare|release|start|started|stopped)
+        if printf '%s' "$DOMAIN_XML" | grep -q "<hostdev[^>]*type='pci'"; then
+            HAS_PCI_PASSTHROUGH=yes
+        else
+            HAS_PCI_PASSTHROUGH=no
+        fi
+        ;;
+    *) HAS_PCI_PASSTHROUGH=no ;;
+esac
+
+printf '%s [hook] %s %s %s (pci-passthrough=%s)\n' \
+    "$(date -Is)" "$GUEST" "$OP" "$SUBOP" "$HAS_PCI_PASSTHROUGH" >> "$LOG"
 
 # Linked host drives are device-mapper tables, and those do NOT survive a
 # reboot. They must exist before qemu opens /dev/mapper/vm-main, and must
@@ -41,12 +71,22 @@ DRIVES=/usr/local/lib/vm-drives/vm-drive-action
 
 case "$OP/$SUBOP" in
     prepare/begin)
+        # Linked-drive mappings are needed in BOTH modes — the disk is in
+        # the domain either way — so this is outside the passthrough gate.
         [ -x "$DRIVES" ] && "$DRIVES" rebuild >>"$LOG" 2>&1
-        exec /usr/local/bin/vfio-gpu-bind
+        if [ "$HAS_PCI_PASSTHROUGH" = yes ]; then
+            exec /usr/local/bin/vfio-gpu-bind
+        fi
+        printf '%s [hook] no PCI passthrough in this domain — leaving the desktop up\n' \
+            "$(date -Is)" >> "$LOG"
+        exit 0
         ;;
     release/end)
         [ -x "$DRIVES" ] && "$DRIVES" teardown >>"$LOG" 2>&1
-        exec /usr/local/bin/vfio-gpu-unbind
+        if [ "$HAS_PCI_PASSTHROUGH" = yes ]; then
+            exec /usr/local/bin/vfio-gpu-unbind
+        fi
+        exit 0
         ;;
     *)  exit 0 ;;
 esac
