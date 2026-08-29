@@ -804,14 +804,19 @@ If it stops at a Windows recovery screen, fall back with
 `pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks` — the qcow2
 guest is intact and was kept for exactly this.
 
-**Owed once, from EITHER Windows — it is one install:** `powercfg /h off`.
-MEASURED 2026-08-29 and not yet done: `hiberfil.sys` is present at 12.77 GiB
-(41% of RAM, i.e. full size), so the operator turned off the "Turn on fast
-startup" CHECKBOX, not hibernation. That checkbox is real and working — the
-hiberfil signature is `00000000` and `ntfs-3g.probe` reads rc=0 — but it is
-a different switch. It stops a shutdown from hibernating; `powercfg /h off`
-removes the capability, which is what `rebuild`'s deliberate lack of a
-filesystem check needs. Not urgent, current state safe.
+**HIBERNATION IS OFF — DONE AND VERIFIED 2026-08-29.** The operator booted
+bare-metal Windows and ran `powercfg /h off`; measured after, through a
+read-only mount: `hiberfil.sys` ABSENT (was 12.77 GiB), `ntfs-3g.probe`
+rc=0. The one path `rebuild` cannot guard is closed structurally, not just
+by the "Turn on fast startup" checkbox.
+
+**THE DISK RENAME HAPPENED, FOR REAL, ON THAT REBOOT.** The Windows disk
+moved `nvme0n1` -> `nvme1n1` and the host's moved the other way (host is
+now nvme0n1p1 `/boot` + nvme0n1p2 `/`). Everything kept working because
+the helper resolves by PARTUUID/WWN only — this is the designed-for hazard
+firing in production, and it is why no ad-hoc `/dev/nvmeXn1pY` path should
+ever be typed against this host. Pre-flight after the reboot: nothing
+mounted on the Windows disk or on Storage, so `rebuild` will not refuse.
 
 Expect C: only on the first boot until virtio-win is installed from the
 attached ISO, and expect a reactivation prompt.
