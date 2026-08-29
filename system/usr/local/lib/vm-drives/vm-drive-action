@@ -128,6 +128,17 @@ require_not_mounted() {
 # the wrong moment.
 require_clean_ntfs() {
   local dev=$1 rc=0
+
+  # BitLocker first, because ntfs-3g.probe on an encrypted volume reports a
+  # generic failure that sends the reader after the wrong problem. Windows 11
+  # enables device encryption on its own: /dev/sda2 here was plain NTFS
+  # labelled "Storage" in the morning and BitLocker by the afternoon, after
+  # one boot with the drive linked. The signature is "-FVE-FS-" at offset 3
+  # of the volume's first sector.
+  if [ "$(dd if="$dev" bs=1 skip=3 count=8 status=none 2>/dev/null)" = "-FVE-FS-" ]; then
+    die "$dev is BITLOCKER-ENCRYPTED. The host cannot verify or safely share an encrypted volume. Back up its recovery key (Windows: Manage BitLocker, or aka.ms/myrecoverykey) and decrypt it if you want this drive linked. Refusing to link."
+  fi
+
   command -v ntfs-3g.probe >/dev/null || die "ntfs-3g.probe missing; cannot verify $dev is safe to write"
   ntfs-3g.probe --readwrite "$dev" || rc=$?
   case $rc in
@@ -180,8 +191,15 @@ build_main_map() {
   rm -f "$img"
   truncate -s $((disksize * 512)) "$img"
   # One partition, at Main's real offset, Microsoft basic data.
+  # Partition TYPE GUID must be Microsoft basic data. The first version of
+  # this used 0FC63DAF-8483-4772-8E79-3D69D8477DE4 with a comment claiming
+  # it was — that is the LINUX FILESYSTEM GUID. The mapping built fine and
+  # `sfdisk -l` showed a valid GPT at the right offset, so every host-side
+  # check passed; Windows simply ignored a partition typed for Linux and
+  # showed no drive. Verify with `sfdisk -l /dev/mapper/vm-main`: the Type
+  # column must read "Microsoft basic data", not "Linux filesystem".
   sfdisk --quiet --label gpt "$img" >/dev/null <<SFD
-${start},${size},0FC63DAF-8483-4772-8E79-3D69D8477DE4
+${start},${size},EBD0A0A2-B9E5-4433-87C0-68B6B72699C7
 SFD
 
   loop=$(losetup --show -f "$img") || die "losetup failed"
