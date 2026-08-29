@@ -150,10 +150,14 @@
       <target dev='vda' bus='virtio'/>
     </disk>
 
-    <!-- Windows 11 installer ISO. Point at your own download. -->
+    <!-- Windows 11 installer ISO. Named for the exact build imported here
+         (25H2, English International, x64 v2 — sha256 66b7b4b7…, verified
+         byte-for-byte against the operator's download after import). Swap
+         the filename if you import a different build. Both cdrom entries
+         can be removed from this domain once Windows is installed. -->
     <disk type='file' device='cdrom'>
       <driver name='qemu' type='raw'/>
-      <source file='/var/lib/libvirt/images/Win11.iso'/>
+      <source file='/var/lib/libvirt/images/Win11_25H2_EnglishInternational_x64_v2.iso'/>
       <target dev='sdb' bus='sata'/>
       <readonly/>
     </disk>
