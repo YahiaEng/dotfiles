@@ -392,7 +392,7 @@ Moving the boot disk to virtio afterwards is a real gain and a separate job.
 
 | Cost | Detail |
 |---|---|
-| **Fast Startup must be off** | `powercfg /h off`, once, as administrator. Fast Startup hibernates rather than shuts down; alternating metal/guest boots with an open NTFS journal corrupts C:, and the damage only shows on a later bare-metal boot. `link-boot` refuses a hibernated volume, but `rebuild` deliberately does not — see below. |
+| **Hibernation must be off** | `powercfg /h off`, once, as administrator. **There is only one Windows here** — the same registry whether it boots on metal or as the guest — so this is done once, from either, and never repeated inside the VM. It is also **not** the same switch as the "Turn on fast startup" checkbox: that checkbox stops a *shutdown* from hibernating, while `powercfg /h off` removes the capability. The distinction matters because `link-boot` refuses a hibernated volume but `rebuild` deliberately does not (see below), so an actual Hibernate is the one path that reaches the guest unguarded. |
 | **BitLocker must stay off** | The guest's virtual TPM measures differently from the real one, so an encrypted volume prompts for a recovery key at every guest boot. |
 | **Reactivation** | Windows sees an emulated chipset, a different NIC MAC and a virtual TPM. The digital licence tied to your Microsoft account re-applies it. |
 | **Real damage is real** | A crash mid-write hits the install you boot on metal, not a disposable image. |

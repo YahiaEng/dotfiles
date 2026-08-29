@@ -512,11 +512,20 @@ that `virsh define` drops:
     virsh define ~/dotfiles/vfio/win11-bare.xml
     pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
 
-TURN FAST STARTUP OFF INSIDE WINDOWS, once, and leave it off:
+DISABLE HIBERNATION IN THAT WINDOWS, once. There is only ONE Windows
+here — the same registry whether it boots on metal or as this guest — so
+do it whichever way is convenient; there is nothing to repeat inside the
+VM afterwards.
     powercfg /h off        (as administrator)
-Fast Startup does not shut Windows down, it hibernates it. Booting the
-same install alternately on metal and as a guest with Fast Startup on
-corrupts C:, and the damage only shows up on a later bare-metal boot.
+
+Note this is NOT the same switch as the "Turn on fast startup" checkbox
+in Power Options. That checkbox stops a shutdown from hibernating, which
+covers the common case. `powercfg /h off` removes the capability, and
+that is what matters here: `rebuild` runs from the libvirt hook at every
+VM start and deliberately performs NO filesystem check (a refusal there
+leaves the domain unable to start and the operator at SDDM with no
+explanation), so an actual Hibernate is the one path that can hand the
+guest an inconsistent C: unguarded.
 NOTE
     ;;
 
