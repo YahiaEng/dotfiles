@@ -3,11 +3,11 @@ gsd_state_version: 1.0
 milestone: v4.0
 current_phase: 22
 status: milestone-complete
-stopped_at: "QUICK TASK 260829-vfi — THE WINDOWS 11 PASSTHROUGH VM IS LIVE AND VERIFIED END TO END 2026-08-29. Operator confirmed: Windows launched on the passed-through RTX 3070, NVIDIA drivers installed, display AND audio detected, clean shutdown, SDDM login returned. Hook log shows bind and restore each completing in ~2 seconds with all four devices back on host drivers. THE TASK STARTED AS 'Windows in Docker to play League of Legends' AND THAT PREMISE WAS FALSE THREE WAYS: Vanguard blocks every VM, dockur/windows has no 3D at all, and this host ALREADY dual-boots Windows on nvme1n1 — the stated goal was solved before the task began. What got built instead: a hardened native Proton stack (gamerun/gamescope/MangoHud/gamemode), and a single-GPU VFIO passthrough VM in TWO MODES sharing one domain name and UUID — win11-install.xml (windowed, zero hostdevs) and win11-gaming.xml (GPU + GPU audio + USB controller + onboard audio + the Corsair keyboard as a device-level USB hostdev). INSTALL MODE EXISTS BECAUSE THE KEYBOARD CANNOT BE PASSED BY GROUP: the Corsair K70 is on chipset controller 02:00.0, in IOMMU group 15 with both NVMe drives, SATA, Ethernet and WiFi. My earlier claim that group 20 carried the keyboard was WRONG — it carries the mouse, a wireless receiver and the headset. THE WORST FAILURE, NOW A MEMORY: the libvirt hook keyed on DOMAIN NAME while both modes share it, so starting install mode tore the desktop down for a guest that passes nothing — black screen, hard reboot. It now gates on the domain XML arriving on STDIN actually containing a PCI hostdev, and fails safe. FOUR HOST DEFECTS THE GUEST EXPOSED, all fixed in the repo: Arch OVMF_VARS has ZERO Secure Boot keys (presents as 'no bootable device'); boot order needed to be per-device; THIS REPO'S OWN nftables ruleset dropped guest DHCP because libvirt's rules live in a separate table whose accept cannot rescue a packet inet filter drops; and install mode had no sound device. ALSO SHIPPED: install.sh --gaming-only, an askpass helper so plain sudo works with no tty, LIBVIRT_DEFAULT_URI in config.fish, a Settings -> Virtualization page with a polkit-gated drive-link helper whose device-mapper wrapper makes every sector outside the linked partition read as zeros and DISCARD writes. ONE SHARP EDGE REMAINS: sshd is DISABLED, so gaming mode has no recovery channel — the host has no keyboard while the guest runs and a hung guest means the reset button. Offered repeatedly, declined. NEXT: nothing owed on this task; still open from earlier sessions are judging `precise` and the four 1px dividers, and v5.0 has no roadmap."
-last_updated: "2026-08-29T09:00:00.000Z"
+stopped_at: "260829-vfi COMPLETE AND WORKING 2026-08-29. The Windows 11 single-GPU VFIO passthrough VM boots on the passed RTX 3070 with display, audio, keyboard and mouse; shuts down cleanly back to SDDM; and BOTH data drives are linked and readable in the guest (storage = whole sda by WWN; main = nvme0n1p5 through a device-mapper linear+zero wrapper). Operator has turned Windows device encryption OFF and both volumes are plain ntfs again. VM is shut off, gaming mode defined (5 hostdevs), tree clean at cb600488. NEXT TASK, OPERATOR-REQUESTED: LINK THE WINDOWS C: PARTITION (nvme0n1p3, PARTUUID 2e3b6dd2-1146-4dde-a58d-6fb84800c624). READ THIS BEFORE STARTING IT — the helper has NO verb for that partition BY DESIGN, and I recommended against it earlier; the operator has since asked for it, so it is approved work, but CLARIFY WHICH OF TWO THINGS THEY MEAN FIRST. (a) C: as a DATA drive in the guest: technically the same dm wrapper as main, but a guest Windows given another Windows system volume writes to it — System Volume Information, restore points, indexing, chkdsk on a volume it believes dirty — for near-zero gain, since that install's Program Files and registry are meaningless to the guest. (b) C: as the VM's BOOT disk, i.e. boot the REAL bare-metal Windows as the VM: genuinely viable here because p1..p4 are CONTIGUOUS (sectors 2048..1348306943, so the whole boot set is ONE linear range) and BitLocker is off; the cost is that a VM crash mid-write hits the actual Windows install that runs League, and activation sees a changed hardware hash. Option (b) is the more interesting build and the one that would actually give one Windows with all their games. STILL OPEN: sshd is DISABLED, so gaming mode has no recovery channel — the host has no keyboard while the guest runs and a hung guest means the reset button; offered several times, declined. Also still owed from earlier sessions: judge `precise`, the four 1px dividers moved to outlineVariant, and v5.0 has no roadmap."
+last_updated: "2026-08-29T09:30:00.000Z"
 last_activity: 2026-08-29
-last_activity_desc: "Windows 11 single-GPU VFIO passthrough VM built and verified live: guest boots on the passed RTX 3070 with display and audio, and hands the desktop back cleanly."
-state_head: 76c9478a
+last_activity_desc: "Passthrough VM fully working with both data drives linked; next task is linking the Windows C: partition, which needs a scope decision first."
+state_head: cb600488
 progress:
   total_phases: 6
   completed_phases: 6
@@ -788,6 +788,43 @@ after a real session restart — was `deferred-items.md` item 0) and 16-05/D5
 synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
+
+### RESUME HERE — 260829-vfi, linking Windows C: (2026-08-29)
+
+**Everything else works.** VM shut off, gaming mode defined, tree clean at
+`cb600488`, both data drives linked and verified readable in the guest.
+
+**Mode switching:** one domain, two files, same name AND uuid.
+`virsh define ~/dotfiles/vfio/win11-install.xml` = windowed, zero hostdevs.
+`virsh define ~/dotfiles/vfio/win11-gaming.xml` = full passthrough, takes the
+desktop down. Both must keep the `<uuid>` or define fails on a name clash —
+and that uuid also names the swtpm directory holding the guest's encryption
+keys, so it is load-bearing twice.
+
+**The task:** add Windows C: (`nvme0n1p3`, PARTUUID `2e3b6dd2-…`) as a
+linkable drive. The helper has no verb for it deliberately; the catalogue
+entry in `VirtualizationBackend.qml` marks it `linkable: false`. Ask which
+meaning is wanted before building — see `stopped_at` for the two options and
+their costs. Option (b), booting the real Windows as the VM, is the better
+build: p1..p4 are contiguous so the mapping is one linear range.
+
+**Traps this task already paid for — do not rediscover them:**
+- The dm partition type GUID must be `EBD0A0A2-…` (Microsoft basic data).
+  `0FC63DAF-…` is LINUX and Windows silently ignores the drive while every
+  host-side check passes.
+- Safety checks belong at LINK time, never in `rebuild` — rebuild runs from
+  the libvirt hook at every VM start, and a refusal there leaves the mapping
+  missing, the domain unable to start, and the operator at an SDDM login with
+  no clue why.
+- The hook gates on the domain XML arriving on STDIN containing a PCI
+  hostdev, NOT on the domain name. Both modes share the name; keying on it
+  blacked the screen and cost a hard reboot.
+- Device names reorder across reboots (the Windows disk moved nvme1n1 ->
+  nvme0n1). Resolve by WWN/PARTUUID only. A hardcoded path would have mapped
+  this host's ROOT partition into a VM.
+- `virsh dumpxml` on a running domain shows the LIVE config; use
+  `--inactive` to see what was just defined.
+
 
 SHIPPED 2026-08-27 — **260827-ar3: hyprlock retired, repo and host. Task 8 of 260827-833 closed; NOTHING IS OWED.** `7578f95c`, package removed by the operator.
 
