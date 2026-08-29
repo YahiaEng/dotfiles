@@ -489,14 +489,23 @@ case "$1" in
     # operator to remember: verify, record, redefine the domain, re-attach
     # the data drives.
     require_vm_off
-    # The one refused combination, in both directions. Bare-metal mode
-    # hands over the WHOLE disk and Main is a partition of it, so the guest
-    # already sees Main there. Linking it too would present one NTFS volume
-    # to Windows twice, by two paths, which it can mount twice and corrupt.
-    # Refused rather than silently resolved, so the choice stays with the
-    # operator: turn either off and the other becomes available.
+    # ── Main is SUBSUMED, not refused ─────────────────────────────────
+    # This used to die telling the operator to turn Main off first. That
+    # made sense while C: and Main were two toggles; with one toggle for
+    # the whole drive there is no second control to go and flip, and the
+    # intent is unambiguous — hand over the disk, all of it.
+    #
+    # It still cannot be left linked: Main is a partition of this very
+    # disk, so the guest sees it through the disk anyway, and attaching
+    # it separately as well would present one NTFS volume to Windows
+    # twice, by two paths, which it can mount twice and corrupt. So the
+    # separate attachment is removed, and we say so rather than doing it
+    # silently.
     if state_has main; then
-      die "Main is linked, and it lives on the very disk this hands over — the guest sees it there already. Turn Main off first."
+      echo "note: Main was linked separately; folding it into the whole disk." >&2
+      detach_disk "/dev/mapper/$MAIN_DM" vdc
+      destroy_main_map
+      state_del main
     fi
     disk=$(verify_boot_disk_id)
     require_not_mounted "$disk"

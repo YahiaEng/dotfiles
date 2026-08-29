@@ -354,32 +354,39 @@ reaches it on the boot disk, where it has always been.
 
 ### Switching modes
 
+**From Settings → Virtualization, flip the "Windows drive" toggle.** That is
+the whole operation: it verifies the disk, records the state, redefines the
+domain and re-attaches Storage. Off puts the qcow2 guest back.
+
+The same thing from a shell:
+
 ```bash
 virsh shutdown win11-gaming                                # if running
-pkexec /usr/local/lib/vm-drives/vm-drive-action unlink-main
-pkexec /usr/local/lib/vm-drives/vm-drive-action link-boot
-virsh define ~/dotfiles/vfio/win11-bare.xml
-pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
+pkexec /usr/local/lib/vm-drives/vm-drive-action link-boot  # on
+pkexec /usr/local/lib/vm-drives/vm-drive-action unlink-boot # off
 sudo virsh start win11-gaming
 ```
 
-Back to the qcow2 guest:
+`link-boot`/`unlink-boot` are **complete actions** — they run `virsh define`
+and re-attach the data drives themselves. A toggle that only recorded state
+would report bare-metal mode as ON while the VM still booted the qcow2.
 
-```bash
-virsh shutdown win11-gaming
-pkexec /usr/local/lib/vm-drives/vm-drive-action unlink-boot
-pkexec /usr/local/lib/vm-drives/vm-drive-action link-main     # optional
-virsh define ~/dotfiles/vfio/win11-gaming.xml
-pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
-```
+`sync-disks` remains as a separate verb for a mode switch done by hand with
+`virsh define`, where the same drop applies.
 
-**`sync-disks` is not optional.** `virsh define` replaces the domain
-definition wholesale, and the linked data drives are in none of the three XML
-files — they are added by `attach-device --config` at link time. Every mode
-switch therefore drops them while `/var/lib/vm-drives/linked` still says they
-are linked, and the guest boots without its drives for a reason you cannot
-see. `sync-disks` re-attaches whatever the state file records, and is a no-op
-when nothing was dropped.
+### C: and Main are one row, not two
+
+They were two toggles briefly, and that was wrong. The only way to have C: is
+to hand over the disk it boots from, and Main is a partition of that same
+disk — so Main arrives with it whether or not a second row says so. Two
+toggles could express a combination the hardware cannot provide.
+
+So one row, **Windows drive**, identified by C:'s PARTUUID (that is what gets
+probed for hibernation) and described by the disk that carries it. If Main
+happens to be linked separately when the toggle goes on, it is folded in —
+the `vdc` attachment is detached and the `vm-main` mapping destroyed, with a
+note saying so. It cannot be left in place: the guest would reach one NTFS
+volume by two paths and could mount both.
 
 ### The boot disk is on SATA, and that is deliberate
 

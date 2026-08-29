@@ -101,24 +101,22 @@ Singleton {
             linkable: true
         },
         {
-            key: "main",
-            title: "Main",
-            partuuid: "590b0c8f-7d06-4256-9ab5-0a49dd442d5f",
-            note: "only this partition is reachable",
-            linkable: true
-        },
-        {
-            // The row is IDENTIFIED by C: (that is the partition the
-            // operator thinks of, and what gets probed for hibernation)
-            // but the toggle hands the guest the WHOLE disk C: lives on,
-            // because that is the only way to boot it — the ESP, the
-            // reserved partition and the recovery partition all have to
-            // come with it. The note says so rather than letting the row
-            // read as "C: is attached as a drive".
+            // ── ONE ROW FOR THE WHOLE WINDOWS DISK ────────────────────
+            // C: and Main used to be two rows. They are one now, at the
+            // operator's request, and the merge is honest rather than
+            // cosmetic: the only way to have C: at all is to hand over the
+            // whole disk it boots from, and Main is a partition of that
+            // same disk — so it arrives with it whether or not a second
+            // row says so. Two toggles could express a combination the
+            // hardware cannot provide.
+            //
+            // Identified by C:'s PARTUUID (that is what gets probed for
+            // hibernation), described by the disk that carries it.
             key: "boot",
-            title: "Windows C:",
+            title: "Windows drive",
             partuuid: "2e3b6dd2-1146-4dde-a58d-6fb84800c624",
-            note: "boot the real Windows — hands over the whole disk",
+            wholeDisk: true,
+            note: "C:, recovery and Main — boots the real Windows",
             linkable: true
         }
     ]
@@ -132,7 +130,6 @@ Singleton {
 
     function isLinked(key) {
         return key === "storage" ? root.storageLinked
-             : key === "main"    ? root.mainLinked
              : key === "boot"    ? root.bootLinked
              : false;
     }
@@ -148,18 +145,6 @@ Singleton {
         // kernel refuses to hold both, so this is a kernel-level conflict,
         // not a policy the page invented. The helper refuses too; saying so
         // here means the operator reads the reason instead of an error.
-        // ── The one combination that is refused, in both directions ───
-        // Bare-metal mode hands over the WHOLE disk, and Main is a
-        // partition of it — so the guest already sees Main there. Linking
-        // it as well would present one NTFS volume to Windows TWICE, by
-        // two different paths, which it can mount twice and corrupt.
-        //
-        // Refused rather than silently resolved, so the operator keeps
-        // the choice: turn either one off and the other becomes available.
-        if (d.key === "main" && root.bootLinked)
-            return "Windows C: is on — Main is already on that disk";
-        if (d.key === "boot" && root.mainLinked)
-            return "Main is linked — turn it off first";
         if (!d.present)
             return "Drive not present";
         if (d.mounted)
@@ -259,21 +244,31 @@ Singleton {
 
     function _parseDrives(jsonText) {
         let byPartuuid = ({});
+        let parentOf = ({});
         try {
-            const walk = nodes => {
+            // Record the parent alongside each partition: a row that
+            // represents a WHOLE DISK (the Windows drive) has to report the
+            // disk's size and path, not the 642 GB of the C: partition it
+            // is identified by.
+            const walk = (nodes, parent) => {
                 for (const n of (nodes || [])) {
-                    if (n.partuuid)
+                    if (n.partuuid) {
                         byPartuuid[String(n.partuuid).toLowerCase()] = n;
-                    walk(n.children);
+                        parentOf[String(n.partuuid).toLowerCase()] = parent;
+                    }
+                    walk(n.children, n);
                 }
             };
-            walk(JSON.parse(jsonText).blockdevices);
+            walk(JSON.parse(jsonText).blockdevices, undefined);
         } catch (e) {
             root.drives = [];
             return;
         }
         root.drives = root._catalogue.map(c => {
-            const n = byPartuuid[c.partuuid];
+            const part = byPartuuid[c.partuuid];
+            // `wholeDisk` rows are IDENTIFIED by a partition (that is what
+            // gets probed) but DESCRIBED by the disk that carries it.
+            const n = c.wholeDisk ? parentOf[c.partuuid] : part;
             return {
                 key: c.key,
                 title: c.title,
@@ -285,7 +280,11 @@ Singleton {
                 label: n && n.label ? n.label : "",
                 fstype: n && n.fstype ? n.fstype : "",
                 bytes: n && n.size ? Number(n.size) : 0,
-                mounted: !!(n && n.mountpoint)
+                // For a whole-disk row, "mounted" must mean ANY partition
+                // of it is mounted — the disk node itself never is.
+                mounted: c.wholeDisk
+                    ? (n && (n.children || []).some(ch => !!ch.mountpoint))
+                    : !!(n && n.mountpoint)
             };
         });
     }

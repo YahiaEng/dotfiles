@@ -93,29 +93,29 @@ PageBase {
         }
 
         InfoRow {
-            label: "How Main is mapped"
-            icon: "shield"
-            // "unreachable at the kernel level" is true of THIS mapping and
-            // was true of the whole VM until bare-metal mode shipped
-            // (260829-czi). It is a claim about vm-main's table, so it is
-            // scoped to that here rather than left reading as a claim about
-            // the guest in general — the row below states the other half.
-            subtext: "Main sits on the Windows boot disk, so it is not passed "
-                   + "whole. A device-mapper table exposes only that partition; "
-                   + "every other sector reads as zeros and discards writes, so "
-                   + "nothing else on that disk is reachable through this drive."
+            label: "What the Windows drive toggle does"
+            icon: "swap_horiz"
+            // C: and Main were two rows until 260829-czi. They are one now:
+            // the only way to have C: is to hand over the disk it boots
+            // from, and Main is a partition of that same disk, so it comes
+            // along whether or not a second row says so. Two toggles could
+            // express a combination the hardware cannot provide.
+            subtext: "On: the VM boots your real Windows instead of the "
+                   + "qcow2 guest. The whole disk goes across, so the guest "
+                   + "sees C:, the recovery partition and Main on it exactly "
+                   + "as bare metal does — that is why Main is not a separate "
+                   + "row. The domain is redefined for you. Off: the qcow2 "
+                   + "guest comes back."
         }
 
         InfoRow {
-            label: "Windows C: is a mode, not a drive"
-            icon: "swap_horiz"
-            subtext: "Toggling it on switches the VM to boot your real "
-                   + "Windows instead of the qcow2 guest: it hands over the "
-                   + "whole disk C: lives on, so the guest sees C:, recovery "
-                   + "and Main exactly as bare metal does, and redefines the "
-                   + "domain for you. Toggling it off puts the qcow2 guest "
-                   + "back. Main turns off while it is on — it is already on "
-                   + "that disk. Keep hibernation and BitLocker off in Windows."
+            label: "Before switching it on"
+            icon: "shield"
+            subtext: "Windows must not be hibernated — run powercfg /h off "
+                   + "once, as administrator, and leave it off. Keep device "
+                   + "encryption off too: Windows 11 can re-enable it on its "
+                   + "own, and a key sealed to the VM's virtual TPM locks the "
+                   + "bare-metal boot out of its own system drive."
         }
 
         Repeater {
