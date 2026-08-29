@@ -380,6 +380,57 @@ PACMAN_PKGS=(
     nwg-displays
     blueman
 
+    # ── Native gaming stack (260829-vfi) ────────────────────────────
+    # Every name below was checked with `pacman -Si` against the live
+    # repos before being written here — this repo has a scar from
+    # `adw-gtk3`, an AUR_PKGS entry naming a package that does not
+    # exist under that name anywhere, which is why the GTK theme
+    # silently never installed (see CLAUDE.md "What NOT to Use").
+    # REJECTED by that check, do not "restore" them: vkbasalt and
+    # lib32-vkbasalt (AUR-only), steam-native-runtime (AUR-only),
+    # bridge-utils (dropped from Arch), iptables-nft (not a package —
+    # it is a `Provides` of `iptables`, which is already installed).
+    #
+    # gamescope is the big one: a Wayland micro-compositor that gives
+    # a game its own isolated compositor, so it can render at one
+    # resolution and scale to another, cap framerate independently of
+    # the desktop, and — the reason it matters on Hyprland — stop a
+    # fullscreen game fighting the desktop compositor for vsync.
+    gamescope
+    protontricks   # per-Proton-prefix winetricks; needed to fix
+                   # individual Steam titles that want a runtime DLL
+    wine-staging   # Conflicts With: wine — add EXACTLY ONE of the two.
+                   # Chosen over plain `wine` for the staging patchset.
+                   # Used by Lutris/Heroic for non-Steam titles and is
+                   # what winetricks drives.
+    winetricks
+    # 32-bit halves of the two tools already listed above. Without
+    # these, a 32-bit game (still common) silently gets no HUD and no
+    # gamemode request — the 64-bit package cannot serve a 32-bit
+    # process, and the failure is silent rather than an error.
+    lib32-mangohud
+    lib32-gamemode
+
+    # ── Single-GPU VFIO passthrough VM stack (260829-vfi) ───────────
+    # REPRODUCIBILITY FIX, not just an addition: qemu-full, libvirt and
+    # edk2-ovmf were found ALREADY INSTALLED on this host with install
+    # reason "Explicitly installed" while appearing NOWHERE in this
+    # file. That is exactly the host-only state the project constraint
+    # forbids — a fresh install would have come up without them and the
+    # passthrough VM would not exist. Listing them here closes that.
+    #
+    # edk2-ovmf and swtpm are not optional for this VM: Windows 11
+    # refuses to install without UEFI firmware and a TPM 2.0, which is
+    # what these two supply (OVMF firmware, software TPM). dnsmasq
+    # backs libvirt's default NAT network — the guest's networking. Its
+    # absence is the single most common "the VM has no internet" cause.
+    qemu-full
+    libvirt
+    edk2-ovmf
+    swtpm
+    dnsmasq
+    virt-manager
+
     # Audio analyser + sass compiler (official extra repo). cava is the
     # underlay the QML Media tab's live 60-bar visualiser ring feeds from
     # (RETIRE-06, Phase 21 — CavaService.qml, MediaTab.qml, DashboardTab.qml,
