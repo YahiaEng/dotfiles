@@ -1,0 +1,270 @@
+#!/usr/bin/env bash
+# system/usr/local/lib/vm-drives/vm-drive-action — quick task 260829-vfi.
+#
+# Installed to /usr/local/lib/vm-drives/vm-drive-action, owned root:root
+# mode 0755, and invoked ONLY as:
+#
+#     pkexec /usr/local/lib/vm-drives/vm-drive-action <VERB>
+#
+# ── THE SECURITY BOUNDARY IS THIS FILE'S ALLOWLIST ────────────────────
+# Same three rules as security-center/security-action, and for a sharper
+# reason: this script runs `dmsetup` and edits a libvirt domain. A root
+# entry point that accepted a block-device path from a GUI would let the
+# caller map ANY partition — including the root filesystem — into a VM.
+#
+#   1. EXACTLY ONE argument, matched against a hardcoded `case`. No
+#      device path, no PARTUUID, no domain name is ever taken from the
+#      caller. That is why there is a `link-main` verb rather than a
+#      generic `link <device>`.
+#   2. No argument is ever interpolated into a command. Grep for "$1"
+#      outside the `case` line: there are no other uses.
+#   3. It must never be writable by the invoking user. install.sh places
+#      it under /usr/local/lib (root-owned), NOT in the stow tree — a
+#      pkexec target inside a user-writable dotfiles directory is a local
+#      privilege escalation, not a feature.
+#
+# ── WHAT IS AND IS NOT ALLOWED TO BE LINKED ───────────────────────────
+# The two allowlisted drives are identified by GPT PARTUUID / WWN, not by
+# kernel name: /dev/sda and /dev/nvme1n1 can reorder across boots, and a
+# script that hardcoded them could map the wrong disk after a reboot.
+#
+#   STORAGE  wwn-0x5000c500c8b378b4   whole disk, 1.8 TB, NTFS "Storage"
+#            No OS on it, has its own GPT, so it is passed whole and
+#            Windows mounts it natively.
+#
+#   MAIN     PARTUUID 590b0c8f-…      nvme1n1p5, 3 TB, NTFS "Main"
+#            This one lives on the WINDOWS BOOT DISK, so it is NOT passed
+#            whole. A device-mapper table exposes only this partition;
+#            every other sector of that disk is a `zero` target, which
+#            returns zeros on read and DISCARDS writes. The ESP, the
+#            Microsoft reserved partition, Windows C: and the recovery
+#            partition are therefore unreachable by the guest at the
+#            kernel level — not merely hidden by this script's policy.
+#
+# Windows C: (PARTUUID 2e3b6dd2-…) has NO verb, deliberately. A guest
+# Windows given another Windows' system volume writes to it — System
+# Volume Information, restore points, search indexing, chkdsk on a volume
+# it believes is dirty — for no gain, since that install's Program Files
+# and registry are meaningless to the guest.
+set -euo pipefail
+
+DOMAIN=win11-gaming
+STATE_DIR=/var/lib/vm-drives
+STATE=$STATE_DIR/linked
+RUN_DIR=/run/vm-drives
+
+# Allowlisted identifiers. Changing these is the only way to change what
+# this script can touch, and it is a root-owned file.
+STORAGE_ID=/dev/disk/by-id/wwn-0x5000c500c8b378b4
+MAIN_PARTUUID=590b0c8f-7d06-4256-9ab5-0a49dd442d5f
+MAIN_DM=vm-main
+
+usage() {
+  cat >&2 <<'USAGE'
+vm-drive-action — link host data drives into the Windows VM.
+
+Verbs:
+  status            report link state of both drives
+  link-storage      attach the whole "Storage" disk (1.8 TB, no OS)
+  unlink-storage    detach it
+  link-main         attach "Main" (3 TB) via a device-mapper wrapper that
+                    exposes ONLY that partition; the rest of the Windows
+                    boot disk reads as zeros and discards writes
+  unlink-main       detach it and tear the mapping down
+  rebuild           recreate mappings for whatever is recorded as linked
+                    (called by the libvirt hook at VM start)
+  teardown          remove all mappings (called at VM stop)
+
+Windows C: is deliberately not linkable. See this file's header.
+USAGE
+  exit 64
+}
+
+[ $# -eq 1 ] || usage
+
+die() { printf 'vm-drive-action: %s\n' "$*" >&2; exit 1; }
+
+# ── Guards every state-changing verb runs first ───────────────────────
+# These are the two rules that actually prevent data loss. Neither is
+# advisory: a partition mounted on the host AND written by the guest is
+# corrupted, every time.
+require_vm_off() {
+  local s
+  s=$(virsh -c qemu:///system domstate "$DOMAIN" 2>/dev/null || echo "undefined")
+  [ "$s" = "shut off" ] || [ "$s" = "undefined" ] \
+    || die "VM is '$s' — shut it down before changing drive links"
+}
+
+require_not_mounted() {
+  # $1 is a resolved device path from OUR OWN allowlist, never the caller's.
+  local dev=$1 base
+  base=$(basename "$dev")
+  if findmnt -rno SOURCE | grep -q "^${dev}$"; then
+    die "$dev is mounted on the host — unmount it first"
+  fi
+  # Also refuse if any partition OF that disk is mounted.
+  if lsblk -rno NAME,MOUNTPOINT "/dev/$base" 2>/dev/null | awk 'NF>1{exit 0} END{exit 1}'; then
+    die "a partition of $dev is mounted on the host — unmount it first"
+  fi
+}
+
+resolve_main() {
+  local d
+  d=$(readlink -f "/dev/disk/by-partuuid/$MAIN_PARTUUID" 2>/dev/null) \
+    || die "Main partition not found by PARTUUID"
+  [ -b "$d" ] || die "Main partition PARTUUID resolves to a non-block device"
+  printf '%s' "$d"
+}
+
+# ── The device-mapper wrapper ─────────────────────────────────────────
+# Builds a virtual disk the same size as the physical one, in which only
+# the Main partition maps to real hardware:
+#
+#   0            2048     linear  loop     GPT header (synthetic, 1 MiB)
+#   2048         gap      zero              everything before Main — DISCARDED
+#   <start>      <size>   linear  Main      the real partition, at its true offset
+#   <end>        tail     linear  loop      backup GPT
+#
+# Main is kept at its REAL offset because Windows expects a volume where
+# it physically lives. The synthetic table is GPT, not MBR: MBR cannot
+# address a 3 TB partition at a 1.3-billion-sector offset.
+build_main_map() {
+  local dev disk start size disksize gap end tail img loop
+  dev=$(resolve_main)
+  disk=/dev/$(lsblk -no PKNAME "$dev")
+  start=$(cat "/sys/class/block/$(basename "$dev")/start")
+  size=$(blockdev --getsz "$dev")
+  disksize=$(blockdev --getsz "$disk")
+  gap=$((start - 2048))
+  end=$((start + size))
+  tail=$((disksize - end))
+
+  [ "$gap" -gt 0 ]  || die "unexpected geometry: Main starts before sector 2048"
+  [ "$tail" -ge 33 ] || die "unexpected geometry: no room for a backup GPT"
+
+  mkdir -p "$RUN_DIR"
+  img=$RUN_DIR/main.gpt
+  # Sparse file the full size of the physical disk. Only the GPT head and
+  # the backup tail are ever written, so it costs kilobytes.
+  rm -f "$img"
+  truncate -s $((disksize * 512)) "$img"
+  # One partition, at Main's real offset, Microsoft basic data.
+  sfdisk --quiet --label gpt "$img" >/dev/null <<SFD
+${start},${size},0FC63DAF-8483-4772-8E79-3D69D8477DE4
+SFD
+
+  loop=$(losetup --show -f "$img") || die "losetup failed"
+  dmsetup remove "$MAIN_DM" 2>/dev/null || true
+  printf '%s\n' \
+    "0 2048 linear $loop 0" \
+    "2048 $gap zero" \
+    "$start $size linear $dev 0" \
+    "$end $tail linear $loop $end" \
+    | dmsetup create "$MAIN_DM" || die "dmsetup create failed"
+
+  udevadm settle 2>/dev/null || true
+}
+
+destroy_main_map() {
+  local loop
+  dmsetup remove "$MAIN_DM" 2>/dev/null || true
+  # Detach only loops backed by OUR image, never a blanket losetup -D.
+  while read -r loop; do
+    [ -n "$loop" ] && losetup -d "$loop" 2>/dev/null || true
+  done < <(losetup -j "$RUN_DIR/main.gpt" -O NAME -n 2>/dev/null || true)
+  rm -f "$RUN_DIR/main.gpt"
+}
+
+state_has() { [ -f "$STATE" ] && grep -qx "$1" "$STATE"; }
+state_add() { mkdir -p "$STATE_DIR"; touch "$STATE"; grep -qx "$1" "$STATE" || echo "$1" >> "$STATE"; }
+state_del() { [ -f "$STATE" ] && sed -i "/^$1\$/d" "$STATE" || true; }
+
+attach_disk() {
+  # $1 = device path (from our allowlist), $2 = guest target dev name
+  local xml
+  xml=$(mktemp)
+  cat > "$xml" <<XML
+<disk type='block' device='disk'>
+  <driver name='qemu' type='raw' cache='none' io='native' discard='unmap'/>
+  <source dev='$1'/>
+  <target dev='$2' bus='virtio'/>
+</disk>
+XML
+  virsh -c qemu:///system attach-device "$DOMAIN" "$xml" --config \
+    || { rm -f "$xml"; die "attach-device failed"; }
+  rm -f "$xml"
+}
+
+detach_disk() {
+  local xml
+  xml=$(mktemp)
+  cat > "$xml" <<XML
+<disk type='block' device='disk'>
+  <source dev='$1'/>
+  <target dev='$2' bus='virtio'/>
+</disk>
+XML
+  virsh -c qemu:///system detach-device "$DOMAIN" "$xml" --config 2>/dev/null || true
+  rm -f "$xml"
+}
+
+case "$1" in
+
+  status)
+    printf 'domain=%s\n' "$(virsh -c qemu:///system domstate "$DOMAIN" 2>/dev/null || echo undefined)"
+    printf 'storage=%s\n' "$(state_has storage && echo linked || echo unlinked)"
+    printf 'main=%s\n'    "$(state_has main    && echo linked || echo unlinked)"
+    printf 'main_mapped=%s\n' "$(dmsetup info "$MAIN_DM" >/dev/null 2>&1 && echo yes || echo no)"
+    ;;
+
+  link-storage)
+    require_vm_off
+    [ -b "$STORAGE_ID" ] || die "Storage disk not present"
+    require_not_mounted "$(readlink -f "$STORAGE_ID")"
+    attach_disk "$STORAGE_ID" vdb
+    state_add storage
+    echo "Storage linked (whole disk, vdb)"
+    ;;
+
+  unlink-storage)
+    require_vm_off
+    detach_disk "$STORAGE_ID" vdb
+    state_del storage
+    echo "Storage unlinked"
+    ;;
+
+  link-main)
+    require_vm_off
+    require_not_mounted "$(resolve_main)"
+    build_main_map
+    attach_disk "/dev/mapper/$MAIN_DM" vdc
+    state_add main
+    echo "Main linked (device-mapper wrapper, vdc)"
+    ;;
+
+  unlink-main)
+    require_vm_off
+    detach_disk "/dev/mapper/$MAIN_DM" vdc
+    destroy_main_map
+    state_del main
+    echo "Main unlinked"
+    ;;
+
+  rebuild)
+    # Called by the libvirt hook at VM start. Device-mapper tables do not
+    # survive a reboot, so the mapping has to be rebuilt from the recorded
+    # state before qemu opens /dev/mapper/vm-main.
+    if state_has main; then
+      require_not_mounted "$(resolve_main)"
+      build_main_map
+      echo "Main mapping rebuilt"
+    fi
+    ;;
+
+  teardown)
+    destroy_main_map
+    echo "Mappings torn down"
+    ;;
+
+  *) usage ;;
+esac

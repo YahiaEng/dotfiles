@@ -32,8 +32,21 @@ readonly TARGET_DOMAIN=win11-gaming
 
 printf '%s [hook] %s %s %s\n' "$(date -Is)" "$GUEST" "$OP" "$SUBOP" >> "$LOG"
 
+# Linked host drives are device-mapper tables, and those do NOT survive a
+# reboot. They must exist before qemu opens /dev/mapper/vm-main, and must
+# be gone afterwards so the host is not left holding a mapping onto a
+# partition the operator may want to mount. The helper is a no-op when
+# nothing is recorded as linked.
+DRIVES=/usr/local/lib/vm-drives/vm-drive-action
+
 case "$OP/$SUBOP" in
-    prepare/begin)  exec /usr/local/bin/vfio-gpu-bind   ;;
-    release/end)    exec /usr/local/bin/vfio-gpu-unbind ;;
-    *)              exit 0 ;;
+    prepare/begin)
+        [ -x "$DRIVES" ] && "$DRIVES" rebuild >>"$LOG" 2>&1
+        exec /usr/local/bin/vfio-gpu-bind
+        ;;
+    release/end)
+        [ -x "$DRIVES" ] && "$DRIVES" teardown >>"$LOG" 2>&1
+        exec /usr/local/bin/vfio-gpu-unbind
+        ;;
+    *)  exit 0 ;;
 esac

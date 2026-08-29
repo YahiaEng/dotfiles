@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE policyconfig PUBLIC
+ "-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN"
+ "http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">
+<!--
+  org.aorus.vmdrives.policy — quick task 260829-vfi.
+
+  Names the VM drive-linking helper's polkit action so the authentication
+  dialog says what is about to happen, rather than pkexec's generic
+  "Authentication is required to run a program as another user".
+
+  auth_admin for every session type, and deliberately NO auth_admin_keep,
+  matching org.aorus.securitycenter.policy's reasoning. Linking a drive
+  changes which physical partition a virtual machine may write to; a
+  five-minute "remember my password" window on that is the wrong trade.
+-->
+<policyconfig>
+  <vendor>Aorus dotfiles</vendor>
+  <vendor_url>https://github.com/YahiaEng/dotfiles</vendor_url>
+
+  <action id="org.aorus.vmdrives.action">
+    <description>Link a host drive into the Windows VM</description>
+    <message>Authentication is required to change which host drives the Windows virtual machine can access.</message>
+    <icon_name>drive-harddisk</icon_name>
+    <defaults>
+      <allow_any>auth_admin</allow_any>
+      <allow_inactive>auth_admin</allow_inactive>
+      <allow_active>auth_admin</allow_active>
+    </defaults>
+    <annotate key="org.freedesktop.policykit.exec.path">/usr/local/lib/vm-drives/vm-drive-action</annotate>
+    <annotate key="org.freedesktop.policykit.exec.allow_gui">true</annotate>
+  </action>
+</policyconfig>

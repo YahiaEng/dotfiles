@@ -1278,6 +1278,19 @@ section_gaming() {
             /etc/libvirt/hooks/qemu
         # libvirtd reads its hook directory at startup only — a newly
         # installed hook is inert until it restarts.
+        # Drive-linking helper + its polkit action. Installed under
+        # /usr/local/lib (root-owned), NOT stowed: it is a pkexec target,
+        # and a pkexec target living inside a user-writable dotfiles
+        # directory is a local privilege escalation, not a feature. Same
+        # rule the Security Center's helper follows.
+        sudo install -Dm755 -o root -g root \
+            "$REPO_DIR/system/usr/local/lib/vm-drives/vm-drive-action" \
+            /usr/local/lib/vm-drives/vm-drive-action
+        sudo install -Dm644 -o root -g root \
+            "$REPO_DIR/system/usr/share/polkit-1/actions/org.aorus.vmdrives.policy" \
+            /usr/share/polkit-1/actions/org.aorus.vmdrives.policy
+        sudo install -d -o root -g root -m 0755 /var/lib/vm-drives
+
         sudo systemctl restart libvirtd 2>/dev/null || true
         # Report the ACTUAL firmware state rather than a fixed reminder. The
         # first version printed "additionally needs SVM enabled in UEFI"
