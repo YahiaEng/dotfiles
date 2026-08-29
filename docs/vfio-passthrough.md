@@ -1,0 +1,263 @@
+# Single-GPU VFIO passthrough — Windows 11 gaming VM
+
+Built in quick task `260829-vfi`. This document exists because **the whole
+VFIO half of that task is untestable from the machine that wrote it** — there
+is no `/dev/kvm` on this host until a firmware setting changes, so nothing
+below has been exercised. Everything here is either a measured fact about the
+hardware or a step you have to run. Where a claim is unverified, it says so.
+
+---
+
+## Read this first: what this VM is and is not for
+
+**League of Legends will not run in it.** Riot's Vanguard anti-cheat blocks
+Wine, Proton and every virtual machine as of patch 26.8 (2026). This is the
+anti-cheat's stated design, not a configuration gap, and no amount of hiding
+the hypervisor changes it — the `<kvm><hidden/>` and `vendor_id` settings in
+the domain XML defeat a *driver* check from 2020, not a kernel anti-cheat.
+
+**You already have the only thing that runs LoL on this machine.**
+`/boot/limine.conf` carries a `/Windows` entry pointing at
+`EFI/Microsoft/Boot/bootmgfw.efi`, and Windows 11 is installed on `nvme1n1p3`
+(641.9 GB NTFS, with its ESP on `p1` and recovery on `p4`). Reboot, pick
+Windows at the limine menu. That is the supported path and it works today.
+
+This VM is for **Windows-only games with no kernel anti-cheat**, run without
+rebooting. For everything that *does* work under Proton — which on an RTX 3070
+is the large majority of the Windows catalogue — the native stack is faster and
+far less trouble. Use `gamerun` (see the bottom of this file) first, and reach
+for this VM only when a title genuinely refuses.
+
+---
+
+## Why this is a *single-GPU* setup, and what that costs you
+
+The Ryzen 5 5600X has **no integrated graphics**. `lspci` reports exactly one
+display adapter: the RTX 3070 at `07:00.0`. So there is no second GPU to keep
+the host alive while the first is handed to a guest.
+
+The consequence is unavoidable and worth being clear-eyed about:
+
+> **Starting the VM tears down your desktop.** SDDM stops, Hyprland exits,
+> every open application dies with it, and the monitor switches to the guest.
+> Stopping the VM brings the login screen back. This is a full mode switch,
+> not a window you alt-tab out of.
+
+If that is not acceptable, do not use this VM — reboot into the bare-metal
+Windows install instead, which costs about the same and runs anti-cheat games
+too.
+
+### The one line you must never add
+
+Every VFIO tutorial tells you to pin the card at boot:
+
+```
+# /etc/modprobe.d/vfio.conf
+options vfio-pci ids=10de:2484,10de:228b     # <-- NEVER ON THIS HOST
+```
+
+On a two-GPU machine that is correct. Here it binds your **only** display
+adapter to `vfio-pci` before userspace starts, and the machine boots to a
+black screen with no framebuffer, no SDDM and no Hyprland — recoverable only
+over SSH or from another computer. The shipped `vfio.conf` carries module
+*ordering* only, and `install.sh` repeats this warning at the install site.
+Binding happens late, from the libvirt hook, once the desktop is already down.
+
+---
+
+## The hardware, as measured
+
+IOMMU is already active (22 groups) with no kernel parameter needed — AMD-Vi
+is on by default on this board once virtualisation is enabled.
+
+| Group | Device | Role in this setup |
+|---|---|---|
+| **16** | `07:00.0` RTX 3070 + `07:00.1` its HDMI audio | passed as one multifunction device |
+| **20** | `09:00.3` CPU USB controller | passed — carries **keyboard, mouse and a USB audio device** |
+| **21** | `09:00.4` onboard HD audio | passed — the analog jack, currently the host default sink |
+| 15 | chipset USB, SATA, both NVMe, Ethernet, WiFi | **never touch** — one tangled group |
+
+Group 20 is the reason this configuration has no mouse problem and no sound
+problem. Because all three input/audio devices sit on one cleanly-isolated
+controller, passing that single device gives the guest native USB input and
+native audio. There is no evdev bridging, no pointer-capture hotkey, no
+Scream, and no PulseAudio tunnel — the four things that make most passthrough
+guides miserable to follow.
+
+Host recovery is preserved: the *other* USB controller (`02:00.0`, buses
+001/002) stays with the host and has input devices on it, so a failed teardown
+does not leave the machine without a keyboard.
+
+---
+
+## Operator checklist
+
+Steps 1–2 are **blocking** — nothing else can be attempted until they are
+done. Steps marked **[UNVERIFIED]** could not be exercised from the session
+that wrote them and are the ones to watch.
+
+### 1. Enable AMD-V in firmware — BLOCKING
+
+Measured on this host right now:
+
+```
+$ grep -w svm /proc/cpuinfo   ->  (no output — the flag is absent)
+$ ls /dev/kvm                 ->  No such file or directory
+```
+
+Virtualisation is switched **off** in UEFI. Without it, QEMU silently falls
+back to TCG software emulation, and a Windows guest under TCG is far too slow
+to be worth booting.
+
+1. Reboot, enter UEFI setup.
+2. **Advanced → CPU Configuration → SVM Mode → Enabled.**
+3. Save and exit.
+
+Confirm afterwards:
+
+```bash
+grep -w svm /proc/cpuinfo   # must print a flags line
+ls -l /dev/kvm              # must exist
+```
+
+If `/dev/kvm` exists but is not group-accessible, add yourself:
+`sudo usermod -aG kvm,libvirt "$USER"` and log out and in.
+
+### 2. Install and start the stack
+
+`install.sh` now carries every package. On this already-installed host:
+
+```bash
+sudo pacman -S --needed qemu-full libvirt edk2-ovmf swtpm dnsmasq virt-manager
+sudo systemctl enable --now libvirtd
+sudo virsh net-start default
+sudo virsh net-autostart default
+```
+
+`virsh net-start default` is easy to skip and is the most common cause of
+"the guest has no network" — the NAT bridge does not come up on its own.
+
+### 3. Fetch the ISOs
+
+```bash
+sudo mkdir -p /var/lib/libvirt/images
+# Windows 11 ISO from microsoft.com -> /var/lib/libvirt/images/Win11.iso
+# virtio-win ISO from fedorapeople.org -> /var/lib/libvirt/images/virtio-win.iso
+sudo qemu-img create -f qcow2 /var/lib/libvirt/images/win11-gaming.qcow2 200G
+```
+
+The **virtio-win ISO is not optional**. The Windows installer cannot see a
+virtio disk without loading a driver from it, and presents "no drives found"
+with no hint as to why.
+
+### 4. Define the domain
+
+```bash
+sudo virsh define ~/dotfiles/vfio/win11-gaming.xml
+```
+
+The domain name `win11-gaming` is matched literally by
+`/etc/libvirt/hooks/qemu`. **Renaming the domain without editing the hook
+silently disables passthrough** and the guest boots with no GPU.
+
+### 5. Install Windows — **[UNVERIFIED]**
+
+First boot takes the display. At the disk step, "Load driver" → the virtio-win
+ISO → `viostor` for the disk, then `NetKVM` for networking.
+
+> Untested from here. In particular the Secure Boot + TPM path
+> (`OVMF_CODE.secboot.4m.fd` plus the `tpm-crb` device) is *schema-valid* —
+> `virt-xml-validate` passes — but schema validity only proves libvirt will
+> accept the XML, **not** that Windows 11's installer accepts the TPM it is
+> offered. If setup complains the PC does not meet requirements, that pair is
+> the first thing to check.
+
+### 6. Verify the teardown/restore cycle — **[UNVERIFIED, highest risk]**
+
+This is the step that can cost you your display. Do it when you can afford a
+hard reboot, and ideally with SSH access from another machine open first.
+
+```bash
+# from a TTY or over SSH, not from a terminal inside Hyprland
+sudo virsh start win11-gaming
+# ... desktop goes down, guest takes the monitor ...
+sudo virsh shutdown win11-gaming
+# ... SDDM should return within ~15s ...
+```
+
+Then read the log the hooks write at every step:
+
+```bash
+sudo cat /var/log/vfio-hook.log
+```
+
+The restore script is deliberately written to be forgiving: it is **not**
+`set -e`, and `systemctl start sddm` runs unconditionally at the end no matter
+what failed above it. A half-restored driver with a running display manager is
+recoverable; an early exit that never restarted SDDM is not.
+
+**If the screen stays black after shutdown:** switch to a TTY with
+Ctrl+Alt+F2 and run `sudo systemctl start sddm`. If there is no TTY either,
+SSH in. If neither works, hard reboot — nothing here persists across a reboot
+except the module ordering file, which is inert on its own.
+
+### 7. Guest-side tuning — **[UNVERIFIED]**
+
+Inside Windows: install the NVIDIA driver normally, set the power mode to
+"Prefer maximum performance", and disable "Memory Integrity"
+(Core Isolation) — it is a nested-virtualisation feature that costs real
+frames inside an already-virtualised guest.
+
+---
+
+## Deliberate design choices you might otherwise "fix"
+
+| Choice | Why |
+|---|---|
+| 8 vCPUs, not 12 | Cores 0 and 1 are held back for the host, the QEMU emulator thread and the iothread. Give the guest all 6 cores and the emulator competes with the vCPUs it serves — frametimes get *worse*. |
+| Pinning pairs `n`/`n+6` | Read from `thread_siblings_list` on this host, not assumed. Each guest "core" lands on a real SMT sibling pair, so the guest scheduler's decisions match physical topology. |
+| Transparent hugepages, not static | Static hugepages are reserved from the host permanently, including while the VM is off. On a desktop that is a bad trade. See below to opt in. |
+| `cache='none'` + `io='native'` | `io=native` *requires* `cache=none`; pairing them wrongly silently falls back to a slower path. |
+| No `<graphics>`, `<video>` or `<sound>` | The passed-through GPU drives the real monitor. An emulated adapter would become Windows' primary display and leave the real screen blank. |
+| GPU + its audio on one guest slot | Mirrors the host layout (`07:00.0`/`.1`). NVIDIA's driver expects its audio function beside the card; splitting them is a known cause of the guest audio function failing to bind. |
+| `release/end`, not `stopped/end` | `stopped` fires while libvirt still holds the device; rebinding nvidia there races teardown and intermittently leaves the card half-claimed. |
+
+### Optional upgrades, both opt-in
+
+**Static hugepages** — a few percent, at the cost of 16 GB reserved from the
+host at all times. Add `default_hugepagesz=1G hugepagesz=1G hugepages=16` to
+the limine cmdline and swap the `<memoryBacking>` block for `<hugepages/>`.
+
+**Raw-passthrough of the existing Windows install** — the fastest storage
+option, and it would give you *one* Windows bootable both bare-metal and as a
+VM. **Not built, and not recommended without thought.** Booting the same
+install two ways changes the hardware hash Windows activation keys on, and
+Fast Startup leaves the NTFS in a hibernated state that Linux must never mount
+concurrently. If you want it: disable Fast Startup in Windows first, confirm
+`nvme1n1` is unmounted on the host, and replace the `<disk>` block with a
+`<disk type='block'>` pointing at `/dev/nvme1n1`. Ask before doing this — it
+is the one change here that can damage an existing installation.
+
+---
+
+## The native stack, which you should try first
+
+Installed by the same quick task and testable today, no BIOS change required.
+
+```bash
+gamerun <command>                       # tuned env + gamemode + MangoHud
+gamerun --gamescope 2560x1440 <cmd>     # under gamescope
+gamerun --fsr <cmd>                     # FSR upscaling
+gamerun --hud <cmd>                     # HUD visible from the start
+```
+
+Steam launch options: `gamerun %command%`
+
+MangoHud starts hidden; **Right-Shift + F12** toggles it, **Left-Shift + F2**
+toggles logging.
+
+The wrapper sets the shader-cache, NVAPI/DLSS and VKD3D raytracing variables
+at the game process rather than session-wide, deliberately — session-wide they
+would also reach Hyprland, Quickshell and every GTK app, where a 12 GiB shader
+cache with cleanup disabled is pure cost. See `gaming/.local/bin/gamerun`,
+where each variable carries the reason it is set.
