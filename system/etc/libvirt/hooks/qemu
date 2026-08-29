@@ -73,7 +73,27 @@ case "$OP/$SUBOP" in
     prepare/begin)
         # Linked-drive mappings are needed in BOTH modes — the disk is in
         # the domain either way — so this is outside the passthrough gate.
-        [ -x "$DRIVES" ] && "$DRIVES" rebuild >>"$LOG" 2>&1
+        #
+        # ── FAIL BEFORE THE TEARDOWN, NEVER AFTER ─────────────────────
+        # The rebuild's exit status used to be discarded. That is how a
+        # failed mapping cost a desktop on 2026-08-29: rebuild refused,
+        # the hook carried on, sddm was stopped and the GPU bound to
+        # vfio-pci, and only THEN did qemu discover it could not open the
+        # boot disk — so the domain died and the operator was dropped at
+        # an SDDM login with nothing on screen explaining why.
+        #
+        # libvirt aborts the start when this hook exits non-zero, so
+        # checking here turns that whole sequence into `virsh start`
+        # printing an error with the desktop still up. A missing mapping
+        # can never be recovered by continuing, so there is nothing to
+        # trade away.
+        if [ -x "$DRIVES" ]; then
+            if ! "$DRIVES" rebuild >>"$LOG" 2>&1; then
+                printf '%s [hook] drive mapping rebuild FAILED — refusing to start; desktop left up\n' \
+                    "$(date -Is)" >> "$LOG"
+                exit 1
+            fi
+        fi
         if [ "$HAS_PCI_PASSTHROUGH" = yes ]; then
             exec /usr/local/bin/vfio-gpu-bind
         fi

@@ -10,13 +10,18 @@
   and this one is passthrough onto the physical Windows partitions. All three
   carry the same <name> and the same <uuid> — see the uuid comment below.
 
-  ── BEFORE STARTING THIS, THE BOOT SET MUST BE MAPPED ──────────────────
+  ── BEFORE STARTING THIS ───────────────────────────────────────────────
+      pkexec /usr/local/lib/vm-drives/vm-drive-action unlink-main
       pkexec /usr/local/lib/vm-drives/vm-drive-action link-boot
-  That builds /dev/mapper/vm-winboot: a virtual disk holding ONLY
-  nvme0n1p1..p4 (ESP, MSR, C:, recovery) at their true offsets, under a
-  GPT that replays the real disk's own GUIDs. Without it this domain has
-  no boot disk and refuses to start. The libvirt hook rebuilds the mapping
-  at every start, because device-mapper tables do not survive a reboot.
+  link-boot builds nothing — it verifies the by-id path below really is
+  this Windows install, checks the volumes are not hibernated, and records
+  the state. Main MUST be unlinked first: it is a partition of this very
+  disk, so the guest already sees it here, and a device-mapper wrapper of
+  it would claim that partition exclusively and collide with the disk.
+
+  There is deliberately NO mapping to rebuild at start. The first version
+  of this passed a dm wrapper and a failed rebuild took the desktop down
+  before the domain could fail; nothing to build is nothing to fail.
 
   ── WHAT THIS COSTS, STATED UP FRONT ───────────────────────────────────
   * The guest writes the ACTUAL Windows install. A crash mid-write damages
@@ -173,8 +178,10 @@
          back to a slower path. discard='unmap' lets Windows TRIM propagate
          to the qcow2 so the image does not grow forever. -->
     <!-- ── THE BOOT DISK: the real Windows, not an image ──────────────
-         /dev/mapper/vm-winboot is built by `vm-drive-action link-boot` and
-         rebuilt by the libvirt hook at every start.
+         The whole physical disk, by a stable by-id path. No wrapper: the
+         guest IS this Windows and owns the disk, so it sees C:, the
+         recovery partition AND Main on it, exactly as on metal. That is
+         also why Main must not be linked separately — see the header.
 
          BUS IS SATA, NOT VIRTIO, AND THAT IS NOT A STYLE CHOICE. This
          Windows was installed on bare metal and has never seen a virtio
@@ -188,11 +195,11 @@
          attached below for exactly that), confirm viostor loads, and only
          then change this line.
 
-         No `discard='unmap'`: this is a partition range on a live disk,
-         not a sparse image, and trim requests have nowhere useful to go. -->
+         No `discard='unmap'`: this is a live disk, not a sparse image,
+         and a guest trim here would punch holes in real Windows data. -->
     <disk type='block' device='disk'>
       <driver name='qemu' type='raw' cache='none' io='native'/>
-      <source dev='/dev/mapper/vm-winboot'/>
+      <source dev='/dev/disk/by-id/nvme-WD_BLACK_SN850X_4000GB_25033U804844'/>
       <target dev='sda' bus='sata'/>
       <boot order='1'/>
     </disk>

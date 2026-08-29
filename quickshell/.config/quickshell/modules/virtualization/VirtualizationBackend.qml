@@ -53,6 +53,9 @@ Singleton {
     // ── link state, as reported by the helper ──
     property bool storageLinked: false
     property bool mainLinked: false
+    // Bare-metal mode. Not a drive row of its own — it is a MODE — but the
+    // Main row has to know about it, because the two cannot both be on.
+    property bool bootLinked: false
     property bool mainMapped: false
     property bool linkStateProbed: false
 
@@ -137,6 +140,13 @@ Singleton {
     function blockedReason(d) {
         if (!d.linkable)
             return d.blocked !== undefined ? d.blocked : "Not linkable by design";
+        // Main is a PARTITION of the disk bare-metal mode hands over whole.
+        // A dm mapping of it claims that partition exclusively and the
+        // kernel refuses to hold both, so this is a kernel-level conflict,
+        // not a policy the page invented. The helper refuses too; saying so
+        // here means the operator reads the reason instead of an error.
+        if (d.key === "main" && root.bootLinked)
+            return "Bare-metal mode is on — Main is already on the boot disk";
         if (!d.present)
             return "Drive not present";
         if (d.mounted)
@@ -204,6 +214,7 @@ Singleton {
                 const lines = text.split("\n").map(l => l.trim());
                 root.storageLinked = lines.indexOf("storage") >= 0;
                 root.mainLinked = lines.indexOf("main") >= 0;
+                root.bootLinked = lines.indexOf("boot") >= 0;
             }
         }
         onExited: () => {

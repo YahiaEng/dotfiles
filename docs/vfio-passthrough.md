@@ -320,39 +320,43 @@ Quick task 260829-czi. There is a **third** shape of the same domain,
 `nvme0n1` instead of a qcow2 image. One Windows, all your games, whether you
 boot it on metal or as a guest.
 
-### How the disk is built
+### How the disk is handed over
 
-`link-boot` builds `/dev/mapper/vm-winboot`: a virtual disk holding only the
-boot set — the ESP, the Microsoft reserved partition, C: and the recovery
-partition — at their true offsets, with `Main` excluded.
+The whole physical disk, by a stable by-id path
+(`/dev/disk/by-id/nvme-WD_BLACK_SN850X_4000GB_25033U804844`). No
+device-mapper wrapper, no synthetic partition table, nothing rebuilt at
+start. The guest is that Windows, so it owns the disk and sees C:, the
+recovery partition **and** Main on it, exactly as it does on metal.
 
-```
-0            2048     linear  loop         protective MBR + GPT + entries
-2048         <span>   linear  <real disk>  p1..p4 verbatim, at true offsets
-<boot_end>   2048     linear  loop         backup GPT
-```
+`link-boot` therefore *builds* nothing. It verifies that the by-id path
+really resolves to the disk carrying the four allowlisted boot PARTUUIDs —
+a by-id path is stable, but stable is not the same as correct, and a
+replaced disk would inherit the id — then checks the volumes are not
+hibernated and records the state.
 
-The layout that makes this possible, measured rather than assumed: `p1..p4`
-occupy sectors **2048 → 1348306943** with no gap large enough to matter, and
-`Main` does not start until **1348308992**. The boot set is one linear range.
+**This replaced a device-mapper wrapper, and the reason is worth keeping.**
+The first version built `/dev/mapper/vm-winboot`: a truncated virtual disk
+holding only p1..p4 under a GPT that replayed the real disk's GUIDs, so the
+guest could not reach Main. It worked in isolation and failed in place,
+because **a dm target claims its backing device exclusively** — a whole-disk
+mapping and `vm-main` (a mapping of p5, a partition of that same disk) can
+never coexist. Whichever is created second fails `EBUSY`. That is a kernel
+rule, not a bug to fix. And the wrapper's whole purpose — hiding Main from
+the guest — is meaningless in a mode where the guest legitimately owns the
+entire disk.
 
-**The synthetic GPT is a replay of the real one, not a fresh table.** This is
-the one way this mapping differs from `vm-main`'s, and it is not cosmetic:
-Windows BCD identifies its boot volume by *disk GUID + partition GUID*.
-Invent either and `bootmgfw` cannot find `\Windows`, and the guest stops at a
-recovery screen. So `build_boot_map` filters the real disk's own
-`sfdisk --dump` — drops the `Main` line, pulls `last-lba` in — and reproduces
-every type GUID, unique GUID, partition name and attribute flag byte-for-byte,
-including `RequiredPartition` on the recovery partition.
+### Bare-metal mode and `link-main` are mutually exclusive
 
-The build refuses if the disk carries any partition outside the five it knows,
-if the boot set does not start at sector 2048, or if the truncated image would
-reach into `Main`.
+Both verbs refuse while the other is active, each naming the other, and the
+Settings page shows the reason on the Main row rather than letting you hit
+the error. Nothing is lost by unlinking Main: in bare-metal mode the guest
+reaches it on the boot disk, where it has always been.
 
 ### Switching modes
 
 ```bash
-virsh shutdown win11-gaming                              # if running
+virsh shutdown win11-gaming                                # if running
+pkexec /usr/local/lib/vm-drives/vm-drive-action unlink-main
 pkexec /usr/local/lib/vm-drives/vm-drive-action link-boot
 virsh define ~/dotfiles/vfio/win11-bare.xml
 pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
@@ -363,6 +367,8 @@ Back to the qcow2 guest:
 
 ```bash
 virsh shutdown win11-gaming
+pkexec /usr/local/lib/vm-drives/vm-drive-action unlink-boot
+pkexec /usr/local/lib/vm-drives/vm-drive-action link-main     # optional
 virsh define ~/dotfiles/vfio/win11-gaming.xml
 pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks
 ```
@@ -398,17 +404,24 @@ Moving the boot disk to virtio afterwards is a real gain and a separate job.
 | **Real damage is real** | A crash mid-write hits the install you boot on metal, not a disposable image. |
 | **No recovery channel** | `sshd` is disabled, so if the guest hangs in passthrough mode the host has no keyboard and no network way in. The reset button is the only way out. |
 
-### Why the safety checks are at link time only
+### Why a failed mapping used to cost you the desktop
 
-`rebuild` runs from the libvirt hook at **every** VM start, and a refusal there
-does not protect anything: it leaves `/dev/mapper/vm-winboot` missing, libvirt
-cannot open the boot disk, the domain fails to start, and you land back at the
-SDDM login with no explanation. That failure was observed once already, when
-device encryption reached a linked drive.
+`rebuild` runs from the libvirt hook at **every** VM start, and its exit
+status used to be discarded. On 2026-08-29 that played out exactly as the
+design comments feared: `rebuild` refused, the hook carried on, sddm was
+stopped and the GPU bound to `vfio-pci`, and only *then* did qemu discover it
+could not open the boot disk — so the domain died and the operator was
+dropped at an SDDM login with nothing on screen explaining why.
 
-So the filesystem-state decision belongs at `link-boot`, where refusing costs
-one toggle. The only check `rebuild` keeps is the concurrent-mount one, because
-host and guest writing one volume corrupts it regardless of anything else.
+Two things changed. The hook now **checks that exit status and aborts before
+the teardown**, so `virsh start` prints an error with the desktop still up;
+libvirt aborts the start when a `prepare/begin` hook exits non-zero, and a
+missing mapping can never be recovered by continuing. And bare-metal mode
+builds nothing at all, so it has nothing there that *can* fail.
+
+The filesystem-state decision still belongs at link time, where refusing
+costs one toggle. The only check `rebuild` keeps is the concurrent-mount one,
+because host and guest writing one volume corrupts it regardless.
 
 ---
 

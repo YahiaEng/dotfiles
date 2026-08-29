@@ -109,12 +109,13 @@ PageBase {
         InfoRow {
             label: "Bare-metal mode"
             icon: "swap_horiz"
-            subtext: "Windows C: is never a data drive, but it can be the VM's "
-                   + "boot disk: link-boot maps the ESP, reserved, C: and "
-                   + "recovery partitions as one disk so the real Windows runs "
-                   + "as the guest. Switch with virsh define ~/dotfiles/vfio/"
-                   + "win11-bare.xml, then sync-disks to re-attach these "
-                   + "drives. Keep Fast Startup and BitLocker off."
+            subtext: "Windows C: is never a data drive, but the whole disk it "
+                   + "lives on can be the VM's boot disk, so the real Windows "
+                   + "runs as the guest and sees C:, recovery and Main just as "
+                   + "it does on metal. Unlink Main first — it is a partition "
+                   + "of that same disk and the two conflict. Then link-boot, "
+                   + "virsh define ~/dotfiles/vfio/win11-bare.xml, and "
+                   + "sync-disks. Keep hibernation and BitLocker off."
         }
 
         Repeater {
