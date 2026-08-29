@@ -402,6 +402,21 @@ PACMAN_PKGS=(
     nwg-displays
     blueman
 
+    # ── sudo askpass helper (260829-vfi) ────────────────────────────
+    # Lets sudo ask for a password when NO TERMINAL is available. Without
+    # it any privileged script run from a non-interactive context dies on
+    # "sudo: a terminal is required to read the password" — verified on
+    # this host, where ./install.sh --gaming-only failed exactly that way
+    # once the cached sudo timestamp expired.
+    #
+    # lxqt-openssh-askpass, not x11-ssh-askpass: the latter is X11-only
+    # and would be dead weight on a Wayland-native session, the same class
+    # of mistake as the xsettingsd entry in CLAUDE.md's "What NOT to Use".
+    # `ssh-askpass` and `openssh-askpass` were both checked with
+    # `pacman -Si` and DO NOT EXIST in the official repos — do not
+    # "correct" this to either name.
+    lxqt-openssh-askpass
+
 
     # Audio analyser + sass compiler (official extra repo). cava is the
     # underlay the QML Media tab's live 60-bar visualiser ring feeds from
@@ -780,6 +795,12 @@ section_core_rice() {
         printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' | sudo tee -a /etc/pacman.conf >/dev/null
         echo "  Appended [multilib] to /etc/pacman.conf."
     fi
+
+    # Askpass wiring: base plumbing, so it runs in the core section rather
+    # than behind --gaming-only.
+    echo ""
+    echo "Configuring sudo askpass helper..."
+    configure_sudo_askpass
     # Sync the newly (or already) enabled repo's database before any
     # package that lives there (steam) is installed — without this,
     # `pacman -S steam` still fails with "target not found" even though
@@ -1202,6 +1223,34 @@ section_hardware() {
 # "Enable firewall" button has something valid to load, and the operator
 # makes the call. An installer that silently starts filtering a machine's
 # traffic is not a thing this repo should do unattended.
+
+# ── sudo askpass wiring (260829-vfi) ──────────────────────────────────
+# /etc/sudo.conf is package-owned and supports no drop-in directory, so
+# this is an idempotent append guarded the same way the [multilib] stanza
+# above is: check for the directive, add it only when absent.
+#
+# MEASURED, not assumed: with `Path askpass` set, PLAIN `sudo` uses the
+# helper automatically when no terminal is available — the `-A` flag is
+# NOT required. Verified by invalidating the timestamp and watching for
+# the helper process (the naive probe was blind twice first: `pgrep -x`
+# silently cannot match a process name over 15 characters, and a
+# `pgrep -f` pattern matched the probing shell's own command line).
+configure_sudo_askpass() {
+    local helper=/usr/bin/lxqt-openssh-askpass
+    [[ -x "$helper" ]] || { echo "  askpass helper not installed — skipping."; return 0; }
+    if grep -qE '^[[:space:]]*Path[[:space:]]+askpass[[:space:]]' /etc/sudo.conf 2>/dev/null; then
+        echo "  sudo askpass already configured."
+        return 0
+    fi
+    # Keep one pre-dotfiles copy, the same courtesy nftables.conf gets.
+    sudo cp -n /etc/sudo.conf /etc/sudo.conf.pre-dotfiles 2>/dev/null || true
+    sudo tee -a /etc/sudo.conf >/dev/null <<EOF
+
+# Askpass helper (dotfiles 260829-vfi) — see install.sh.
+Path askpass $helper
+EOF
+    echo "  sudo askpass configured -> $helper"
+}
 
 section_gaming() {
     echo ""
