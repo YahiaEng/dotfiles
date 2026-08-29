@@ -66,9 +66,10 @@
          measured present at this path; secure='yes' additionally requires
          <smm state='on'/> in <features> below. -->
     <loader readonly='yes' secure='yes' type='pflash'>/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd</loader>
-    <nvram template='/usr/share/edk2/x64/OVMF_VARS.4m.fd'>/var/lib/libvirt/qemu/nvram/win11-gaming_VARS.fd</nvram>
-    <boot dev='hd'/>
-    <boot dev='cdrom'/>
+    <nvram template='/var/lib/libvirt/qemu/nvram/OVMF_VARS.4m.ms-enrolled.fd'>/var/lib/libvirt/qemu/nvram/win11-gaming_VARS.fd</nvram>
+    <!-- Boot order is per-device (see each <disk> below). libvirt refuses
+         to mix <boot dev='…'/> here with <boot order='…'/> on devices, and
+         per-device is the only form that can say WHICH cdrom. -->
   </os>
 
   <features>
@@ -148,6 +149,7 @@
               discard='unmap' queues='4' iothread='1'/>
       <source file='/var/lib/libvirt/images/win11-gaming.qcow2'/>
       <target dev='vda' bus='virtio'/>
+      <boot order='1'/>
     </disk>
 
     <!-- Windows 11 installer ISO. Named for the exact build imported here
@@ -160,6 +162,7 @@
       <source file='/var/lib/libvirt/images/Win11_25H2_EnglishInternational_x64_v2.iso'/>
       <target dev='sdb' bus='sata'/>
       <readonly/>
+      <boot order='2'/>
     </disk>
 
     <!-- virtio-win driver ISO. NOT optional: the Windows installer cannot

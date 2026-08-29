@@ -533,6 +533,14 @@ GAMING_PKGS=(
     swtpm
     dnsmasq
     virt-manager
+    # Enrolls Secure Boot keys into an OVMF variable store. NOT optional
+    # here: Arch's /usr/share/edk2/x64/OVMF_VARS.4m.fd ships with NO keys
+    # enrolled (verified by string-scanning it — zero Microsoft certs),
+    # while libvirt's own secure-boot firmware descriptor pairs it with
+    # OVMF_CODE.secboot. The result is Secure Boot ENABLED with an empty
+    # key store, which refuses the Microsoft-signed Windows bootloader and
+    # drops to the firmware boot menu saying "no bootable device".
+    virt-firmware
 )
 
 # A full install is unchanged by the split above: the same names still
@@ -1367,6 +1375,35 @@ section_gaming() {
         echo ""
         echo "Rebuilding initramfs so the nvidia module options take effect..."
         sudo mkinitcpio -P
+    fi
+
+    # ── Secure Boot variable store for the Windows guest ─────────
+    # Build an OVMF varstore with Microsoft's KEK and Windows db certs
+    # enrolled, and Secure Boot switched on. Windows 11 requires Secure
+    # Boot, and the stock Arch varstore cannot satisfy it — see the
+    # virt-firmware comment in GAMING_PKGS.
+    #
+    # Idempotent: skipped if the enrolled store already exists. Removing it
+    # and re-running regenerates it; per-domain nvram files created from
+    # the OLD template must be deleted separately or they keep the old,
+    # empty key store.
+    local ovmf_src=/usr/share/edk2/x64/OVMF_VARS.4m.fd
+    local ovmf_enrolled=/var/lib/libvirt/qemu/nvram/OVMF_VARS.4m.ms-enrolled.fd
+    if [[ -f "$ovmf_enrolled" ]]; then
+        echo ""
+        echo "Secure Boot varstore already enrolled."
+    elif command -v virt-fw-vars >/dev/null && [[ -f "$ovmf_src" ]]; then
+        echo ""
+        echo "Enrolling Secure Boot keys into an OVMF varstore..."
+        sudo install -d -o root -g root -m 0755 /var/lib/libvirt/qemu/nvram
+        sudo virt-fw-vars -i "$ovmf_src" -o "$ovmf_enrolled" \
+            --enroll-microsoft --microsoft-db win11 --secure-boot
+        sudo chmod 0600 "$ovmf_enrolled"
+        echo "  -> $ovmf_enrolled"
+    else
+        echo ""
+        echo "  ⚠ virt-fw-vars or OVMF varstore missing — Secure Boot varstore NOT built."
+        echo "    The Windows guest will fail to boot with 'no bootable device'."
     fi
 
     # ── libvirt services ─────────────────────────────────────────
