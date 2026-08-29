@@ -56,6 +56,7 @@ RUN_DIR=/run/vm-drives
 # Allowlisted identifiers. Changing these is the only way to change what
 # this script can touch, and it is a root-owned file.
 STORAGE_ID=/dev/disk/by-id/wwn-0x5000c500c8b378b4
+STORAGE_PARTUUID=650b543b-5e73-4a28-ae88-706f101fe898
 MAIN_PARTUUID=590b0c8f-7d06-4256-9ab5-0a49dd442d5f
 MAIN_DM=vm-main
 
@@ -106,6 +107,36 @@ require_not_mounted() {
   if lsblk -rno NAME,MOUNTPOINT "/dev/$base" 2>/dev/null | awk 'NF>1{exit 0} END{exit 1}'; then
     die "a partition of $dev is mounted on the host — unmount it first"
   fi
+}
+
+# ── Fast Startup / hibernation guard ──────────────────────────────────
+# THE guard, and the reason this is code rather than a line in the docs.
+#
+# Windows Fast Startup does not shut down — it hibernates the kernel
+# session and leaves the NTFS volume with an open, inconsistent journal.
+# A guest that mounts such a volume read-write and writes to it corrupts
+# it, and the damage is not visible until the next bare-metal boot.
+#
+# ntfs-3g.probe reports exactly this state without mounting anything.
+# Exit 13 is NTFS_VOLUME_HIBERNATED (Fast Startup, or a genuine
+# hibernate); 14 is an unclean unmount. Both are refusals.
+#
+# This runs at LINK time AND inside `rebuild`, which the libvirt hook
+# calls at every VM start — because a volume that was clean when it was
+# linked becomes hibernated again the next time Windows is booted on
+# bare metal with Fast Startup on. Checking only once would be checking
+# the wrong moment.
+require_clean_ntfs() {
+  local dev=$1 rc=0
+  command -v ntfs-3g.probe >/dev/null || die "ntfs-3g.probe missing; cannot verify $dev is safe to write"
+  ntfs-3g.probe --readwrite "$dev" || rc=$?
+  case $rc in
+    0)  : ;;
+    13) die "$dev is HIBERNATED — turn off Fast Startup in Windows (run 'powercfg /h off' as administrator), then fully shut down. Refusing to link." ;;
+    14) die "$dev was not cleanly unmounted. Boot Windows, shut it down properly, then retry. Refusing to link." ;;
+    12) die "$dev reports filesystem corruption. Run chkdsk in Windows first. Refusing to link." ;;
+    *)  die "$dev failed the read-write safety probe (ntfs-3g.probe exit $rc). Refusing to link." ;;
+  esac
 }
 
 resolve_main() {
@@ -221,6 +252,9 @@ case "$1" in
     require_vm_off
     [ -b "$STORAGE_ID" ] || die "Storage disk not present"
     require_not_mounted "$(readlink -f "$STORAGE_ID")"
+    # Probe the NTFS partition, not the whole disk: the disk itself has no
+    # filesystem, only a GPT.
+    require_clean_ntfs "$(readlink -f "/dev/disk/by-partuuid/$STORAGE_PARTUUID")"
     attach_disk "$STORAGE_ID" vdb
     state_add storage
     echo "Storage linked (whole disk, vdb)"
@@ -236,6 +270,7 @@ case "$1" in
   link-main)
     require_vm_off
     require_not_mounted "$(resolve_main)"
+    require_clean_ntfs "$(resolve_main)"
     build_main_map
     attach_disk "/dev/mapper/$MAIN_DM" vdc
     state_add main
@@ -256,6 +291,7 @@ case "$1" in
     # state before qemu opens /dev/mapper/vm-main.
     if state_has main; then
       require_not_mounted "$(resolve_main)"
+      require_clean_ntfs "$(resolve_main)"
       build_main_map
       echo "Main mapping rebuilt"
     fi
