@@ -29,12 +29,12 @@
 <domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
   <name>win11-gaming</name>
   <uuid>471d37f8-e56c-49da-bd5c-c503fd33565c</uuid>
-  <title>Windows 11 — INSTALL MODE (windowed, no passthrough)</title>
+  <title>Windows 11 — real disk, windowed, no passthrough</title>
   <description>
-    INSTALL MODE. No PCI passthrough at all: an emulated display and a
-    virtio tablet, shown in a window on the running desktop. Use this to
-    install Windows and its virtio drivers WITHOUT tearing the session
-    down, then redefine with win11-gaming.xml to switch to passthrough.
+    The real bare-metal Windows install, booted in a window with an emulated
+    GPU and no passthrough. Diagnostic and staging shape: use it to see what
+    the guest is actually doing, and to install the virtio drivers into that
+    Windows before switching to win11-bare.xml.
   </description>
 
   <!-- 16 GiB of the host's 31 GiB, leaving ~15 GiB. Backed by transparent
