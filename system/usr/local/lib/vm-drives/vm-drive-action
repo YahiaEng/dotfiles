@@ -136,7 +136,20 @@ require_clean_ntfs() {
   # one boot with the drive linked. The signature is "-FVE-FS-" at offset 3
   # of the volume's first sector.
   if [ "$(dd if="$dev" bs=1 skip=3 count=8 status=none 2>/dev/null)" = "-FVE-FS-" ]; then
-    die "$dev is BITLOCKER-ENCRYPTED. The host cannot verify or safely share an encrypted volume. Back up its recovery key (Windows: Manage BitLocker, or aka.ms/myrecoverykey) and decrypt it if you want this drive linked. Refusing to link."
+    # ALLOWED, deliberately. This was a refusal and that was wrong twice
+    # over. Windows 11 turns on device encryption BY ITSELF when it sees a
+    # TPM and Secure Boot — both of which this VM provides on purpose — so
+    # refusing encrypted volumes means the guest silently disqualifies its
+    # own drives from ever being linked again.
+    #
+    # And the hazard does not apply: the hibernation check below exists
+    # because the HOST and GUEST must not both write an inconsistent NTFS.
+    # A BitLocker volume is opaque to the host, which never mounts it, and
+    # the guest holds the key sealed to its virtual TPM. There is no
+    # concurrent-writer risk for the host to assess here.
+    echo "note: $dev is BitLocker-encrypted; the guest owns the key, host-side" >&2
+    echo "      hibernation checking is not possible and not needed." >&2
+    return 0
   fi
 
   command -v ntfs-3g.probe >/dev/null || die "ntfs-3g.probe missing; cannot verify $dev is safe to write"
@@ -307,9 +320,21 @@ case "$1" in
     # Called by the libvirt hook at VM start. Device-mapper tables do not
     # survive a reboot, so the mapping has to be rebuilt from the recorded
     # state before qemu opens /dev/mapper/vm-main.
+    # NO filesystem-state guard here, on purpose. This runs from the libvirt
+    # hook at every VM start, and a `die` at this point does not protect
+    # anything — it leaves /dev/mapper/vm-main missing, libvirt cannot open
+    # the disk, the domain fails to start, and the operator is dropped back
+    # at the SDDM login with no explanation. Observed exactly that way once
+    # device encryption reached the linked drive.
+    #
+    # The safety decision belongs at LINK time, where refusing costs the
+    # operator one toggle. By the time we are here they have already
+    # consented, and building a block mapping is itself harmless. The only
+    # check that still earns its place is the concurrent-mount one, because
+    # host and guest writing the same volume corrupts it regardless of
+    # anything else.
     if state_has main; then
       require_not_mounted "$(resolve_main)"
-      require_clean_ntfs "$(resolve_main)"
       build_main_map
       echo "Main mapping rebuilt"
     fi
