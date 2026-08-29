@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+#
+# gamerun — launch a game with this host's tuned environment.
+#
+#   gamerun <command> [args...]
+#   gamerun --gamescope 2560x1440 <command>
+#   %command% form for Steam:  gamerun %command%
+#
+# WHY A WRAPPER AND NOT SESSION ENVIRONMENT
+# The obvious place for these variables is uwsm/.config/uwsm/env, where they
+# would be inherited by everything. That is exactly why they are not there.
+# __GL_* tune the NVIDIA GL driver for a long-running fullscreen client;
+# applied session-wide they also reach Hyprland, Quickshell, kitty and every
+# GTK app, where a 12GB shader cache and skipped cleanup are pure cost. The
+# variables belong to the game process, so they are set at the game process.
+#
+# Every value below is either measured on this host or carries the reason it
+# was chosen. Nothing here is copied from a "best Linux gaming env" list.
+
+set -euo pipefail
+
+readonly SELF=${0##*/}
+
+die() { printf '%s: %s\n' "$SELF" "$*" >&2; exit 1; }
+
+usage() {
+    cat <<'USAGE'
+gamerun — run a command with tuned gaming environment
+
+  gamerun [options] <command> [args...]
+
+Options:
+  --gamescope <WxH>   run under gamescope at this resolution
+  --fsr               enable Proton/Wine FSR upscaling
+  --hud               start with the MangoHud overlay already visible
+  --no-gamemode       skip gamemoderun (governor/renice/ioprio)
+  --no-hud            do not load MangoHud at all
+  -h, --help          this text
+
+Steam launch options:
+  gamerun %command%
+USAGE
+}
+
+# ── options ────────────────────────────────────────────────────────────
+use_gamemode=1
+use_hud=1
+hud_visible=0
+use_fsr=0
+gamescope_res=""
+
+while (( $# )); do
+    case $1 in
+        --gamescope) [[ ${2:-} ]] || die "--gamescope needs a WxH argument"
+                     gamescope_res=$2; shift 2 ;;
+        --fsr)          use_fsr=1;      shift ;;
+        --hud)          hud_visible=1;  shift ;;
+        --no-gamemode)  use_gamemode=0; shift ;;
+        --no-hud)       use_hud=0;      shift ;;
+        -h|--help)      usage; exit 0 ;;
+        --)             shift; break ;;
+        *)              break ;;
+    esac
+done
+
+(( $# )) || { usage >&2; exit 1; }
+
+# ── NVIDIA shader cache ────────────────────────────────────────────────
+# Shader compilation stutter is the most visible performance defect on a
+# Linux gaming host: a DX->Vulkan translation layer compiles pipelines the
+# first time each is used, and by default the driver caches far too little
+# to survive a session. The cache lives on the SN850X (/ is nvme0n1p2), so
+# a large cache costs disk that is both plentiful and fast.
+#
+# SKIP_CLEANUP stops the driver evicting entries to stay under an internal
+# limit, which is what makes a big SIZE actually hold.
+export __GL_SHADER_DISK_CACHE=1
+export __GL_SHADER_DISK_CACHE_SIZE=12884901888      # 12 GiB
+export __GL_SHADER_DISK_CACHE_SKIP_CLEANUP=1
+
+# DXVK/VKD3D keep their own pipeline-state caches, separate from the
+# driver's shader cache above. Giving them an explicit home keeps them off
+# the Proton prefix, so deleting a prefix does not throw the cache away.
+export DXVK_STATE_CACHE_PATH="${XDG_CACHE_HOME:-$HOME/.cache}/dxvk"
+export VKD3D_SHADER_CACHE_PATH="${XDG_CACHE_HOME:-$HOME/.cache}/vkd3d"
+mkdir -p "$DXVK_STATE_CACHE_PATH" "$VKD3D_SHADER_CACHE_PATH"
+
+# ── Proton / NVIDIA feature enablement ─────────────────────────────────
+# NVAPI is what lets a Proton title see an NVIDIA GPU as an NVIDIA GPU and
+# so offer DLSS and Reflex. HIDE_NVIDIA_GPU=0 is its necessary partner —
+# Proton hides the vendor by default for compatibility with titles that
+# misbehave when they detect NVIDIA, and leaving it hidden silently removes
+# every DLSS option from the game's menu.
+export PROTON_ENABLE_NVAPI=1
+export PROTON_HIDE_NVIDIA_GPU=0
+
+# DX12 raytracing through VKD3D. dxr11 is the feature level the 3070's
+# Ampere RT cores actually support; asking for more makes VKD3D refuse and
+# fall back to no raytracing at all.
+export VKD3D_CONFIG=dxr11
+
+# FSR upscaling, opt-in per game via --fsr. Not on by default: it changes
+# how the game looks, and a performance wrapper should not silently alter
+# image quality.
+if (( use_fsr )); then
+    export WINE_FULLSCREEN_FSR=1
+    export WINE_FULLSCREEN_FSR_STRENGTH=2
+fi
+
+# ── Overlay ────────────────────────────────────────────────────────────
+if (( use_hud )); then
+    export MANGOHUD=1
+    export MANGOHUD_DLSYM=1     # needed for OpenGL titles and for Proton,
+                                # which dlopen()s rather than linking
+    (( hud_visible )) && export MANGOHUD_CONFIG=no_display=0
+fi
+
+# ── Compose the command ────────────────────────────────────────────────
+cmd=("$@")
+
+# gamescope goes INSIDE gamemoderun, not outside: gamemode should apply to
+# the whole tree including the micro-compositor, and gamescope must be the
+# direct parent of the game to own its swapchain.
+if [[ $gamescope_res ]]; then
+    # Argument shape is validated BEFORE the binary is looked for: a typo is
+    # the caller's error and is true regardless of what is installed, so
+    # reporting "gamescope not installed" for `--gamescope garbge` sends the
+    # reader to fix the wrong thing. Found by running both cases, not by
+    # reading the code back.
+    [[ $gamescope_res =~ ^([0-9]+)x([0-9]+)$ ]] \
+        || die "--gamescope wants WxH, got '$gamescope_res'"
+    command -v gamescope >/dev/null || die "gamescope not installed"
+    export ENABLE_GAMESCOPE_WSI=1
+    cmd=(gamescope -W "${BASH_REMATCH[1]}" -H "${BASH_REMATCH[2]}"
+         -f --force-grab-cursor --adaptive-sync -- "${cmd[@]}")
+fi
+
+if (( use_gamemode )); then
+    if command -v gamemoderun >/dev/null; then
+        cmd=(gamemoderun "${cmd[@]}")
+    else
+        printf '%s: gamemoderun not found, running without it\n' "$SELF" >&2
+    fi
+fi
+
+exec "${cmd[@]}"

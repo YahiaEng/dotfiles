@@ -20,6 +20,7 @@ PACKAGES=(
     cava
     fastfetch
     fish
+    gaming
     gtk
     hypr
     kitty
