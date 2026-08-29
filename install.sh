@@ -22,17 +22,25 @@ REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 # --help/-h   : print usage and exit 0 before any sudo/pacman call.
 # Any other flag is rejected loudly (Security V5) — never silently ignored.
 CORE_ONLY=false
+GAMING_ONLY=false
 NVIDIA_INSTALLED=false
 
 usage() {
     cat <<'USAGE'
-Usage: install.sh [--core-only] [--help]
+Usage: install.sh [--core-only | --gaming-only] [--help]
 
   --core-only   Install only the core rice section: pacman + AUR packages,
                 AUR-helper bootstrap, audio/dbus-broker services, VSCodium
                 extensions. Skips the hardware section (NVIDIA/limine) and
                 the personal section (git identity, timezone). Intended
                 for the container/VM verification gate.
+  --gaming-only Install ONLY the gaming + VFIO passthrough section: the
+                gaming/virtualisation packages, the sysctl and NVIDIA
+                module tuning, the VFIO hook scripts, an initramfs
+                rebuild, and libvirtd with its default network. Skips
+                every other section. Intended for applying the gaming
+                setup to an already-provisioned host without re-running
+                a full install.
   --help, -h    Show this help message and exit.
 USAGE
 }
@@ -41,6 +49,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --core-only)
             CORE_ONLY=true
+            shift
+            ;;
+        --gaming-only)
+            GAMING_ONLY=true
             shift
             ;;
         --help|-h)
@@ -54,6 +66,16 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# The two scoping flags select DIFFERENT, non-overlapping section sets, so
+# passing both is a contradiction rather than a narrowing. Rejected loudly
+# for the same reason an unknown flag is (Security V5): silently honouring
+# one of them would run a section set the operator did not ask for.
+if [[ "$CORE_ONLY" == "true" && "$GAMING_ONLY" == "true" ]]; then
+    echo "install.sh: --core-only and --gaming-only are mutually exclusive" >&2
+    usage >&2
+    exit 1
+fi
 
 # ── Sudo keepalive (2026-08-27) ───────────────────────────────────────
 # This script makes 47 sudo calls, and the AUR build sits between them —
@@ -380,56 +402,6 @@ PACMAN_PKGS=(
     nwg-displays
     blueman
 
-    # ── Native gaming stack (260829-vfi) ────────────────────────────
-    # Every name below was checked with `pacman -Si` against the live
-    # repos before being written here — this repo has a scar from
-    # `adw-gtk3`, an AUR_PKGS entry naming a package that does not
-    # exist under that name anywhere, which is why the GTK theme
-    # silently never installed (see CLAUDE.md "What NOT to Use").
-    # REJECTED by that check, do not "restore" them: vkbasalt and
-    # lib32-vkbasalt (AUR-only), steam-native-runtime (AUR-only),
-    # bridge-utils (dropped from Arch), iptables-nft (not a package —
-    # it is a `Provides` of `iptables`, which is already installed).
-    #
-    # gamescope is the big one: a Wayland micro-compositor that gives
-    # a game its own isolated compositor, so it can render at one
-    # resolution and scale to another, cap framerate independently of
-    # the desktop, and — the reason it matters on Hyprland — stop a
-    # fullscreen game fighting the desktop compositor for vsync.
-    gamescope
-    protontricks   # per-Proton-prefix winetricks; needed to fix
-                   # individual Steam titles that want a runtime DLL
-    wine-staging   # Conflicts With: wine — add EXACTLY ONE of the two.
-                   # Chosen over plain `wine` for the staging patchset.
-                   # Used by Lutris/Heroic for non-Steam titles and is
-                   # what winetricks drives.
-    winetricks
-    # 32-bit halves of the two tools already listed above. Without
-    # these, a 32-bit game (still common) silently gets no HUD and no
-    # gamemode request — the 64-bit package cannot serve a 32-bit
-    # process, and the failure is silent rather than an error.
-    lib32-mangohud
-    lib32-gamemode
-
-    # ── Single-GPU VFIO passthrough VM stack (260829-vfi) ───────────
-    # REPRODUCIBILITY FIX, not just an addition: qemu-full, libvirt and
-    # edk2-ovmf were found ALREADY INSTALLED on this host with install
-    # reason "Explicitly installed" while appearing NOWHERE in this
-    # file. That is exactly the host-only state the project constraint
-    # forbids — a fresh install would have come up without them and the
-    # passthrough VM would not exist. Listing them here closes that.
-    #
-    # edk2-ovmf and swtpm are not optional for this VM: Windows 11
-    # refuses to install without UEFI firmware and a TPM 2.0, which is
-    # what these two supply (OVMF firmware, software TPM). dnsmasq
-    # backs libvirt's default NAT network — the guest's networking. Its
-    # absence is the single most common "the VM has no internet" cause.
-    qemu-full
-    libvirt
-    edk2-ovmf
-    swtpm
-    dnsmasq
-    virt-manager
 
     # Audio analyser + sass compiler (official extra repo). cava is the
     # underlay the QML Media tab's live 60-bar visualiser ring feeds from
@@ -489,6 +461,68 @@ PACMAN_PKGS=(
     # reproducibility constraint forbids).
     smartmontools
 )
+
+# ── Gaming + VFIO passthrough packages (260829-vfi) ───────────────────
+# Held in their OWN array, then appended to PACMAN_PKGS below, so that a
+# full run installs them exactly as before while `--gaming-only` can
+# install just this set. One source of truth for the names — duplicating
+# them into a second literal list is how the two drift apart.
+GAMING_PKGS=(
+    # ── Native gaming stack (260829-vfi) ────────────────────────────
+    # Every name below was checked with `pacman -Si` against the live
+    # repos before being written here — this repo has a scar from
+    # `adw-gtk3`, an AUR_PKGS entry naming a package that does not
+    # exist under that name anywhere, which is why the GTK theme
+    # silently never installed (see CLAUDE.md "What NOT to Use").
+    # REJECTED by that check, do not "restore" them: vkbasalt and
+    # lib32-vkbasalt (AUR-only), steam-native-runtime (AUR-only),
+    # bridge-utils (dropped from Arch), iptables-nft (not a package —
+    # it is a `Provides` of `iptables`, which is already installed).
+    #
+    # gamescope is the big one: a Wayland micro-compositor that gives
+    # a game its own isolated compositor, so it can render at one
+    # resolution and scale to another, cap framerate independently of
+    # the desktop, and — the reason it matters on Hyprland — stop a
+    # fullscreen game fighting the desktop compositor for vsync.
+    gamescope
+    protontricks   # per-Proton-prefix winetricks; needed to fix
+                   # individual Steam titles that want a runtime DLL
+    wine-staging   # Conflicts With: wine — add EXACTLY ONE of the two.
+                   # Chosen over plain `wine` for the staging patchset.
+                   # Used by Lutris/Heroic for non-Steam titles and is
+                   # what winetricks drives.
+    winetricks
+    # 32-bit halves of the two tools already listed above. Without
+    # these, a 32-bit game (still common) silently gets no HUD and no
+    # gamemode request — the 64-bit package cannot serve a 32-bit
+    # process, and the failure is silent rather than an error.
+    lib32-mangohud
+    lib32-gamemode
+
+    # ── Single-GPU VFIO passthrough VM stack (260829-vfi) ───────────
+    # REPRODUCIBILITY FIX, not just an addition: qemu-full, libvirt and
+    # edk2-ovmf were found ALREADY INSTALLED on this host with install
+    # reason "Explicitly installed" while appearing NOWHERE in this
+    # file. That is exactly the host-only state the project constraint
+    # forbids — a fresh install would have come up without them and the
+    # passthrough VM would not exist. Listing them here closes that.
+    #
+    # edk2-ovmf and swtpm are not optional for this VM: Windows 11
+    # refuses to install without UEFI firmware and a TPM 2.0, which is
+    # what these two supply (OVMF firmware, software TPM). dnsmasq
+    # backs libvirt's default NAT network — the guest's networking. Its
+    # absence is the single most common "the VM has no internet" cause.
+    qemu-full
+    libvirt
+    edk2-ovmf
+    swtpm
+    dnsmasq
+    virt-manager
+)
+
+# A full install is unchanged by the split above: the same names still
+# reach pacman through PACMAN_PKGS, and verify_packages still checks them.
+PACMAN_PKGS+=("${GAMING_PKGS[@]}")
 
 # ── Official repo packages (hardware — NVIDIA GPU only) ─
 # nvidia-open-dkms, NOT nvidia-dkms: Arch dropped the proprietary kernel
@@ -1114,57 +1148,6 @@ section_hardware() {
     sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-kernel-module-verify.hook" \
         /etc/pacman.d/hooks/99-kernel-module-verify.hook
 
-    # ── Gaming + VFIO passthrough system files (260829-vfi) ──────
-    # /etc is root-owned, so these are installed rather than stowed —
-    # the same convention as nftables.conf and the pacman hook above.
-    #
-    # The sysctl and modprobe values were each read on the reference
-    # host BEFORE being written, and anything already at its best value
-    # was left out rather than restated (see the vm.max_map_count note
-    # inside 99-gaming.conf). nvidia-gaming.conf carries only options
-    # confirmed present with `modinfo -p nvidia` — the widely-copied
-    # NVreg_UsePageAttributeTable is NOT a parameter of the installed
-    # nvidia-open-dkms driver and is deliberately absent.
-    echo ""
-    echo "Installing gaming tuning (sysctl + nvidia module options)..."
-    sudo install -Dm644 "$REPO_DIR/system/etc/sysctl.d/99-gaming.conf" \
-        /etc/sysctl.d/99-gaming.conf
-    if [[ "$NVIDIA_INSTALLED" == true ]]; then
-        sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/nvidia-gaming.conf" \
-            /etc/modprobe.d/nvidia-gaming.conf
-    else
-        echo "  No NVIDIA GPU — skipping nvidia-gaming.conf."
-    fi
-    sudo sysctl --system >/dev/null
-
-    # VFIO single-GPU passthrough. Guarded on an NVIDIA GPU being
-    # present because the hook scripts unload the nvidia module stack by
-    # name; on a non-NVIDIA host they would be inert at best.
-    #
-    # NOTE the deliberate absence of any vfio-pci `ids=` pin: this host
-    # has no integrated GPU, so binding the card at boot would leave the
-    # machine with no display at all. vfio.conf carries module ORDERING
-    # only, and the hook binds late. Do not "complete" it with an ids=
-    # line — that is the single change that turns this from a working
-    # setup into an unbootable desktop.
-    if [[ "$NVIDIA_INSTALLED" == true ]]; then
-        echo ""
-        echo "Installing VFIO passthrough hooks..."
-        sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/vfio.conf" \
-            /etc/modprobe.d/vfio.conf
-        sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/vfio-gpu-bind" \
-            /usr/local/bin/vfio-gpu-bind
-        sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/vfio-gpu-unbind" \
-            /usr/local/bin/vfio-gpu-unbind
-        sudo install -Dm755 "$REPO_DIR/system/etc/libvirt/hooks/qemu" \
-            /etc/libvirt/hooks/qemu
-        # libvirtd reads its hook directory at startup only — a newly
-        # installed hook is inert until it restarts.
-        sudo systemctl restart libvirtd 2>/dev/null || true
-        echo "  VFIO hooks installed. The passthrough VM additionally needs"
-        echo "  SVM enabled in UEFI — see docs/vfio-passthrough.md."
-    fi
-
     # Console-app launcher for the xdg wrapper entries. It goes to
     # /usr/local/bin rather than a $HOME path because a .desktop `Exec=` line
     # cannot contain `~` or `$HOME`, and hardcoding /home/<user> would make
@@ -1219,6 +1202,116 @@ section_hardware() {
 # "Enable firewall" button has something valid to load, and the operator
 # makes the call. An installer that silently starts filtering a machine's
 # traffic is not a thing this repo should do unattended.
+
+section_gaming() {
+    echo ""
+    echo "╔══════════════════════════════════════════╗"
+    echo "║     Gaming + VFIO passthrough            ║"
+    echo "╚══════════════════════════════════════════╝"
+    echo ""
+
+    # NVIDIA is detected here independently rather than read from
+    # section_hardware's NVIDIA_INSTALLED, because --gaming-only skips that
+    # section entirely and the variable would be unset. Presence of the card
+    # is the correct test for this section anyway: these files care about the
+    # hardware being there, not about whether THIS run installed the driver.
+    if [[ -z "${NVIDIA_INSTALLED:-}" ]]; then
+        if lspci | grep -qi nvidia; then
+            NVIDIA_INSTALLED=true
+        else
+            NVIDIA_INSTALLED=false
+        fi
+    fi
+
+    echo "Installing gaming + virtualisation packages..."
+    sudo pacman -Sy --needed --noconfirm "${GAMING_PKGS[@]}"
+
+    # ── Gaming + VFIO passthrough system files (260829-vfi) ──────
+    # /etc is root-owned, so these are installed rather than stowed —
+    # the same convention as nftables.conf and the pacman hook above.
+    #
+    # The sysctl and modprobe values were each read on the reference
+    # host BEFORE being written, and anything already at its best value
+    # was left out rather than restated (see the vm.max_map_count note
+    # inside 99-gaming.conf). nvidia-gaming.conf carries only options
+    # confirmed present with `modinfo -p nvidia` — the widely-copied
+    # NVreg_UsePageAttributeTable is NOT a parameter of the installed
+    # nvidia-open-dkms driver and is deliberately absent.
+    echo ""
+    echo "Installing gaming tuning (sysctl + nvidia module options)..."
+    sudo install -Dm644 "$REPO_DIR/system/etc/sysctl.d/99-gaming.conf" \
+        /etc/sysctl.d/99-gaming.conf
+    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+        sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/nvidia-gaming.conf" \
+            /etc/modprobe.d/nvidia-gaming.conf
+    else
+        echo "  No NVIDIA GPU — skipping nvidia-gaming.conf."
+    fi
+    sudo sysctl --system >/dev/null
+
+    # VFIO single-GPU passthrough. Guarded on an NVIDIA GPU being
+    # present because the hook scripts unload the nvidia module stack by
+    # name; on a non-NVIDIA host they would be inert at best.
+    #
+    # NOTE the deliberate absence of any vfio-pci `ids=` pin: this host
+    # has no integrated GPU, so binding the card at boot would leave the
+    # machine with no display at all. vfio.conf carries module ORDERING
+    # only, and the hook binds late. Do not "complete" it with an ids=
+    # line — that is the single change that turns this from a working
+    # setup into an unbootable desktop.
+    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+        echo ""
+        echo "Installing VFIO passthrough hooks..."
+        sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/vfio.conf" \
+            /etc/modprobe.d/vfio.conf
+        sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/vfio-gpu-bind" \
+            /usr/local/bin/vfio-gpu-bind
+        sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/vfio-gpu-unbind" \
+            /usr/local/bin/vfio-gpu-unbind
+        sudo install -Dm755 "$REPO_DIR/system/etc/libvirt/hooks/qemu" \
+            /etc/libvirt/hooks/qemu
+        # libvirtd reads its hook directory at startup only — a newly
+        # installed hook is inert until it restarts.
+        sudo systemctl restart libvirtd 2>/dev/null || true
+        echo "  VFIO hooks installed. The passthrough VM additionally needs"
+        echo "  SVM enabled in UEFI — see docs/vfio-passthrough.md."
+    fi
+
+    # ── initramfs rebuild ────────────────────────────────────────
+    # modprobe.d options are read WHEN THE MODULE LOADS. On this host the
+    # nvidia modules are pulled into the initramfs by mkinitcpio's autodetect
+    # (verified: `lsinitcpio /boot/initramfs-linux.img` lists nvidia paths
+    # even though MODULES=() is empty), so nvidia loads EARLY and reads the
+    # initramfs's own copy of /etc/modprobe.d — not the one on the root
+    # filesystem. Without this rebuild, nvidia-gaming.conf is inert and the
+    # tuning silently does nothing.
+    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+        echo ""
+        echo "Rebuilding initramfs so the nvidia module options take effect..."
+        sudo mkinitcpio -P
+    fi
+
+    # ── libvirt services ─────────────────────────────────────────
+    # The default NAT network is NOT started by installing libvirt, and a
+    # guest on an inactive network has no connectivity with no obvious cause.
+    # This is the most common "the VM has no internet" report, so it is
+    # automated here rather than left in the docs.
+    echo ""
+    echo "Enabling libvirtd and its default network..."
+    sudo systemctl enable --now libvirtd
+    sudo virsh net-autostart default 2>/dev/null || true
+    sudo virsh net-start default 2>/dev/null \
+        || echo "  (default network already active)"
+
+    echo ""
+    echo "Gaming setup complete."
+    if [[ "$NVIDIA_INSTALLED" == true ]] && ! grep -qw svm /proc/cpuinfo; then
+        echo "  ⚠ AMD-V (SVM) is DISABLED in UEFI — the passthrough VM cannot"
+        echo "    run until it is enabled. See docs/vfio-passthrough.md."
+    fi
+}
+
+
 section_security() {
     echo ""
     echo "╔══════════════════════════════════════════╗"
@@ -1352,6 +1445,21 @@ verify_packages() {
 }
 
 # ── Main ──────────────────────────────────────────────
+
+# --gaming-only short-circuits every other section. It exists so the gaming
+# and VFIO work can be applied to an already-provisioned host without
+# re-running a full install — which on this machine would mean re-walking the
+# AUR builds (AUR_PKGS_HOST measures tela-icon-theme alone at 21 minutes).
+if [[ "$GAMING_ONLY" == "true" ]]; then
+    section_gaming
+    verify_packages GAMING_PKGS
+    echo ""
+    echo "Next steps:"
+    echo "  1. ./stow.sh   (links the gaming package: MangoHud, gamemode, gamerun)"
+    echo "  2. Read docs/vfio-passthrough.md before starting the passthrough VM"
+    exit 0
+fi
+
 section_core_rice
 
 # Security Center (quick task 260827-np1) — inside the core set, not
@@ -1362,6 +1470,7 @@ section_security
 
 if [[ "$CORE_ONLY" != "true" ]]; then
     section_hardware
+    section_gaming
     section_personal
 fi
 
