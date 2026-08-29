@@ -12,12 +12,13 @@
 -->
 <domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
   <name>win11-gaming</name>
-  <title>Windows 11 — single-GPU passthrough</title>
+  <uuid>471d37f8-e56c-49da-bd5c-c503fd33565c</uuid>
+  <title>Windows 11 — INSTALL MODE (windowed, no passthrough)</title>
   <description>
-    Passes the RTX 3070 (IOMMU group 16), the CPU USB controller carrying
-    keyboard/mouse/USB-audio (group 20), and the onboard analog audio
-    (group 21). Physical monitor is the display; there is no emulated video
-    and no SPICE, because with one GPU the guest drives the real screen.
+    INSTALL MODE. No PCI passthrough at all: an emulated display and a
+    virtio tablet, shown in a window on the running desktop. Use this to
+    install Windows and its virtio drivers WITHOUT tearing the session
+    down, then redefine with win11-gaming.xml to switch to passthrough.
   </description>
 
   <!-- 16 GiB of the host's 31 GiB, leaving ~15 GiB. Backed by transparent
@@ -198,25 +199,6 @@
       <backend type='emulator' version='2.0'/>
     </tpm>
 
-    <!-- ── PASSTHROUGH DEVICES ──────────────────────────────────────────
-         GPU and its HDMI audio are presented to the guest as ONE
-         multifunction device on the same slot, mirroring how they sit on
-         the host (07:00.0 / 07:00.1). NVIDIA's driver expects to find its
-         audio function alongside the card; splitting them across slots is a
-         known cause of the audio function not binding in the guest. -->
-    <hostdev mode='subsystem' type='pci' managed='yes'>
-      <source>
-        <address domain='0x0000' bus='0x07' slot='0x00' function='0x0'/>
-      </source>
-      <address type='pci' domain='0x0000' bus='0x01' slot='0x00'
-               function='0x0' multifunction='on'/>
-    </hostdev>
-    <hostdev mode='subsystem' type='pci' managed='yes'>
-      <source>
-        <address domain='0x0000' bus='0x07' slot='0x00' function='0x1'/>
-      </source>
-      <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x1'/>
-    </hostdev>
 
     <!-- CPU USB controller, IOMMU group 20 — measured to carry the keyboard,
          the mouse AND a USB audio device. Passing the whole controller is
@@ -225,50 +207,30 @@
          Host recovery note: the OTHER controller (02:00.0, buses 001/002)
          stays with the host and has input devices on it, so a failed
          teardown does not leave the machine without a keyboard. -->
-    <hostdev mode='subsystem' type='pci' managed='yes'>
-      <source>
-        <address domain='0x0000' bus='0x09' slot='0x00' function='0x3'/>
-      </source>
-    </hostdev>
 
     <!-- Onboard analog audio, IOMMU group 21. This is the host's current
          default sink, so it is what the operator's speakers are plugged
          into. Passing it gives the guest real hardware audio with no
          latency-adding tunnel back to PipeWire. -->
-    <hostdev mode='subsystem' type='pci' managed='yes'>
-      <source>
-        <address domain='0x0000' bus='0x09' slot='0x00' function='0x4'/>
-      </source>
-    </hostdev>
 
-    <!-- The keyboard, passed as a USB DEVICE rather than a controller.
-         Necessary and not optional: the only real keyboard on this host is
-         the Corsair K70 (1b1c:1b73), and it sits on the CHIPSET USB
-         controller (02:00.0), which shares IOMMU group 15 with both NVMe
-         drives, the SATA controller, the Ethernet NIC and the WiFi card —
-         that group can never be passed. A device-level hostdev needs no
-         IOMMU group at all, which is exactly why it works here.
-         (An earlier note in this repo claimed group 20 carried the
-         keyboard. It does not — it carries the mouse, a wireless mouse
-         receiver and the Logitech PRO X headset. Corrected on measurement.)
+    <!-- A real display, unlike gaming mode. The whole point of this
+         variant: Windows Setup needs a keyboard, and the only real
+         keyboard on this host (Corsair K70, USB 1b1c:1b73) sits on the
+         chipset USB controller, which is in a tangled IOMMU group and
+         cannot be passed. An emulated keyboard sidesteps that entirely. -->
+    <graphics type='spice' autoport='yes'>
+      <listen type='address' address='127.0.0.1'/>
+      <image compression='off'/>
+    </graphics>
+    <video>
+      <model type='virtio' heads='1' primary='yes'/>
+    </video>
+    <input type='tablet' bus='usb'/>
+    <input type='keyboard' bus='usb'/>
+    <channel type='spicevmc'>
+      <target type='virtio' name='com.redhat.spice.0'/>
+    </channel>
 
-         RECOVERY CONSEQUENCE, STATED PLAINLY: while this VM runs, the HOST
-         has no keyboard. Shutting Windows down from inside gives it back
-         (managed='yes' makes libvirt reattach it). If the guest hangs
-         instead, there is no TTY input to recover with and sshd is
-         DISABLED on this host — the remaining option is the reset button.
-         Enable sshd before relying on this for anything long. -->
-    <hostdev mode='subsystem' type='usb' managed='yes'>
-      <source>
-        <vendor id='0x1b1c'/>
-        <product id='0x1b73'/>
-      </source>
-    </hostdev>
-
-    <!-- No <graphics>, no <video>, no <sound>: the passed-through GPU drives
-         the physical monitor and the passed-through devices carry the audio.
-         Adding an emulated display here would make Windows pick the emulated
-         adapter as primary and leave the real monitor blank. -->
 
     <memballoon model='none'/>
   </devices>

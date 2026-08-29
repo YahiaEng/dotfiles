@@ -235,17 +235,43 @@ The domain name `win11-gaming` is matched literally by
 `/etc/libvirt/hooks/qemu`. **Renaming the domain without editing the hook
 silently disables passthrough** and the guest boots with no GPU.
 
-### 5. Install Windows — **[UNVERIFIED]**
+### 5. Install Windows — in INSTALL MODE, windowed
 
-First boot takes the display. At the disk step, "Load driver" → the virtio-win
-ISO → `viostor` for the disk, then `NetKVM` for networking.
+**Do not install in passthrough mode.** Windows Setup needs a keyboard, and
+this host cannot pass one through a PCI group: the only real keyboard is the
+Corsair K70 (`1b1c:1b73`) on the chipset USB controller `02:00.0`, which shares
+IOMMU group 15 with both NVMe drives, SATA, Ethernet and WiFi. That group can
+never be passed.
 
-> Untested from here. In particular the Secure Boot + TPM path
-> (`OVMF_CODE.secboot.4m.fd` plus the `tpm-crb` device) is *schema-valid* —
-> `virt-xml-validate` passes — but schema validity only proves libvirt will
-> accept the XML, **not** that Windows 11's installer accepts the TPM it is
-> offered. If setup complains the PC does not meet requirements, that pair is
-> the first thing to check.
+So installation runs in a **windowed VM with no passthrough at all** — an
+emulated display and keyboard, shown on your running desktop. Nothing is torn
+down, and you can read these notes while it installs.
+
+```bash
+virsh define ~/dotfiles/vfio/win11-install.xml   # same domain, no passthrough
+virsh start win11-gaming
+virt-manager                                     # double-click the domain to view
+```
+
+Both XML files carry the **same name and UUID**, so `virsh define` switches the
+existing domain between shapes rather than creating a second one. Only one
+definition is active at a time, so the two can never both claim the disk.
+
+At the disk step, "Load driver" → the virtio-win ISO → `viostor`, then `NetKVM`
+for networking. Without that, Setup shows "no drives found" and does not say why.
+
+Install the rest of the virtio guest tools from the same ISO before shutting
+down. Then, and only then, switch to passthrough:
+
+```bash
+virsh shutdown win11-gaming
+virsh define ~/dotfiles/vfio/win11-gaming.xml    # back to passthrough
+```
+
+> **Unlink any host drive before installing.** Windows Setup places its boot
+> files on `Disk 0` regardless of which disk you install *to*, so a linked data
+> drive can end up with a System Reserved partition written onto it. Toggle
+> drives off in Settings → Virtualization, install, then toggle them back on.
 
 ### 6. Verify the teardown/restore cycle — **[UNVERIFIED, highest risk]**
 
