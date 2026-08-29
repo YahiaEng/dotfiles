@@ -1114,6 +1114,57 @@ section_hardware() {
     sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-kernel-module-verify.hook" \
         /etc/pacman.d/hooks/99-kernel-module-verify.hook
 
+    # ── Gaming + VFIO passthrough system files (260829-vfi) ──────
+    # /etc is root-owned, so these are installed rather than stowed —
+    # the same convention as nftables.conf and the pacman hook above.
+    #
+    # The sysctl and modprobe values were each read on the reference
+    # host BEFORE being written, and anything already at its best value
+    # was left out rather than restated (see the vm.max_map_count note
+    # inside 99-gaming.conf). nvidia-gaming.conf carries only options
+    # confirmed present with `modinfo -p nvidia` — the widely-copied
+    # NVreg_UsePageAttributeTable is NOT a parameter of the installed
+    # nvidia-open-dkms driver and is deliberately absent.
+    echo ""
+    echo "Installing gaming tuning (sysctl + nvidia module options)..."
+    sudo install -Dm644 "$REPO_DIR/system/etc/sysctl.d/99-gaming.conf" \
+        /etc/sysctl.d/99-gaming.conf
+    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+        sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/nvidia-gaming.conf" \
+            /etc/modprobe.d/nvidia-gaming.conf
+    else
+        echo "  No NVIDIA GPU — skipping nvidia-gaming.conf."
+    fi
+    sudo sysctl --system >/dev/null
+
+    # VFIO single-GPU passthrough. Guarded on an NVIDIA GPU being
+    # present because the hook scripts unload the nvidia module stack by
+    # name; on a non-NVIDIA host they would be inert at best.
+    #
+    # NOTE the deliberate absence of any vfio-pci `ids=` pin: this host
+    # has no integrated GPU, so binding the card at boot would leave the
+    # machine with no display at all. vfio.conf carries module ORDERING
+    # only, and the hook binds late. Do not "complete" it with an ids=
+    # line — that is the single change that turns this from a working
+    # setup into an unbootable desktop.
+    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+        echo ""
+        echo "Installing VFIO passthrough hooks..."
+        sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/vfio.conf" \
+            /etc/modprobe.d/vfio.conf
+        sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/vfio-gpu-bind" \
+            /usr/local/bin/vfio-gpu-bind
+        sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/vfio-gpu-unbind" \
+            /usr/local/bin/vfio-gpu-unbind
+        sudo install -Dm755 "$REPO_DIR/system/etc/libvirt/hooks/qemu" \
+            /etc/libvirt/hooks/qemu
+        # libvirtd reads its hook directory at startup only — a newly
+        # installed hook is inert until it restarts.
+        sudo systemctl restart libvirtd 2>/dev/null || true
+        echo "  VFIO hooks installed. The passthrough VM additionally needs"
+        echo "  SVM enabled in UEFI — see docs/vfio-passthrough.md."
+    fi
+
     # Console-app launcher for the xdg wrapper entries. It goes to
     # /usr/local/bin rather than a $HOME path because a .desktop `Exec=` line
     # cannot contain `~` or `$HOME`, and hardcoding /home/<user> would make

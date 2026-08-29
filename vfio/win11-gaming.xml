@@ -1,0 +1,247 @@
+<!--
+  win11-gaming — single-GPU VFIO passthrough domain for this host.
+
+  Define with:  sudo virsh define vfio/win11-gaming.xml
+  Start with:   sudo virsh start win11-gaming
+
+  Starting this domain TEARS DOWN THE DESKTOP. /etc/libvirt/hooks/qemu keys on
+  the domain name below; renaming the domain without renaming it in the hook
+  silently disables passthrough and the guest boots with no GPU.
+
+  Every hardware value here was measured on this machine, not templated.
+-->
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>win11-gaming</name>
+  <title>Windows 11 — single-GPU passthrough</title>
+  <description>
+    Passes the RTX 3070 (IOMMU group 16), the CPU USB controller carrying
+    keyboard/mouse/USB-audio (group 20), and the onboard analog audio
+    (group 21). Physical monitor is the display; there is no emulated video
+    and no SPICE, because with one GPU the guest drives the real screen.
+  </description>
+
+  <!-- 16 GiB of the host's 31 GiB, leaving ~15 GiB. Backed by transparent
+       hugepages rather than a static hugepage reservation: static pages are
+       taken from the host permanently, including while the VM is off, which
+       on a desktop is a bad trade. See docs/vfio-passthrough.md for the
+       static-hugepage upgrade if you want the last few percent. -->
+  <memory unit='KiB'>16777216</memory>
+  <currentMemory unit='KiB'>16777216</currentMemory>
+  <memoryBacking>
+    <nosharepages/>
+    <allocation mode='immediate'/>
+  </memoryBacking>
+
+  <!-- 8 vCPUs = 4 physical cores with both threads, leaving cores 0 and 1
+       (host CPUs 0,6,1,7) for the host, the QEMU emulator and the iothread.
+       Handing the guest all 6 cores is the classic mistake: the emulator
+       thread then competes with the vCPUs it is serving and frametimes get
+       WORSE, not better. -->
+  <vcpu placement='static'>8</vcpu>
+  <iothreads>1</iothreads>
+
+  <!-- Pinning follows this host's MEASURED sibling map, where thread pairs
+       are (n, n+6) — read from
+       /sys/devices/system/cpu/cpu*/topology/thread_siblings_list, not assumed.
+       Guest core N is pinned to a REAL sibling pair, so the guest scheduler's
+       hyperthread decisions match the physical topology. Pinning a guest
+       "core" across two different physical cores is what makes a pinned VM
+       feel worse than an unpinned one. -->
+  <cputune>
+    <vcpupin vcpu='0' cpuset='2'/>   <!-- guest core 0 -->
+    <vcpupin vcpu='1' cpuset='8'/>
+    <vcpupin vcpu='2' cpuset='3'/>   <!-- guest core 1 -->
+    <vcpupin vcpu='3' cpuset='9'/>
+    <vcpupin vcpu='4' cpuset='4'/>   <!-- guest core 2 -->
+    <vcpupin vcpu='5' cpuset='10'/>
+    <vcpupin vcpu='6' cpuset='5'/>   <!-- guest core 3 -->
+    <vcpupin vcpu='7' cpuset='11'/>
+    <emulatorpin cpuset='0,6'/>
+    <iothreadpin iothread='1' cpuset='1,7'/>
+  </cputune>
+
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <!-- Windows 11 requires UEFI + Secure Boot + TPM 2.0. secboot firmware
+         measured present at this path; secure='yes' additionally requires
+         <smm state='on'/> in <features> below. -->
+    <loader readonly='yes' secure='yes' type='pflash'>/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd</loader>
+    <nvram template='/usr/share/edk2/x64/OVMF_VARS.4m.fd'>/var/lib/libvirt/qemu/nvram/win11-gaming_VARS.fd</nvram>
+    <boot dev='hd'/>
+    <boot dev='cdrom'/>
+  </os>
+
+  <features>
+    <acpi/>
+    <apic/>
+    <!-- Hyper-V enlightenments. These are not optional tuning: without them
+         Windows falls back to slow emulated paths for timers, interrupts and
+         spinlocks, which is one of the biggest sources of "the VM feels
+         sluggish" on an otherwise correct passthrough setup. -->
+    <hyperv mode='custom'>
+      <relaxed state='on'/>
+      <vapic state='on'/>
+      <spinlocks state='on' retries='8191'/>
+      <vpindex state='on'/>
+      <runtime state='on'/>
+      <synic state='on'/>
+      <stimer state='on'>
+        <direct state='on'/>
+      </stimer>
+      <reset state='on'/>
+      <frequencies state='on'/>
+      <reenlightenment state='on'/>
+      <tlbflush state='on'/>
+      <ipi state='on'/>
+      <vendor_id state='on' value='1234567890ab'/>
+    </hyperv>
+    <!-- Hides the KVM signature from the guest. Legacy defence against the
+         old NVIDIA "Error 43" driver check. The driver installed here is
+         610.57.04 and NVIDIA has permitted consumer passthrough since 465,
+         so this is belt-and-braces rather than required — it is harmless and
+         costs nothing, so it stays. -->
+    <kvm>
+      <hidden state='on'/>
+    </kvm>
+    <vmport state='off'/>
+    <smm state='on'/>
+  </features>
+
+  <!-- host-passthrough exposes the real 5600X, including its instruction set
+       and cache topology. topoext is what makes the guest see SMT correctly
+       on a Zen part; without it Windows treats all 8 threads as full cores
+       and schedules badly. -->
+  <cpu mode='host-passthrough' check='none' migratable='off'>
+    <topology sockets='1' dies='1' cores='4' threads='2'/>
+    <cache mode='passthrough'/>
+    <feature policy='require' name='topoext'/>
+  </cpu>
+
+  <clock offset='localtime'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <!-- hpet off and hypervclock on: Windows should take its time from the
+         paravirtual clock, not an emulated HPET. -->
+    <timer name='hpet' present='no'/>
+    <timer name='hypervclock' present='yes'/>
+  </clock>
+
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+
+  <pm>
+    <suspend-to-mem enabled='no'/>
+    <suspend-to-disk enabled='no'/>
+  </pm>
+
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+
+    <!-- Guest system disk. cache='none' + io='native' is the combination
+         that gives the guest direct, unbuffered access to the image; io
+         native REQUIRES cache none, and pairing them wrongly silently falls
+         back to a slower path. discard='unmap' lets Windows TRIM propagate
+         to the qcow2 so the image does not grow forever. -->
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='qcow2' cache='none' io='native'
+              discard='unmap' queues='4' iothread='1'/>
+      <source file='/var/lib/libvirt/images/win11-gaming.qcow2'/>
+      <target dev='vda' bus='virtio'/>
+    </disk>
+
+    <!-- Windows 11 installer ISO. Point at your own download. -->
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/var/lib/libvirt/images/Win11.iso'/>
+      <target dev='sdb' bus='sata'/>
+      <readonly/>
+    </disk>
+
+    <!-- virtio-win driver ISO. NOT optional: the Windows installer cannot
+         see a virtio disk without loading a driver from here, and the
+         install stops at "no drives found" with no explanation. -->
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/var/lib/libvirt/images/virtio-win.iso'/>
+      <target dev='sdc' bus='sata'/>
+      <readonly/>
+    </disk>
+
+    <controller type='usb' index='0' model='qemu-xhci' ports='15'/>
+    <controller type='sata' index='0'/>
+    <controller type='pci' index='0' model='pcie-root'/>
+    <controller type='pci' index='1' model='pcie-root-port'/>
+    <controller type='pci' index='2' model='pcie-root-port'/>
+    <controller type='pci' index='3' model='pcie-root-port'/>
+    <controller type='pci' index='4' model='pcie-root-port'/>
+    <controller type='pci' index='5' model='pcie-root-port'/>
+    <controller type='pci' index='6' model='pcie-root-port'/>
+    <controller type='virtio-serial' index='0'/>
+
+    <!-- NAT through libvirt's default network, which is backed by dnsmasq.
+         virtio is the only sensible model; e1000e is emulated and caps out
+         far below the link. If the guest has no network, check that
+         `virsh net-start default` has been run and dnsmasq is installed —
+         that pair is the usual cause, not the guest driver. -->
+    <interface type='network'>
+      <source network='default'/>
+      <model type='virtio'/>
+    </interface>
+
+    <!-- TPM 2.0 via swtpm — mandatory for Windows 11. -->
+    <tpm model='tpm-crb'>
+      <backend type='emulator' version='2.0'/>
+    </tpm>
+
+    <!-- ── PASSTHROUGH DEVICES ──────────────────────────────────────────
+         GPU and its HDMI audio are presented to the guest as ONE
+         multifunction device on the same slot, mirroring how they sit on
+         the host (07:00.0 / 07:00.1). NVIDIA's driver expects to find its
+         audio function alongside the card; splitting them across slots is a
+         known cause of the audio function not binding in the guest. -->
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+        <address domain='0x0000' bus='0x07' slot='0x00' function='0x0'/>
+      </source>
+      <address type='pci' domain='0x0000' bus='0x01' slot='0x00'
+               function='0x0' multifunction='on'/>
+    </hostdev>
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+        <address domain='0x0000' bus='0x07' slot='0x00' function='0x1'/>
+      </source>
+      <address type='pci' domain='0x0000' bus='0x01' slot='0x00' function='0x1'/>
+    </hostdev>
+
+    <!-- CPU USB controller, IOMMU group 20 — measured to carry the keyboard,
+         the mouse AND a USB audio device. Passing the whole controller is
+         what makes input feel native: no evdev bridging, no pointer capture
+         hotkey, and USB hotplug works inside the guest.
+         Host recovery note: the OTHER controller (02:00.0, buses 001/002)
+         stays with the host and has input devices on it, so a failed
+         teardown does not leave the machine without a keyboard. -->
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+        <address domain='0x0000' bus='0x09' slot='0x00' function='0x3'/>
+      </source>
+    </hostdev>
+
+    <!-- Onboard analog audio, IOMMU group 21. This is the host's current
+         default sink, so it is what the operator's speakers are plugged
+         into. Passing it gives the guest real hardware audio with no
+         latency-adding tunnel back to PipeWire. -->
+    <hostdev mode='subsystem' type='pci' managed='yes'>
+      <source>
+        <address domain='0x0000' bus='0x09' slot='0x00' function='0x4'/>
+      </source>
+    </hostdev>
+
+    <!-- No <graphics>, no <video>, no <sound>: the passed-through GPU drives
+         the physical monitor and the passed-through devices carry the audio.
+         Adding an emulated display here would make Windows pick the emulated
+         adapter as primary and leave the real monitor blank. -->
+
+    <memballoon model='none'/>
+  </devices>
+</domain>

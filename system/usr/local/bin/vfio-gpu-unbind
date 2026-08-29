@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+#
+# vfio-gpu-unbind — give the GPU back to the host.
+#
+# Direction: GUEST -> HOST. The exact reverse of `vfio-gpu-bind`. Runs from
+# the libvirt hook when the VM stops.
+#
+# THIS SCRIPT MUST BE AS FORGIVING AS POSSIBLE. It is the only thing standing
+# between the operator and a machine with no display, so a failure in any one
+# step must NOT stop the remaining steps — in particular, `systemctl start
+# sddm` at the end runs no matter what happened above it. A host with a
+# half-restored driver and a running display manager is recoverable; a host
+# that bailed early and never restarted SDDM is not.
+
+set -uo pipefail   # deliberately NOT -e; see above.
+
+readonly LOG=/var/log/vfio-hook.log
+readonly GPU=0000:07:00.0
+readonly GPU_AUDIO=0000:07:00.1
+readonly USB_CTRL=0000:09:00.3
+readonly ONBOARD_AUDIO=0000:09:00.4
+readonly DEVICES=("$GPU" "$GPU_AUDIO" "$USB_CTRL" "$ONBOARD_AUDIO")
+
+log() { printf '%s [unbind] %s\n' "$(date -Is)" "$*" | tee -a "$LOG" >&2; }
+
+log "=== returning GPU to host ==="
+
+# 1. Release each device from vfio-pci and clear its driver_override, so the
+#    normal driver can claim it again on the reprobe below. Clearing the
+#    override matters: leave it set and the device silently returns to
+#    vfio-pci on the next probe instead of to nvidia.
+for dev in "${DEVICES[@]}"; do
+    [ -e "/sys/bus/pci/devices/$dev" ] || { log "  $dev absent, skipping"; continue; }
+    if [ -L "/sys/bus/pci/devices/$dev/driver" ]; then
+        cur=$(basename "$(readlink -f "/sys/bus/pci/devices/$dev/driver")")
+        log "  $dev: unbinding from $cur"
+        echo "$dev" > "/sys/bus/pci/devices/$dev/driver/unbind" 2>>"$LOG"
+    fi
+    echo > "/sys/bus/pci/devices/$dev/driver_override" 2>>"$LOG"
+done
+
+# 2. Drop the vfio modules so nothing re-claims the card.
+log "unloading vfio modules"
+for mod in vfio_pci vfio_pci_core vfio_iommu_type1 vfio; do
+    lsmod | grep -q "^${mod} " || continue
+    modprobe -r "$mod" 2>>"$LOG" && log "  unloaded $mod" \
+        || log "  could not unload $mod (continuing)"
+done
+
+# 3. Reprobe so the stock drivers (xhci_hcd, snd_hda_intel) reclaim the USB
+#    and audio devices.
+for dev in "${DEVICES[@]}"; do
+    [ -e "/sys/bus/pci/devices/$dev" ] || continue
+    echo "$dev" > /sys/bus/pci/drivers_probe 2>>"$LOG"
+done
+
+# 4. Reload the NVIDIA stack, least dependent first — the reverse of the
+#    unload order in vfio-gpu-bind.
+log "loading nvidia modules"
+for mod in nvidia nvidia_modeset nvidia_uvm nvidia_drm; do
+    modprobe "$mod" 2>>"$LOG" && log "  loaded $mod" \
+        || log "  FAILED to load $mod (continuing anyway)"
+done
+
+# 5. Rebind the framebuffer consoles that vfio-gpu-bind released.
+for vtcon in /sys/class/vtconsole/vtcon*; do
+    [ -e "$vtcon/bind" ] || continue
+    grep -qi 'frame buffer' "$vtcon/name" 2>/dev/null \
+        && echo 1 > "$vtcon/bind" 2>/dev/null \
+        && log "  rebound ${vtcon##*/}"
+done
+
+# 6. Bring the desktop back. UNCONDITIONAL — this is the line that has to run
+#    even if every step above failed.
+log "starting sddm"
+systemctl start sddm || log "FAILED to start sddm — recover from a TTY or over SSH"
+
+log "=== GPU returned to host ==="

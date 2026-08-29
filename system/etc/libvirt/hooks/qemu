@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+#
+# libvirt qemu hook — single-GPU passthrough for the win11-gaming domain.
+#
+# libvirt invokes this as:
+#     /etc/libvirt/hooks/qemu <guest> <operation> <sub-operation> <extra>
+#
+# Only the win11-gaming domain is acted on. EVERY OTHER GUEST FALLS THROUGH
+# UNTOUCHED — this matters, because the same hook file is called for every
+# VM on the host and a name check that was merely "contains windows" would
+# tear the operator's desktop down for an unrelated guest.
+#
+# Pairing:
+#   prepare/begin  -> vfio-gpu-bind    (host loses GPU; runs BEFORE qemu starts)
+#   release/end    -> vfio-gpu-unbind  (host regains GPU; runs AFTER qemu exits)
+#
+# `release` is used rather than `stopped` deliberately: stopped fires while
+# libvirt still holds the device, and rebinding nvidia there races the
+# teardown and intermittently leaves the card in a half-claimed state.
+#
+# After installing or editing this file:  sudo systemctl restart libvirtd
+
+set -uo pipefail
+
+readonly GUEST=${1:-}
+readonly OP=${2:-}
+readonly SUBOP=${3:-}
+readonly LOG=/var/log/vfio-hook.log
+readonly TARGET_DOMAIN=win11-gaming
+
+[ "$GUEST" = "$TARGET_DOMAIN" ] || exit 0
+
+printf '%s [hook] %s %s %s\n' "$(date -Is)" "$GUEST" "$OP" "$SUBOP" >> "$LOG"
+
+case "$OP/$SUBOP" in
+    prepare/begin)  exec /usr/local/bin/vfio-gpu-bind   ;;
+    release/end)    exec /usr/local/bin/vfio-gpu-unbind ;;
+    *)              exit 0 ;;
+esac

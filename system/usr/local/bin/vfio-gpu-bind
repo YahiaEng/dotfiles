@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+#
+# vfio-gpu-bind — hand this host's ONLY GPU to a VM.
+#
+# Direction: HOST -> GUEST. Tears down the graphical session, unloads the
+# NVIDIA driver stack, and binds the passthrough devices to vfio-pci.
+# `vfio-gpu-unbind` is the exact reverse and must run afterwards or the
+# operator is left staring at a black screen.
+#
+# This host has no second GPU, so every step here is destructive to the
+# running desktop by design. Each one logs before it acts, because when this
+# goes wrong the log is the only diagnostic left.
+
+set -uo pipefail   # NOT -e: a failed step must be logged and evaluated,
+                   # never abort halfway leaving the GPU bound to nothing.
+
+readonly LOG=/var/log/vfio-hook.log
+readonly GPU=0000:07:00.0        # RTX 3070            (IOMMU group 16)
+readonly GPU_AUDIO=0000:07:00.1  # its HDMI audio      (IOMMU group 16)
+readonly USB_CTRL=0000:09:00.3   # CPU USB controller  (IOMMU group 20)
+readonly ONBOARD_AUDIO=0000:09:00.4  # onboard HD audio (IOMMU group 21)
+
+# Group 20 is why this setup has no mouse or sound problem: the keyboard,
+# the mouse AND a USB audio device all sit on that one controller, so a
+# single passthrough gives the guest native input and native sound with no
+# evdev bridging and no audio tunnelling. Group 21 adds the analog jack.
+readonly DEVICES=("$GPU" "$GPU_AUDIO" "$USB_CTRL" "$ONBOARD_AUDIO")
+
+log() { printf '%s [bind] %s\n' "$(date -Is)" "$*" | tee -a "$LOG" >&2; }
+
+log "=== handing GPU to guest ==="
+
+# 1. Stop the graphical session. SDDM is the display manager on this host
+#    (measured: sddm.service enabled), and Hyprland runs beneath it as the
+#    uwsm unit wayland-wm@hyprland.desktop.service. Stopping SDDM takes the
+#    whole tree, so Hyprland does not need stopping separately.
+log "stopping sddm"
+systemctl stop sddm
+for _ in {1..50}; do
+    systemctl is-active --quiet sddm || break
+    sleep 0.1
+done
+if systemctl is-active --quiet sddm; then
+    log "FATAL: sddm still active after 5s — aborting, GPU left with host"
+    exit 1
+fi
+
+# 2. Release the framebuffer consoles. With nvidia-drm.modeset=1 the kernel
+#    holds a framebuffer on this card; unbinding the vtconsoles and any
+#    platform framebuffer driver is what lets the nvidia modules unload.
+#    Names differ by boot path (efi-framebuffer, simple-framebuffer), so each
+#    is attempted and a miss is fine — hence the tolerant loop rather than a
+#    hard requirement on one name.
+log "unbinding framebuffer consoles"
+for vtcon in /sys/class/vtconsole/vtcon*; do
+    [ -e "$vtcon/bind" ] || continue
+    if grep -qi 'frame buffer' "$vtcon/name" 2>/dev/null; then
+        echo 0 > "$vtcon/bind" 2>/dev/null \
+            && log "  unbound ${vtcon##*/}" \
+            || log "  could not unbind ${vtcon##*/} (continuing)"
+    fi
+done
+for fb_drv in efi-framebuffer simple-framebuffer; do
+    for dev in /sys/bus/platform/drivers/$fb_drv/*.*; do
+        [ -e "$dev" ] || continue
+        echo "${dev##*/}" > "/sys/bus/platform/drivers/$fb_drv/unbind" 2>/dev/null \
+            && log "  unbound $fb_drv ${dev##*/}"
+    done
+done
+
+sleep 1
+
+# 3. Unload the NVIDIA stack, most dependent module first. nvidia_drm holds
+#    nvidia_modeset which holds nvidia; unloading out of order fails.
+log "unloading nvidia modules"
+for mod in nvidia_drm nvidia_modeset nvidia_uvm nvidia; do
+    lsmod | grep -q "^${mod} " || { log "  $mod not loaded, skipping"; continue; }
+    if modprobe -r "$mod" 2>>"$LOG"; then
+        log "  unloaded $mod"
+    else
+        log "  FATAL: could not unload $mod — something still holds the GPU"
+        log "  restoring host session"
+        systemctl start sddm
+        exit 1
+    fi
+done
+
+# 4. Bind every passthrough device to vfio-pci. driver_override is the
+#    modern, per-device way to do this — it survives the unbind/bind cycle
+#    and does not need the boot-time device-id pin this setup must avoid.
+log "loading vfio-pci"
+modprobe vfio-pci || { log "FATAL: vfio-pci would not load"; systemctl start sddm; exit 1; }
+
+for dev in "${DEVICES[@]}"; do
+    cur=""
+    [ -L "/sys/bus/pci/devices/$dev/driver" ] \
+        && cur=$(basename "$(readlink -f "/sys/bus/pci/devices/$dev/driver")")
+    if [ "$cur" = vfio-pci ]; then
+        log "  $dev already on vfio-pci"
+        continue
+    fi
+    log "  $dev: $cur -> vfio-pci"
+    [ -n "$cur" ] && echo "$dev" > "/sys/bus/pci/devices/$dev/driver/unbind" 2>>"$LOG"
+    echo vfio-pci > "/sys/bus/pci/devices/$dev/driver_override" 2>>"$LOG"
+    echo "$dev" > /sys/bus/pci/drivers_probe 2>>"$LOG"
+done
+
+log "=== GPU handed over; guest may start ==="
