@@ -790,48 +790,63 @@ synthetic pointer tool on this host). Both operator-confirmed live.
 
 ## Session Continuity
 
-### RESUME HERE — 260829-czi shipped; the VM has NOT been started yet (2026-08-29)
+### RESUME HERE — 260829-czi rebuilt on whole-disk; VM still NOT started (2026-08-29)
 
-**Bare-metal mode is built, defined and unverified.** The domain
-`win11-gaming` is currently defined from `vfio/win11-bare.xml`: it boots
-`/dev/mapper/vm-winboot` (the real Windows, nvme0n1p1..p4) on SATA, with
-Storage on vdb and Main on vdc re-attached. `virsh start` was deliberately
-NOT run — it tears the desktop down and ends the session.
+**Bare-metal mode is defined and ready. `virsh start` has never succeeded.**
+The domain boots `/dev/disk/by-id/nvme-WD_BLACK_SN850X_4000GB_25033U804844`
+— the WHOLE Windows disk — on SATA, with Storage on vdb. Main is
+deliberately UNLINKED and unlinkable in this mode.
 
-**The one risky step, and its way out.** `sudo virsh start win11-gaming`.
-If it stops at a Windows recovery screen, fall back with
-`virsh define ~/dotfiles/vfio/win11-gaming.xml` then
-`pkexec /usr/local/lib/vm-drives/vm-drive-action sync-disks` — the qcow2
-guest is intact and was kept for exactly this.
+**THE dm WRAPPER WAS DELETED; IT COULD NEVER HAVE WORKED.** A dm target
+claims its backing device exclusively, so a whole-disk mapping and vm-main
+(a mapping of p5, a partition of that same disk) can never coexist —
+whichever is second fails EBUSY, symmetrically. The prototype passed only
+because it ran while `main_mapped=no`. The wrapper existed solely to hide
+Main from the guest, which is meaningless when the guest IS that Windows
+and owns the disk. Whole-disk passthrough removed the synthetic GPT, the
+BCD GUID replay, the truncation arithmetic, the loop device and every
+rebuild-time failure mode at once.
 
-**HIBERNATION IS OFF — DONE AND VERIFIED 2026-08-29.** The operator booted
-bare-metal Windows and ran `powercfg /h off`; measured after, through a
-read-only mount: `hiberfil.sys` ABSENT (was 12.77 GiB), `ntfs-3g.probe`
-rc=0. The one path `rebuild` cannot guard is closed structurally, not just
-by the "Turn on fast startup" checkbox.
+**TWO SCREEN-BLANKING BUGS, BOTH NOW FIXED AND BOTH IN THE HOOK.**
+1. `rebuild`'s exit status was discarded, so a failed mapping let the hook
+   carry on, stop sddm and bind the GPU — and only then did qemu fail. Now
+   it aborts BEFORE the teardown; libvirt aborts the start on a non-zero
+   prepare/begin.
+2. THE HALF THAT FIX MISSED, and it blanked the screen an hour later:
+   libvirt fires `release/end` even for a domain that failed to start, and
+   `vfio-gpu-unbind` is destructive standalone (unbind, modprobe -r nvidia,
+   reload, restart sddm). It ran on a host that had never handed the GPU
+   over. Now gated on GROUND TRUTH — the live driver of 0000:07:00.0 —
+   not a marker file, because the dangerous direction is skipping a restore
+   that WAS needed.
 
-**THE DISK RENAME HAPPENED, FOR REAL, ON THAT REBOOT.** The Windows disk
-moved `nvme0n1` -> `nvme1n1` and the host's moved the other way (host is
-now nvme0n1p1 `/boot` + nvme0n1p2 `/`). Everything kept working because
-the helper resolves by PARTUUID/WWN only — this is the designed-for hazard
-firing in production, and it is why no ad-hoc `/dev/nvmeXn1pY` path should
-ever be typed against this host. Pre-flight after the reboot: nothing
-mounted on the Windows disk or on Storage, so `rebuild` will not refuse.
+**`lsblk -no PKNAME` NEEDS `--nodeps`.** It prints one line per node in the
+subtree, so a partition with a dm child returns TWO lines, child first.
+That is what made resolve_boot_disk report the partitions as spanning two
+disks.
 
-Expect C: only on the first boot until virtio-win is installed from the
-attached ISO, and expect a reactivation prompt.
+**THE NVMe NAMES FLIP CONSTANTLY — MEASURED, NOT FEARED.** Three boots this
+session, and the Windows disk was nvme0n1, then nvme1n1, then nvme0n1, then
+nvme1n1 again. NEVER type a /dev/nvmeXn1pY path at this host; resolve by
+PARTUUID or by-id, and the helper does.
 
-**`sync-disks` is not optional on ANY mode switch.** `virsh define` replaces
-the definition wholesale and the linked data drives live in none of the
-three XMLs.
+**Verified live:** rebuild exit 0; both mutual-exclusion guards fire with
+their reasons; the release/end gate proven by invoking the hook exactly as
+libvirt does with the GPU on nvidia — exit 0, skip logged, driver
+unchanged, sddm active, Hyprland and quickshell alive on the same pid.
+Hibernation is OFF on C: (hiberfil.sys absent, probe rc=0) and all four
+volumes read plain NTFS, no BitLocker. ESP + GPT backed up to
+/var/lib/vm-drives/backup/, image verified mountable.
 
-**Traps this task paid for — do not rediscover:**
-- The boot disk's GPT must REPLAY the real disk's GUIDs. BCD keys on disk
-  GUID + partition GUID; a fresh table passes every host-side check and
-  does not boot.
-- `bus='sata'`, never virtio, for the boot disk. No viostor in that
-  registry.
-- Everything the 260829-vfi block below records still applies.
+**THE NEXT STEP IS THE OPERATOR'S AND IT IS THE RISKY ONE:**
+`sudo virsh start win11-gaming`. If it lands on a Windows recovery screen:
+`pkexec /usr/local/lib/vm-drives/vm-drive-action unlink-boot`,
+`virsh define ~/dotfiles/vfio/win11-gaming.xml`, then `sync-disks` — the
+qcow2 guest is intact. Expect C: only until virtio-win is installed from
+the attached ISO, and expect a reactivation prompt. Re-check the four
+volumes for `-FVE-FS-` after the first guest boot: Windows 11 turns device
+encryption on BY ITSELF given a TPM and Secure Boot, and a key sealed to
+the VIRTUAL TPM locks the BARE-METAL boot out.
 
 ### Previous — 260829-vfi, linking Windows C: (2026-08-29)
 
