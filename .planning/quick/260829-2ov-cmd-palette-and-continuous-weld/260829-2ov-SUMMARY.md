@@ -10,6 +10,7 @@ commits:
   - 50d93b5f fix — icon strip clips, and loads in ~0 instead of 27.7s (round 2)
   - fb0ab0b8 feat — horizontal Continuous is a three-sided frame (round 2)
   - 36e6e9b7 fix — dashboard bulge back, round corners, flare seam (round 3)
+  - 8794ea83 fix — port the bulge swell instead of re-deriving it (round 4)
 ---
 
 # 260829-2ov — SUMMARY
@@ -335,3 +336,64 @@ and restored to vertical byte-identical (`reserved [0,6,50,6]`, bar
    `edgeBarDwellMs`, which cannot be done from the agent shell. Hover just
    below the middle of the horizontal bar and the dashboard should open.
 2. **Whether the two right corners should match** — see R3-2.
+
+
+---
+
+# ROUND 4 — the bulge, done by porting rather than re-deriving
+
+Operator: "The bulge is always visible and not animated and it also does
+nothing on hover. This is not hard to do, we already have nailed this
+mechanism many times, on both vertical and horizontal."
+
+Right on all three counts, and **all three had one cause**: round 3 wrote a new
+static bulge instead of porting the one `EdgeBar.qml` has run since 260824-ns3.
+Re-deriving a solved mechanism is what produced a landmark that sits there and
+does nothing.
+
+It is ported now, name for name, with that file's reasoning intact —
+`animatedBulge`/`dashboardOpen` threaded from the SAME two sources the top
+strip reads, `_dashBulgeHovered` written by the handler rather than read from
+it, `_dashB` non-readonly so the Behavior can drive it, and the 0.6/0.4
+fillet split because `_dashF + _dashRc` must sum to `<= _dashB` at every frame
+while it sweeps 0 → 10. The surface never resizes: `_weldFlareOverhang` (20)
+already exceeds the swelled depth (10).
+
+## What is verified, and how
+
+`dashboardOpen` feeds the **identical** `_dashBulgeOut` input the hover does,
+so toggling the dashboard exercises the whole chain — binding → `_dashB` →
+Behavior → path → pixels. The new `dashbulge:` log reads
+`b=10.0 span=true animated=true hovered=false open=true` then `b=0.0 …
+open=false`, and the shoulder measured at x880..940 goes from flat (rim ends
+y=55) to a 10px swell spanning y56..65 with its fillet on the diagonal.
+
+**An instrument error nearly sent me after a rendering bug that did not
+exist.** An earlier probe of that same spot read FLAT with the dashboard open;
+the dashboard panel is drawn over the bulge and dims it, and a
+`sum(rgb) > 420` threshold scored the dimmed gradient as background. The
+pixels were right the whole time. Worth remembering: when a probe says
+"nothing there", check what else is composited over the region before
+believing it.
+
+## The real risk found in the input path
+
+The hit region was sized off `_dashBulgeSpanValid`, which is **false at
+construction** — `edgeBarStyle` defaults to `"off"` until shell.qml's binding
+resolves, and `BarEntryModel.isVertical` is false before its FileView lands.
+So the item was 0x0 at the moment the mask was first built and non-zero only
+afterwards, leaving the mask's correctness dependent on being rebuilt after a
+resize. It is sized off the orientation now — taken once when that settles,
+never toggled — and the span guard moved to where it belongs, on the dwell
+firing. The region is also the WHOLE overhang (20) rather than
+`edgeBarHoverDepth` (16), because stopping short of the surface's own bottom
+edge left a 4px dead band a pointer travelling upward crosses first.
+
+## Still not drivable from here — but it now leaves evidence
+
+Hover cannot be produced from the agent shell: there is no injection path and
+`movecursor` is not a dispatcher on this Lua-parser build (checked, along with
+`ydotool`/`dotool`; only `wtype` exists and it types text). What changed is
+that a hover now writes its own verdict —
+`grep dashbulge ~/.cache/quickshell.log` after hovering reports `hovered=`
+directly, so the next report comes with data rather than a symptom.

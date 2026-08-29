@@ -6,7 +6,7 @@ status: milestone-complete
 stopped_at: "THREE OPERATOR ITEMS SHIPPED 2026-08-29 (7350ce2e, b6cfc7b7, 306e47c5). ONE THING OWED AND IT IS A LOOK, NOT A FIX: the `cmd` palette's rendered rows could not be screenshotted — the launcher dismisses the instant the pointer leaves it (follow_mouse + HyprlandFocusGrab) and there is no input-injection path here, so load and activation are verified and LAYOUT IS NOT. Type `cmd`, check the two-column row (leaf name left, breadcrumb right), then `cmd theme` + Enter. Also judge the horizontal Continuous bar in daily use — measured at both ends and mid-screen but only flipped to and back. Note the composition it ACTUALLY produces: 4px rim above the bar, and a fused 10px gradient edge BELOW it, because the strip lands under a horizontal bar rather than over it. (1) `cmd` is a SEPARATE file from MenuMode, not a mode switch inside it — the two disagree on both of MenuMode's load-bearing properties (navStack, and `_stickyModes` membership, which exists precisely so a keystroke cannot re-route the surface). (2) THE GLYPH INSET IS ARITHMETIC: the core is 44 wide, its cap centred y=32 r=22, and barContent was inset by _weldCapDepth alone — so a 44-WIDE capsule box started at the cap's APEX, corners outside the shape. A 44-wide box first fits in a 44-wide pill at the TANGENT, 10+22=32; measured after at glyph centre 43 vs predicted 44. (3) THE PLAN'S ASSUMPTION WAS WRONG: baredge-top sits at y=48 with a horizontal bar up, BELOW it, because a non-negative exclusive zone is positioned inside every existing zone. Reserving the whole slab lands the strip flush and the shared gradient mapping makes the seam invisible. DURABLE TRAP, NEW INSTANCE: every gate passed through a live ReferenceError — a lazily-loaded component is a gate blind spot BY CONSTRUCTION, and only opening the surface and reading the log saw it. SECOND, CHEAPER RECOVERY FOR THE INODE TRAP: an in-place append to a file whose watch is still alive (shell.qml) forces a whole-config reload and re-reads the orphaned file — no unit restart, no cgroup argument. STILL OWED FROM THE PREVIOUS SESSION: judge `precise` (the desktop is on it), and the four 1px dividers moved outline -> outlineVariant. NEXT REAL DECISION unchanged: v5.0 has no roadmap — /gsd-review-backlog then /gsd-new-milestone."
 last_updated: "2026-08-29T03:45:00.000Z"
 last_activity: 2026-08-29
-last_activity_desc: "Round 3 of 260829-2ov: the dashboard bulge and dwell-summon restored on the bar, both right corners rounded, and the flare seam fixed."
+last_activity_desc: "Round 4 of 260829-2ov: the bar bulge ported from EdgeBar rather than re-derived — animated, hover- and dashboard-driven."
 state_head: 8b74c021
 progress:
   total_phases: 6
@@ -1416,7 +1416,38 @@ Resume file: None
 
 ## Operator Next Steps
 
-### ▶ RESUME HERE — round 3 shipped; two things want your judgement
+### ▶ RESUME HERE — the bulge is ported, not re-derived; one hover settles it
+
+Round 4 (`8794ea83`). You were right that round 3 re-invented a solved
+mechanism — the bulge is now `EdgeBar.qml`'s, name for name: absent at rest,
+swelling on hover or while the dashboard is up, `animatedBulge` and the
+dashboard's loader threaded from the SAME two sources the top strip reads.
+
+**VERIFIED on the half that can be driven without a pointer.** `dashboardOpen`
+feeds the identical input the hover does, so toggling the dashboard exercises
+the whole chain: the `dashbulge:` log reads `b=10.0 … open=true` then
+`b=0.0 … open=false`, and the shoulder measured at x880..940 goes flat → a
+10px swell with its fillet on the diagonal.
+
+**ONE HOVER SETTLES THE REST.** Hover just under the middle of the horizontal
+bar. If it still does nothing, `grep dashbulge ~/.cache/quickshell.log` now
+reports `hovered=` directly — that single line says whether the pointer is
+reaching the region, which is the one thing no gate and no screenshot here can
+answer. A real risk was already found and fixed in that path: the hit region
+used to be 0x0 at the moment the input mask was first built.
+
+**Still open from round 3:** whether the two right corners should match. Both
+are round; the band turns with 26 (the same number the vertical frame uses)
+and the bottom rail with 6, which is the most a 6px run can express at its own
+end. Matching them means a corner shape spanning both rails.
+
+**Still owed from the previous session:** judge `precise` and the four 1px
+dividers that moved to `outlineVariant`.
+
+**NEXT REAL DECISION, unchanged:** v5.0 has no roadmap — `/gsd-review-backlog`
+then `/gsd-new-milestone`.
+
+### Previous checkpoint — round 3 shipped; two things want your judgement
 
 Round 3 (`36e6e9b7`) closed all three follow-ups on the horizontal frame.
 
