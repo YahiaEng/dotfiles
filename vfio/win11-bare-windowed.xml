@@ -1,0 +1,269 @@
+<!--
+  win11-bare-windowed — the REAL bare-metal Windows, in a window, with NO
+  passthrough. A diagnostic and a safe staging mode, not a gaming mode.
+
+  Define with:  sudo virsh define vfio/win11-bare-windowed.xml
+  Start with:   virsh start win11-gaming && virt-manager
+
+  ── WHY THIS EXISTS ────────────────────────────────────────────────────
+  win11-bare.xml hands the GPU to the guest, so the desktop dies and the
+  only way to see the guest is the physical monitor. When it stopped after
+  "BdsDxe: starting Boot0002" on 2026-08-29 there was no way to tell a hung
+  bootloader from a Windows that was booting perfectly behind a display the
+  passed GPU had not initialised — and every retry cost a hard reset.
+
+  This shape boots the SAME disk with an emulated virtio GPU and SPICE, so
+  the guest renders into a window on the running desktop. Whatever Windows
+  is doing becomes visible: a logo and spinner, a recovery screen, or a
+  bluescreen with an actual stop code.
+
+  It is also the right place to install the virtio drivers INTO the real
+  Windows before ever using passthrough — the driver ISO is attached below,
+  and Storage is on virtio precisely so the drivers have something to bind.
+
+  ── SAME DOMAIN, SAME UUID ─────────────────────────────────────────────
+  Fourth shape of win11-gaming. Switching is `virsh define`, as always. The
+  Windows drive must be linked first (Settings -> Virtualization), because
+  the disk path below is the one link-boot verifies.
+-->
+<domain type='kvm' xmlns:qemu='http://libvirt.org/schemas/domain/qemu/1.0'>
+  <name>win11-gaming</name>
+  <uuid>471d37f8-e56c-49da-bd5c-c503fd33565c</uuid>
+  <title>Windows 11 — INSTALL MODE (windowed, no passthrough)</title>
+  <description>
+    INSTALL MODE. No PCI passthrough at all: an emulated display and a
+    virtio tablet, shown in a window on the running desktop. Use this to
+    install Windows and its virtio drivers WITHOUT tearing the session
+    down, then redefine with win11-gaming.xml to switch to passthrough.
+  </description>
+
+  <!-- 16 GiB of the host's 31 GiB, leaving ~15 GiB. Backed by transparent
+       hugepages rather than a static hugepage reservation: static pages are
+       taken from the host permanently, including while the VM is off, which
+       on a desktop is a bad trade. See docs/vfio-passthrough.md for the
+       static-hugepage upgrade if you want the last few percent. -->
+  <memory unit='KiB'>16777216</memory>
+  <currentMemory unit='KiB'>16777216</currentMemory>
+  <memoryBacking>
+    <nosharepages/>
+    <allocation mode='immediate'/>
+  </memoryBacking>
+
+  <!-- 8 vCPUs = 4 physical cores with both threads, leaving cores 0 and 1
+       (host CPUs 0,6,1,7) for the host, the QEMU emulator and the iothread.
+       Handing the guest all 6 cores is the classic mistake: the emulator
+       thread then competes with the vCPUs it is serving and frametimes get
+       WORSE, not better. -->
+  <vcpu placement='static'>8</vcpu>
+  <iothreads>1</iothreads>
+
+  <!-- Pinning follows this host's MEASURED sibling map, where thread pairs
+       are (n, n+6) — read from
+       /sys/devices/system/cpu/cpu*/topology/thread_siblings_list, not assumed.
+       Guest core N is pinned to a REAL sibling pair, so the guest scheduler's
+       hyperthread decisions match the physical topology. Pinning a guest
+       "core" across two different physical cores is what makes a pinned VM
+       feel worse than an unpinned one. -->
+  <cputune>
+    <vcpupin vcpu='0' cpuset='2'/>   <!-- guest core 0 -->
+    <vcpupin vcpu='1' cpuset='8'/>
+    <vcpupin vcpu='2' cpuset='3'/>   <!-- guest core 1 -->
+    <vcpupin vcpu='3' cpuset='9'/>
+    <vcpupin vcpu='4' cpuset='4'/>   <!-- guest core 2 -->
+    <vcpupin vcpu='5' cpuset='10'/>
+    <vcpupin vcpu='6' cpuset='5'/>   <!-- guest core 3 -->
+    <vcpupin vcpu='7' cpuset='11'/>
+    <emulatorpin cpuset='0,6'/>
+    <iothreadpin iothread='1' cpuset='1,7'/>
+  </cputune>
+
+  <os>
+    <type arch='x86_64' machine='q35'>hvm</type>
+    <!-- Windows 11 requires UEFI + Secure Boot + TPM 2.0. secboot firmware
+         measured present at this path; secure='yes' additionally requires
+         <smm state='on'/> in <features> below. -->
+    <loader readonly='yes' secure='yes' type='pflash'>/usr/share/edk2/x64/OVMF_CODE.secboot.4m.fd</loader>
+    <nvram template='/var/lib/libvirt/qemu/nvram/OVMF_VARS.4m.ms-enrolled.fd'>/var/lib/libvirt/qemu/nvram/win11-gaming_VARS.fd</nvram>
+    <!-- Boot order is per-device (see each <disk> below). libvirt refuses
+         to mix <boot dev='…'/> here with <boot order='…'/> on devices, and
+         per-device is the only form that can say WHICH cdrom. -->
+  </os>
+
+  <features>
+    <acpi/>
+    <apic/>
+    <!-- Hyper-V enlightenments. These are not optional tuning: without them
+         Windows falls back to slow emulated paths for timers, interrupts and
+         spinlocks, which is one of the biggest sources of "the VM feels
+         sluggish" on an otherwise correct passthrough setup. -->
+    <hyperv mode='custom'>
+      <relaxed state='on'/>
+      <vapic state='on'/>
+      <spinlocks state='on' retries='8191'/>
+      <vpindex state='on'/>
+      <runtime state='on'/>
+      <synic state='on'/>
+      <stimer state='on'>
+        <direct state='on'/>
+      </stimer>
+      <reset state='on'/>
+      <frequencies state='on'/>
+      <reenlightenment state='on'/>
+      <tlbflush state='on'/>
+      <ipi state='on'/>
+      <vendor_id state='on' value='1234567890ab'/>
+    </hyperv>
+    <!-- Hides the KVM signature from the guest. Legacy defence against the
+         old NVIDIA "Error 43" driver check. The driver installed here is
+         610.57.04 and NVIDIA has permitted consumer passthrough since 465,
+         so this is belt-and-braces rather than required — it is harmless and
+         costs nothing, so it stays. -->
+    <kvm>
+      <hidden state='on'/>
+    </kvm>
+    <vmport state='off'/>
+    <smm state='on'/>
+  </features>
+
+  <!-- host-passthrough exposes the real 5600X, including its instruction set
+       and cache topology. topoext is what makes the guest see SMT correctly
+       on a Zen part; without it Windows treats all 8 threads as full cores
+       and schedules badly. -->
+  <cpu mode='host-passthrough' check='none' migratable='off'>
+    <topology sockets='1' dies='1' cores='4' threads='2'/>
+    <cache mode='passthrough'/>
+    <feature policy='require' name='topoext'/>
+  </cpu>
+
+  <clock offset='localtime'>
+    <timer name='rtc' tickpolicy='catchup'/>
+    <timer name='pit' tickpolicy='delay'/>
+    <!-- hpet off and hypervclock on: Windows should take its time from the
+         paravirtual clock, not an emulated HPET. -->
+    <timer name='hpet' present='no'/>
+    <timer name='hypervclock' present='yes'/>
+  </clock>
+
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>destroy</on_crash>
+
+  <pm>
+    <suspend-to-mem enabled='no'/>
+    <suspend-to-disk enabled='no'/>
+  </pm>
+
+  <devices>
+    <emulator>/usr/bin/qemu-system-x86_64</emulator>
+
+    <!-- Guest system disk. cache='none' + io='native' is the combination
+         that gives the guest direct, unbuffered access to the image; io
+         native REQUIRES cache none, and pairing them wrongly silently falls
+         back to a slower path. discard='unmap' lets Windows TRIM propagate
+         to the qcow2 so the image does not grow forever. -->
+    <!-- THE REAL WINDOWS, same disk win11-bare.xml boots. SATA for the same
+         reason: this install has never seen a virtio controller, so viostor
+         is not in its registry at all (verified 2026-08-29 by reading the
+         SYSTEM hive: no viostor/vioscsi key exists). storahci IS boot-start
+         there, so AHCI works with no driver work. -->
+    <disk type='block' device='disk'>
+      <driver name='qemu' type='raw' cache='none' io='native'/>
+      <source dev='/dev/disk/by-id/nvme-WD_BLACK_SN850X_4000GB_25033U804844'/>
+      <target dev='sda' bus='sata'/>
+      <boot order='1'/>
+    </disk>
+
+    <!-- Windows 11 installer ISO. Named for the exact build imported here
+         (25H2, English International, x64 v2 — sha256 66b7b4b7…, verified
+         byte-for-byte against the operator's download after import). Swap
+         the filename if you import a different build. Both cdrom entries
+         can be removed from this domain once Windows is installed. -->
+
+    <!-- virtio-win driver ISO. NOT optional: the Windows installer cannot
+         see a virtio disk without loading a driver from here, and the
+         install stops at "no drives found" with no explanation. -->
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+      <source file='/var/lib/libvirt/images/virtio-win.iso'/>
+      <target dev='sdc' bus='sata'/>
+      <readonly/>
+    </disk>
+
+    <controller type='usb' index='0' model='qemu-xhci' ports='15'/>
+    <controller type='sata' index='0'/>
+    <controller type='pci' index='0' model='pcie-root'/>
+    <controller type='pci' index='1' model='pcie-root-port'/>
+    <controller type='pci' index='2' model='pcie-root-port'/>
+    <controller type='pci' index='3' model='pcie-root-port'/>
+    <controller type='pci' index='4' model='pcie-root-port'/>
+    <controller type='pci' index='5' model='pcie-root-port'/>
+    <controller type='pci' index='6' model='pcie-root-port'/>
+    <controller type='virtio-serial' index='0'/>
+
+    <!-- NAT through libvirt's default network, which is backed by dnsmasq.
+         virtio is the only sensible model; e1000e is emulated and caps out
+         far below the link. If the guest has no network, check that
+         `virsh net-start default` has been run and dnsmasq is installed —
+         that pair is the usual cause, not the guest driver. -->
+    <interface type='network'>
+      <source network='default'/>
+      <model type='virtio'/>
+    </interface>
+
+    <!-- TPM 2.0 via swtpm — mandatory for Windows 11. -->
+    <tpm model='tpm-crb'>
+      <backend type='emulator' version='2.0'/>
+    </tpm>
+
+
+    <!-- CPU USB controller, IOMMU group 20 — measured to carry the keyboard,
+         the mouse AND a USB audio device. Passing the whole controller is
+         what makes input feel native: no evdev bridging, no pointer capture
+         hotkey, and USB hotplug works inside the guest.
+         Host recovery note: the OTHER controller (02:00.0, buses 001/002)
+         stays with the host and has input devices on it, so a failed
+         teardown does not leave the machine without a keyboard. -->
+
+    <!-- Onboard analog audio, IOMMU group 21. This is the host's current
+         default sink, so it is what the operator's speakers are plugged
+         into. Passing it gives the guest real hardware audio with no
+         latency-adding tunnel back to PipeWire. -->
+
+    <!-- A real display, unlike gaming mode. The whole point of this
+         variant: Windows Setup needs a keyboard, and the only real
+         keyboard on this host (Corsair K70, USB 1b1c:1b73) sits on the
+         chipset USB controller, which is in a tangled IOMMU group and
+         cannot be passed. An emulated keyboard sidesteps that entirely. -->
+    <graphics type='spice' autoport='yes'>
+      <listen type='address' address='127.0.0.1'/>
+      <image compression='off'/>
+    </graphics>
+    <video>
+      <model type='virtio' heads='1' primary='yes'/>
+    </video>
+    <input type='tablet' bus='usb'/>
+    <input type='keyboard' bus='usb'/>
+    <!-- Emulated audio, INSTALL MODE ONLY. This mode passes no hardware
+         at all, so without this the guest has no sound device whatsoever
+         and Windows correctly reports "no audio devices are installed".
+         ich9 is the Intel HD Audio controller Windows drives with its own
+         in-box driver — no extra driver needed — and the stream is carried
+         over the existing SPICE channel to virt-manager.
+
+         Gaming mode deliberately has NO <sound>: it passes the REAL audio
+         hardware instead (onboard analog 09:00.4, plus the Logitech PRO X
+         headset on the passed USB controller 09:00.3), which is lower
+         latency than any emulated device. -->
+    <sound model='ich9'>
+      <audio id='1'/>
+    </sound>
+    <audio id='1' type='spice'/>
+
+    <channel type='spicevmc'>
+      <target type='virtio' name='com.redhat.spice.0'/>
+    </channel>
+
+
+    <memballoon model='none'/>
+  </devices>
+</domain>
