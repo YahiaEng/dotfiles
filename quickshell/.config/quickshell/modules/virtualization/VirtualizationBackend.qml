@@ -107,8 +107,14 @@ Singleton {
             key: "windows",
             title: "Windows C:",
             partuuid: "2e3b6dd2-1146-4dde-a58d-6fb84800c624",
-            note: "not linkable by design",
-            linkable: false
+            // NOT a data drive, and that has not changed. What DID change
+            // (quick task 260829-czi) is that C: is now reachable the other
+            // way: as the VM's BOOT disk, via `link-boot` and
+            // vfio/win11-bare.xml. Saying only "not linkable by design"
+            // became false the moment that shipped.
+            note: "the VM's boot disk in bare-metal mode",
+            linkable: false,
+            blocked: "Not a data drive — see bare-metal mode below"
         }
     ]
 
@@ -130,7 +136,7 @@ Singleton {
     // operator sees is the same reason the helper would give.
     function blockedReason(d) {
         if (!d.linkable)
-            return "Not linkable by design";
+            return d.blocked !== undefined ? d.blocked : "Not linkable by design";
         if (!d.present)
             return "Drive not present";
         if (d.mounted)
@@ -249,6 +255,7 @@ Singleton {
                 title: c.title,
                 note: c.note,
                 linkable: c.linkable,
+                blocked: c.blocked,
                 present: n !== undefined,
                 dev: n ? n.path : "",
                 label: n && n.label ? n.label : "",

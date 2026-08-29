@@ -95,11 +95,26 @@ PageBase {
         InfoRow {
             label: "How Main is mapped"
             icon: "shield"
+            // "unreachable at the kernel level" is true of THIS mapping and
+            // was true of the whole VM until bare-metal mode shipped
+            // (260829-czi). It is a claim about vm-main's table, so it is
+            // scoped to that here rather than left reading as a claim about
+            // the guest in general — the row below states the other half.
             subtext: "Main sits on the Windows boot disk, so it is not passed "
                    + "whole. A device-mapper table exposes only that partition; "
                    + "every other sector reads as zeros and discards writes, so "
-                   + "the EFI partition, Windows C: and the recovery partition "
-                   + "are unreachable by the guest at the kernel level."
+                   + "nothing else on that disk is reachable through this drive."
+        }
+
+        InfoRow {
+            label: "Bare-metal mode"
+            icon: "swap_horiz"
+            subtext: "Windows C: is never a data drive, but it can be the VM's "
+                   + "boot disk: link-boot maps the ESP, reserved, C: and "
+                   + "recovery partitions as one disk so the real Windows runs "
+                   + "as the guest. Switch with virsh define ~/dotfiles/vfio/"
+                   + "win11-bare.xml, then sync-disks to re-attach these "
+                   + "drives. Keep Fast Startup and BitLocker off."
         }
 
         Repeater {
