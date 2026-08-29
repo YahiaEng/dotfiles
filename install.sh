@@ -1210,17 +1210,23 @@ section_gaming() {
     echo "╚══════════════════════════════════════════╝"
     echo ""
 
-    # NVIDIA is detected here independently rather than read from
-    # section_hardware's NVIDIA_INSTALLED, because --gaming-only skips that
-    # section entirely and the variable would be unset. Presence of the card
-    # is the correct test for this section anyway: these files care about the
-    # hardware being there, not about whether THIS run installed the driver.
-    if [[ -z "${NVIDIA_INSTALLED:-}" ]]; then
-        if lspci | grep -qi nvidia; then
-            NVIDIA_INSTALLED=true
-        else
-            NVIDIA_INSTALLED=false
-        fi
+    # Ask the HARDWARE, every time, into a local of this section's own.
+    #
+    # The first version tested the global for emptiness on the assumption
+    # that --gaming-only would leave it unset. It does not: that global is
+    # initialised to the STRING "false" at the top of this script, which is
+    # not empty, so the detection never ran and the whole NVIDIA half of this
+    # section silently skipped on a machine with an RTX 3070 in it. It
+    # printed "No NVIDIA GPU" and installed nothing — a guard that fails
+    # closed and quietly, which is the worst shape a guard can have.
+    #
+    # A local named differently cannot repeat that: there is no inherited
+    # value to be wrong about, and `lspci` is the same test section_hardware
+    # itself uses, so a full run and a --gaming-only run agree by
+    # construction.
+    local has_nvidia=false
+    if lspci | grep -qi nvidia; then
+        has_nvidia=true
     fi
 
     echo "Installing gaming + virtualisation packages..."
@@ -1241,7 +1247,7 @@ section_gaming() {
     echo "Installing gaming tuning (sysctl + nvidia module options)..."
     sudo install -Dm644 "$REPO_DIR/system/etc/sysctl.d/99-gaming.conf" \
         /etc/sysctl.d/99-gaming.conf
-    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+    if [[ "$has_nvidia" == true ]]; then
         sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/nvidia-gaming.conf" \
             /etc/modprobe.d/nvidia-gaming.conf
     else
@@ -1259,7 +1265,7 @@ section_gaming() {
     # only, and the hook binds late. Do not "complete" it with an ids=
     # line — that is the single change that turns this from a working
     # setup into an unbootable desktop.
-    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+    if [[ "$has_nvidia" == true ]]; then
         echo ""
         echo "Installing VFIO passthrough hooks..."
         sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/vfio.conf" \
@@ -1285,7 +1291,7 @@ section_gaming() {
     # initramfs's own copy of /etc/modprobe.d — not the one on the root
     # filesystem. Without this rebuild, nvidia-gaming.conf is inert and the
     # tuning silently does nothing.
-    if [[ "$NVIDIA_INSTALLED" == true ]]; then
+    if [[ "$has_nvidia" == true ]]; then
         echo ""
         echo "Rebuilding initramfs so the nvidia module options take effect..."
         sudo mkinitcpio -P
@@ -1305,7 +1311,7 @@ section_gaming() {
 
     echo ""
     echo "Gaming setup complete."
-    if [[ "$NVIDIA_INSTALLED" == true ]] && ! grep -qw svm /proc/cpuinfo; then
+    if [[ "$has_nvidia" == true ]] && ! grep -qw svm /proc/cpuinfo; then
         echo "  ⚠ AMD-V (SVM) is DISABLED in UEFI — the passthrough VM cannot"
         echo "    run until it is enabled. See docs/vfio-passthrough.md."
     fi
