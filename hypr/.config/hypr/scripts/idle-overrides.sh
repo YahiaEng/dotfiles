@@ -147,10 +147,14 @@ listener {
 # under the Lua config manager, and the string TOGGLE form would switch
 # the display back OFF on every wake, since wake-on-input has already
 # turned it on by the time on-resume runs.
+# User bugfix: Avoid Disabling Monitors completely via DPMS. Disabling
+# the display outputs entirely destroys the rendering surfaces hyprlock
+# and QML elements require. Instead, use a screen brightness tool to dim
+# the panel to zero.
 listener {
     timeout = $t_off
-    on-timeout = hyprctl dispatch 'hl.dsp.dpms({action="off"})'
-    on-resume = hyprctl dispatch 'hl.dsp.dpms({action="on"})'
+    on-timeout = brightnessctl -s set 0      # Turn off backlight completely
+    on-resume = brightnessctl -r             # Restore original brightness
 }
 
 # ── Suspend ──────────────────────────────────────────
