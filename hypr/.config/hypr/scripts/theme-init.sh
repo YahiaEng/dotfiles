@@ -21,6 +21,8 @@ STATE_FILE="$HOME/.local/state/theme/current-theme"
 # engine-owned state — same symlink, new home.
 WALLPAPER="$HOME/.local/state/theme/current.jpg"
 
+THEME_APPLY="$HOME/.config/theme-engine/theme-apply"
+
 THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "catppuccin")
 
 # Wallpaper-setting is owned by the picker/init, never by matugen (D-19).
@@ -47,4 +49,4 @@ fi
 # constraints at once.
 ~/.config/hypr/scripts/hyprpm-complete.sh >/dev/null 2>&1 &
 
-exec ~/.config/theme-engine/theme-apply "$THEME"
+exec THEME_APPLY_QUIET=1 "$THEME_APPLY" "$THEME"
