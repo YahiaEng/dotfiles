@@ -155,6 +155,11 @@ theme_engine_commit() {
     printf '%s\n' "$name" > "$STATE_DIR/current-theme.tmp" \
         && mv "$STATE_DIR/current-theme.tmp" "$STATE_DIR/current-theme"
 
+    # Starship has no @import/include mechanism. Concatenate base config + matugen colors
+    cat "$HOME/.config/starship_base.toml" > "$HOME/.config/starship.toml"
+    printf "\n" >> "$HOME/.config/starship.toml"
+    cat "$STATE_DIR/starship.toml" >> "$HOME/.config/starship.toml"
+
     # D-07: yazi has no @import/include mechanism, so the engine wires its
     # config path directly to the state-dir output via a symlink. This is
     # idempotent one-time wiring (D-09) — `ln -sf` re-links to the same

@@ -154,6 +154,9 @@ PACMAN_PKGS=(
     # init` starts no sync and needs no account.
     atuin
 
+    # Universal blazing fast shell prompt written in rust
+    starship
+
     # Themed terminal multiplexer (D-01/D-06, quick task 260820-0ha):
     # official `extra` repo, pacman — NOT the AUR, verified installed at
     # 0.44.3-1 on this host, with only curl/glibc/libgcc/zlib as

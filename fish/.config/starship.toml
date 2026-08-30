@@ -1,0 +1,214 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+format = """
+[](primary)\
+$os\
+$username\
+[](bg:primary_container fg:primary)\
+$directory\
+[](fg:primary_container bg:secondary)\
+$git_branch\
+$git_status\
+[](fg:secondary bg:secondary_container)\
+$c\
+$cpp\
+$rust\
+$golang\
+$nodejs\
+$bun\
+$php\
+$java\
+$kotlin\
+$haskell\
+$python\
+[](fg:secondary_container bg:tertiary)\
+$docker_context\
+$conda\
+$pixi\
+[](fg:tertiary bg:tertiary_container)\
+$time\
+[ ](fg:tertiary_container)\
+$line_break$character"""
+
+palette = 'matugen'
+
+[os]
+disabled = false
+style = "bg:primary fg:on_primary"
+
+[os.symbols]
+Windows = "󰍲"
+Ubuntu = "󰕈"
+SUSE = ""
+Raspbian = "󰐿"
+Mint = "󰣭"
+Macos = "󰀵"
+Manjaro = ""
+Linux = "󰌽"
+Gentoo = "󰣨"
+Fedora = "󰣛"
+Alpine = ""
+Amazon = ""
+Android = ""
+AOSC = ""
+Arch = "󰣇"
+Artix = "󰣇"
+EndeavourOS = ""
+CentOS = ""
+Debian = "󰣚"
+Redhat = "󱄛"
+RedHatEnterprise = "󱄛"
+Pop = ""
+
+[username]
+show_always = true
+style_user = "bg:primary fg:on_primary"
+style_root = "bg:primary fg:on_primary"
+format = '[ $user ]($style)'
+
+[directory]
+style = "bg:primary_container fg:on_primary_container"
+format = "[ $path ]($style)"
+truncation_length = 3
+truncation_symbol = "…/"
+
+[directory.substitutions]
+"Documents" = "󰈙 "
+"Downloads" = " "
+"Music" = "󰝚 "
+"Pictures" = " "
+"Developer" = "󰲋 "
+
+[git_branch]
+symbol = ""
+style = "bg:secondary fg:on_secondary"
+format = '[ $symbol $branch ]($style)'
+
+[git_status]
+style = "bg:secondary fg:on_secondary"
+format = '[$all_status$ahead_behind ]($style)'
+
+[nodejs]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[bun]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[c]
+symbol = " "
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[cpp]
+symbol = " "
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[rust]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[golang]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[php]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[java]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[kotlin]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[haskell]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[python]
+symbol = ""
+style = "bg:secondary_container fg:on_secondary_container"
+format = '[ $symbol ($version) ]($style)'
+
+[docker_context]
+symbol = ""
+style = "bg:tertiary fg:on_tertiary"
+format = '[ $symbol ($context) ]($style)'
+
+[conda]
+style = "bg:tertiary fg:on_tertiary"
+format = '[ $symbol ($environment) ]($style)'
+
+[pixi]
+style = "bg:tertiary fg:on_tertiary"
+format = '[ $symbol ($version) ($environment) ]($style)'
+
+[time]
+disabled = false
+time_format = "%R"
+style = "bg:tertiary_container fg:on_tertiary_container"
+format = '[  $time ]($style)'
+
+[line_break]
+disabled = false
+
+[character]
+disabled = false
+success_symbol = '[](bold fg:tertiary)'
+error_symbol = '[](bold fg:error)'
+vimcmd_symbol = '[](bold fg:outline)'
+vimcmd_replace_one_symbol = '[](bold fg:outline_variant)'
+vimcmd_replace_symbol = '[](bold fg:outline_variant)'
+vimcmd_visual_symbol = '[](bold fg:primary_container)'
+[palettes.matugen]
+# Core Accents
+primary = '#7fbbb3'
+on_primary = '#2d353b'
+primary_container = '#464b4c'
+on_primary_container = '#d3c6aa'
+secondary = '#dbbc7f'
+on_secondary = '#2d353b'
+secondary_container = '#464b4c'
+on_secondary_container = '#dbbc7f'
+tertiary = '#d699b6'
+on_tertiary = '#2d353b'
+tertiary_container = '#826778'
+on_tertiary_container = '#d3c6aa'
+
+# Surfaces & Backgrounds
+surface = '#2d353b'
+on_Surface = '#d3c6aa'
+surface_variant = '#464b4c'
+on_surface_variant = '#a19a89'
+surface_container_lowest = '#283138'
+surface_container_low = '#343b3f'
+surface_container = '#373e42'
+surface_container_high = '#3f4547'
+surface_container_highest = '#484c4d'
+surface_dim = '#2d353b'
+surface_bright = '#4b4f4f'
+background = '#2d353b'
+on_background = '#d3c6aa'
+
+# Status & Contextual
+outline = '#475258'
+outline_variant = '#374147'
+error = '#e67e80'
+on_error = '#2d353b'
+error_container = '#8a5a5e'
+on_error_container = '#d3c6aa'
+scrim = '#000000'
+shadow = '#000000'

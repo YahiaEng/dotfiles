@@ -79,6 +79,11 @@ output_path = "~/.local/state/theme/fzf-colors.conf"
 input_path = "~/.config/matugen/templates/fish-colors.fish"
 output_path = "~/.local/state/theme/fish-colors.fish"
 
+# ── Starship prompt colors (manually created by the owner) ────
+[templates.starship]
+input_path = "~/.config/matugen/templates/starship.toml"
+output_path = "~/.local/state/theme/starship.toml"
+
 # ── zellij themed multiplexer config (D-01/D-02, quick task 260820-0ha) ──
 # Unlike every fragment-shaped template above, this one renders a COMPLETE
 # application config — keybinds, options AND the themes block — because
