@@ -587,9 +587,6 @@ AUR_PKGS=(
     # Rice
     matugen-bin
 
-    # Prompt (fish)
-    oh-my-posh
-
     # Code editors
     vscodium-bin
 
