@@ -119,7 +119,7 @@ After first installing Weaselway, run `wsl --shutdown` from Windows PowerShell s
 ~/dotfiles/wsl/launch-desktop
 ```
 
-With Fish as the WSL login shell, opening Arch starts Hyprland on the connected displays. Each selected display gets one borderless viewer at its native resolution. Reopening Arch brings back the current viewer arrangement. For a terminal-only session, run `wsl.exe -d archlinux -- env ARCH_WSL_TERMINAL=1 fish -l` from Windows.
+With Fish as the WSL login shell, opening Arch starts Hyprland on the connected displays. By default, Arch uses up to four active Windows displays and follows the Windows main display. Each display gets one borderless viewer at its current Windows resolution. For a terminal-only session, run `wsl.exe -d archlinux -- env ARCH_WSL_TERMINAL=1 fish -l` from Windows.
 
 | Action | Shortcut |
 | --- | --- |
@@ -128,9 +128,9 @@ With Fish as the WSL login shell, opening Arch starts Hyprland on the connected 
 | Use Arch across both displays | **Arch Linux - Both displays** in Start |
 | Use Arch on one display and Windows on the other | **Arch Linux - Primary display** or **Arch Linux - External display** in Start |
 
-In Display settings, check the displays you want to use for Arch and choose the **Linux main display**. **Identify displays** briefly numbers the physical monitors. Your selection is saved when you apply it. The main Linux display gets notifications and the default dialogs. Every assigned display gets its own bar, workspace icons, and edge rails in the selected style.
+In Display settings, **Automatically use connected displays** follows the active Windows displays as they change. Turn it off to choose a fixed set. Choose the **Linux main display** to control where notifications and default dialogs open. **Identify displays** briefly numbers the physical monitors. Every assigned display gets its own bar, workspace icons, and edge rails.
 
-Changing the display assignment reconnects the viewer to the running Hyprland session. Hyprland follows the Windows monitor arrangement. Use **Super + left drag** to move a window, or **Super + Shift + arrow** to move it in a direction.
+Moving or rotating a display in Windows updates its position and size in Arch. Adding or removing a display briefly reconnects the viewer to the running Hyprland session. If Arch is minimized, it applies display changes when you bring it back. Use **Super + left drag** to move a window, or **Super + Shift + arrow** to move it in a direction.
 
 From a terminal, use `wsl/launch-desktop --list-monitors` to find Windows display names. Pass an ordered list such as `wsl/launch-desktop --monitors DISPLAY2,DISPLAY1` with the main display first. Use `wsl/launch-desktop --disconnect` from a WSL terminal to disconnect the viewer. [Weaselway display architecture](https://github.com/weaselway/weaselway/blob/main/ARCHITECTURE.md)
 

@@ -1,9 +1,11 @@
 param(
-    [Parameter(Mandatory)] [ValidateSet('show', 'hide', 'toggle', 'close', 'shortcuts', 'displays', 'layout', 'choose', 'arrange', 'drag-handoff')] [string] $Action,
+    [Parameter(Mandatory)] [ValidateSet('show', 'hide', 'toggle', 'close', 'shortcuts', 'displays', 'layout', 'choose', 'arrange', 'watch', 'drag-handoff')] [string] $Action,
     [Parameter(Mandatory)] [string] $ViewerPath,
     [Parameter(Mandatory)] [string] $Distro,
     [Parameter(Mandatory)] [string] $Launcher,
-    [string] $Profile = 'both'
+    [string] $Profile = 'auto',
+    [string] $Layout,
+    [string] $Handles
 )
 
 $ErrorActionPreference = 'Stop'
@@ -42,18 +44,39 @@ using System.Text;
 public static class ArchViewerWindows {
     private static readonly IntPtr Topmost = new IntPtr(-1);
     private delegate bool Callback(IntPtr window, IntPtr data);
+    private delegate bool MonitorCallback(IntPtr monitor, IntPtr dc, IntPtr bounds, IntPtr data);
     [StructLayout(LayoutKind.Sequential)]
     private struct Rect { public int Left, Top, Right, Bottom; }
     [StructLayout(LayoutKind.Sequential)]
     private struct Point { public int X, Y; }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct MonitorInfo {
+        public int Size;
+        public Rect Bounds, WorkArea;
+        public int Flags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string DeviceName;
+    }
+    public class Display {
+        public string Name { get; set; }
+        public bool Primary { get; set; }
+        public int X { get; set; }
+        public int Y { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+    }
     [DllImport("user32.dll")] private static extern bool EnumWindows(Callback callback, IntPtr data);
+    [DllImport("user32.dll")] private static extern bool EnumDisplayMonitors(IntPtr dc, IntPtr clip, MonitorCallback callback, IntPtr data);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int GetWindowText(IntPtr window, StringBuilder text, int capacity);
-    [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
+    [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool IsZoomed(IntPtr window);
     [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr window, int command);
     [DllImport("user32.dll")] private static extern bool GetWindowRect(IntPtr window, out Rect bounds);
+    [DllImport("user32.dll")] private static extern bool GetClientRect(IntPtr window, out Rect bounds);
+    [DllImport("user32.dll")] private static extern bool ClientToScreen(IntPtr window, ref Point point);
     [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr window, IntPtr after, int x, int y, int width, int height, uint flags);
     [DllImport("user32.dll")] public static extern IntPtr SetThreadDpiAwarenessContext(IntPtr context);
     [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr window);
@@ -62,6 +85,22 @@ public static class ArchViewerWindows {
     [DllImport("user32.dll")] private static extern bool GetPhysicalCursorPos(out Point point);
     [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
     [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, uint msg, IntPtr w, IntPtr l);
+
+    public static Display[] Displays() {
+        var displays = new List<Display>();
+        EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (monitor, dc, bounds, data) => {
+            var info = new MonitorInfo { Size = Marshal.SizeOf(typeof(MonitorInfo)) };
+            if (GetMonitorInfo(monitor, ref info) && info.DeviceName.StartsWith(@"\\.\DISPLAY")) {
+                displays.Add(new Display {
+                    Name = info.DeviceName.Substring(4), Primary = (info.Flags & 1) != 0,
+                    X = info.Bounds.Left, Y = info.Bounds.Top,
+                    Width = info.Bounds.Right - info.Bounds.Left, Height = info.Bounds.Bottom - info.Bounds.Top
+                });
+            }
+            return true;
+        }, IntPtr.Zero);
+        return displays.ToArray();
+    }
 
     public static IntPtr[] ForProcess(int processId, string title) {
         var windows = new List<IntPtr>();
@@ -100,14 +139,23 @@ public static class ArchViewerWindows {
     }
 
     public static bool Fills(IntPtr window, int x, int y, int width, int height) {
-        Rect bounds;
-        return GetWindowRect(window, out bounds) && bounds.Left == x && bounds.Top == y
-            && bounds.Right == x + width && bounds.Bottom == y + height;
+        Rect client;
+        var origin = new Point();
+        return !IsZoomed(window) && GetClientRect(window, out client) && ClientToScreen(window, ref origin)
+            && origin.X == x && origin.Y == y && client.Right == width && client.Bottom == height;
     }
 
     public static bool Place(IntPtr window, int x, int y, int width, int height) {
-        const uint NoActivate = 0x0010, ShowWindow = 0x0040, AsyncWindowPos = 0x4000;
-        return SetWindowPos(window, Topmost, x, y, width, height, NoActivate | ShowWindow | AsyncWindowPos);
+        if (IsZoomed(window))
+            return ShowWindowAsync(window, 9);
+        Rect outer, client;
+        var origin = new Point();
+        if (!GetWindowRect(window, out outer) || !GetClientRect(window, out client) || !ClientToScreen(window, ref origin))
+            return false;
+        const uint NoZOrder = 0x0004, NoActivate = 0x0010, AsyncWindowPos = 0x4000;
+        return SetWindowPos(window, IntPtr.Zero, x + outer.Left - origin.X, y + outer.Top - origin.Y,
+            width + outer.Right - outer.Left - client.Right, height + outer.Bottom - outer.Top - client.Bottom,
+            NoZOrder | NoActivate | AsyncWindowPos);
     }
 
     public static void FinishCrossDisplayDrags(System.Diagnostics.Process viewer, IntPtr[] windows) {
@@ -136,22 +184,56 @@ public static class ArchViewerWindows {
 }
 '@
 
-if ($Action -in 'displays', 'layout', 'choose', 'arrange') {
+function Get-Displays {
+    [ArchViewerWindows]::Displays() | Sort-Object @{ Expression = 'Primary'; Descending = $true }, Name
+}
+
+function Select-Displays($Screens, [switch] $Fallback) {
+    $selected = @(switch -Regex ($Profile) {
+        '^auto(,DISPLAY\d+)?$' {
+            $preferredMain = ($Profile -split ',')[1]
+            $Screens | Where-Object Name -EQ $preferredMain
+            $Screens | Where-Object Name -NE $preferredMain
+        }
+        '^primary$' { $Screens | Where-Object Primary }
+        '^external$' {
+            $external = @($Screens | Where-Object { !$_.Primary })
+            if ($external.Count -ne 1) { throw 'Select a connected external display by its DISPLAY name.' }
+            $external
+        }
+        default {
+            foreach ($display in (($Profile -replace '^manual,', '') -split ',' | Select-Object -Unique)) {
+                $Screens | Where-Object Name -EQ $display
+            }
+        }
+    })
+    if (!$selected.Count -and ($Fallback -or $Profile.StartsWith('manual,'))) {
+        $selected = @($Screens | Select-Object -First 1)
+    }
+    $selected | Select-Object -First 4
+}
+
+function Format-Layout($Screens) {
+    foreach ($screen in $Screens) {
+        '{0} {1} {2} {3} {4}' -f $screen.Name, $screen.X, $screen.Y, $screen.Width, $screen.Height
+    }
+}
+
+if ($Action -in 'displays', 'layout', 'choose') {
     [void] [ArchViewerWindows]::SetThreadDpiAwarenessContext([IntPtr](-4))
-    Add-Type -AssemblyName System.Windows.Forms
-    $screens = @([Windows.Forms.Screen]::AllScreens | Sort-Object @{ Expression = 'Primary'; Descending = $true }, DeviceName)
+    $screens = @(Get-Displays)
     if ($Action -eq 'displays') {
         foreach ($screen in $screens) {
             $label = if ($screen.Primary) { ' primary' } else { '' }
-            '{0}{1} {2}x{3} at {4},{5}' -f $screen.DeviceName.Split('\')[-1], $label,
-                $screen.Bounds.Width, $screen.Bounds.Height, $screen.Bounds.X, $screen.Bounds.Y
+            '{0}{1} {2}x{3} at {4},{5}' -f $screen.Name, $label, $screen.Width, $screen.Height, $screen.X, $screen.Y
         }
         return
     }
     if ($Action -eq 'choose') {
+        Add-Type -AssemblyName System.Windows.Forms
         $form = New-Object Windows.Forms.Form -Property @{
             Text = 'Arch Linux displays'
-            ClientSize = New-Object Drawing.Size 440, (174 + 32 * $screens.Count)
+            ClientSize = New-Object Drawing.Size 440, (180 + 32 * $screens.Count)
             FormBorderStyle = 'FixedDialog'
             StartPosition = 'CenterScreen'
             MaximizeBox = $false
@@ -159,18 +241,21 @@ if ($Action -in 'displays', 'layout', 'choose', 'arrange') {
             TopMost = $true
             AutoScaleMode = 'Dpi'
         }
-        $form.Controls.Add((New-Object Windows.Forms.Label -Property @{
-            Text = 'Show Arch on'; AutoSize = $true; Left = 20; Top = 18
-        }))
-        $displayNames = @($screens | ForEach-Object { $_.DeviceName.Split('\')[-1] })
-        $preferred = if ($Profile -eq 'both') { $displayNames } else { $Profile.Split(',') }
+        $automatic = $Profile.StartsWith('auto')
+        $preferred = @($Profile.Split(',') | Select-Object -Skip 1)
+        $follow = New-Object Windows.Forms.CheckBox -Property @{
+            Text = 'Automatically use connected displays'; Checked = $automatic
+            AutoSize = $true; Left = 20; Top = 18
+        }
+        $form.Controls.Add($follow)
+        $windowsMain = New-Object Windows.Forms.Label -Property @{ Text = 'Windows main display'; Tag = 'auto' }
         $boxes = @(for ($i = 0; $i -lt $screens.Count; $i++) {
             $screen = $screens[$i]
-            $tag = $displayNames[$i]
-            $label = 'Display {0}  ({1} × {2})' -f $tag.Substring(7), $screen.Bounds.Width, $screen.Bounds.Height
+            $tag = $screen.Name
+            $label = 'Display {0}  ({1} × {2})' -f $tag.Substring(7), $screen.Width, $screen.Height
             if ($screen.Primary) { $label += '  —  Windows main display' }
             $box = New-Object Windows.Forms.CheckBox -Property @{
-                Text = $label; Tag = $tag; Checked = ($tag -in $preferred)
+                Text = $label; Tag = $tag; Checked = ($tag -in $preferred -or ($automatic -and $i -lt 4))
                 AutoSize = $true; Left = 20; Top = (48 + 32 * $i)
             }
             $form.Controls.Add($box)
@@ -199,8 +284,10 @@ if ($Action -in 'displays', 'layout', 'choose', 'arrange') {
         $refreshMain = {
             $previous = if ($main.SelectedItem) { $main.SelectedItem.Tag } else { $preferred[0] }
             $main.Items.Clear()
+            if ($follow.Checked) { [void] $main.Items.Add($windowsMain) }
             foreach ($box in $boxes) {
-                if ($box.Checked) {
+                $box.Enabled = !$follow.Checked
+                if ($follow.Checked -or $box.Checked) {
                     [void] $main.Items.Add($box)
                 }
             }
@@ -211,13 +298,14 @@ if ($Action -in 'displays', 'layout', 'choose', 'arrange') {
                     if ($item.Tag -eq $previous) { $main.SelectedItem = $item }
                 }
             }
-            $apply.Enabled = $main.Items.Count -ge 1 -and $main.Items.Count -le 4
+            $apply.Enabled = $follow.Checked -or ($main.Items.Count -ge 1 -and $main.Items.Count -le 4)
         }
+        $follow.add_CheckedChanged($refreshMain)
         foreach ($box in $boxes) { $box.add_CheckedChanged($refreshMain) }
         $identify.add_Click({
             $identify.Enabled = $false
             $labels = @(for ($i = 0; $i -lt $screens.Count; $i++) {
-                $bounds = $screens[$i].Bounds
+                $bounds = $screens[$i]
                 $badge = New-Object Windows.Forms.Form -Property @{
                     Text = 'Display identification'; FormBorderStyle = 'None'; TopMost = $true
                     ShowInTaskbar = $false; Size = New-Object Drawing.Size 112, 88
@@ -225,7 +313,7 @@ if ($Action -in 'displays', 'layout', 'choose', 'arrange') {
                     Location = New-Object Drawing.Point ($bounds.X + 32), ($bounds.Y + 32)
                 }
                 $badge.Controls.Add((New-Object Windows.Forms.Label -Property @{
-                    Text = $displayNames[$i].Substring(7); Dock = 'Fill'; TextAlign = 'MiddleCenter'
+                    Text = $bounds.Name.Substring(7); Dock = 'Fill'; TextAlign = 'MiddleCenter'
                     Font = New-Object Drawing.Font 'Segoe UI', 32
                 }))
                 $badge.Show($form)
@@ -243,98 +331,123 @@ if ($Action -in 'displays', 'layout', 'choose', 'arrange') {
         })
         & $refreshMain
         if ($form.ShowDialog() -eq 'OK') {
-            $ordered = @($main.SelectedItem.Tag)
-            $ordered += @($boxes | Where-Object { $_.Checked -and $_.Tag -ne $ordered[0] } | ForEach-Object Tag)
-            $ordered -join ','
+            $mainDisplay = $main.SelectedItem.Tag
+            if ($follow.Checked) {
+                if ($mainDisplay -eq 'auto') { 'auto' } else { "auto,$mainDisplay" }
+            } else {
+                $ordered = @('manual', $mainDisplay)
+                $ordered += @($boxes | Where-Object { $_.Checked -and $_.Tag -ne $mainDisplay } | ForEach-Object Tag)
+                $ordered -join ','
+            }
         }
         $form.Dispose()
         return
     }
-    $screens = @(switch -Regex ($Profile) {
-        '^both,DISPLAY\d+$' {
-            $preferredMain = $Profile.Split(',')[1]
-            $ordered = @($screens | Where-Object { $_.DeviceName.Split('\')[-1] -eq $preferredMain })
-            $ordered += @($screens | Where-Object { $_.DeviceName.Split('\')[-1] -ne $preferredMain })
-            $ordered | Select-Object -First 4
-        }
-        '^both$' { $screens | Select-Object -First 4 }
-        '^primary$' { $screens | Where-Object Primary }
-        '^external$' {
-            $external = @($screens | Where-Object { !$_.Primary })
-            if ($external.Count -ne 1) { throw 'Select a connected external display by its DISPLAY name.' }
-            $external
-        }
-        default {
-            foreach ($display in ($Profile.Split(',') | Select-Object -Unique)) {
-                $screens | Where-Object { $_.DeviceName.Split('\')[-1] -ieq $display }
-            }
-        }
-    })
-    if (!$screens.Count) {
-        throw "No connected display matches $Profile."
-    }
-    if ($Action -eq 'layout') {
-        $left = ($screens | ForEach-Object { $_.Bounds.X } | Measure-Object -Minimum).Minimum
-        $top = ($screens | ForEach-Object { $_.Bounds.Y } | Measure-Object -Minimum).Minimum
-        foreach ($screen in $screens) {
-            '{0} {1} {2} {3} {4}' -f $screen.DeviceName.Split('\')[-1], ($screen.Bounds.X - $left),
-                ($screen.Bounds.Y - $top), $screen.Bounds.Width, $screen.Bounds.Height
-        }
-        return
-    }
+    $selected = @(Select-Displays $screens)
+    if (!$selected.Count) { throw "No connected display matches $Profile." }
+    Format-Layout $selected
+    return
 }
 
 $name = [IO.Path]::GetFileNameWithoutExtension($ViewerPath)
 $viewerTitle = 'Arch Linux (Hyprland)'
-if ($Action -eq 'arrange') {
-    # ww-start-viewer checks the WSL shared memory before starting FreeRDP.
-    # Cold interop startup can take longer than the window placement itself.
-    $deadline = [DateTime]::UtcNow.AddSeconds(45)
-    do {
-        $process = Get-Process -Name $name -ErrorAction SilentlyContinue |
-            Where-Object { $_.Path -ieq $ViewerPath } | Select-Object -First 1
-        $windows = @()
-        if ($process) {
-            $windows = @([ArchViewerWindows]::ForProcess($process.Id, $viewerTitle) |
-                Sort-Object { [ArchViewerWindows]::Left($_) })
-        }
-        if ($windows.Count -eq $screens.Count) { break }
-        Start-Sleep -Milliseconds 200
-    } while ([DateTime]::UtcNow -lt $deadline)
+function Get-ViewerProcesses {
+    Get-Process -Name $name -ErrorAction SilentlyContinue | Where-Object { $_.Path -ieq $ViewerPath }
+}
 
-    if ($windows.Count -ne $screens.Count) {
+function Fit-ViewerWindows($Windows, $Displays) {
+    $placed = $true
+    for ($i = 0; $i -lt $Displays.Count; $i++) {
+        $window = $Windows[$i]
+        $display = $Displays[$i]
+        if ([ArchViewerWindows]::IsIconic($window)) { continue }
+        if (![ArchViewerWindows]::Fills($window, $display.X, $display.Y, $display.Width, $display.Height)) {
+            $placed = $false
+            if (![ArchViewerWindows]::Place($window, $display.X, $display.Y, $display.Width, $display.Height)) {
+                throw "Could not place the viewer on $($display.Name)."
+            }
+        }
+    }
+    return $placed
+}
+
+if ($Action -in 'arrange', 'watch') {
+    [void] [ArchViewerWindows]::SetThreadDpiAwarenessContext([IntPtr](-4))
+    $displays = @(foreach ($row in ($Layout -split ';')) {
+        $displayName, $x, $y, $width, $height = $row -split ' '
+        [ArchViewerWindows+Display] @{ Name = $displayName; X = $x; Y = $y; Width = $width; Height = $height }
+    })
+    if ($Handles) {
+        $windows = @($Handles -split ',' | ForEach-Object { [IntPtr]([long] $_) })
+        $process = Get-ViewerProcesses | Where-Object {
+            $current = [ArchViewerWindows]::ForProcess($_.Id, $viewerTitle)
+            @($windows | Where-Object { $_ -notin $current }).Count -eq 0
+        } | Select-Object -First 1
+        if (!$process) { exit 3 }
+    } else {
+        # The initial SDL windows are staged left to right in output order.
+        # Keep those handles once placed, since Windows can arrange them in any direction.
+        $deadline = [DateTime]::UtcNow.AddSeconds(45)
+        do {
+            $process = Get-ViewerProcesses | Select-Object -First 1
+            $windows = @()
+            if ($process) {
+                $windows = @([ArchViewerWindows]::ForProcess($process.Id, $viewerTitle) |
+                    Sort-Object { [ArchViewerWindows]::Left($_) })
+            }
+            if ($windows.Count -eq $displays.Count) { break }
+            Start-Sleep -Milliseconds 200
+        } while ([DateTime]::UtcNow -lt $deadline)
+    }
+    if ($windows.Count -ne $displays.Count) {
         throw 'Weaselway did not create the expected viewer windows.'
     }
+
+    if ($Action -eq 'watch') {
+        $pending = ''
+        $wasVisible = $true
+        while (!$process.WaitForExit(750)) {
+            $visible = [bool] ($windows | Where-Object { ![ArchViewerWindows]::IsIconic($_) })
+            $next = @(Format-Layout (Select-Displays (Get-Displays) -Fallback))
+            $snapshot = $next -join ';'
+            if ($snapshot -eq $Layout) {
+                $pending = ''
+                $wasVisible = $visible
+                if ($visible) { $null = Fit-ViewerWindows $windows $displays }
+            } elseif ($snapshot -and $snapshot -eq $pending -and ($visible -or $wasVisible)) {
+                # Windows may minimize a window on the display it removed.
+                $next
+                return
+            } else {
+                # Docking and rotation send several intermediate layouts.
+                $pending = $snapshot
+            }
+        }
+        return
+    }
+
     # The viewer may still apply its initial size or a DPI change after
     # making the windows visible. Wait for the placement to settle.
     $deadline = [DateTime]::UtcNow.AddSeconds(10)
     $stable = 0
     do {
-        $placed = $true
-        for ($i = 0; $i -lt $screens.Count; $i++) {
-            $bounds = $screens[$i].Bounds
-            if (![ArchViewerWindows]::Fills($windows[$i], $bounds.X, $bounds.Y, $bounds.Width, $bounds.Height)) {
-                $placed = $false
-                if (![ArchViewerWindows]::Place($windows[$i], $bounds.X, $bounds.Y, $bounds.Width, $bounds.Height)) {
-                    throw "Could not place the viewer on $($screens[$i].DeviceName)."
-                }
-            }
-        }
-        $stable = if ($placed) { $stable + 1 } else { 0 }
+        $stable = if (Fit-ViewerWindows $windows $displays) { $stable + 1 } else { 0 }
         if ($stable -lt 3) { Start-Sleep -Milliseconds 250 }
     } while ($stable -lt 3 -and [DateTime]::UtcNow -lt $deadline)
     if ($stable -lt 3) {
         throw 'The Weaselway windows did not settle on the selected displays.'
     }
-    foreach ($window in $windows) {
-        [ArchViewerWindows]::Raise($window)
+    if (!$Handles) {
+        foreach ($window in $windows) {
+            [ArchViewerWindows]::Raise($window)
+        }
+        [void] [ArchViewerWindows]::SetForegroundWindow($windows[0])
     }
-    [void] [ArchViewerWindows]::SetForegroundWindow($windows[0])
+    $windows -join ','
     return
 }
 
-$processes = @(Get-Process -Name $name -ErrorAction SilentlyContinue |
-    Where-Object { $_.Path -ieq $ViewerPath })
+$processes = @(Get-ViewerProcesses)
 if (!$processes.Count) {
     exit 3
 }

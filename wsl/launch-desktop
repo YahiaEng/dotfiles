@@ -20,14 +20,26 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 powershell=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
 runtime="${XDG_RUNTIME_DIR:?Missing WSL user runtime directory}"
 profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/weaselway/displays"
-saved_profile=both
+display_list='DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}'
+profile_pattern="^(auto(,DISPLAY[0-9]+)?|manual,$display_list)$"
+saved_profile=auto
 if [[ -r "$profile_file" ]]; then
     read -r saved_profile < "$profile_file" || true
-    if [[ ! "$saved_profile" =~ ^DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}$ ]]; then saved_profile=both; fi
+    if [[ "$saved_profile" =~ ^$display_list$ ]]; then
+        # Old multi-display profiles can discover new displays while keeping
+        # their preferred main display. Keep explicit single-display profiles.
+        if [[ "$saved_profile" == *,* ]]; then
+            saved_profile="auto,${saved_profile%%,*}"
+        else
+            saved_profile="manual,$saved_profile"
+        fi
+    elif [[ ! "$saved_profile" =~ $profile_pattern ]]; then
+        saved_profile=auto
+    fi
 fi
 
 windows_action() {
-    local helper viewer distro launcher action profile
+    local helper viewer distro launcher action profile bounds handles
     helper="$(wslpath -w "$script_dir/windows-viewer.ps1")"
     viewer="$(wslpath -w "$WEASELWAY_VIEWER")"
     distro="${WSL_DISTRO_NAME:-}"
@@ -38,20 +50,28 @@ windows_action() {
     fi
     launcher="$script_dir/launch-desktop"
     action="$1"
-    profile="${2:-both}"
+    profile="${2:-auto}"
+    bounds="${3:-}"
+    bounds="${bounds//$'\n'/;}"
+    handles="${4:-}"
     (
         cd /mnt/c
         "$powershell" -NoProfile -NonInteractive -Command \
-            "& ([ScriptBlock]::Create([IO.File]::ReadAllText('${helper//\'/\'\'}'))) '$action' '${viewer//\'/\'\'}' '${distro//\'/\'\'}' '${launcher//\'/\'\'}' '${profile//\'/\'\'}'"
+            "& ([ScriptBlock]::Create([IO.File]::ReadAllText('${helper//\'/\'\'}'))) '$action' '${viewer//\'/\'\'}' '${distro//\'/\'\'}' '${launcher//\'/\'\'}' '${profile//\'/\'\'}' '${bounds//\'/\'\'}' '${handles//\'/\'\'}'"
     ) 8>&- 9>&- </dev/null
 }
 
 apply_layout() {
-    local screen x y index=1 instance desired
+    local screen x y left top index=1 instance desired
     local path="$runtime/arch-hyprland-displays"
+    read -r _ left top _ <<< "$layout"
+    while read -r screen x y _width _height; do
+        if (( x < left )); then left="$x"; fi
+        if (( y < top )); then top="$y"; fi
+    done <<< "$layout"
     desired="$(
         while read -r screen x y _width _height; do
-            printf 'Virtual-%s %sx%s\n' "$index" "$x" "$y"
+            printf 'Virtual-%s %sx%s\n' "$index" "$((x - left))" "$((y - top))"
             ((index += 1))
         done <<< "$layout"
     )"
@@ -99,6 +119,7 @@ start_weaselwayd() {
 }
 
 sync_wallpaper() {
+    local count="$1"
     local attempt socket outputs missing wallpaper
     for attempt in {1..16}; do
         socket="$(hyprctl instances -j | jq -r '.[0].wl_socket // empty')" || return
@@ -127,6 +148,8 @@ case "$mode" in
         exit
         ;;
     --disconnect|--hide)
+        exec 8>"$runtime/arch-hyprland-viewer-switch.lock"
+        flock 8
         action=close
         if [[ "$mode" == --hide ]]; then action=hide; fi
         status=0
@@ -136,17 +159,20 @@ case "$mode" in
         ;;
     --display-settings)
         profile="$(windows_action choose "$saved_profile" | tr -d '\r')"
-        if [[ ! "$profile" =~ ^DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}$ ]]; then exit 0; fi
+        if [[ ! "$profile" =~ $profile_pattern ]]; then exit 0; fi
         ;;
     auto|--toggle) profile="$saved_profile" ;;
     both)
-        profile=both
-        if [[ "$saved_profile" != both ]]; then profile="both,${saved_profile%%,*}"; fi
+        profile=auto
+        if [[ "$saved_profile" == *,* ]]; then
+            preferred_main="${saved_profile#*,}"
+            profile="auto,${preferred_main%%,*}"
+        fi
         ;;
     primary|external) profile="$mode" ;;
     --monitor|--monitors)
         profile="${2:-}"
-        if [[ ! "$profile" =~ ^DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}$ ]]; then
+        if [[ ! "$profile" =~ ^$display_list$ ]]; then
             printf 'Use --list-monitors to find the DISPLAY names.\n' >&2
             exit 2
         fi
@@ -173,13 +199,8 @@ if [[ "$mode" == auto || "$mode" == --toggle ]]; then
     fi
 fi
 
-if ! layout="$(windows_action layout "$profile" | tr -d '\r')"; then
-    if [[ "$mode" != auto && "$mode" != --toggle ]]; then exit 1; fi
-    profile=both
-    layout="$(windows_action layout "$profile" | tr -d '\r')"
-fi
-mapfile -t screens <<< "$layout"
-count="${#screens[@]}"
+layout="$(windows_action layout "$profile" | tr -d '\r')"
+if [[ "$profile" == external ]]; then profile="${layout%% *}"; fi
 
 if [[ "$mode" != auto && "$mode" != --toggle ]]; then
     status=0
@@ -203,42 +224,86 @@ start_weaselwayd
 
 log="$runtime/arch-hyprland-viewer.log"
 : > "$log"
-# Separate borderless windows avoid SDL's physical fullscreen mode
-# changes. Windows positions and sizes each view to its assigned display.
-width=800 height=500
-if (( count > 1 )); then
-    # Let held-button motion reach the next viewer window at a display edge.
-    export SDL_MOUSE_AUTO_CAPTURE=0
-    export SDL_MOUSE_FOCUS_CLICKTHROUGH=1
-    export WSLENV="${WSLENV:+$WSLENV:}SDL_MOUSE_AUTO_CAPTURE/w:SDL_MOUSE_FOCUS_CLICKTHROUGH/w"
-else
-    read -r _screen _x _y width height <<< "${screens[0]}"
-fi
-DEBUG=1 ww-start-viewer "/sdl-windows:$count" "/w:$width" "/h:$height" -decorations +grab-keyboard \
-    '/t:Arch Linux (Hyprland)' 8>&- 9>&- >>"$log" 2>&1 &
-viewer_pid=$!
-if ! windows_action arrange "$profile" 2>>"$log"; then
-    # Cancel a launch that may still be in the interop preflight. Waiting
-    # here could keep both launcher locks held by a late-starting viewer.
-    kill "$viewer_pid" 2>/dev/null || true
-    windows_action close >>"$log" 2>&1 || true
-    printf 'Could not arrange the Weaselway viewer. See %s\n' "$log" >&2
-    exit 1
-fi
-apply_layout
-if (( count > 1 )); then
-    windows_action drag-handoff 8>&- 9>&- >>"$log" 2>&1 &
-    sync_wallpaper 8>&- 9>&- >>"$log" 2>&1 &
-fi
-if [[ "$mode" == --display-settings ]]; then
-    mkdir -p "$(dirname "$profile_file")"
-    printf '%s\n' "$profile" > "$profile_file.tmp"
-    mv "$profile_file.tmp" "$profile_file"
-fi
-exec 8>&-
-if ! wait "$viewer_pid"; then
-    if ! grep -q 'ERRCONNECT_CONNECT_CANCELLED' "$log"; then
-        printf 'The Weaselway viewer exited with an error. See %s\n' "$log" >&2
-        exit 1
+start_viewer() {
+    local width=800 height=500 count
+    local -a screens
+    mapfile -t screens <<< "$layout"
+    count="${#screens[@]}"
+    if (( count == 1 )); then
+        read -r _screen _x _y width height <<< "${screens[0]}"
+        # Initial RDP negotiation caps the size. Let placement grow larger views.
+        if (( width > 4096 || height > 2048 )); then width=800 height=500; fi
     fi
-fi
+    apply_layout
+    (
+        # Windows can add a resize frame when it moves a borderless window
+        # during a display change. Placement still resizes the client directly.
+        export SDL_BORDERLESS_RESIZABLE_STYLE=0
+        export WSLENV="${WSLENV:+$WSLENV:}SDL_BORDERLESS_RESIZABLE_STYLE/w"
+        if (( count > 1 )); then
+            # Let held-button motion reach the next viewer at a display edge.
+            export SDL_MOUSE_AUTO_CAPTURE=0 SDL_MOUSE_FOCUS_CLICKTHROUGH=1
+            export WSLENV="${WSLENV:+$WSLENV:}SDL_MOUSE_AUTO_CAPTURE/w:SDL_MOUSE_FOCUS_CLICKTHROUGH/w"
+        fi
+        DEBUG=1 exec ww-start-viewer "/sdl-windows:$count" "/w:$width" "/h:$height" \
+            -decorations +grab-keyboard '/t:Arch Linux (Hyprland)'
+    ) 8>&- 9>&- >>"$log" 2>&1 &
+    viewer_pid=$!
+    if ! handles="$(windows_action arrange "$profile" "$layout" 2>>"$log" | tr -d '\r')"; then
+        kill "$viewer_pid" 2>/dev/null || true
+        windows_action close >>"$log" 2>&1 || true
+        printf 'Could not arrange the Weaselway viewer. See %s\n' "$log" >&2
+        return 1
+    fi
+    if (( count > 1 )); then
+        windows_action drag-handoff 8>&- 9>&- >>"$log" 2>&1 &
+    fi
+    sync_wallpaper "$count" 8>&- 9>&- >>"$log" 2>&1 &
+}
+
+manage_viewer() {
+    local viewer_pid handles next_layout
+    start_viewer
+    if [[ "$mode" == --display-settings ]]; then
+        mkdir -p "$(dirname "$profile_file")"
+        printf '%s\n' "$profile" > "$profile_file.tmp"
+        mv "$profile_file.tmp" "$profile_file"
+    fi
+    flock -u 8
+
+    while kill -0 "$viewer_pid" 2>/dev/null; do
+        if ! next_layout="$(windows_action watch "$profile" "$layout" "$handles" 2>>"$log" | tr -d '\r')"; then
+            sleep 1
+            continue
+        fi
+        [[ -n "$next_layout" ]] || break
+        # User-initiated close or display selection owns the switch lock first.
+        until flock -n 8; do
+            kill -0 "$viewer_pid" 2>/dev/null || break 2
+            sleep .1
+        done
+        kill -0 "$viewer_pid" 2>/dev/null || break
+        if [[ "$(cut -d ' ' -f 1 <<< "$layout")" == "$(cut -d ' ' -f 1 <<< "$next_layout")" ]]; then
+            if windows_action arrange "$profile" "$next_layout" "$handles" >>"$log" 2>&1; then
+                layout="$next_layout"
+                apply_layout
+            fi
+        elif windows_action close >>"$log" 2>&1; then
+            # SDL fixes the window count at launch. Reconnect only the viewer
+            # when the Windows output set or its main display changes.
+            wait "$viewer_pid" || true
+            layout="$next_layout"
+            start_viewer
+        fi
+        flock -u 8
+    done
+
+    if ! wait "$viewer_pid"; then
+        if ! grep -q 'ERRCONNECT_CONNECT_CANCELLED' "$log"; then
+            printf 'The Weaselway viewer exited with an error. See %s\n' "$log" >&2
+            exit 1
+        fi
+    fi
+}
+
+manage_viewer

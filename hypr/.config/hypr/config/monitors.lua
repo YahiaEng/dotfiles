@@ -34,7 +34,8 @@ if weaselway then
     end
     for i = 1, 4 do
         local output = "Virtual-" .. i
-        local monitor = type(overrides[output]) == "table" and overrides[output] or {}
+        -- Windows positions and viewer pixels describe the same 1x layout.
+        local monitor = not positions[output] and type(overrides[output]) == "table" and overrides[output] or {}
         setMonitor(output, monitor, positions[output])
         hl.device({ name = "weaselway-touchscreen-" .. i, output = output })
     end
