@@ -1,0 +1,8 @@
+{
+  "policies": {
+    "Preferences": {
+      "gfx.webrender.software": {"Value": true, "Status": "default"},
+      "media.hardware-video-decoding.enabled": {"Value": false, "Status": "default"}
+    }
+  }
+}

@@ -97,7 +97,7 @@ Item {
 
         anchors.centerIn: parent
         text: root.placeholderText
-        color: root.pam.passwd.active ? Colours.secondary : Colours.outline
+        color: Colours.onSurface
         font.pixelSize: 16
         opacity: root.pam.buffer.length > 0 ? 0 : 1
 

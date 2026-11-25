@@ -146,6 +146,7 @@ Item {
         }
 
         if (row.mode) {
+            LauncherState.query = "";
             LauncherState.mode = row.mode;
             return;
         }

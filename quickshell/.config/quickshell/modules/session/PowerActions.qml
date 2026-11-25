@@ -109,7 +109,9 @@ Singleton {
         },
         {
             glyph: "logout", label: "Log Out", mnemonic: "e",
-            command: ["sh", "-c", "cliphist wipe; uwsm stop"]
+            command: !!Quickshell.env("WEASELWAY_VSOCK_PORT")
+                ? ["sh", "-c", "cliphist wipe; hyprctl dispatch 'hl.dsp.exit()'"]
+                : ["sh", "-c", "cliphist wipe; uwsm stop"]
         },
         {
             glyph: "bedtime", label: "Suspend", mnemonic: "u",

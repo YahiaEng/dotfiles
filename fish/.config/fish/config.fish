@@ -2,127 +2,8 @@
 # Parity: the retired .zshrc's APP2UNIT_SLICES (unexported there too)
 set -g APP2UNIT_SLICES "a=app-graphical.slice b=background-graphical.slice s=session-graphical.slice"
 
-# ── Greeting: fastfetch in interactive shells ────────
-# fish's built-in greeting is disabled; fastfetch replaces it.
-# `status is-interactive` is the fish equivalent of the old `[ -t 0 ]` guard.
+# The themed greeting is installed after the interactive prompt is initialized.
 set -g fish_greeting
-if status is-interactive
-    # ── Logo selector (quick task 260818-srl) ────────
-    # matugen never knows which logo was picked; the selector never touches
-    # colours; box-close.awk touches neither — three independent layers,
-    # see PLAN.md's "the seam" diagram. This block owns layer 2 only.
-    #
-    # T-srl-01 (Tampering/Elevation): the state file's content becomes a
-    # `--logo <path>` argument. NEVER pass it raw — validate against the
-    # enumerated art/sprite set first (fish's `contains`, not string
-    # interpolation into a path) and fall back to themed ASCII on anything
-    # unrecognised. "Nothing may silently reach the stock builtin arch
-    # logo" — the final fallback below is always themed ASCII (arch), even
-    # for an unrecognised state value.
-    set -l ff_ascii_arts arch star cyberpunk_mask illuminati
-    set -l ff_sprite_names pulse sweep glitch scan assemble orbit
-    set -l ff_state (cat $HOME/.local/state/theme/fastfetch-logo 2>/dev/null)
-
-    # Real kitty-graphics capability check, not a guess — mirrors the
-    # `[[ -n "${KITTY_WINDOW_ID:-}" ]] && command -v kitten` idiom
-    # icon-theme-picker.sh:273 already uses (measured reliable there).
-    set -l ff_in_kitty 0
-    if test -n "$KITTY_WINDOW_ID"; and command -v kitten >/dev/null 2>&1
-        set ff_in_kitty 1
-    end
-
-    # "random" re-rolls the actual pick into ff_state itself, BEFORE the
-    # validation chain below — everything downstream (including the
-    # kitty-capability/GIF-readable gate on a sprite pick) still applies to
-    # whatever random landed on, so a randomly-picked sprite outside kitty
-    # still correctly degrades to themed ASCII rather than skipping that
-    # check.
-    if test "$ff_state" = random
-        if test "$ff_in_kitty" -eq 1
-            set ff_state (random choice $ff_sprite_names)
-        else
-            set ff_state (random choice $ff_ascii_arts)
-        end
-    end
-
-    set -l ff_logo_type file
-    set -l ff_logo_path "$HOME/.config/fastfetch/art/arch.txt"
-
-    # ── Sprite cell reservation (quick task 260818-u6v) ──
-    # fastfetch does NOT scale an image logo to a requested cell box: the
-    # kitty graphics control it emits is `s=200,v=200` (source pixel size)
-    # with no `c=`/`r=` cell-scaling keys, measured identical across every
-    # --logo-width value tested. The flags reserve TEXT COLUMNS and move the
-    # placement cue; the image is always drawn at its natural pixel size.
-    # Without them fastfetch reserved only `ESC[3C` — padding.left alone —
-    # and drew the whole info box straight through the sprite.
-    #
-    # COUPLING, deliberate and documented rather than silent: these two
-    # numbers are (sprite canvas px) / (kitty cell px).
-    #   cols = 200 / 10 = 20      rows = 200 / 20 = 10
-    # The canvas is `S = 200` in theme-engine/lib/fastfetch-sprites.py; the
-    # 10x20 px cell follows from `font_size 12.0` in kitty/kitty.conf
-    # (measured live: 2440x640 px over 244x32 cells). A materially SMALLER
-    # font shrinks the cell, pushes the natural column count above 20, and
-    # the clipping returns. Querying the real cell size per shell would cost
-    # another ~14ms `kitten` spawn on top of the one icat already pays, which
-    # is why this is pinned instead. Change either end -> change both.
-    set -l ff_sprite_cols 20
-    set -l ff_sprite_rows 10
-
-    if test "$ff_state" = none
-        set ff_logo_type none
-        set ff_logo_path ""
-    else if contains -- "$ff_state" $ff_ascii_arts
-        set ff_logo_type file
-        set ff_logo_path "$HOME/.config/fastfetch/art/$ff_state.txt"
-    else if contains -- "$ff_state" $ff_sprite_names
-        set -l ff_gif "$HOME/.local/state/theme/fastfetch/$ff_state.gif"
-        # A sprite is selected ONLY if kitty's graphics protocol is
-        # actually available AND its GIF exists and is readable —
-        # otherwise themed ASCII (arch), never the sprite path and never
-        # the builtin logo.
-        if test "$ff_in_kitty" -eq 1; and test -r "$ff_gif"
-            set ff_logo_type kitty-icat
-            set ff_logo_path "$ff_gif"
-        end
-    end
-
-    # Fresh-install degradation: no theme-apply has ever rendered
-    # fastfetch.jsonc yet — run plain fastfetch with no `-c` rather than
-    # pointing at a file that doesn't exist. Same voice as the
-    # fish-colors.fish guard directly below: a missing render degrades to
-    # "the old look", never to a broken shell.
-    if test -f $HOME/.local/state/theme/fastfetch.jsonc
-        # `--pipe false` is load-bearing (M-4) — fastfetch auto-disables
-        # colour when stdout is a pipe; without this flag every colour
-        # this template renders is silently stripped before box-close.awk
-        # ever sees a byte.
-        if test "$ff_logo_type" = none
-            fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
-                --logo-type none \
-                --pipe false \
-                | awk -f $HOME/.config/fastfetch/box-close.awk
-        else if test "$ff_logo_type" = kitty-icat
-            # Image logo: fastfetch cannot measure it, so the cell footprint
-            # must be declared or the box overlaps the sprite (260818-u6v).
-            fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
-                --logo-type $ff_logo_type --logo $ff_logo_path \
-                --logo-width $ff_sprite_cols --logo-height $ff_sprite_rows \
-                --pipe false \
-                | awk -f $HOME/.config/fastfetch/box-close.awk
-        else
-            # Text art: fastfetch counts the characters itself, so the width
-            # flags are meaningless here and are deliberately not passed.
-            fastfetch -c $HOME/.local/state/theme/fastfetch.jsonc \
-                --logo-type $ff_logo_type --logo $ff_logo_path \
-                --pipe false \
-                | awk -f $HOME/.config/fastfetch/box-close.awk
-        end
-    else
-        fastfetch
-    end
-end
 
 # ── Theme colours ────────────
 # Rendered by matugen every theme-apply run into XDG state, same pattern as
@@ -200,5 +81,12 @@ if status is-interactive
     end
 
     # ── Prompt ─
-    starship init fish | source
+    if command -q starship
+        if not set -q STARSHIP_CONFIG; and test -r "$HOME/.local/state/theme/starship-prompt.toml"
+            set -gx STARSHIP_CONFIG "$HOME/.local/state/theme/starship-prompt.toml"
+        end
+        starship init fish | source
+    end
+
+    __fastfetch_setup_greeting
 end

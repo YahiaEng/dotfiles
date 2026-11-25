@@ -49,4 +49,4 @@ fi
 # constraints at once.
 ~/.config/hypr/scripts/hyprpm-complete.sh >/dev/null 2>&1 &
 
-exec THEME_APPLY_QUIET=1 "$THEME_APPLY" "$THEME"
+THEME_APPLY_QUIET=1 exec "$THEME_APPLY" "$THEME"

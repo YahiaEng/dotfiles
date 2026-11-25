@@ -67,130 +67,46 @@ Singleton {
     // internals to find out.
     readonly property bool anyOpen: root.openSection !== ""
 
-    // ── The open popout's root on the bar's edge (quick task 260825-pyf,
-    //    Task 1) ──────────────────────────────────────────────────────────
-    // Where `Bar.qml` must swell its edge so the open popout has something
-    // to grow out of, and how much of the edge that swell must span.
-    //
-    // BOTH ARE IN THE BAR WINDOW'S OWN ALONG-AXIS SPACE, which is what
-    // makes this the right place to put them and what stops the conversion
-    // bug this family has now shipped three times: `PopoutTrigger`'s
-    // `publishAnchor()` computes `mapToItem(null, 0, 0)`, and `mapToItem`
-    // with a null argument maps into the item's OWN WINDOW — for a bar
-    // entry, the bar's PanelWindow. So the bar reads these RAW, adding
-    // nothing. `SectionPopout` is the one that must add
-    // `Design.barSideMargin` to reach screen space, and it still does in
-    // its `_horizontalDesiredLeft` — see the long note above that property
-    // recording the two separate times this exact origin was double-added
-    // and the once it was wrongly removed.
-    //
-    // The rule this family settled on, stated once: whoever consumes a raw
-    // `mapToItem()` value converts it EXACTLY ONCE. The bar converts zero
-    // times because it is already in that space.
-    //
-    // THE SNAPSHOT LIVES UPSTREAM, in `PopoutTrigger._publishedCentre`,
-    // which `publishAnchor()` writes once per summon. That is the property
-    // that must not be a live binding — scene mapping does not re-evaluate
-    // when an ancestor moves. These two forward it, and forwarding a
-    // snapshot is not re-measuring it. An earlier version of this comment
-    // claimed these were themselves written once and never bound; that was
-    // the reasoning behind the construction-time publish bug described
-    // below, and it is not how they work now.
-    property real openCentre: 0
     property real openExtent: 0
 
-    // WRITTEN BY `SectionPopout` AS BINDINGS, not by a call. The first
-    // version of this was a `publishRoot(centre, extent)` function invoked
-    // from the popout's `Component.onCompleted`, and it shipped a bug:
-    // `PopoutTrigger.qml:173-175` assigns `vertical` and `triggerCentre`
-    // onto the item AFTER creating it, so at construction both were still
-    // at their defaults and every popout published a centre of 0. The bar
-    // clamped that to one position and all eight opened stacked near the
-    // top of the bar rather than beside their own capsule.
-    //
-    // Being built fresh per summon does NOT mean being configured at
-    // construction. `openExtent` had a second, independent reason to be
-    // late: the popout is content-bounded, so its size is 0 until the body
-    // lays out.
-    //
-    // DELIBERATELY NOT CLEARED WHEN THE POPOUT GOES AWAY — do not "tidy"
-    // that in. The bulge retracts by animating its DEPTH to zero off
-    // `anyOpen`; if the centre were zeroed at the same moment, the
-    // retracting bulge would jump to the top of the bar and shrink there
-    // instead of closing where it opened. A destroyed Binding leaves the
-    // last value in place, which is exactly the wanted behaviour.
+    property var defaultBar: null
+    property var otherBars: []
+    property var selectedBar: null
+    readonly property var activeBar: selectedBar ?? defaultBar
+    readonly property var rootScreen: activeBar?.screen ?? null
+    readonly property real rootAlongOrigin: !activeBar ? 0
+        : activeBar.vertical ? activeBar.margins.top : activeBar.margins.left
+    readonly property bool rootAttached: activeBar?._welded ?? false
+    readonly property real rootOuterInset: !activeBar ? 0
+        : activeBar.vertical ? activeBar.margins.right : activeBar.margins.top
+    readonly property real rootInset: rootOuterInset + (activeBar?.reservedZoneExtent ?? 0)
+    readonly property real rootSlabWidth: !activeBar ? 0
+        : activeBar.vertical ? activeBar._weldSlabWidth : activeBar._weldSlabDepth
 
-    // ── The other direction: what the bar's edge is actually doing ──────
-    // Written by `Bar.qml`, read by `SectionPopout`. The bar owns every one
-    // of these — where its slab sits, how deep the bulge has grown this
-    // frame, and where the bulge ended up after clamping — so the popout
-    // reads three finished numbers instead of recomputing bar internals
-    // from tokens. That is deliberate: a popout that derived the bulge face
-    // from `barEdgeMargin + barColumnWidth + weldRim + depth` would be a
-    // second copy of the bar's arithmetic, and this family's whole history
-    // of position bugs is second copies of arithmetic drifting apart.
-    //
-    // `rootAttached` is false whenever there is no painted bar edge to weld
-    // to — every style but Continuous, and Continuous itself while the bar
-    // is horizontal. The popout's unattached posture (top of the Hyprland
-    // windows) is the fallback, not an error state.
-    property bool rootAttached: false
+    function barForScreen(screen) {
+        if (!screen)
+            return null;
+        if (defaultBar?.screen?.name === screen.name)
+            return defaultBar;
+        for (const bar of otherBars) {
+            if (bar?.screen?.name === screen.name)
+                return bar;
+        }
+        return null;
+    }
 
-    // Distance from the anchored SCREEN edge to the bulge's face, so the
-    // popout can set its own margin against that edge directly.
-    property real rootInset: 0
+    function selectBar(bar, force) {
+        if (!bar || (bar !== activeBar && pinnedSection !== "" && !force))
+            return false;
+        if (bar !== activeBar)
+            selectedBar = bar;
+        return true;
+    }
 
-    // ── THE SLAB, SO THE POPOUT CAN HIDE BEHIND IT (260825-x9p) ─────────
-    // The popout's surface now extends past the slab's inner face and under
-    // the bar, so its closed panel is genuinely BEHIND the bar rather than
-    // merely outside a surface that stopped at the bar's edge. Both numbers
-    // are the bar's own live geometry, measured from the TRUE screen edge —
-    // the popout runs `exclusiveZone: -1` while welded, which is what makes
-    // its margins screen-relative instead of usable-relative.
-    //
-    // `rootOuterInset` is screen edge -> slab's OUTER edge (its own 6px
-    // margin), so a surface anchored there stops exactly where the slab
-    // stops and never paints in the gap beyond it. `rootSlabWidth` is how
-    // much further the surface must extend to cover the slab, which is
-    // exactly how far the closed panel hides.
-    property real rootOuterInset: 0
-    property real rootSlabWidth: 0
+    onActiveBarChanged: closeNow()
 
-    // ── THE PANEL'S ACTUAL ALONG-AXIS TOP, POST-CLAMP (260825-w4c) ──────
-    // Written by the popout AFTER its own clamp has run, read by the bar as
-    // the bulge's span. This exists because the bulge and the panel used to
-    // be positioned by TWO INDEPENDENT CLAMPS that disagreed.
-    //
-    // MEASURED, on the resources popout: `triggerCentre` 114, so the bar
-    // clamped the bulge's CENTRE to `cap + half` = 26 + 135 = 161 and drew
-    // it at 26..296, while the popout clamped its WINDOW's top to 26, which
-    // puts the PANEL at 50..320 — centre 185. The two minimums differ by
-    // exactly `flareRadius`, because the bar's clamp reasons about the panel
-    // while the popout's reasons about the window, and the window is
-    // `2 * flareRadius` taller. Confirmed in pixels before it was confirmed
-    // in code: bar-coloured material at 14px depth (the bulge's exact depth)
-    // in rows 26..46, above a panel starting at 50, and none below it.
-    //
-    // The invariant this restores is the operator's own words — "the bulge's
-    // width must be so that it never pops out behind of the panel's
-    // sideways". The bar now takes this span and may only SHRINK it to fit
-    // the slab's straight run, never shift it, so the bulge is a subset of
-    // the panel's extent by construction rather than by two clamps happening
-    // to agree.
-    //
-    // NOT A FEEDBACK LOOP, and this is the part to check before editing
-    // either side: `rootCentre` below is still derived from `openCentre`
-    // (the trigger's own centre) and is what the popout positions against,
-    // so it does not depend on this value. This flows one way only —
-    // trigger centre -> popout position -> bulge span.
+    // The popout publishes its clamped body span for the vertical bulge.
     property real openTop: 0
-
-    // The bulge's along-axis centre in screen space, AFTER the bar has
-    // clamped it into the slab's straight section. The popout must align to
-    // THIS and not to its own `triggerCentre`: near the top or bottom of the
-    // bar the two differ, and aligning to the unclamped value would leave
-    // the panel hanging off the end of the shelf it is supposed to sit on.
-    property real rootCentre: 0
 
     // Refuses and returns false for an id that fails validation; returns
     // true unchanged if it is already the open section; otherwise clears
@@ -325,7 +241,7 @@ Singleton {
     // Defaults true because there is no reveal animation yet — this is
     // the one half of D-18-19 this plan cannot prove today, named rather
     // than quietly assumed.
-    property bool barSettled: true
+    readonly property bool barSettled: !!activeBar && activeBar.barRendered && !activeBar.barTransitionRunning
 
     // Set true by the first pointer move reported on a settled bar; reset
     // to false whenever barSettled goes false, through an explicit change

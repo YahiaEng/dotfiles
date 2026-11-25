@@ -251,28 +251,11 @@ while IFS="$US" read -r awk_tag f1 f2 f3 f4 f5 f6 f7 f8 f9; do
 
             modmask=$(_kbd_modmask "$modsfield")
 
-            # Lua's own key-field serialization is confirmed live, not
-            # assumed, and it is narrower/odder than a simple "keycode
-            # always reads back 0" gap: a Lua-registered code:NNN bind's
-            # PLAIN-TEXT `hyprctl binds` key field is the FULL
-            # modifier-prefixed string (e.g. "SHIFT + code:107"), not
-            # the bare "code:107" — while every ordinary symbolic-key
-            # bind's key field IS stripped down to the bare key (e.g.
-            # "SUPER + SHIFT + Q" registers as modmask=65, key="Q", the
-            # modifier text never appearing in the key field at all).
-            # Both facts confirmed directly on this build during
-            # 13.1-09 (see this task's SUMMARY for the full evidence).
-            # keycode itself always reads 0 for a Lua-registered bind
-            # regardless of key shape (the already-documented
-            # 13.1-03/13.1-04 gap). None of this is loosened here — the
-            # tuple this doctor builds is simply made to match what the
-            # compositor ACTUALLY reports for each shape, which is the
-            # correct parse of this format, not a carve-out.
             keycode=0
-            if [[ "$keyfield" =~ ^code:[0-9]+$ ]]; then
-                live_key="$fullkey"
-            else
-                live_key="$keyfield"
+            live_key="$keyfield"
+            if [[ "$keyfield" =~ ^code:([0-9]+)$ ]]; then
+                keycode="${BASH_REMATCH[1]}"
+                live_key=""
             fi
 
             DECLARED_TUPLES+=("${modmask}|${live_key}|${keycode}|${release}")
@@ -348,27 +331,28 @@ else
         PARSED=$(printf '%s' "$LIVE_BINDS_RAW" | awk -v RS="" -v FS="\n" -v US="$US" '
             {
                 nblocks++
-                if (NF < 9) {
-                    print "AWKERR" US "block " nblocks " has " NF " lines (expected 9)"
+                flags_line = ($2 ~ /^\tflags: /)
+                if (NF < 9 + flags_line) {
+                    print "AWKERR" US "block " nblocks " has " NF " lines (expected at least " 9 + flags_line ")"
                     next
                 }
                 header = $1
-                if ($2 !~ /^\tmodmask: /)     { print "AWKERR" US "block " nblocks ": field 2 is not \"modmask: \" (got " $2 ")"; next }
-                if ($3 !~ /^\tsubmap: /)      { print "AWKERR" US "block " nblocks ": field 3 is not \"submap: \" (got " $3 ")"; next }
-                if ($4 !~ /^\tkey: /)         { print "AWKERR" US "block " nblocks ": field 4 is not \"key: \" (got " $4 ")"; next }
-                if ($5 !~ /^\tkeycode: /)     { print "AWKERR" US "block " nblocks ": field 5 is not \"keycode: \" (got " $5 ")"; next }
-                if ($6 !~ /^\tcatchall: /)    { print "AWKERR" US "block " nblocks ": field 6 is not \"catchall: \" (got " $6 ")"; next }
-                if ($7 !~ /^\tdescription: /) { print "AWKERR" US "block " nblocks ": field 7 is not \"description: \" (got " $7 ")"; next }
-                if ($8 !~ /^\tdispatcher: /)  { print "AWKERR" US "block " nblocks ": field 8 is not \"dispatcher: \" (got " $8 ")"; next }
-                if ($9 !~ /^\targ: /)         { print "AWKERR" US "block " nblocks ": field 9 is not \"arg: \" (got " $9 ")"; next }
+                if ($(flags_line + 2) !~ /^\tmodmask: /)     { print "AWKERR" US "block " nblocks ": field 2 is not \"modmask: \" (got " $(flags_line + 2) ")"; next }
+                if ($(flags_line + 3) !~ /^\tsubmap: /)      { print "AWKERR" US "block " nblocks ": field 3 is not \"submap: \" (got " $(flags_line + 3) ")"; next }
+                if ($(flags_line + 4) !~ /^\tkey: /)         { print "AWKERR" US "block " nblocks ": field 4 is not \"key: \" (got " $(flags_line + 4) ")"; next }
+                if ($(flags_line + 5) !~ /^\tkeycode: /)     { print "AWKERR" US "block " nblocks ": field 5 is not \"keycode: \" (got " $(flags_line + 5) ")"; next }
+                if ($(flags_line + 6) !~ /^\tcatchall: /)    { print "AWKERR" US "block " nblocks ": field 6 is not \"catchall: \" (got " $(flags_line + 6) ")"; next }
+                if ($(flags_line + 7) !~ /^\tdescription: /) { print "AWKERR" US "block " nblocks ": field 7 is not \"description: \" (got " $(flags_line + 7) ")"; next }
+                if ($(flags_line + 8) !~ /^\tdispatcher: /)  { print "AWKERR" US "block " nblocks ": field 8 is not \"dispatcher: \" (got " $(flags_line + 8) ")"; next }
+                if ($(flags_line + 9) !~ /^\targ: /)         { print "AWKERR" US "block " nblocks ": field 9 is not \"arg: \" (got " $(flags_line + 9) ")"; next }
 
-                modmask = $2; sub(/^\tmodmask: /, "", modmask)
-                key = $4; sub(/^\tkey: /, "", key)
-                keycode = $5; sub(/^\tkeycode: /, "", keycode)
-                dispatcher = $8; sub(/^\tdispatcher: /, "", dispatcher)
-                arg = $9; sub(/^\targ: /, "", arg)
+                modmask = $(flags_line + 2); sub(/^\tmodmask: /, "", modmask)
+                key = $(flags_line + 4); sub(/^\tkey: /, "", key)
+                keycode = $(flags_line + 5); sub(/^\tkeycode: /, "", keycode)
+                dispatcher = $(flags_line + 8); sub(/^\tdispatcher: /, "", dispatcher)
+                arg = $(flags_line + 9); sub(/^\targ: /, "", arg)
 
-                release = (header ~ /r/) ? "true" : "false"
+                release = (flags_line ? $2 ~ /[ ,]release([ ,]|$)/ : header ~ /r/) ? "true" : "false"
 
                 print "AWKTUPLE" US modmask US key US keycode US release US dispatcher US arg
             }
@@ -392,6 +376,11 @@ else
                     ;;
                 AWKTUPLE)
                     modmask="$f1"; key="$f2"; keycode="$f3"; release="$f4"; dispatcher="$f5"; arg="$f6"
+                    # Older Lua IPC put physical keycodes in the key string.
+                    if [[ "$key" =~ (^|[[:space:]])code:([0-9]+)$ ]]; then
+                        [[ "$keycode" != 0 ]] || keycode="${BASH_REMATCH[2]}"
+                        key=""
+                    fi
                     tuple="${modmask}|${key}|${keycode}|${release}"
                     target="${dispatcher}:${arg}"
                     LIVE_TUPLE_SET["$tuple"]=1

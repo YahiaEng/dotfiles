@@ -1,20 +1,11 @@
-// Lock.qml — shell-root mount point for the in-process lock screen (quick
-// task 260827-833 Task 1, LOCK-01). A plain, always-on `Scope` — NOT
-// behind a LazyLoader. The screencopy pre-warm below has to run at shell
-// start, and a lock that has to be incubated before it can lock is a lock
-// that races the compositor.
-//
-// `mediaBackend` is relayed straight through to `LockSurface`, the same
-// "pass the shared instance down as an untyped `property var`" shape
-// `Dashboard.qml:664` already uses for the identical reason: a
-// cross-module typed property would need `modules/lock/` to import
-// `qs.modules.dashboard` just for a type annotation.
+// Owns the compositor lock, PAM authentication and recovery across outputs.
 pragma ComponentBehavior: Bound
 
 import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
+import "../"
 
 Scope {
     id: root
@@ -27,20 +18,43 @@ Scope {
     property var weatherBackend: null
     property var systemResources: null
 
+    readonly property string instance: Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE")
+    property bool unlocking: false
+    property bool restorePending: false
+
+    FileView {
+        id: lockState
+        path: root.instance && Quickshell.env("XDG_RUNTIME_DIR")
+            ? Quickshell.env("XDG_RUNTIME_DIR") + "/hypr/" + root.instance + "/quickshell-lock.state"
+            : ""
+        blockLoading: true
+        blockWrites: true
+        atomicWrites: true
+        printErrors: false
+        onSaveFailed: error => console.warn("Unable to save the session lock state:", error)
+    }
+
+    function saveLockState(value): void {
+        if (lockState.path)
+            lockState.setText(value);
+    }
+
     WlSessionLock {
         id: lock
 
-        // Renamed from Caelestia's `unlock` — see LockPam.qml's header for
-        // why: the installed WlSessionLock type already exposes a native
-        // `unlock()` METHOD, and redeclaring a same-named signal on top of
-        // it would collide. This signal is the deferred-unlock trigger;
-        // the actual `locked = false` write happens at the END of
-        // LockSurface's exit animation, not here.
         signal unlockRequested
 
+        onSecureChanged: if (secure) root.saveLockState("locked")
+        onUnlockRequested: {
+            if (lock.secure && !root.unlocking) {
+                root.unlocking = true;
+                finishUnlock.restart();
+            }
+        }
+
         LockSurface {
-            lock: lock
             pam: pam
+            unlocking: root.unlocking
             mediaBackend: root.mediaBackend
             weatherBackend: root.weatherBackend
             systemResources: root.systemResources
@@ -49,26 +63,41 @@ Scope {
 
     LockPam {
         id: pam
-
         lock: lock
     }
 
-    // Force a load of a screencopy so the one in the lock works
-    // My guess is the ICC backend loads async on first request, which if the lock is
-    // the first request it fails to capture (because it's async and the compositor
-    // refuses capture when locked)
-    Loader {
-        asynchronous: true
-        active: true
-        onLoaded: active = false
-
-        sourceComponent: ScreencopyView {
-            captureSource: Quickshell.screens[0]
+    // One timer owns unlock across all outputs, including if an output
+    // disappears during the exit animation.
+    Timer {
+        id: finishUnlock
+        interval: Motion.emphasizedInDuration
+        onTriggered: {
+            lock.locked = false;
+            root.unlocking = false;
+            root.saveLockState("unlocked");
         }
+    }
+
+    // Hyprland keeps an abandoned lock in force. Reattach a PAM-backed
+    // client when a real output returns, without clearing that lock.
+    Timer {
+        interval: 150
+        running: root.restorePending && Quickshell.screens.some(screen =>
+            screen && screen.name && screen.name !== "FALLBACK")
+        onTriggered: {
+            root.restorePending = false;
+            lock.locked = true;
+        }
+    }
+
+    Component.onCompleted: {
+        if (lockState.path)
+            root.restorePending = lockState.text().trim() === "locked";
     }
 
     IpcHandler {
         function lock(): void {
+            root.restorePending = false;
             root.lock.locked = true;
         }
 

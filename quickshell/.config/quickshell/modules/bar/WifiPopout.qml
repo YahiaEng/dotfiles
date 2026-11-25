@@ -32,6 +32,13 @@ SectionPopout {
     id: root
 
     property var wifiBackend: null
+    readonly property bool windowsManaged: WindowsConnectivity.enabled && !root.wifiBackend?.wifiDevice
+    readonly property var windowsWifi: root.windowsManaged ? WindowsConnectivity.wifi : null
+
+    onOpenedChanged: {
+        if (opened && windowsManaged)
+            WindowsConnectivity.refresh();
+    }
 
     sectionId: "wifi"
     popoutTitle: "Wi-Fi"
@@ -39,6 +46,11 @@ SectionPopout {
     // properties, so the bar entry and this header can never disagree
     // about what the radio is doing.
     popoutGlyph: {
+        if (root.windowsManaged) {
+            if (root.windowsWifi?.state === "connected")
+                return "network_wifi";
+            return root.windowsWifi?.state === "off" ? "wifi_off" : "signal_wifi_statusbar_null";
+        }
         if (!root.wifiBackend || !root.wifiBackend.wifiHardwareEnabled)
             return "wifi_off";
         if (!root.wifiBackend.wifiEnabled)
@@ -49,6 +61,8 @@ SectionPopout {
     }
 
     bodyState: {
+        if (root.windowsManaged)
+            return "populated";
         if (!root.wifiBackend || root.wifiBackend.readinessState === "pending")
             return "pending";
         if (!root.wifiBackend.wifiHardwareEnabled)
@@ -62,11 +76,30 @@ SectionPopout {
     emptyStateGlyph: "wifi_off"
     emptyStateText: "No Wi-Fi device found"
 
-    wayfindingLabel: "Open Wi-Fi settings"
-    onWayfindingActivated: PopoutController.requestPanel("wifi")
+    wayfindingLabel: root.windowsManaged ? "Open Windows Wi-Fi settings" : "Open Wi-Fi settings"
+    onWayfindingActivated: {
+        if (root.windowsManaged) {
+            PopoutController.close();
+            WindowsConnectivity.openSettings("wifi");
+        } else {
+            PopoutController.requestPanel("wifi");
+        }
+    }
 
-    readonly property var _currentNetwork: root.wifiBackend ? root.wifiBackend.currentNetwork : null
+    readonly property var _currentNetwork: root.windowsManaged
+        ? (root.windowsWifi?.state === "connected" ? root.windowsWifi : null)
+        : (root.wifiBackend?.currentNetwork ?? null)
     readonly property var _savedRows: root.wifiBackend ? root.wifiBackend.savedNetworks.slice(0, Design.popoutListCap) : []
+
+    readonly property string windowsStatus: {
+        switch (root.windowsWifi?.state) {
+        case "connected": return root.windowsWifi.name || "Connected in Windows";
+        case "on": return "Not connected in Windows";
+        case "off": return "Wi-Fi is off in Windows";
+        case "unavailable": return "Windows found no Wi-Fi adapter";
+        default: return "Wi-Fi is managed by Windows";
+        }
+    }
 
     // Never sorts, never starts a scan: a plain opacity bucket over a
     // value that is either already there or absent. Same three-bucket
@@ -111,7 +144,7 @@ SectionPopout {
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.iconSizeMd
             textFormat: Text.PlainText
-            text: "network_wifi"
+            text: root.windowsManaged ? root.popoutGlyph : "network_wifi"
             opacity: root._strengthOpacity(root._currentNetwork)
             color: BarRoles.capsuleFg
         }
@@ -121,7 +154,7 @@ SectionPopout {
             width: parent.width - currentGlyph.width - Design.spacingSm
             elide: Text.ElideRight
             textFormat: Text.PlainText
-            text: root._currentNetwork ? root._currentNetwork.name : "Not connected"
+            text: root.windowsManaged ? root.windowsStatus : (root._currentNetwork?.name ?? "Not connected")
             font.pixelSize: Design.fontBody
             font.weight: root._currentNetwork ? Design.weightEmphasis : Design.weightBody
             color: root._currentNetwork ? BarRoles.popoutFg : BarRoles.capsuleFg
@@ -133,7 +166,7 @@ SectionPopout {
     //    decides whether the toggle is available at all. ────────────────
     Item {
         id: radioTogglePill
-        visible: root.bodyState === "populated"
+        visible: root.bodyState === "populated" && !root.windowsManaged
         width: radioToggleLabel.implicitWidth + Design.spacingLg * 2
         height: Design.iconSizeMd + Design.spacingSm * 2
 
@@ -164,7 +197,7 @@ SectionPopout {
     //    first-seen registry order, no comparator sort anywhere. ─────────
     Column {
         id: savedSection
-        visible: root.bodyState === "populated"
+        visible: root.bodyState === "populated" && !root.windowsManaged
         width: parent.width
         spacing: Design.spacingXs
 

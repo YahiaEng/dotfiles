@@ -75,7 +75,7 @@ hl.bind(mainMod .. " + Y", hl.dsp.exec_cmd(tui)) -- Open file manager (TUI)
 -- never moved, and it is the most reflexive bind on the machine.
 hl.bind(mainMod .. " + I", hl.dsp.exec_cmd("qs ipc call appearance-window open icons")) -- Open Appearance (Icons)
 hl.bind(mainMod .. " + SHIFT + I", hl.dsp.exec_cmd(codeEditor)) -- Open code editor
-hl.bind(mainMod .. " + Q", hl.dsp.window.kill()) -- Close active window
+hl.bind(mainMod .. " + Q", hl.dsp.window.close()) -- Request a normal window close
 hl.bind(mainMod .. " + SHIFT + Q", hl.dsp.global("quickshell:power-menu")) -- Open power menu
 hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" })) -- Toggle floating
 hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(0)) -- Toggle fullscreen
@@ -141,16 +141,13 @@ hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:launcher-menu"), { re
 hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd("systemctl --user restart quickshell.service")) -- Emergency: restart the shell
 
 -- ── Custom menus ─────────────────────────────────────
--- theme-switch.sh is a thin picker (D-01): it only prompts for a theme
--- name, then delegates to the single engine entrypoint,
--- ~/.config/theme-engine/theme-apply, for all rendering + reload.
-hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/theme-switch.sh")) -- Switch theme
+hl.bind(mainMod .. " + T", hl.dsp.exec_cmd("qs ipc call launcher open theme")) -- Switch theme
 -- SUPER+SHIFT+T sits next to SUPER+T (theme) the same way SUPER+SHIFT+Z
 -- (icon theme) sits next to SUPER+Z (emoji) — free chord confirmed by a
 -- full grep of this file before this line was added (quick task
 -- 260818-srl, M-8 re-confirmed).
 hl.bind(mainMod .. " + SHIFT + T", hl.dsp.exec_cmd("~/.config/hypr/scripts/fastfetch-logo-switch.sh")) -- Fastfetch logo picker
-hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("~/.config/hypr/scripts/bar-orientation.sh")) -- Switch bar orientation
+hl.bind(mainMod .. " + B", hl.dsp.exec_cmd("qs ipc call launcher open barorientation")) -- Switch bar orientation
 -- BAR-01/D-02/D-37: the ONLY bind that can clear a persistent
 -- fullscreen/gaming-hide -- targets the owner's `keybind toggle` verb
 -- (never hide/show directly), which carries the auto-clear-on-base-change
@@ -251,7 +248,7 @@ hl.bind("ALT + code:107", hl.dsp.exec_cmd("~/.config/hypr/scripts/record-toggle.
 -- — both scripts' interactive halves are gone, and their surfaces moved
 -- to the Atelier: Super+I (Icons tab) and Super+SHIFT+F (Fonts tab). Both
 -- chords are unbound now, deliberately.
-hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd("~/.config/hypr/scripts/emoji-picker.sh")) -- Emoji picker
+hl.bind(mainMod .. " + Z", hl.dsp.exec_cmd("qs ipc call launcher open symbols")) -- Emoji picker
 hl.bind(mainMod .. " + X", hl.dsp.exec_cmd("~/.config/hypr/scripts/color-picker.sh")) -- Color picker
 
 -- ── Quickshell probe (QS-02 viability gate, D-01/D-21) ──
@@ -324,6 +321,11 @@ hl.bind(mainMod .. " + M", hl.dsp.global("quickshell:media")) -- Open dashboard 
 -- and shell.qml's own settingsShortcut — keybind-doctor's cross-check
 -- contract.
 hl.bind(mainMod .. " + comma", hl.dsp.global("quickshell:settings")) -- Toggle settings window (quick task 260820-sqd)
+
+if os.getenv("AQ_DRM_DEVICES") == "/dev/dri/by-path/platform-dxgdrm-card" then
+    local launcher = string.format("%q", os.getenv("HOME") .. "/dotfiles/wsl/launch-desktop")
+    hl.bind("CTRL + ALT + H", hl.dsp.exec_cmd(launcher .. " --hide"), { release = true }) -- Show Windows
+end
 
 -- ── Lock screen ──────────────────────────────────────
 hl.bind(mainMod .. " + L", hl.dsp.exec_cmd(lockScreen)) -- Lock screen (in-process Quickshell lock, quick task 260827-833)

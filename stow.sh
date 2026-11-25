@@ -64,6 +64,12 @@ mkdir -p "$HOME/.config/fish/functions" "$HOME/.config/fish/conf.d" "$HOME/.conf
 # repo via a folded stow symlink.
 mkdir -p "$HOME/.config/gtk-3.0" "$HOME/.config/gtk-4.0"
 
+# Keep Thunar's generated shortcuts and Xfconf channel in the user config.
+mkdir -p "$HOME/.config/Thunar" "$HOME/.config/xfce4/xfconf/xfce-perchannel-xml"
+
+# Electron writes caches and user state beside the stowed editor settings.
+mkdir -p "$HOME/.config/VSCodium/User"
+
 # D-19: pre-create ~/.config/quickshell as a real directory, same
 # rationale as fish/gtk-3.0/gtk-4.0 above — a genuinely fresh target keeps
 # quickshell/ eligible for stow's whole-directory fold (a single symlink
@@ -182,10 +188,9 @@ mkdir -p "$HOME/.config/hypr"
 # real state directory — directly contradicting this project's own core
 # value ("the whole setup reproduces from scratch with one script") and
 # the git-clean invariant theme-doctor's state-manifest gate exists to
-# protect. Pre-creating ~/.local here is sufficient: it only needs to
-# stop the TOP-LEVEL fold, so vscodium's own ~/.local/share/applications
-# entry is still free to fold one level down as before.
+# protect. Keep desktop-entry caches in the user profile as well.
 mkdir -p "$HOME/.local"
+mkdir -p "$HOME/.local/share/applications"
 
 # CR-01/13.1-REVIEW.md: pre-create ~/Pictures/{Wallpapers,Screenshots} as
 # REAL directories — the SAME fold-bug class just fixed for ~/.config/hypr
@@ -231,11 +236,6 @@ mkdir -p "$HOME/.local"
 # now-false audit claim standing is exactly the failure this correction
 # prevents. Two exceptions, then: `wallpapers` (roots outside .config/)
 # and `quickshell` (a second .config/ subtree not named for the package).
-# vscodium's ~/.local/share/applications entry is still
-# free to fold one level below ~/.local (as the ~/.local comment above
-# already documents) — harmless, since nothing this script writes
-# targets ~/.local/share/ at runtime.
-#
 # Audit-note correction (18-07, QBAR-10): the 15-13 correction just above
 # is itself now narrower than it reads. `quickshell` ships a THIRD tree
 # outside its own ~/.config/quickshell/ namespace —
@@ -274,9 +274,14 @@ for theme_dir in "$DOTFILES_DIR"/wallpapers/Pictures/Wallpapers/*/; do
     mkdir -p "$HOME/Pictures/Wallpapers/$theme_name/live"
 done
 
+stow_failures=()
 for pkg in "${PACKAGES[@]}"; do
     if [[ -d "$pkg" ]]; then
         echo "  → Stowing: $pkg"
+        stow_options=(--restow --target="$HOME")
+        if [[ "$pkg" == vscodium ]]; then
+            stow_options+=(--no-folding --ignore='(^|/)settings\.json$' --ignore='(^|/)(intent|mimeinfo)\.cache$')
+        fi
         # CR-02: under `set -euo pipefail`, a stow conflict on ANY package
         # here (non-zero exit propagating through the `| sed` pipe) would
         # abort the WHOLE script before ever reaching the motion-file seed
@@ -288,11 +293,29 @@ for pkg in "${PACKAGES[@]}"; do
         # stow.sh after resolving the conflict is the existing, documented
         # recovery path (WR-05: seed only when absent — stow.sh is
         # re-runnable).
-        if ! stow --restow "$pkg" --target="$HOME" 2>&1 | sed 's/^/    /'; then
+        if ! stow "${stow_options[@]}" "$pkg" 2>&1 | sed 's/^/    /'; then
+            stow_failures+=("$pkg")
             echo "  ⚠ stow failed for $pkg — continuing with remaining packages" >&2
+        elif [[ "$pkg" == vscodium ]]; then
+            # VSCodium and the theme engine rewrite settings.json. Convert
+            # earlier Stow links to local files, including generated caches.
+            for relative_path in .config/VSCodium/User/settings.json .local/share/applications/{intent,mimeinfo}.cache; do
+                source_file="$DOTFILES_DIR/vscodium/$relative_path"
+                target_file="$HOME/$relative_path"
+                if [[ -L "$target_file" && "$target_file" -ef "$source_file" ]]; then
+                    staged_file="$(mktemp "$target_file.XXXXXXXX")"
+                    cp -- "$source_file" "$staged_file"
+                    mv -T -- "$staged_file" "$target_file"
+                fi
+            done
+            settings="$HOME/.config/VSCodium/User/settings.json"
+            if [[ ! -e "$settings" && ! -L "$settings" ]]; then
+                cp --update=none -- "$DOTFILES_DIR/vscodium/.config/VSCodium/User/settings.json" "$settings"
+            fi
         fi
     else
-        echo "  ⚠ Skipping: $pkg (directory not found)"
+        stow_failures+=("$pkg")
+        echo "  ⚠ Skipping: $pkg (directory not found)" >&2
     fi
 done
 
@@ -562,14 +585,14 @@ listener {
 # wrapper script needed.
 listener {
     timeout = 300
-    on-timeout = brightnessctl -s set 30% && ~/.config/hypr/scripts/wallpaper-visibility.sh idle hide
-    on-resume = brightnessctl -r && ~/.config/hypr/scripts/wallpaper-visibility.sh idle show
+    on-timeout = ~/.config/hypr/scripts/idle-hardware.sh brightnessctl -s set 30% && ~/.config/hypr/scripts/wallpaper-visibility.sh idle hide && qs ipc call -- screensaver show
+    on-resume = ~/.config/hypr/scripts/idle-hardware.sh brightnessctl -r && ~/.config/hypr/scripts/wallpaper-visibility.sh idle show && qs ipc call -- screensaver hide
 }
 
 # ── Lock screen after 10 minutes ─────────────────────
 listener {
     timeout = 600
-    on-timeout = loginctl lock-session
+    on-timeout = qs ipc call -- screensaver hideNow; sleep 0.4; loginctl lock-session
 }
 
 # ── Turn off display after 15 minutes ────────────────
@@ -580,14 +603,14 @@ listener {
 # on-resume runs (misc:mouse_move_enables_dpms/misc:key_press_enables_dpms).
 listener {
     timeout = 900
-    on-timeout = hyprctl dispatch 'hl.dsp.dpms({action="off"})'
-    on-resume = hyprctl dispatch 'hl.dsp.dpms({action="on"})'
+    on-timeout = ~/.config/hypr/scripts/idle-hardware.sh hyprctl dispatch 'hl.dsp.dpms({action="off"})'
+    on-resume = ~/.config/hypr/scripts/idle-hardware.sh hyprctl dispatch 'hl.dsp.dpms({action="on"})'
 }
 
 # ── Suspend after 30 minutes ─────────────────────────
 listener {
     timeout = 1800
-    on-timeout = systemctl suspend
+    on-timeout = ~/.config/hypr/scripts/idle-hardware.sh systemctl suspend
 }
 IDLE_SEED_EOF
 
@@ -721,23 +744,22 @@ else
     echo "  ⚠ fish not installed — skipping shell change" >&2
 fi
 
-# ── Seed first-boot theme baseline (D-60/WR-07) ──────
-# Run theme-apply once now that theme-engine is stowed, so
-# ~/.local/state/theme/ exists before first login (first impression is a
-# fully themed desktop, not an empty state dir). theme-apply's reload step
-# already degrades harmlessly without a running Hyprland session (every
-# reload call is `|| true`-guarded internally) — the `|| true` here is
-# belt-and-suspenders so a missing entrypoint never aborts stow.sh under
-# set -e; the rendered state files are what matters, not the reload.
+# Seed new profiles and fill in generated files added by an upgrade.
 echo ""
-echo "Seeding first-boot theme baseline..."
-THEME_APPLY="$HOME/.config/theme-engine/theme-apply"
-if [[ -x "$THEME_APPLY" ]]; then
-    # theme-apply catppuccin — seeds ~/.local/state/theme/ with the
-    # catppuccin baseline before first login.
-    "$THEME_APPLY" catppuccin || true
+theme_dir="$HOME/.local/state/theme"
+theme_ready=false
+if [[ -s "$theme_dir/current-theme" && -s "$theme_dir/hyprland-tokens.lua" &&
+      -s "$theme_dir/starship-prompt.toml" && -s "$theme_dir/fastfetch.jsonc" ]]; then
+    theme_ready=true
 else
-    echo "  ⚠ theme-apply not found at $THEME_APPLY — skipping seed"
+    echo "Rendering the desktop theme..."
+    theme_name=catppuccin
+    if [[ -s "$theme_dir/current-theme" ]]; then
+        theme_name="$(<"$theme_dir/current-theme")"
+    fi
+    if THEME_APPLY_QUIET=1 "$HOME/.config/theme-engine/theme-apply" "$theme_name"; then
+        theme_ready=true
+    fi
 fi
 
 # ── Restore nvim's plugins (quick task 260820-nua) ───
@@ -787,15 +809,23 @@ else
     echo "  ⚠ update-desktop-database not installed (desktop-file-utils) — skipping MIME cache rebuild"
 fi
 
-echo ""
-echo "╔══════════════════════════════════════════╗"
-echo "║       Dotfiles stowed successfully!      ║"
-echo "╚══════════════════════════════════════════╝"
-echo ""
-echo "Next steps:"
-echo "  1. Add wallpapers to ~/Pictures/Wallpapers/"
-echo "  2. Log into Hyprland"
-echo "  3. Use Super+Shift+T to switch themes"
-echo "  4. Use Super+B to switch bar orientation"
-echo "  5. Use Super+Shift+B to pick wallpapers"
-echo "  6. Run nvim — LSP, completion, treesitter and the rest of the slate are already restored"
+if (( ${#stow_failures[@]} > 0 )); then
+    printf 'Resolve the Stow conflicts and rerun stow.sh. Failed packages: %s\n' "${stow_failures[*]}" >&2
+    exit 1
+fi
+if ! "$theme_ready"; then
+    echo "Theme rendering failed. Check ~/.local/state/theme/.last-render-error.log and rerun stow.sh." >&2
+    exit 1
+fi
+
+if command -v codium >/dev/null 2>&1; then
+    "$HOME/.config/hypr/scripts/vscodium-extensions.sh" || echo "  ⚠ VSCodium extension install failed" >&2
+fi
+
+echo "Dotfiles stowed successfully."
+if [[ "$(systemd-detect-virt 2>/dev/null)" == wsl ]]; then
+    echo "Open Arch Linux (Hyprland) from the Windows Start menu or run ./wsl/launch-desktop."
+else
+    echo "Select Hyprland (uwsm-managed) or run uwsm start hyprland-uwsm.desktop from a TTY."
+fi
+echo "Use Super+Shift+T to switch themes, Super+B to switch bar orientation, and Super+Shift+B to pick wallpapers."

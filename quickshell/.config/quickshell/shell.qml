@@ -52,6 +52,28 @@ import "modules/appearance"
 ShellRoot {
     id: root
 
+    // Weaselway assigns the chosen main display to its first virtual output.
+    readonly property var mainScreen: Quickshell.env("DONT_PROMPT_WSL_INSTALL") === "1"
+        ? Quickshell.screens.find(screen => screen.name === "Virtual-1") ?? null : null
+    readonly property var additionalScreens: mainScreen
+        ? Quickshell.screens.filter(screen => /^Virtual-[2-4]$/.test(screen.name)) : []
+    property var dashboardScreen: mainScreen
+    property var launcherScreen: mainScreen
+
+    function hoverDashboard(screen): void {
+        if (!dashboardLoader.active)
+            dashboardScreen = screen;
+        dashboardHoverSummoned = true;
+        dashboardShortcut.toggle();
+    }
+
+    function hoverLauncher(screen): void {
+        if (!launcherLoader.active)
+            launcherScreen = screen;
+        launcherHoverSummoned = true;
+        launcherMenuShortcut._toggleMenu();
+    }
+
     // ── Edge bar style resolution (quick task 260824-ns3, Task 1, Q2/Q4) ──
     // Read ONCE here — the single resolution point every consumer (both/all
     // EdgeBar loaders below, Launcher.qml, Dashboard.qml, Bar.qml) reads,
@@ -166,7 +188,7 @@ ShellRoot {
     //    not only while some other surface is open (this plan's own
     //    key_links). Its own ListView content — empty by default — is
     //    what keeps it visually inert until a real notification exists.
-    NotifPopupStack {}
+    NotifPopupStack { screen: root.mainScreen }
 
     // ── Notification centre (Phase 19 Plan 06, D-19-14, QNOTIF-06) — the
     //    third top-level frame in this shell, mounted unconditionally like
@@ -180,6 +202,7 @@ ShellRoot {
     //    instantiation re-asserting the identical object reference, by
     //    that file's own design, never a second source.
     NotifCentre {
+        screen: root.mainScreen
         id: notifCentreInstance
         audioBackend: audioBackendInstance
         wifiBackend: wifiBackendInstance
@@ -506,9 +529,13 @@ ShellRoot {
         // hover that set it and the moment that drawer goes away; any
         // later summon that does not set it therefore starts false by
         // construction. There is no list of callers to keep in sync.
-        onActiveChanged: if (!dashboardLoader.active) root.dashboardHoverSummoned = false
+        onActiveChanged: if (!dashboardLoader.active) {
+            root.dashboardHoverSummoned = false;
+            root.dashboardScreen = root.mainScreen;
+        }
 
         Dashboard {
+            screen: root.dashboardScreen
             initialTabIndex: root.dashboardTabIndex
             // Operator feedback round 2 (260823-9ak): the drawer must hang
             // flush off the top strip, not float a margin below it. Same
@@ -662,8 +689,8 @@ ShellRoot {
     // single guarded summon path (openPanel(), reused verbatim, never
     // reimplemented); onDashboardRequested mirrors the dashboard's own
     // existing summon shape (set the tab index, then activate the loader).
-    Bar {
-        id: barInstance
+    component OutputBar: Bar {
+        id: outputBar
         // Quick task 260824-ns3, Task 3 (Q4b, REVERSES D-2) — threaded so
         // Bar.qml can weld its own slab to the edge bar's rails on
         // Continuous, the one style where the bar and the rail share a
@@ -678,7 +705,7 @@ ShellRoot {
         // Holds the swell for as long as the surface it summoned is up, so
         // the bulge does not collapse under the dashboard the moment the
         // pointer leaves it and enters the panel.
-        dashboardOpen: dashboardLoader.active
+        dashboardOpen: dashboardLoader.active && (!root.mainScreen || root.dashboardScreen === outputBar.screen)
         audioBackend: audioBackendInstance
         mediaBackend: mediaBackendInstance
         systemResources: systemResourcesInstance
@@ -696,6 +723,7 @@ ShellRoot {
         revealOverride: BarReveal.revealActive
         onPanelRequested: (name) => root.openPanel(name)
         onDashboardRequested: (tabIndex) => {
+            root.dashboardScreen = root.mainScreen ? outputBar.screen : null;
             root.dashboardTabIndex = tabIndex;
             dashboardLoader.active = true;
         }
@@ -709,6 +737,33 @@ ShellRoot {
         // the same `openSettings()` verb Super+comma and the QML menu
         // already call — never a second summon path.
         onSettingsRequested: root.openSettings()
+        onDashboardDwellTriggered: root.hoverDashboard(root.mainScreen ? outputBar.screen : null)
+    }
+
+    OutputBar {
+        id: barInstance
+        screen: root.mainScreen
+    }
+
+    Binding {
+        target: PopoutController
+        property: "defaultBar"
+        value: barInstance
+    }
+
+    Binding {
+        target: PopoutController
+        property: "otherBars"
+        value: secondaryBars.instances
+    }
+
+    Variants {
+        id: secondaryBars
+        model: root.additionalScreens
+        OutputBar {
+            required property var modelData
+            screen: modelData
+        }
     }
 
     // ── Edge bar (quick task 260823-9ak Task 3+4 R1/R2/R3/R4/D-2, restyled
@@ -829,160 +884,78 @@ ShellRoot {
     // `Component.onCompleted` blocks on the SAME object is a duplicate
     // signal handler, which QML rejects outright.
 
-    LazyLoader {
-        id: edgeBarTopLoader
-        // ── NOT MOUNTED WHEN THE BAR IS THE TOP EDGE (quick task
-        //    260829-2ov) ────────────────────────────────────────────────
-        // This is the exact mirror of `edgeBarRightLoader` staying unmounted
-        // under Continuous with a VERTICAL bar, and it is the same rule
-        // stated once: Continuous draws THREE runs, the bar is one of them,
-        // and the fourth side is left open. Vertical -> top + bottom rails,
-        // bar on the right, left open. Horizontal -> right + bottom rails,
-        // bar on the top, left open.
-        //
-        // MEASURED, and this is why it is a mount decision rather than a
-        // styling one: a non-negative exclusive zone is positioned inside
-        // every existing zone, so with a horizontal bar this strip landed at
-        // y=56 — UNDER the bar, as a second parallel band 6px below its rim.
-        // Two parallel bands cannot share one silhouette. At the open left
-        // end they disagreed visibly: the bar's slab caps with a 25px pill
-        // radius and the strip with a 3px one, so the strip protruded ~25px
-        // to the left of the slab's curve. Captured at x0..40,y40..62.
-        //
-        // THE TRADE, STATED: this strip carries the dashboard's attachment
-        // bulge and its dwell-hover summon, so in this orientation the
-        // dashboard spawns unattached and is reached by Super+D or the
-        // clock instead. That is not a new state — `brackets` carries no
-        // bulge on ANY edge (EdgeBar.qml's own `_brackets` note) and the
-        // dashboard already copes with it through `_floatingFromRail`.
-        active: root.edgeBarRailPresent && root._edgeBarMountArmed && !root._edgeBarContinuousRightRail
+    readonly property bool edgeBarFourSided: edgeBarStyle === "halo" || edgeBarStyle === "brackets"
+    readonly property bool edgeBarRightRail: edgeBarStyle === "continuous" && !BarEntryModel.isVertical
 
-        EdgeBar {
-            id: edgeBarTop
-            edge: "top"
-            style: root.edgeBarStyle
-            // Reach the right rail when Continuous mounts one (a horizontal
-            // bar); the left end stays inset and capped — that is the open side.
-            runsToCorner: root._edgeBarContinuousRightRail
-            // Sized to whichever surface is actually spawning from this
-            // strip (quick task 260825-pyf, operator request). It was fixed
-            // at the dashboard's own width; the three config panels spawn
-            // from the same rail and are WIDER (850 against 760), so a
-            // fixed bulge left them overhanging their own root by 45px a
-            // side. The dashboard's width stays the resting value, which is
-            // what `edgeBarBulgeWidthTop: dashboardMinWidth` always meant.
-            //
-            // Read off the loaders' items rather than restating 850 here:
-            // `panelWidth` is PanelDialog's own readonly constant, so this
-            // cannot drift from it. Null-guarded because a LazyLoader's
-            // `item` does not exist until it has incubated.
-            bulgeWidth: root._openTopPanel ? root._openTopPanel.panelWidth : Design.edgeBarBulgeWidthTop
-            animatedBulge: root.edgeBarAnimatedBulgeEffective
-            // Holds the swell for as long as the surface THIS strip summons
-            // is up, so the bulge does not collapse under the drawer the
-            // moment the pointer leaves the strip and enters it. Now covers
-            // the config panels too — they spawn from this strip as well.
-            surfaceOpen: dashboardLoader.active || root._openTopPanel !== null
+    component OutputEdges: Scope {
+        id: outputEdges
+        property var outputScreen: null
+        readonly property bool railsPresent: root.edgeBarRailPresent && root._edgeBarMountArmed
+
+        LazyLoader {
+            active: outputEdges.railsPresent && !root.edgeBarRightRail
+            EdgeBar {
+                screen: outputEdges.outputScreen
+                edge: "top"
+                style: root.edgeBarStyle
+                bulgeWidth: root._openTopPanel && outputEdges.outputScreen === root.mainScreen
+                    ? root._openTopPanel.panelWidth : Design.edgeBarBulgeWidthTop
+                animatedBulge: root.edgeBarAnimatedBulgeEffective
+                surfaceOpen: (dashboardLoader.active && outputEdges.outputScreen === root.dashboardScreen)
+                    || (root._openTopPanel !== null && outputEdges.outputScreen === root.mainScreen)
+                onBulgeHoverTriggered: root.hoverDashboard(outputEdges.outputScreen)
+            }
         }
-    }
-    LazyLoader {
-        id: edgeBarBottomLoader
-        active: root.edgeBarRailPresent && root._edgeBarMountArmed
 
-        EdgeBar {
-            id: edgeBarBottom
-            edge: "bottom"
-            style: root.edgeBarStyle
-            // Reach the right rail when Continuous mounts one (a horizontal
-            // bar); the left end stays inset and capped — that is the open side.
-            runsToCorner: root._edgeBarContinuousRightRail
-            // Matches the launcher, which spawns from this strip.
-            bulgeWidth: Design.edgeBarBulgeWidthBottom
-            animatedBulge: root.edgeBarAnimatedBulgeEffective
-            surfaceOpen: launcherLoader.active
+        LazyLoader {
+            active: outputEdges.railsPresent
+            EdgeBar {
+                screen: outputEdges.outputScreen
+                edge: "bottom"
+                style: root.edgeBarStyle
+                runsToCorner: root.edgeBarRightRail
+                bulgeWidth: Design.edgeBarBulgeWidthBottom
+                animatedBulge: root.edgeBarAnimatedBulgeEffective
+                surfaceOpen: launcherLoader.active && outputEdges.outputScreen === root.launcherScreen
+                onBulgeHoverTriggered: root.hoverLauncher(outputEdges.outputScreen)
+            }
+        }
+
+        LazyLoader {
+            active: root.edgeBarFourSided && root._edgeBarMountArmed
+            EdgeBar {
+                screen: outputEdges.outputScreen
+                edge: "left"
+                style: root.edgeBarStyle
+                animatedBulge: root.edgeBarAnimatedBulgeEffective
+            }
+        }
+
+        LazyLoader {
+            active: (root.edgeBarFourSided || root.edgeBarRightRail) && root._edgeBarMountArmed
+            EdgeBar {
+                screen: outputEdges.outputScreen
+                edge: "right"
+                style: root.edgeBarStyle
+                animatedBulge: root.edgeBarAnimatedBulgeEffective
+                fullRun: root.edgeBarRightRail
+            }
+        }
+
+        LazyLoader {
+            active: root.barVisibilityState !== "visible"
+            HotZone { screen: outputEdges.outputScreen }
         }
     }
 
-    // ── The vertical pair (Task 4) ──────────────────────────────────────
-    // Mounted only by the two styles that draw all four edges. Neither
-    // carries a `bulgeWidth` or a `surfaceOpen`: nothing attaches on the
-    // left or right edges (the measured attachment map is top = dashboard,
-    // bottom = launcher, right = the bar, left = nothing), so EdgeBar.qml's
-    // own `_hasBulge` is false on both and they draw plain runs.
-    readonly property bool _edgeBarFourSided: root.edgeBarStyle === "halo" || root.edgeBarStyle === "brackets"
+    OutputEdges { outputScreen: root.mainScreen }
 
-    // ── CONTINUOUS + A HORIZONTAL BAR ALSO NEEDS THE RIGHT RAIL (quick
-    //    task 260829-2ov) ──────────────────────────────────────────────────
-    // Operator: "a continuous edge rail wrapping the top bar and extending
-    // to the right side and all the way to the bottom, leaving the left side
-    // empty."
-    //
-    // That is the SAME three-sided silhouette Continuous already draws with
-    // a vertical bar, rotated. There the bar IS the right edge and the two
-    // horizontal rails run into it; here the bar is the TOP edge, so the
-    // right edge has nothing to draw it and a rail has to take that job.
-    // The attachment map in EdgeBar.qml's own `_hasBulge` note — "right =
-    // the bar" — is an artefact of the vertical orientation, not a property
-    // of the right edge, and it stops holding the moment the bar moves.
-    //
-    // `fullRun` on this instance (and only this one) is what lets it reach
-    // both perpendicular runs: Halo and Brackets keep their 10px end insets
-    // because their arms are separate strokes, not a closed corner.
-    readonly property bool _edgeBarContinuousRightRail: root.edgeBarStyle === "continuous" && !BarEntryModel.isVertical
-
-    LazyLoader {
-        id: edgeBarLeftLoader
-        active: root._edgeBarFourSided && root._edgeBarMountArmed
-
-        EdgeBar {
-            id: edgeBarLeft
-            edge: "left"
-            style: root.edgeBarStyle
-            animatedBulge: root.edgeBarAnimatedBulgeEffective
+    Variants {
+        model: root.additionalScreens
+        OutputEdges {
+            required property var modelData
+            outputScreen: modelData
         }
-    }
-    LazyLoader {
-        id: edgeBarRightLoader
-        active: (root._edgeBarFourSided || root._edgeBarContinuousRightRail) && root._edgeBarMountArmed
-
-        EdgeBar {
-            id: edgeBarRight
-            edge: "right"
-            style: root.edgeBarStyle
-            animatedBulge: root.edgeBarAnimatedBulgeEffective
-            fullRun: root._edgeBarContinuousRightRail
-        }
-    }
-
-    // ── Hot zone (Phase 18 Plan 16, QBAR-08) — mounted behind a loader
-    //    keyed on the INVERSE of the owner's base visible state: present
-    //    in EITHER hidden state, absent whenever the owner says visible.
-    //    Deliberately bound to hidden-ness rather than to which driver
-    //    caused it — the shell holds one state string, not a driver, and
-    //    binding to a driver would invent a coupling 18-15 does not offer.
-    //    In the idle-hidden state the strip is provably unreachable: the
-    //    pointer movement that would reach it clears the idle intent first
-    //    through hypridle's own on-resume listener — so the arming here is
-    //    correct but the reachable function is the hard-hidden state.
-    LazyLoader {
-        id: hotZoneLoader
-        active: root.barVisibilityState !== "visible"
-
-        HotZone {}
-    }
-
-    // ── D-18-19's latch driver (Phase 18 Plan 16, Task 3) — the OTHER
-    //    half of the seam Task 1's revealOverride binding above completes:
-    //    a binding, never a pair of edge handlers, so a transition that
-    //    completes instantly under disabled motion cannot be missed the
-    //    way an edge handler registered a frame late could. 18-15 declared
-    //    both operands and deliberately shipped no writer of its own so
-    //    ownership of the popout singleton's settle latch would land here,
-    //    and here only — completing the three-plan chain 18-13 started.
-    Binding {
-        target: PopoutController
-        property: "barSettled"
-        value: barInstance.barRendered && !barInstance.barTransitionRunning
     }
 
     // ── Audio panel (Phase 15 Plan 02 tracer, PANEL-02/PANEL-06) ─────────
@@ -995,6 +968,7 @@ ShellRoot {
         active: false
 
         AudioPanel {
+            screen: root.mainScreen
             backend: audioBackendInstance
             // Threaded, never re-derived — see PanelDialog.attached.
             attached: root.edgeBarPanelsAttach
@@ -1079,6 +1053,7 @@ ShellRoot {
         active: false
 
         WifiPanel {
+            screen: root.mainScreen
             backend: wifiBackendInstance
             // Threaded, never re-derived — see PanelDialog.attached.
             attached: root.edgeBarPanelsAttach
@@ -1146,6 +1121,7 @@ ShellRoot {
         active: false
 
         BluetoothPanel {
+            screen: root.mainScreen
             backend: bluetoothBackendInstance
             // Threaded, never re-derived — see PanelDialog.attached.
             attached: root.edgeBarPanelsAttach
@@ -1222,9 +1198,13 @@ ShellRoot {
         active: false
 
         // Round 12 — see dashboardLoader's twin comment.
-        onActiveChanged: if (!launcherLoader.active) root.launcherHoverSummoned = false
+        onActiveChanged: if (!launcherLoader.active) {
+            root.launcherHoverSummoned = false;
+            root.launcherScreen = root.mainScreen;
+        }
 
         Launcher {
+            screen: root.launcherScreen
             // Threaded from the single shell-root resolution point (Task
             // 4/6, D-5; split into two predicates by quick task 260824-ns3
             // Task 1, Q2) — Launcher.qml has no `root` id of its own to
@@ -1274,10 +1254,16 @@ ShellRoot {
         target: "launcher"
 
         function open(mode: string): string {
-            LauncherState.pendingMode = mode && mode.length > 0 ? mode : "";
-            if (!launcherLoader.active && !root.fullscreenBlocking)
+            if (!launcherLoader.active) {
+                if (root.fullscreenBlocking)
+                    return "";
+                LauncherState.pendingMode = mode || "";
                 launcherLoader.active = true;
-            return launcherLoader.active ? "launcher" : "";
+            } else if (mode && launcherLoader.item && !launcherLoader.item._dismissing) {
+                LauncherState.pendingMode = mode;
+                LauncherState.reset();
+            }
+            return "launcher";
         }
 
         // An already-open launcher closes unconditionally, matching
@@ -1367,6 +1353,7 @@ ShellRoot {
         active: false
 
         PowerMenu {
+            screen: root.mainScreen
             onDismissRequested: powerMenuLoader.active = false
         }
     }
@@ -1538,6 +1525,7 @@ ShellRoot {
         active: false
 
         Settings {
+            screen: root.mainScreen
             initialPageIdx: root.settingsInitialPageIdx
             // Task 13 (D-01 bundle 4) — threads the shell's SINGLE
             // AudioBackend instance into the settings window the same way
@@ -2050,43 +2038,6 @@ ShellRoot {
             }
         }
         onPressed: dashboardShortcut.toggle()
-    }
-
-    // ── Edge bar hover reveal (quick task 260823-9ak, Task 5, R5/R6) ─────
-    // `Connections.target` re-binds automatically as each LazyLoader's
-    // `.item` goes null/non-null across an enable/disable toggle (Task 4),
-    // and gracefully no-ops while null — so these two blocks need no
-    // `edgeBarRailPresent` guard of their own. Top strip reuses
-    // `dashboardShortcut`'s own toggle path (R5); bottom strip reuses
-    // `launcherMenuShortcut`'s own `_toggleMenu()` verbatim (R6), which
-    // already sets `LauncherState.pendingMode = LauncherState.modeMenu`
-    // before opening — so the bottom edge opens MENU mode, not apps mode.
-    Connections {
-        target: edgeBarTopLoader.item
-        function onBulgeHoverTriggered() {
-            root.dashboardHoverSummoned = true;
-            dashboardShortcut.toggle();
-        }
-    }
-    // The same summon, from the bar itself, for the orientation where the bar
-    // IS the top edge and no top strip is mounted (quick task 260829-2ov,
-    // operator round 3: "add the top strip bulge summoning behaviour back").
-    // Deliberately the SAME two lines rather than a variant: one dwell, one
-    // `dashboardHoverSummoned` flag, one `toggle()` — a second, divergent
-    // path to `dashboardLoader.active` is what `toggle()` exists to prevent.
-    Connections {
-        target: barInstance
-        function onDashboardDwellTriggered() {
-            root.dashboardHoverSummoned = true;
-            dashboardShortcut.toggle();
-        }
-    }
-    Connections {
-        target: edgeBarBottomLoader.item
-        function onBulgeHoverTriggered() {
-            root.launcherHoverSummoned = true;
-            launcherMenuShortcut._toggleMenu();
-        }
     }
 
     // D-21-12 (Phase 21 Plan 07, QMEDIA-01): restores reachability for the

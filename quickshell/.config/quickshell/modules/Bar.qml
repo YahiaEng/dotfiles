@@ -30,10 +30,7 @@
 //      by this plan) is event-driven rather than a repeating Timer for
 //      exactly this reason.
 //
-// Root type is PanelWindow, copying Overview.qml's single-PanelWindow
-// posture verbatim. Per-screen fan-out (Variants-rooted, QS-03) is
-// permanently dropped under D-13 (PROJECT.md Out of Scope) — no fan-out
-// root type may be reintroduced here.
+// Each instance draws the bar for the output assigned by shell.qml.
 //
 // Namespace "quickshell-bar" inherits windowrules.lua's ^quickshell-.*
 // family blur rule together with its ignore_alpha = 0.5 floor
@@ -129,6 +126,14 @@ PanelWindow {
     readonly property bool _continuousWeld: barWindow._continuousStyle && barWindow.vertical
     readonly property bool _continuousWeldH: barWindow._continuousStyle && !barWindow.vertical
     readonly property bool _welded: barWindow._continuousWeld || barWindow._continuousWeldH
+
+    // Screen-local bounds of the straight edge that the popout flares join.
+    readonly property real popoutWeldStart: vertical
+        ? margins.top + _weldSlabWidth / 2
+        : margins.left + _weldSlabDepth / 2
+    readonly property real popoutWeldEnd: vertical
+        ? margins.top + height - _weldSlabWidth / 2
+        : margins.left + width - _weldOuterCornerRadius
 
     // ── Anchors — each a boolean binding off `vertical`, no branch. These
     //    are PanelWindow's own bool anchor flags (layer-shell edge
@@ -459,7 +464,7 @@ PanelWindow {
     // not re-hide while a popout is open is 18-16's grace condition and
     // is not implemented here.
     onBarRenderedChanged: {
-        if (!barWindow.barRendered && PopoutController.anyOpen)
+        if (!barWindow.barRendered && barWindow.ownsPopout && PopoutController.anyOpen)
             PopoutController.close();
     }
 
@@ -474,6 +479,7 @@ PanelWindow {
     //    line of this file changes. ──────────────────────────────────────
     Connections {
         target: PopoutController
+        enabled: barWindow.ownsPopout
         function onPanelRequested(name) { barWindow.panelRequested(name); }
         function onDashboardRequested(tabIndex) { barWindow.dashboardRequested(tabIndex); }
         function onPowerMenuRequested() { barWindow.powerMenuRequested(); }
@@ -857,7 +863,7 @@ PanelWindow {
     // PopoutController in this same file worked fine. A self-targeted
     // Binding is the one shape to avoid here; an ordinary binding
     // expression animates through the Behavior just the same.
-    property real popoutBulgeDepth: (barWindow._continuousWeld && PopoutController.anyOpen)
+    property real popoutBulgeDepth: (barWindow._continuousWeld && barWindow.ownsPopout && PopoutController.anyOpen)
         ? barWindow._popoutBulgeDepthOpen : 0
     Behavior on popoutBulgeDepth {
         enabled: Motion.motionEnabled
@@ -930,39 +936,8 @@ PanelWindow {
     // So: no inset. Any future change that restores a non-zero `f` on that
     // call MUST restore the `- Design.edgeBarFilletRadius` term with it;
     // the two are one decision.
-    readonly property real _popoutBulgeHalf: Math.max(0,
-        PopoutController.openExtent / 2)
     readonly property real _popoutBulgeCap: barWindow._weldSlabWidth / 2
 
-    // `_popoutBulgeCentre` still exists and is still what `rootCentre`
-    // publishes, because that is what the POPOUT positions itself against.
-    // It is no longer what the bulge is drawn to — see below.
-    readonly property real _popoutBulgeCentre: Math.max(
-        barWindow._popoutBulgeCap + barWindow._popoutBulgeHalf,
-        Math.min(PopoutController.openCentre,
-                 barWindow.height - barWindow._popoutBulgeCap - barWindow._popoutBulgeHalf))
-
-    // ── THE SPAN IS THE PANEL'S, SHRUNK — NEVER SHIFTED (260825-w4c) ────
-    // Operator: "The bulge's width must be so that it never pops out behind
-    // of the panel's sideways."
-    //
-    // It used to be `_popoutBulgeCentre +/- _popoutBulgeHalf`, i.e. the bar
-    // clamped a centre of its own and drew a span around it. The popout
-    // clamped SEPARATELY, and the two disagreed: measured on the resources
-    // popout, `triggerCentre` 114 clamps here to `cap + half` = 161 and drew
-    // the bulge at 26..296, while the popout's own clamp put the panel at
-    // 50..320. Off by exactly `flareRadius`, because this clamp reasons
-    // about the panel and the popout's reasons about the window, which is
-    // `2 * flareRadius` taller. Seen in pixels first: bar-coloured material
-    // at the bulge's exact 14px depth in rows 26..46, above a panel starting
-    // at 50, and none at all below it.
-    //
-    // Two independent clamps cannot be made to agree by tuning either one.
-    // So the bulge is no longer positioned at all — it is HANDED the panel's
-    // real post-clamp span and may only be SHRUNK to fit the slab's straight
-    // run between the pill caps. Shrinking keeps it a subset of the panel;
-    // shifting is what let it escape. The operator's invariant is now
-    // structural rather than emergent.
     readonly property real _popoutBulgeXl: Math.max(barWindow._popoutBulgeCap,
         PopoutController.openTop)
     readonly property real _popoutBulgeXr: Math.min(
@@ -996,94 +971,11 @@ PanelWindow {
         + " anyOpen=" + PopoutController.anyOpen
         + " span=" + barWindow._popoutBulgeXl.toFixed(0) + ".." + barWindow._popoutBulgeXr.toFixed(0))
 
-    // ── Publish the shelf back to the popout ────────────────────────────
-    // The bar owns this arithmetic and the popout reads the finished
-    // numbers — see PopoutController's own comment for why a second copy in
-    // the popout would be the exact shape of every position bug this family
-    // has shipped.
-    //
-    // `rootInset` walks out from the screen's right edge: the bar's own edge
-    // margin, then the full slab, then however deep the bulge has grown this
-    // frame. Measured against live values 6 + 52 + 14 = 72, and the slab's
-    // left edge is at screen x 2502 (2560 - 58), so the bulge face lands at
-    // 2488 — which is 2560 - 72. Consistent by construction, not by tuning.
-    //
-    // `_popoutBulgeCentre` is already SCREEN along-axis: the weld sets
-    // `margins.top: 0`, so this surface's y origin is the screen's. That is
-    // only true while welded, which is exactly when `rootAttached` is true —
-    // so the value is never published out of a frame where it would be wrong.
-    Binding {
-        target: PopoutController
-        property: "rootAttached"
-        value: barWindow._continuousWeld
-    }
-    Binding {
-        target: PopoutController
-        property: "rootInset"
-        // ── MEASURED, and both halves of this were wrong first time ──────
-        //
-        // (1) THE PANEL TOUCHES THE SLAB'S FLAT FACE, NOT THE BULGE'S.
-        // The bulge is not a shelf the panel sits beside — it protrudes
-        // OVER the panel, exactly as the top rail's bulge does over the
-        // dashboard. Measured on the dashboard: its panel top sits at y=6,
-        // the rail's flat run is 6 deep, and the bulge reaches y=20 while
-        // open — so the bulge covers the drawer's top 14px. Adding the
-        // bulge depth here pushed the popout a further 14px off the bar
-        // and left the bulge standing in the gap between them.
-        //
-        // (2) MARGINS ARE MEASURED FROM THE USABLE AREA, NOT THE SCREEN
-        // EDGE. `SectionPopout` sets `exclusionMode: ExclusionMode.Ignore`
-        // and its own comment claims that makes its margins measure from
-        // the true screen edge. It does not, on this build: with
-        // `margins.right` at 72 the surface came back with its right edge
-        // at 2438, and 2560 - 72 = 2488 while 2510 - 72 = 2438 — the bar's
-        // own 50px reservation is subtracted first. That 50px is exactly
-        // the gap the operator reported as "far away from the bar".
-        //
-        // So this walks from the usable boundary to the slab's flat face,
-        // both taken from the bar's own live geometry rather than
-        // reassembled from tokens.
-        // The TOTAL reservation, not the exclusive zone alone. Hyprland's
-        // reservation is `margins.<edge> + exclusiveZone` — this file's own
-        // header says so and has shipped the double-count bug twice — so
-        // the usable boundary is 6 + 44 = 50 in from the right, not 44.
-        // Using `reservedZoneExtent` by itself put the popout 6px short of
-        // the slab (measured right edge 2496 against a face at 2502).
-        value: barWindow.screen
-            ? (barWindow.screen.width - (Design.barEdgeMargin + barWindow.reservedZoneExtent))
-              - (barWindow._barSurfaceX + barWindow._weldSlabX)
-            : 0
-    }
-    Binding {
-        target: PopoutController
-        property: "rootCentre"
-        value: barWindow._popoutBulgeCentre
-    }
-    // Screen edge -> the slab's OUTER edge, and the slab's own width. The
-    // popout anchors to the first and widens by the second so it reaches
-    // under the bar without spilling into the 6px gap outside it. Taken
-    // from the same live geometry `rootInset` walks, never re-derived from
-    // tokens — this family's whole history of position bugs is second
-    // copies of the bar's arithmetic drifting apart.
-    Binding {
-        target: PopoutController
-        property: "rootOuterInset"
-        value: barWindow.screen
-            ? barWindow.screen.width
-              - (barWindow._barSurfaceX + barWindow._weldSlabX + barWindow._weldSlabWidth)
-            : 0
-    }
-    Binding {
-        target: PopoutController
-        property: "rootSlabWidth"
-        value: barWindow._weldSlabWidth
-    }
+    readonly property bool ownsPopout: PopoutController.activeBar === barWindow
 
-    // A single rounded-rect fill path — GradientBorder.qml's own
-    // `_roundedRect` reasoning applies verbatim (no `PathRectangle` in
-    // this Qt build's QtQuick/Shapes), simplified to one uniform radius
-    // since both the slab and its core are pills/near-pills, never
-    // per-corner radii.
+    onVerticalChanged: if (ownsPopout) PopoutController.closeNow()
+    onEdgeBarStyleChanged: if (ownsPopout) PopoutController.closeNow()
+
     function _weldRoundedRect(w, h, r) {
         var rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
         var p = "M " + rr + " 0";

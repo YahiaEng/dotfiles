@@ -118,6 +118,7 @@ BarCapsule {
         // Defaults to the original hardcoded font so media/brightness/
         // battery (which never set this) are byte-for-byte unchanged.
         property string glyphFontFamily: Design.symbolFontFamily
+        property color glyphColour: readoutItem.errored ? BarRoles.danger : root.contentColour
         property string valueText: ""
         property string maxValueText: ""
         property bool showValue: true
@@ -220,7 +221,7 @@ BarCapsule {
                 font.family: readoutItem.glyphFontFamily
                 font.pixelSize: Design.barGlyphSize
                 text: readoutItem.glyph
-                color: readoutItem.errored ? BarRoles.danger : root.contentColour
+                color: readoutItem.glyphColour
             }
 
             Text {
@@ -1149,11 +1150,12 @@ BarCapsule {
     readonly property var _wifiStrengthGlyphs: ["\u{f092f}", "\u{f091f}", "\u{f0922}", "\u{f0925}", "\u{f0928}"]
 
     readonly property string networkGlyph: {
-        if (!root.wifiHwEnabled || !root.wifiEnabled)
+        const host = !root.wifiDevice && WindowsConnectivity.enabled ? WindowsConnectivity.wifi : null;
+        if (host ? host.state !== "connected" && host.state !== "on" : !root.wifiHwEnabled || !root.wifiEnabled)
             return "\u{f05aa}"; // md-wifi_off (format-disabled)
-        if (!root.wifiDeviceConnected)
+        if (host ? host.state !== "connected" : !root.wifiDeviceConnected)
             return "\u{f092e}"; // md-wifi_strength_off_outline (format-disconnected)
-        const net = root.wifiCurrentNetwork;
+        const net = host ?? root.wifiCurrentNetwork;
         if (!net || typeof net.signalStrength !== "number" || isNaN(net.signalStrength) || net.signalStrength < 0)
             return root._wifiStrengthGlyphs[root._wifiStrengthGlyphs.length - 1];
         const bucket = Math.max(0, Math.min(root._wifiStrengthGlyphs.length - 1, Math.floor(net.signalStrength * root._wifiStrengthGlyphs.length)));
@@ -1173,6 +1175,9 @@ BarCapsule {
     readonly property int btConnectedCount: root.bluetoothBackend ? root.bluetoothBackend.connectedDevices.length : 0
 
     readonly property string bluetoothGlyph: {
+        const host = !root.btPresent && WindowsConnectivity.enabled ? WindowsConnectivity.bluetooth : null;
+        if (host?.state === "on")
+            return host.devices?.some(device => device.connected) ? "\u{f00b1}" : "\u{f00af}";
         if (!root.btPresent)
             return "\u{f00b2}"; // fa-bluetooth_b crossed / disabled
         if (root.btBlocked)
@@ -1445,35 +1450,37 @@ BarCapsule {
     readonly property bool batteryPresent: root.batteryDevice !== null
         && root.batteryDevice !== undefined
         && root.batteryDevice.isPresent === true
+    readonly property bool batteryOnAc: !UPower.onBattery
+    readonly property int batteryPercent: {
+        const charge = root.batteryDevice?.percentage;
+        return isFinite(charge) ? Math.round(Math.max(0, Math.min(1, charge)) * 100) : 0;
+    }
+    readonly property color batteryColour: {
+        if (root.batteryOnAc)
+            return BarRoles.accent;
+        if (root.batteryPercent <= 15)
+            return BarRoles.danger;
+        if (root.batteryPercent <= 30)
+            return BarRoles.warn;
+        return root.contentColour;
+    }
 
     readonly property string batteryGlyph: {
         if (!root.batteryPresent)
             return "";
         if (root.batteryDevice.state === UPowerDeviceState.Charging)
             return "battery_charging_full";
-        if (root.batteryDevice.percentage <= 15)
+        if (!root.batteryOnAc && root.batteryPercent <= 15)
             return "battery_alert";
         return "battery_full";
-    }
-
-    // Same above-1-is-a-percentage / at-or-below-1-is-a-fraction guard
-    // SystemResources.qml's own `batteryFraction` uses, for the same
-    // documented reason: the service's own docs never state the range.
-    function batteryPercentValue() {
-        if (!root.batteryPresent)
-            return 0;
-        const raw = root.batteryDevice.percentage;
-        if (!isFinite(raw) || raw < 0)
-            return 0;
-        const frac = raw > 1 ? Math.min(1, raw / 100) : Math.min(1, raw);
-        return Math.round(frac * 100);
     }
 
     Readout {
         visible: BarEntryModel.entryVisible("battery") && root.batteryPresent
         glyph: root.batteryGlyph
+        glyphColour: root.batteryColour
         maxValueText: "100%"
         populated: true
-        valueText: root.batteryPercentValue() + "%"
+        valueText: root.batteryPercent + "%"
     }
 }

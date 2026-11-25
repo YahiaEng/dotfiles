@@ -44,6 +44,9 @@ BarCapsule {
     id: workspaceCapsule
     capsuleId: "workspaces"
 
+    readonly property var activeWorkspace: Hyprland.monitorFor(QsWindow.window?.screen)?.activeWorkspace
+        ?? Hyprland.focusedWorkspace
+
     // One of the two capsules that carry a surface — operator decision, GATE-02
     // rounds 2-3; the other is IdleInhibitorCapsule (the centre bulb). See
     // BarCapsule.qml's `surfaced` for why this narrow set diverges from
@@ -530,7 +533,7 @@ BarCapsule {
             readonly property int slotId: slotItem.modelData
             readonly property var slotWorkspace: workspaceCapsule.workspaceForId(slotItem.slotId)
             readonly property var slotWindows: workspaceCapsule.windowsFor(slotItem.slotWorkspace)
-            readonly property bool slotFocused: !!(Hyprland.focusedWorkspace && Hyprland.focusedWorkspace.id === slotItem.slotId)
+            readonly property bool slotFocused: workspaceCapsule.activeWorkspace?.id === slotItem.slotId
             readonly property bool slotUrgent: !!(slotItem.slotWorkspace && slotItem.slotWorkspace.urgent) && !slotItem.slotFocused
 
             // D-07: the focused slot's fill — a filled pill, not a tint.

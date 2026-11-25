@@ -109,8 +109,8 @@ listener {
 # a future second trigger inherits the gate.
 listener {
     timeout = $t_dim
-    on-timeout = brightnessctl -s set 30% && ~/.config/hypr/scripts/wallpaper-visibility.sh idle hide && qs ipc call -- screensaver show
-    on-resume = brightnessctl -r && ~/.config/hypr/scripts/wallpaper-visibility.sh idle show && qs ipc call -- screensaver hide
+    on-timeout = ~/.config/hypr/scripts/idle-hardware.sh brightnessctl -s set 30% && ~/.config/hypr/scripts/wallpaper-visibility.sh idle hide && qs ipc call -- screensaver show
+    on-resume = ~/.config/hypr/scripts/idle-hardware.sh brightnessctl -r && ~/.config/hypr/scripts/wallpaper-visibility.sh idle show && qs ipc call -- screensaver hide
 }
 
 # ── Lock screen ─────────────────────────────────────
@@ -139,28 +139,21 @@ listener {
 # before_sleep_cmd) — this line is the ordering guarantee for THIS path.
 listener {
     timeout = $t_lock
-    on-timeout = qs ipc call -- screensaver hideNow && sleep 0.4 && loginctl lock-session
+    on-timeout = qs ipc call -- screensaver hideNow; sleep 0.4; loginctl lock-session
 }
 
 # ── Turn off display ────────────────────────────────
-# Table form is mandatory — the bare-string dpms form is a silent no-op
-# under the Lua config manager, and the string TOGGLE form would switch
-# the display back OFF on every wake, since wake-on-input has already
-# turned it on by the time on-resume runs.
-# User bugfix: Avoid Disabling Monitors completely via DPMS. Disabling
-# the display outputs entirely destroys the rendering surfaces hyprlock
-# and QML elements require. Instead, use a screen brightness tool to dim
-# the panel to zero.
+# Dim the physical panel to zero so Hyprland keeps the lock surfaces.
 listener {
     timeout = $t_off
-    on-timeout = brightnessctl -s set 0      # Turn off backlight completely
-    on-resume = brightnessctl -r             # Restore original brightness
+    on-timeout = ~/.config/hypr/scripts/idle-hardware.sh brightnessctl -s set 0
+    on-resume = ~/.config/hypr/scripts/idle-hardware.sh brightnessctl -r
 }
 
 # ── Suspend ──────────────────────────────────────────
 listener {
     timeout = $t_suspend
-    on-timeout = systemctl suspend
+    on-timeout = ~/.config/hypr/scripts/idle-hardware.sh systemctl suspend
 }
 CONFEOF
 }

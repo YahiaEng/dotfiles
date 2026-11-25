@@ -58,6 +58,9 @@ import ".."
 Singleton {
     id: root
 
+    readonly property bool weaselway: Quickshell.env("DONT_PROMPT_WSL_INSTALL") === "1"
+    readonly property string desktopLauncher: Quickshell.env("HOME") + "/dotfiles/wsl/launch-desktop"
+
     readonly property var roots: [
         {
             text: "  Apps",
@@ -148,7 +151,7 @@ Singleton {
                 },
                 {
                     text: "  Wallpaper",
-                    command: `~/.config/hypr/scripts/wallpaper-switch.sh`
+                    mode: "wallpaper"
                 },
                 {
                     text: "  Icon theme",
@@ -192,11 +195,11 @@ Singleton {
                 },
                 {
                     text: "  Network",
-                    command: `~/.config/hypr/scripts/nmtui-launch.sh`
+                    command: root.weaselway ? `qs ipc call settings openPage network` : `~/.config/hypr/scripts/nmtui-launch.sh`
                 },
                 {
                     text: "  Bluetooth",
-                    command: `uwsm app -- blueman-manager`
+                    command: root.weaselway ? `qs ipc call settings openPage bluetooth` : `uwsm app -- blueman-manager`
                 },
                 {
                     text: "  Audio",
@@ -216,7 +219,7 @@ Singleton {
                 },
                 {
                     text: "  Display",
-                    command: `uwsm app -- nwg-displays`
+                    command: root.weaselway ? `"${root.desktopLauncher}" --display-settings` : `qs ipc call settings openPage display`
                 },
             ]
         },
@@ -225,7 +228,7 @@ Singleton {
             children: [
                 {
                     text: "  Steam",
-                    command: `uwsm app -- steam`
+                    command: root.weaselway ? `uwsm app -- steam.desktop` : `uwsm app -- steam`
                 },
                 {
                     text: "  Lutris",
@@ -317,7 +320,10 @@ Singleton {
                     command: null,
                     mode: "systeminfo"
                 },
-            ]
+            ].concat(root.weaselway ? [{
+                text: "  Show Windows",
+                command: `"${root.desktopLauncher}" --hide`
+            }] : [])
         },
     ]
 }

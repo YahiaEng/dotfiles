@@ -325,6 +325,21 @@ check "Case H: watchdog exits 0 on EOF" "$([[ $rc -eq 0 ]] && echo 0 || echo 1)"
 check "Case H: exits within a few seconds of EOF (does not spin)" "$(awk -v e="$elapsed" 'BEGIN{exit !(e < 5.0)}' && echo 0 || echo 1)"
 
 echo ""
+echo "-- Case I: monitor events during a session lock --"
+write_hyprctl_absent
+: > "$SYSTEMCTL_LOG"
+printf '%s\n' locked > "$SOCK_DIR/quickshell-lock.state"
+run_watchdog "" 0.3 0.8 "monitoradded>>DP-1"
+check "Case I: watchdog defers while Quickshell holds the lock" "$(grep -q 'session locked — deferring bar restart' <<<"$RUN_OUT" && [[ ! -s "$SYSTEMCTL_LOG" ]] && echo 0 || echo 1)"
+rm "$SOCK_DIR/quickshell-lock.state"
+
+echo ""
+echo "-- Case J: fallback output only --"
+sed -i 's/"DP-1"/"FALLBACK"/' "$BIN_DIR/hyprctl"
+run_watchdog "" 0.3 0.8 "monitorremoved>>DP-1"
+check "Case J: watchdog leaves the shell alone until a real output returns" "$([[ ! -s "$SYSTEMCTL_LOG" ]] && echo 0 || echo 1)"
+
+echo ""
 echo "Summary: ${PASS} passed, ${FAIL} failed"
 [[ "$FAIL" -eq 0 ]]
 exit $?

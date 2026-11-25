@@ -161,8 +161,8 @@ theme_engine_wallpaper_autoset() {
     # this directory at all, so a stale guard is dead code, not a live
     # constraint (removed, not left as belt-and-braces).
     local images
-    images=$(find "$theme_dir" -maxdepth 1 \
-        -type f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \) \
+    images=$(find -H "$theme_dir" -maxdepth 1 \
+        -xtype f \( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \) \
         -printf "%f\n" 2>/dev/null | sort)
 
     # D-03: separate, unfiltered live/ enumeration pass. Deliberately NEVER

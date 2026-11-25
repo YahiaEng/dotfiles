@@ -418,6 +418,10 @@ ACCEPTED_OPTION_CHANGES = {
     # before the change); Super+RMB drag is unaffected.
     ('general:resize_on_border', 'added'):
         'hyprland.lua, added 2026-08-28 (quick task 260828-75k) — edge-drag resize for floating windows',
+    ('misc:allow_session_lock_restore', 'added'):
+        'hyprland.lua enables Quickshell to recover a session lock after a crash',
+    ('cursor:default_monitor', 'added'):
+        'Weaselway starts the cursor on the selected main display',
 }
 
 # ── Volatile (operator-adjustable) option keys (quick task 260820-sqd,
@@ -718,6 +722,8 @@ for arr, target, name in ((baseline, base_by_id, "baseline"), (live, live_by_id,
 # pattern that silently swallows the next addition too. Anything not listed
 # here still FAILs exactly as before.
 ACCEPTED_ADDITIONS = {
+    ("", 12, "H", True):
+        "Weaselway releases the viewer to Windows on Ctrl+Alt+H",
     # Phase 18 (QBAR-09) hold-to-reveal: shows the OLED-hidden bar while
     # Super is held, declared at keybinds.lua:134 as
     # `hl.bind(mainMod .. " + SUPER_L", hl.dsp.global("quickshell:bar-reveal"))`.

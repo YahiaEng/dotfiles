@@ -1,8 +1,5 @@
-// LockSurface.qml — the per-screen WlSessionLockSurface (quick task
-// 260827-833 Task 1, LOCK-01). Owns layout resolution, the backdrop
-// (blurred screencopy vs sharp wallpaper), the single keyboard-focus
-// owner shared by all five layouts, and the deferred-unlock exit
-// animation.
+// Per-screen lock layout, wallpaper and keyboard focus. Lock.qml owns
+// the lock lifetime across all outputs.
 //
 // ── layoutKey never resolves to `undefined` ───────────────────────────
 // Reads `Prefs.getValue("lock.layout")` and validates it against the five
@@ -36,7 +33,6 @@ import "../"
 WlSessionLockSurface {
     id: root
 
-    required property WlSessionLock lock
     required property LockPam pam
     property var mediaBackend: null
     // Task 2 (LOCK-01) — the "caelestia" layout's left/right column data,
@@ -45,7 +41,7 @@ WlSessionLockSurface {
     property var weatherBackend: null
     property var systemResources: null
 
-    readonly property alias unlocking: unlockAnim.running
+    property bool unlocking: false
 
     readonly property string layoutKey: {
         const v = Prefs.getValue("lock.layout");
@@ -61,52 +57,44 @@ WlSessionLockSurface {
         }
     }
 
-    // caelestia/continuity/focus blur a live ScreencopyView; rail/split
-    // show the still wallpaper unblurred (the design study's own
-    // directions C and D deliberately sidestep screencopy).
-    readonly property var _blurMap: ({
-        "caelestia": true,
-        "continuity": true,
-        "rail": false,
-        "split": false,
-        "focus": true
-    })
-    readonly property bool backdropIsBlur: root._blurMap[root.layoutKey] !== false
+    readonly property bool backdropIsBlur: root.layoutKey !== "rail" && root.layoutKey !== "split"
 
-    color: "transparent"
+    // The wallpaper is also available on outputs added while locked.
+    readonly property url wallpaperUrl: "file://" + Quickshell.env("HOME") + "/.local/state/theme/current.jpg"
+
+    color: Colours.surface
 
     Item {
         id: content
 
         anchors.fill: parent
 
-        // ── Entrance ──────────────────────────────────────────────────
-        // ADDED 2026-08-27. There was no entrance animation at all: the
-        // surface was simply mapped at full opacity, so every layout "just
-        // suddenly appears". Only Quiet Focus and Split Canvas looked
-        // animated, and only because those two happen to animate their own
-        // internal contents — which is exactly the pair the operator named.
-        //
-        // Written as property-value-source animations (`NumberAnimation on
-        // <prop>`) rather than an imperative `start()` in
-        // `Component.onCompleted`. They self-start at creation and are
-        // guaranteed to settle on `to`, so there is no path where a missed
-        // trigger leaves the lock screen invisible — which on THIS surface
-        // would mean a black screen with no way to type a password.
-        NumberAnimation on opacity {
+        property real entranceOpacity: 0
+        property real exitOpacity: root.unlocking ? 0 : 1
+        opacity: entranceOpacity * exitOpacity
+        scale: root.unlocking ? 1.06 : 1
+
+        NumberAnimation on entranceOpacity {
             from: 0
             to: 1
             duration: Motion.emphasizedInDuration
             easing.type: Easing.BezierSpline
             easing.bezierCurve: Motion.emphasizedInEasing
         }
-
-        // NOTE: the surface-level entrance is deliberately a plain fade and
-        // nothing more. It reveals the BACKDROP; the character belongs to
-        // each layout, which now stages its own entrance (the flanks sliding
-        // in on Three Columns, the rail arriving from its edge, the stack
-        // rising on Continuity). A simultaneous scale here fought those
-        // transforms and read as a wobble.
+        Behavior on exitOpacity {
+            NumberAnimation {
+                duration: Motion.emphasizedInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.emphasizedOutEasing
+            }
+        }
+        Behavior on scale {
+            NumberAnimation {
+                duration: Motion.emphasizedInDuration
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.emphasizedOutEasing
+            }
+        }
 
         // Surface-wide click-to-refocus. Declared BEFORE the layout loader
         // so it sits underneath: a LockField's own MouseArea still wins for
@@ -118,11 +106,24 @@ WlSessionLockSurface {
             onPressed: focusOwner.forceActiveFocus()
         }
 
-        Loader {
-            id: backdropLoader
-
+        Image {
             anchors.fill: parent
-            sourceComponent: root.backdropIsBlur ? blurredBackdropComponent : wallpaperBackdropComponent
+            source: root.wallpaperUrl
+            fillMode: Image.PreserveAspectCrop
+            cache: false
+            layer.enabled: root.backdropIsBlur
+            layer.effect: MultiEffect {
+                autoPaddingEnabled: false
+                blurEnabled: true
+                blur: 1
+                blurMax: 64
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            color: Colours.surface
+            opacity: 0.65
         }
 
         Loader {
@@ -172,38 +173,6 @@ WlSessionLockSurface {
                     focusOwner.forceActiveFocus();
                 }
             }
-        }
-    }
-
-    Component {
-        id: blurredBackdropComponent
-
-        Item {
-            anchors.fill: parent
-
-            layer.enabled: true
-            layer.effect: MultiEffect {
-                autoPaddingEnabled: false
-                blurEnabled: true
-                blur: 1
-                blurMax: 64
-                blurMultiplier: 1
-            }
-
-            ScreencopyView {
-                anchors.fill: parent
-                captureSource: root.screen
-            }
-        }
-    }
-
-    Component {
-        id: wallpaperBackdropComponent
-
-        Image {
-            anchors.fill: parent
-            source: "file://" + Quickshell.env("HOME") + "/.local/state/theme/current.jpg"
-            fillMode: Image.PreserveAspectCrop
         }
     }
 
@@ -266,50 +235,4 @@ WlSessionLockSurface {
         }
     }
 
-    Connections {
-        function onUnlockRequested() {
-            unlockAnim.start();
-        }
-
-        target: root.lock
-    }
-
-    // Deferred unlock: fade+shrink the content out, THEN set
-    // `lock.locked = false` as the very last step. Doing the property
-    // write at the end (not on the trigger) is what stops the surface
-    // being destroyed on frame one (MEMORY
-    // exit-animation-vs-loader-teardown).
-    SequentialAnimation {
-        id: unlockAnim
-
-        // STRENGTHENED 2026-08-27. The exit existed and was correctly
-        // deferred, but was imperceptible: opacity over 150ms with a 4%
-        // scale change reads as "the lockscreen suddenly disappears".
-        // The path itself was never the problem — PAM success emits
-        // `unlockRequested`, which starts this, and only its final
-        // PropertyAction clears `locked`. Only the magnitudes changed.
-        ParallelAnimation {
-            NumberAnimation {
-                target: content
-                property: "opacity"
-                to: 0
-                duration: Motion.emphasizedInDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.emphasizedOutEasing
-            }
-            NumberAnimation {
-                target: content
-                property: "scale"
-                to: 1.06
-                duration: Motion.emphasizedInDuration
-                easing.type: Easing.BezierSpline
-                easing.bezierCurve: Motion.emphasizedOutEasing
-            }
-        }
-        PropertyAction {
-            target: root.lock
-            property: "locked"
-            value: false
-        }
-    }
 }

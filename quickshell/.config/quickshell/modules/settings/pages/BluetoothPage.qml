@@ -19,14 +19,18 @@
 // device list renders permanently empty (see shell.qml's own comment
 // block at the gate).
 import QtQuick
+import Quickshell
 import Quickshell.Io
 import ".."
 import "../common"
 import "../../"
 import "../../dashboard"
+import "../../bar" as Bar
 
 PageBase {
     id: root
+
+    readonly property bool windowsBluetooth: Bar.WindowsConnectivity.enabled && !adapterPresent
 
     title: "Connected devices"
 
@@ -443,9 +447,15 @@ PageBase {
             onToggled: (value) => root.bluetoothBackend && root.bluetoothBackend.setAdapterEnabled(value)
         }
         InfoRow {
-            visible: !root.adapterPresent
+            visible: !root.windowsBluetooth && !root.adapterPresent
             label: "No Bluetooth adapter found"
             subtext: "This machine has no Bluetooth controller Quickshell can see."
+        }
+        NavRow {
+            visible: root.windowsBluetooth
+            label: "Open Windows Bluetooth settings"
+            subtext: "Windows manages Bluetooth devices while no adapter is attached to WSL."
+            onActivated: Bar.WindowsConnectivity.openSettings("bluetooth")
         }
         InfoRow {
             visible: root.adapterPresent && root.adapterBlocked
@@ -531,6 +541,7 @@ PageBase {
         }
 
         NavRow {
+            visible: !root.windowsBluetooth
             label: "Advanced Bluetooth settings"
             subtext: root._bluemanManagerAvailable
                 ? "Opens the full Bluetooth manager for less common options."

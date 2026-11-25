@@ -209,6 +209,14 @@ theme_engine_generate() {
     mkdir -p "$tmp$STATE_DIR"
     printf '%s\n' "$mode" > "$tmp$STATE_DIR/mode"
 
+    # Starship reads a single config file. Assemble it before committing so
+    # each prompt sees the complete configuration from one theme render.
+    {
+        cat "$HOME/.config/starship_base.toml" &&
+            printf '\n' &&
+            cat "$tmp$STATE_DIR/starship.toml"
+    } > "$tmp$STATE_DIR/starship-prompt.toml" 2>>"$GENERATE_LOG" || return 1
+
     theme_engine_render_gtk_settings "$mode" "$tmp"
 
     # UTIL-05/D-19: font-choice is re-rendered on EVERY run regardless of

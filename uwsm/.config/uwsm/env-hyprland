@@ -1,11 +1,27 @@
 # ╔══════════════════════════════════════════════════════╗
 # ║     UWSM ENVIRONMENT — Hyprland-specific             ║
-# ║     NVIDIA + XDG vars exclusive to Hyprland          ║
+# ║     Hardware-aware graphics and XDG settings          ║
 # ╚══════════════════════════════════════════════════════╝
 
-export LIBVA_DRIVER_NAME=nvidia
-export __GLX_VENDOR_LIBRARY_NAME=nvidia
-export NVD_BACKEND=direct
+# Select NVIDIA's VA-API backend on a single-GPU NVIDIA system. Mesa and
+# hybrid setups can select their adapters and drivers through the usual APIs.
+if [ -z "${LIBVA_DRIVER_NAME:-}" ]; then
+    native_nvidia=0
+    native_gpus=0
+    for gpu in /sys/class/drm/card[0-9]*/device; do
+        [ -r "$gpu/vendor" ] || continue
+        native_gpus=$((native_gpus + 1))
+        case "$(readlink "$gpu/driver")" in
+            */nvidia) native_nvidia=1 ;;
+        esac
+    done
+    if [ "$native_gpus" = 1 ] && [ "$native_nvidia" = 1 ] && [ -r /usr/lib/dri/nvidia_drv_video.so ]; then
+        export LIBVA_DRIVER_NAME=nvidia
+        export NVD_BACKEND=direct
+    fi
+    unset gpu native_gpus native_nvidia
+fi
+
 export XDG_CURRENT_DESKTOP=Hyprland
 export XDG_SESSION_TYPE=wayland
 export XDG_SESSION_DESKTOP=Hyprland

@@ -61,7 +61,7 @@ Item {
     SystemClock {
         id: splitDateClock
         enabled: true
-        precision: SystemClock.Days
+        precision: SystemClock.Hours
     }
 
     Rectangle {

@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$(systemd-detect-virt 2>/dev/null)" != wsl ]]; then
+    printf '%s is available only inside Arch WSL2.\n' "${0##*/}" >&2
+    exit 1
+fi
+
+# Weaselway's system profile exports the stock path even for our launcher.
+stock_viewer=/opt/weaselway/viewer/sdl-freerdp.exe
+viewer_path="${WEASELWAY_VIEWER:-$stock_viewer}"
+touch_viewer="$HOME/.local/share/weaselway/touch/viewer/sdl-freerdp.exe"
+if [[ "$viewer_path" == "$stock_viewer" && -x "$touch_viewer" ]]; then
+    viewer_path="$touch_viewer"
+fi
+export WEASELWAY_VIEWER="$viewer_path"
+export PATH="$HOME/.local/bin:/usr/local/bin:/usr/bin:/usr/lib/wsl/lib:$PATH"
+
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+powershell=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
+runtime="${XDG_RUNTIME_DIR:?Missing WSL user runtime directory}"
+profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/weaselway/displays"
+saved_profile=both
+if [[ -r "$profile_file" ]]; then
+    read -r saved_profile < "$profile_file" || true
+    if [[ ! "$saved_profile" =~ ^DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}$ ]]; then saved_profile=both; fi
+fi
+
+windows_action() {
+    local helper viewer distro launcher action profile
+    helper="$(wslpath -w "$script_dir/windows-viewer.ps1")"
+    viewer="$(wslpath -w "$WEASELWAY_VIEWER")"
+    distro="${WSL_DISTRO_NAME:-}"
+    if [[ -z "$distro" ]]; then
+        distro="$(wslpath -w /)"
+        distro="${distro%\\}"
+        distro="${distro##*\\}"
+    fi
+    launcher="$script_dir/launch-desktop"
+    action="$1"
+    profile="${2:-both}"
+    (
+        cd /mnt/c
+        "$powershell" -NoProfile -NonInteractive -Command \
+            "& ([ScriptBlock]::Create([IO.File]::ReadAllText('${helper//\'/\'\'}'))) '$action' '${viewer//\'/\'\'}' '${distro//\'/\'\'}' '${launcher//\'/\'\'}' '${profile//\'/\'\'}'"
+    ) 8>&- 9>&- </dev/null
+}
+
+apply_layout() {
+    local screen x y index=1 instance desired
+    local path="$runtime/arch-hyprland-displays"
+    desired="$(
+        while read -r screen x y _width _height; do
+            printf 'Virtual-%s %sx%s\n' "$index" "$x" "$y"
+            ((index += 1))
+        done <<< "$layout"
+    )"
+    if [[ ! -r "$path" || "$(<"$path")" != "$desired" ]]; then
+        printf '%s\n' "$desired" > "$path.tmp"
+        mv "$path.tmp" "$path"
+        instance="$(hyprctl instances -j | jq -r '.[0].instance // empty')"
+        if [[ -n "$instance" ]]; then
+            HYPRLAND_INSTANCE_SIGNATURE="$instance" hyprctl reload >/dev/null
+        fi
+    fi
+}
+
+start_weaselwayd() {
+    local attempt socket restart=false
+    local watcher_dir="$runtime/weaselway-hyprland"
+    local drop_in="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/weaselwayd.service.d/20-hyprland-socket.conf"
+    for attempt in {1..30}; do
+        socket="$(hyprctl instances -j | jq -r '.[0].wl_socket // empty')"
+        if [[ -n "$socket" && -S "$runtime/$socket" ]]; then break; fi
+        sleep .2
+    done
+    if [[ -z "$socket" || ! -S "$runtime/$socket" ]]; then
+        printf 'Could not find the Hyprland Wayland socket.\n' >&2
+        return 1
+    fi
+
+    # The daemon scans its runtime directory for a compositor. Give it
+    # only Hyprland's socket so WSLg cannot supply the pointer layout.
+    install -d -m 700 "$watcher_dir"
+    if [[ "$(readlink "$watcher_dir/wayland-hyprland")" != "$runtime/$socket" ]]; then
+        restart=true
+    fi
+    ln -sfn "$runtime/$socket" "$watcher_dir/wayland-hyprland"
+    if ! cmp -s "$script_dir/weaselwayd-hyprland.conf" "$drop_in"; then
+        install -Dm 644 "$script_dir/weaselwayd-hyprland.conf" "$drop_in"
+        systemctl --user daemon-reload
+        restart=true
+    fi
+    if "$restart"; then
+        systemctl --user restart weaselwayd.service
+    else
+        systemctl --user start weaselwayd.service
+    fi
+}
+
+sync_wallpaper() {
+    local attempt socket outputs missing wallpaper
+    for attempt in {1..16}; do
+        socket="$(hyprctl instances -j | jq -r '.[0].wl_socket // empty')" || return
+        if [[ -n "$socket" ]] && outputs="$(WAYLAND_DISPLAY="$socket" awww query 2>/dev/null)"; then
+            if (( $(sed -n '/^: Virtual-[0-9]*:/p' <<< "$outputs" | wc -l) >= count )); then
+                break
+            fi
+        fi
+        sleep .25
+    done
+    missing="$(sed -nE 's/^: (Virtual-[0-9]+): .*currently displaying: color: 000000$/\1/p' <<< "${outputs:-}" | paste -sd,)"
+    wallpaper="$HOME/.local/state/theme/current.jpg"
+    if [[ -n "$missing" && -r "$wallpaper" ]]; then
+        WAYLAND_DISPLAY="$socket" awww img "$wallpaper" -o "$missing" --transition-type none
+    fi
+}
+
+mode="${1:-auto}"
+case "$mode" in
+    --install-shortcuts)
+        windows_action shortcuts
+        exit
+        ;;
+    --list-monitors)
+        windows_action displays
+        exit
+        ;;
+    --disconnect|--hide)
+        action=close
+        if [[ "$mode" == --hide ]]; then action=hide; fi
+        status=0
+        windows_action "$action" || status=$?
+        if [[ "$status" == 3 ]]; then status=0; fi
+        exit "$status"
+        ;;
+    --display-settings)
+        profile="$(windows_action choose "$saved_profile" | tr -d '\r')"
+        if [[ ! "$profile" =~ ^DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}$ ]]; then exit 0; fi
+        ;;
+    auto|--toggle) profile="$saved_profile" ;;
+    both)
+        profile=both
+        if [[ "$saved_profile" != both ]]; then profile="both,${saved_profile%%,*}"; fi
+        ;;
+    primary|external) profile="$mode" ;;
+    --monitor|--monitors)
+        profile="${2:-}"
+        if [[ ! "$profile" =~ ^DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}$ ]]; then
+            printf 'Use --list-monitors to find the DISPLAY names.\n' >&2
+            exit 2
+        fi
+        ;;
+    *)
+        printf 'Usage: %s [--display-settings|--toggle|both|primary|external|--monitors DISPLAY[,DISPLAY]|--list-monitors|--disconnect|--install-shortcuts]\n' "$0" >&2
+        exit 2
+        ;;
+esac
+
+# The switch lock serializes a Windows handover. The viewer lock is held
+# until its foreground process exits and the next layout can connect.
+exec 8>"$runtime/arch-hyprland-viewer-switch.lock"
+flock 8
+
+action=show
+if [[ "$mode" == --toggle ]]; then action=toggle; fi
+if [[ "$mode" == auto || "$mode" == --toggle ]]; then
+    if windows_action "$action"; then
+        exit 0
+    else
+        status=$?
+        if [[ "$status" != 3 ]]; then exit "$status"; fi
+    fi
+fi
+
+if ! layout="$(windows_action layout "$profile" | tr -d '\r')"; then
+    if [[ "$mode" != auto && "$mode" != --toggle ]]; then exit 1; fi
+    profile=both
+    layout="$(windows_action layout "$profile" | tr -d '\r')"
+fi
+mapfile -t screens <<< "$layout"
+count="${#screens[@]}"
+
+if [[ "$mode" != auto && "$mode" != --toggle ]]; then
+    status=0
+    windows_action close || status=$?
+    if [[ "$status" != 0 && "$status" != 3 ]]; then exit "$status"; fi
+fi
+
+exec 9>"$runtime/arch-hyprland-viewer.lock"
+if ! flock -w 8 9; then
+    printf 'The current Weaselway viewer is still starting or closing.\n' >&2
+    exit 1
+fi
+
+if ! systemctl is-active --quiet weaselway-session.service; then
+    if ! systemctl is-active --quiet weaselway-prep.service; then
+        sudo systemctl start weaselway-prep.service 8>&- 9>&-
+    fi
+    ww-start-session custom 8>&- 9>&-
+fi
+start_weaselwayd
+
+log="$runtime/arch-hyprland-viewer.log"
+: > "$log"
+# Separate borderless windows avoid SDL's physical fullscreen mode
+# changes. Windows positions and sizes each view to its assigned display.
+width=800 height=500
+if (( count > 1 )); then
+    # Let held-button motion reach the next viewer window at a display edge.
+    export SDL_MOUSE_AUTO_CAPTURE=0
+    export SDL_MOUSE_FOCUS_CLICKTHROUGH=1
+    export WSLENV="${WSLENV:+$WSLENV:}SDL_MOUSE_AUTO_CAPTURE/w:SDL_MOUSE_FOCUS_CLICKTHROUGH/w"
+else
+    read -r _screen _x _y width height <<< "${screens[0]}"
+fi
+DEBUG=1 ww-start-viewer "/sdl-windows:$count" "/w:$width" "/h:$height" -decorations +grab-keyboard \
+    '/t:Arch Linux (Hyprland)' 8>&- 9>&- >>"$log" 2>&1 &
+viewer_pid=$!
+if ! windows_action arrange "$profile" 2>>"$log"; then
+    # Cancel a launch that may still be in the interop preflight. Waiting
+    # here could keep both launcher locks held by a late-starting viewer.
+    kill "$viewer_pid" 2>/dev/null || true
+    windows_action close >>"$log" 2>&1 || true
+    printf 'Could not arrange the Weaselway viewer. See %s\n' "$log" >&2
+    exit 1
+fi
+apply_layout
+if (( count > 1 )); then
+    windows_action drag-handoff 8>&- 9>&- >>"$log" 2>&1 &
+    sync_wallpaper 8>&- 9>&- >>"$log" 2>&1 &
+fi
+if [[ "$mode" == --display-settings ]]; then
+    mkdir -p "$(dirname "$profile_file")"
+    printf '%s\n' "$profile" > "$profile_file.tmp"
+    mv "$profile_file.tmp" "$profile_file"
+fi
+exec 8>&-
+if ! wait "$viewer_pid"; then
+    if ! grep -q 'ERRCONNECT_CONNECT_CANCELLED' "$log"; then
+        printf 'The Weaselway viewer exited with an error. See %s\n' "$log" >&2
+        exit 1
+    fi
+fi

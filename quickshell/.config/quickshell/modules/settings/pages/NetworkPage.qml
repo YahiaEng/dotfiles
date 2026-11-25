@@ -52,6 +52,7 @@
 // (T-15-08) — an SSID is attacker-controllable text arriving over the
 // air, and two rows can legitimately share one.
 import QtQuick
+import Quickshell
 import QtQuick.Controls
 import Quickshell.Io
 import Quickshell.Networking
@@ -59,9 +60,12 @@ import ".."
 import "../common"
 import "../../"
 import "../../dashboard"
+import "../../bar" as Bar
 
 PageBase {
     id: root
+
+    readonly property bool windowsWifi: Bar.WindowsConnectivity.enabled && !wifiBackend?.wifiDevice
 
     title: "Network"
 
@@ -559,9 +563,15 @@ PageBase {
             onToggled: (value) => root.wifiBackend && root.wifiBackend.setWifiEnabled(value)
         }
         InfoRow {
-            visible: !root.wifiHardwarePresent
+            visible: !root.windowsWifi && !root.wifiHardwarePresent
             label: "Wi-Fi hardware is off"
             subtext: "This device's Wi-Fi radio is switched off (airplane mode or a hardware switch) and can't be turned back on from here."
+        }
+        NavRow {
+            visible: root.windowsWifi
+            label: "Open Windows Wi-Fi settings"
+            subtext: "Windows manages the network connection used by WSL."
+            onActivated: Bar.WindowsConnectivity.openSettings("wifi")
         }
         InfoRow {
             visible: root.wifiHardwarePresent && !root.wifiEnabled
@@ -634,6 +644,7 @@ PageBase {
         }
 
         NavRow {
+            visible: !root.windowsWifi
             label: "Advanced network settings"
             subtext: root._nmConnectionEditorAvailable
                 ? "Hidden networks and workplace (802.1X) logins need the full network editor."

@@ -13,34 +13,21 @@ set -euo pipefail
 # explicit list, so system/ is never stowed.
 REPO_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 
-# ── Flag parsing ─────────────────────────────────────
-# --core-only : run only section_core_rice (packages + AUR helper + core
-#               post-install tasks). Skips section_hardware and
-#               section_personal. Used by the container/VM verification
-#               gate (D-52/D-57), where hardware guards and personal
-#               config would be meaningless or destructive.
-# --help/-h   : print usage and exit 0 before any sudo/pacman call.
-# Any other flag is rejected loudly (Security V5) — never silently ignored.
 CORE_ONLY=false
 GAMING_ONLY=false
-NVIDIA_INSTALLED=false
+PLAN_ONLY=false
 
 usage() {
     cat <<'USAGE'
-Usage: install.sh [--core-only | --gaming-only] [--help]
+Usage: install.sh [--core-only | --gaming-only] [--plan] [--help]
 
-  --core-only   Install only the core rice section: pacman + AUR packages,
-                AUR-helper bootstrap, audio/dbus-broker services, VSCodium
-                extensions. Skips the hardware section (NVIDIA/limine) and
-                the personal section (git identity, timezone). Intended
-                for the container/VM verification gate.
-  --gaming-only Install ONLY the gaming + VFIO passthrough section: the
-                gaming/virtualisation packages, the sysctl and NVIDIA
-                module tuning, the VFIO hook scripts, an initramfs
-                rebuild, and libvirtd with its default network. Skips
-                every other section. Intended for applying the gaming
-                setup to an already-provisioned host without re-running
-                a full install.
+  A full install detects native Arch or Arch WSL2 and sets up Hyprland
+  for that environment. Run ./stow.sh afterwards to link your dotfiles.
+
+  --core-only   Install shared desktop tools for the verification gate.
+  --gaming-only Install gaming tools and apply this host's gaming setup.
+  --plan        Print the detected environment, packages and setup steps.
+                Runs without sudo and makes no changes.
   --help, -h    Show this help message and exit.
 USAGE
 }
@@ -53,6 +40,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --gaming-only)
             GAMING_ONLY=true
+            shift
+            ;;
+        --plan)
+            PLAN_ONLY=true
             shift
             ;;
         --help|-h)
@@ -77,31 +68,10 @@ if [[ "$CORE_ONLY" == "true" && "$GAMING_ONLY" == "true" ]]; then
     exit 1
 fi
 
-# ── Sudo keepalive (2026-08-27) ───────────────────────────────────────
-# This script makes 47 sudo calls, and the AUR build sits between them —
-# AUR_PKGS_HOST's own comment measures tela-icon-theme at 21min and
-# colloid-icon-theme-git at 22min. sudo's default timestamp_timeout is 5
-# minutes and this host sets no override, so the cached credential
-# ALWAYS expires during that build and the next sudo re-prompts. The
-# operator hit exactly this, mid-run, right after the hyprpm step:
-#     [sudo] password for aorus:
-# An install that stops for a password 40 minutes in, unattended, is a
-# failed install.
-#
-# Prime once up front (so the password is asked for at the START, where
-# someone is still watching), then refresh in the background until this
-# script exits. `kill -0 $$` makes the refresher die with its parent
-# rather than outliving it as a stray root-capable loop, and the trap
-# closes the window where the script exits between refreshes.
-sudo -v
-while true; do
-    sudo -n true 2>/dev/null || exit
-    sleep 50
-    kill -0 "$$" 2>/dev/null || exit
-done &
-SUDO_KEEPALIVE_PID=$!
-# shellcheck disable=SC2064  # expand SUDO_KEEPALIVE_PID now, not at trap time
-trap "kill $SUDO_KEEPALIVE_PID 2>/dev/null || true" EXIT
+PLATFORM=native
+if [[ "$(systemd-detect-virt 2>/dev/null || true)" == wsl || "$(uname -r)" == *[Mm]icrosoft* ]]; then
+    PLATFORM=wsl
+fi
 
 # makepkg OPTIONS with `debug` turned off, derived from the SYSTEM config
 # rather than hardcoded — if Arch changes its defaults, this follows them
@@ -224,6 +194,9 @@ PACMAN_PKGS=(
     psmisc
     rsync
     stow
+    git
+    base-devel
+    desktop-file-utils
     # Phase 18/RETIRE-02 review WR-02: explicit, not transitive. The
     # theme-engine's lib/wallpaper.sh invokes `ffmpeg` directly to extract
     # the still frame a live wallpaper hands to the lock screen, and
@@ -267,7 +240,7 @@ PACMAN_PKGS=(
     # the wifi panel now supplies passphrases natively. Do NOT remove this
     # package because that override exists — they are two halves of one
     # decision, and each names the other so either end is discoverable.
-    network-manager-applet
+    upower
 
     # Fonts
     otf-firamono-nerd
@@ -359,7 +332,6 @@ PACMAN_PKGS=(
     gpu-screen-recorder
     hyprpicker
     wtype
-    ddcutil
     papirus-icon-theme
     ttf-jetbrains-mono-nerd
     ttf-cascadia-code-nerd
@@ -380,6 +352,7 @@ PACMAN_PKGS=(
     unzip
     libreoffice-fresh
     obsidian
+    discord
 
     # DevOps
     ansible
@@ -396,14 +369,8 @@ PACMAN_PKGS=(
     # endpoint at localhost:11434/v1). blueman chosen over AUR-only
     # overskride for D-18 (official repo; windowrules.conf already
     # carries a float-blueman rule for the blueman-manager class).
-    steam       # multilib — see the multilib enablement step above
-    lutris
     ollama
     aichat
-    gamemode
-    mangohud
-    nwg-displays
-    blueman
 
     # ── sudo askpass helper (260829-vfi) ────────────────────────────
     # Lets sudo ask for a password when NO TERMINAL is available. Without
@@ -477,15 +444,14 @@ PACMAN_PKGS=(
     # rather than relied on transitively (it was already present on the
     # reference host, which is exactly the host-only-state class the
     # reproducibility constraint forbids).
-    smartmontools
 )
 
-# ── Gaming + VFIO passthrough packages (260829-vfi) ───────────────────
-# Held in their OWN array, then appended to PACMAN_PKGS below, so that a
-# full run installs them exactly as before while `--gaming-only` can
-# install just this set. One source of truth for the names — duplicating
-# them into a second literal list is how the two drift apart.
+# Gaming tools are shared. Local VM tooling is selected on native Arch.
 GAMING_PKGS=(
+    steam
+    lutris
+    gamemode
+    mangohud
     # ── Native gaming stack (260829-vfi) ────────────────────────────
     # Every name below was checked with `pacman -Si` against the live
     # repos before being written here — this repo has a scar from
@@ -516,8 +482,9 @@ GAMING_PKGS=(
     # process, and the failure is silent rather than an error.
     lib32-mangohud
     lib32-gamemode
+)
 
-    # ── Single-GPU VFIO passthrough VM stack (260829-vfi) ───────────
+VIRTUALIZATION_PKGS=(
     # REPRODUCIBILITY FIX, not just an addition: qemu-full, libvirt and
     # edk2-ovmf were found ALREADY INSTALLED on this host with install
     # reason "Explicitly installed" while appearing NOWHERE in this
@@ -546,40 +513,21 @@ GAMING_PKGS=(
     virt-firmware
 )
 
-# A full install is unchanged by the split above: the same names still
-# reach pacman through PACMAN_PKGS, and verify_packages still checks them.
-PACMAN_PKGS+=("${GAMING_PKGS[@]}")
-
-# ── Official repo packages (hardware — NVIDIA GPU only) ─
-# nvidia-open-dkms, NOT nvidia-dkms: Arch dropped the proprietary kernel
-# modules at driver 610 — `nvidia`, `nvidia-dkms` and `nvidia-lts` are gone
-# from the repos. nvidia-open-dkms declares Provides/Replaces on nvidia-dkms
-# so the old name still resolved, but it no longer says what it means.
-# Only the KERNEL modules are open; nvidia-utils (the userspace driver —
-# OpenGL/Vulkan/CUDA/NVENC) is the same proprietary blob either way. The open
-# modules require Turing or newer, since they offload hardware management to
-# the GPU's GSP coprocessor.
-NVIDIA_PKGS=(
-    nvidia-open-dkms
+NVIDIA_USERSPACE_PKGS=(
     nvidia-utils
+    lib32-nvidia-utils
     libva-nvidia-driver
-    egl-wayland
 )
 
-# ── Fallback kernel (hardware — boot resilience) ────────
-# A second bootable kernel, so a driver/kernel mismatch on the mainline kernel
-# is an inconvenience rather than an unusable system. On 2026-07-28 the
-# mainline kernel updated without its NVIDIA modules getting built and the
-# only recovery path was appending "3" at the bootloader to reach a console.
-#
-# linux-lts-headers is required because the driver is DKMS and must compile
-# against this kernel too. (It would be unnecessary under a prebuilt
-# nvidia-open-lts strategy — deliberately not what this repo uses; DKMS covers
-# every installed kernel from one package and is guarded by
-# kernel-module-verify.)
-FALLBACK_KERNEL_PKGS=(
-    linux-lts
-    linux-lts-headers
+NATIVE_DESKTOP_PKGS=(
+    networkmanager
+    network-manager-applet
+    bluez
+    bluez-utils
+    blueman
+    ddcutil
+    nftables
+    smartmontools
 )
 
 # ── AUR packages (core — always installed) ───────────
@@ -595,7 +543,6 @@ AUR_PKGS=(
 
     # Other
     spotify
-    discord
     1password
     # octopi-git, NOT octopi (fixed 2026-08-27, quick task 260827-np1).
     # `octopi` depends on `alpm_octopi_utils`, which CONFLICTS with the
@@ -694,18 +641,8 @@ AUR_PKGS=(
     rose-pine-cursor
 )
 
-# ── AUR packages (host-only — skipped under --core-only) ─
-# Bootloader + kernel hooks: host-only. A container has no bootloader and
-# never reaches a boot, so these are out of --core-only scope for the same
-# reason install.sh:816's kernel-module-verify check skips there ("no
-# hardware section ran, so there is no kernel/driver work to check"). A
-# default (no-flag) run still appends and installs both — this changes only
-# the container-gate scope, not the real host install.
+# These optional icons are shared by full native and WSL installs.
 AUR_PKGS_HOST=(
-    # Limine Bootloader
-    limine-dracut-support
-    kernel-modules-hook
-
     # Icon themes, heavy-build half (22-09 perf — measured, not a guess):
     # tela-icon-theme took 21min and colloid-icon-theme-git took 22min in
     # the 22-BASELINE.md run (03-install.log timestamp diffs), 43 of the
@@ -724,13 +661,141 @@ AUR_PKGS_HOST=(
     colloid-icon-theme-git
 )
 
-if [[ "$CORE_ONLY" != "true" ]]; then
-    AUR_PKGS+=("${AUR_PKGS_HOST[@]}")
+GRAPHICS_PKGS=(mesa lib32-mesa)
+NATIVE_KERNEL_PKGS=()
+NATIVE_AUR_PKGS=()
+NVIDIA_STACK=false
+LIMINE=false
+VFIO=false
+INITRAMFS=mkinitcpio
+
+select_native_hardware() {
+    local graphics amd intel nvidia kernel pkgbase
+    graphics="$(LC_ALL=C lspci -Dnn -d ::03xx 2>/dev/null || true)"
+    amd="$(awk '/\[1002:[[:xdigit:]]{4}\]/' <<< "$graphics")"
+    intel="$(awk '/\[8086:[[:xdigit:]]{4}\]/' <<< "$graphics")"
+    nvidia="$(awk '/\[10de:[[:xdigit:]]{4}\]/' <<< "$graphics")"
+
+    if [[ -n "$amd" ]]; then
+        GRAPHICS_PKGS+=(vulkan-radeon lib32-vulkan-radeon)
+    fi
+    if [[ -n "$intel" ]]; then
+        GRAPHICS_PKGS+=(vulkan-intel lib32-vulkan-intel intel-media-driver)
+    fi
+    if [[ -n "$nvidia" ]]; then
+        # Preserve an existing NVIDIA driver choice, including legacy branches.
+        if pacman -Qq nvidia-utils &>/dev/null; then
+            NVIDIA_STACK=true
+        elif [[ "$GAMING_ONLY" == false ]] \
+            && [[ "$nvidia" =~ (TU[0-9]+|GA[0-9]+|AD[0-9]+|GB[0-9]+|GH[0-9]+|Blackwell) ]] \
+            && ! pacman -Qq | grep -E '^nvidia-[0-9]+xx(-dkms|-utils)?$' >/dev/null; then
+            NVIDIA_STACK=true
+        else
+            GRAPHICS_PKGS+=(vulkan-nouveau lib32-vulkan-nouveau)
+        fi
+        if "$NVIDIA_STACK"; then
+            GRAPHICS_PKGS+=("${NVIDIA_USERSPACE_PKGS[@]}")
+        fi
+    fi
+
+    if pacman -Qq dracut &>/dev/null && { command -v dracut-rebuild &>/dev/null || ! pacman -Qq mkinitcpio &>/dev/null; }; then
+        INITRAMFS=dracut
+    fi
+
+    # The bundled passthrough hooks address the original desktop's PCI
+    # devices and stop SDDM. Install them only for that hardware layout.
+    local pci
+    pci="$(LC_ALL=C lspci -Dn 2>/dev/null || true)"
+    if "$NVIDIA_STACK" && systemctl is-enabled --quiet sddm.service \
+        && grep -Eq '^0000:07:00\.0 030[02]: 10de:248[48]([[:space:]]|$)' <<< "$pci" \
+        && grep -Eq '^0000:07:00\.1 0403: 10de:' <<< "$pci" \
+        && grep -Eq '^0000:09:00\.3 0c03: 1022:' <<< "$pci" \
+        && grep -Eq '^0000:09:00\.4 0403: 1022:' <<< "$pci"; then
+        VFIO=true
+    fi
+
+    if command -v limine-update &>/dev/null || {
+        pacman -Qq limine &>/dev/null &&
+            { [[ -f /boot/limine.conf || -f /boot/limine/limine.conf || -f /efi/limine.conf || -f /etc/default/limine ]] ||
+                bootctl status --no-pager 2>/dev/null | grep -Ei 'Product:[[:space:]]+Limine' >/dev/null; }
+    }; then
+        LIMINE=true
+        if pacman -Qq limine-dracut-support &>/dev/null; then
+            INITRAMFS=dracut
+        elif ! "$GAMING_ONLY" && ! command -v limine-update &>/dev/null; then
+            if [[ "$INITRAMFS" == dracut ]]; then
+                NATIVE_AUR_PKGS+=(limine-dracut-support)
+            else
+                NATIVE_AUR_PKGS+=(limine-mkinitcpio-hook)
+            fi
+        fi
+    fi
+
+    if "$GAMING_ONLY"; then
+        return 0
+    fi
+
+    NATIVE_KERNEL_PKGS+=(linux-lts linux-firmware kernel-modules-hook)
+    if grep -q 'AuthenticAMD' /proc/cpuinfo; then
+        NATIVE_KERNEL_PKGS+=(amd-ucode)
+    elif grep -q 'GenuineIntel' /proc/cpuinfo; then
+        NATIVE_KERNEL_PKGS+=(intel-ucode)
+    fi
+
+    if "$NVIDIA_STACK"; then
+        if pacman -Qq nvidia-open &>/dev/null || pacman -Qq nvidia-open-lts &>/dev/null; then
+            NATIVE_KERNEL_PKGS+=(nvidia-open-lts)
+            if pacman -Qq linux &>/dev/null; then
+                NATIVE_KERNEL_PKGS+=(nvidia-open)
+            fi
+        else
+            NATIVE_KERNEL_PKGS+=(nvidia-open-dkms linux-lts-headers)
+            for kernel in /usr/lib/modules/*/pkgbase; do
+                [[ -r "$kernel" ]] || continue
+                read -r pkgbase < "$kernel"
+                [[ "$pkgbase" != linux-lts ]] || continue
+                if pacman -Qq "$pkgbase" &>/dev/null && pacman -Si "$pkgbase-headers" &>/dev/null; then
+                    NATIVE_KERNEL_PKGS+=("$pkgbase-headers")
+                fi
+            done
+        fi
+    fi
+}
+
+if [[ "$PLATFORM" == native ]] && ! "$CORE_ONLY"; then
+    select_native_hardware
+fi
+# Explicit Vulkan providers keep pacman from choosing an unrelated GPU
+# driver for Steam. Weaselway provides its own accelerated 64-bit Mesa ICD.
+if [[ "$PLATFORM" == wsl ]] || (( ${#GRAPHICS_PKGS[@]} == 2 )); then
+    GRAPHICS_PKGS+=(vulkan-swrast lib32-vulkan-swrast)
 fi
 
+if [[ "$PLATFORM" == native ]]; then
+    GAMING_PKGS+=("${VIRTUALIZATION_PKGS[@]}")
+    PACMAN_PKGS+=("${NATIVE_DESKTOP_PKGS[@]}")
+fi
+PACMAN_PKGS+=("${GRAPHICS_PKGS[@]}" "${GAMING_PKGS[@]}" "${NATIVE_KERNEL_PKGS[@]}")
+if ! "$CORE_ONLY"; then
+    AUR_PKGS+=("${AUR_PKGS_HOST[@]}" "${NATIVE_AUR_PKGS[@]}")
+fi
+
+enable_multilib() {
+    if ! pacman-conf --repo-list | grep -Fx multilib >/dev/null; then
+        if grep -q '^#\[multilib\]' /etc/pacman.conf; then
+            sudo sed -i '/^#\[multilib\]$/{N;s/^#\[multilib\]\n#Include =/[multilib]\nInclude =/;}' /etc/pacman.conf
+        else
+            printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' | sudo tee -a /etc/pacman.conf >/dev/null
+        fi
+    fi
+    if ! pacman-conf --repo-list | grep -Fx multilib >/dev/null; then
+        echo 'install.sh: enable [multilib] in /etc/pacman.conf before continuing.' >&2
+        return 1
+    fi
+}
+
 # ── section_core_rice ─────────────────────────────────
-# Mirror sync, AUR-helper bootstrap, pacman + AUR package installs,
-# orphan cleanup, audio/dbus-broker services, VSCodium extensions.
+# System upgrade, desktop packages, AUR-helper bootstrap and shared services.
 # Always runs — this is the section the container/VM gate exercises
 # via --core-only, and what a default (no-flag) run always includes.
 section_core_rice() {
@@ -739,85 +804,35 @@ section_core_rice() {
     echo "╚══════════════════════════════════════════╝"
     echo ""
 
-    echo "Synchronizing closest mirrors..."
-    echo ""
-    # D-59 (strictly zero prompts): every pacman/paru invocation in this
-    # script must carry --noconfirm — the container gate's first real run
-    # (verify/logs/run-20260708T220706Z) caught `pacman -Syu` prompting
-    # ":: Proceed with installation? [Y/n]" on an archlinux-keyring upgrade.
-    sudo pacman -Sy --needed --noconfirm reflector
-    sudo cp /etc/pacman.d/mirrorlist /etc/pacman.d/mirrorlist.bak
-    sudo reflector --verbose --latest 30 --protocol https --sort rate --save /etc/pacman.d/mirrorlist
-    sudo pacman -Syu --noconfirm
+    # Resolve the hardware-specific Vulkan providers in the same full
+    # upgrade that installs Steam and the rest of the desktop packages.
+    sudo pacman -Syu --needed --noconfirm "${PACMAN_PKGS[@]}"
 
-    # ── Check for yay/paru ───────────────────────────────
+    if [[ "$PLATFORM" == wsl ]] && ! "$CORE_ONLY"; then
+        "$REPO_DIR/wsl/install-stack"
+    fi
+
     AUR_HELPER=""
     if command -v paru &>/dev/null; then
-        AUR_HELPER="paru"
+        AUR_HELPER=paru
     elif command -v yay &>/dev/null; then
-        AUR_HELPER="yay"
+        AUR_HELPER=yay
     else
-        echo "⚠  No AUR helper found. Installing paru..."
-        sudo pacman -Sy --needed --noconfirm git base-devel rustup
-        rustup default stable
-        # WR-09: a stale clone from a prior interrupted/re-run leaves
-        # /tmp/paru non-empty, which makes `git clone` fail — clear it first
-        # so the bootstrap is idempotent on a re-run.
-        rm -rf /tmp/paru
-        git clone https://aur.archlinux.org/paru.git /tmp/paru
-        cd /tmp/paru && makepkg -si --noconfirm
-        AUR_HELPER="paru"
+        echo "Installing paru..."
+        if ! command -v cargo &>/dev/null; then
+            sudo pacman -S --needed --noconfirm rustup
+            rustup default stable
+        fi
+        local paru_dir
+        paru_dir="$(mktemp -d)"
+        (
+            trap 'rm -rf -- "$paru_dir"' EXIT
+            git clone https://aur.archlinux.org/paru.git "$paru_dir"
+            cd "$paru_dir"
+            makepkg -si --noconfirm
+        )
+        AUR_HELPER=paru
     fi
-
-    echo ""
-    echo "Using AUR helper: $AUR_HELPER"
-    echo ""
-
-    # ── Enable multilib repo (D-25, RESEARCH.md Pitfall 2) ───────────
-    # Steam (below, PACMAN_PKGS) lives in the [multilib] repo, which Arch
-    # ships commented-out by default. This repo had ZERO pre-existing
-    # pacman.conf-editing code before this block (`grep -n
-    # "multilib\|pacman.conf" install.sh` returned no matches). This dev
-    # machine ALREADY has [multilib] enabled by hand, which is exactly
-    # what silently masked this gap during local testing — a genuinely
-    # fresh system would fail at the `steam` install line without this
-    # step. Idempotent by design (safe to re-run against an already-
-    # enabled pacman.conf). Do NOT delete this as "redundant" just
-    # because it happens to be a no-op on this particular machine.
-    echo "Ensuring [multilib] repo is enabled..."
-    if grep -q '^\[multilib\]' /etc/pacman.conf; then
-        echo "  [multilib] already enabled — skipping."
-    elif grep -q '^#\[multilib\]' /etc/pacman.conf; then
-        # Uncomment BOTH the header and its immediately-following Include
-        # line together, anchored specifically to the multilib stanza (N
-        # joins the two lines into one pattern space before substituting)
-        # — never a blanket #Include uncomment, which would also enable
-        # any other commented repo (e.g. [testing]/[multilib-testing]).
-        sudo sed -i \
-            '/^#\[multilib\]$/{N;s/^#\[multilib\]\n#Include = \/etc\/pacman.d\/mirrorlist$/[multilib]\nInclude = \/etc\/pacman.d\/mirrorlist/}' \
-            /etc/pacman.conf
-        echo "  Uncommented [multilib] in /etc/pacman.conf."
-    else
-        # Neither an active nor a commented [multilib] section exists at
-        # all — append the standard two-line stanza.
-        printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' | sudo tee -a /etc/pacman.conf >/dev/null
-        echo "  Appended [multilib] to /etc/pacman.conf."
-    fi
-
-    # Askpass wiring: base plumbing, so it runs in the core section rather
-    # than behind --gaming-only.
-    echo ""
-    echo "Configuring sudo askpass helper..."
-    configure_sudo_askpass
-    # Sync the newly (or already) enabled repo's database before any
-    # package that lives there (steam) is installed — without this,
-    # `pacman -S steam` still fails with "target not found" even though
-    # the repo section itself is now active.
-    sudo pacman -Sy --noconfirm
-    echo ""
-
-    echo "Installing pacman packages..."
-    sudo pacman -Sy --needed --noconfirm "${PACMAN_PKGS[@]}"
 
     echo ""
     echo "Installing AUR packages..."
@@ -849,41 +864,14 @@ section_core_rice() {
         echo "# Appended by install.sh — see the comment at this call site."
         echo "OPTIONS=(${MAKEPKG_OPTIONS_NODEBUG})"
     } > "$MAKEPKG_CONF"
-    $AUR_HELPER -Sy --needed --noconfirm --mflags "--config $MAKEPKG_CONF" "${AUR_PKGS[@]}"
-    rm -f "$MAKEPKG_CONF"
+    (
+        trap 'rm -f -- "$MAKEPKG_CONF"' EXIT
+        "$AUR_HELPER" -S --needed --noconfirm --mflags "--config $MAKEPKG_CONF" "${AUR_PKGS[@]}"
+    )
 
     echo ""
-    echo "Removing unused packages and clearing cache..."
-    # Pitfall 4: a fresh install has zero orphans, so the old unquoted
-    # command substitution passed directly to $AUR_HELPER -R ran it against
-    # an empty string and aborted the script under set -e. Array-collect +
-    # count-guard: zero orphans is a no-op, multiple orphans expand
-    # correctly, and the removal never prompts (--noconfirm).
-    mapfile -t ORPHANS < <(pacman -Qtdq || true)
-    if (( ${#ORPHANS[@]} > 0 )); then
-        "$AUR_HELPER" -R --noconfirm "${ORPHANS[@]}"
-    fi
-    # $AUR_HELPER -Sc prompts "remove all other packages from cache? [Y/n]"
-    # without --noconfirm — same D-59 zero-prompt violation class as the -Syu above.
-    "$AUR_HELPER" -Sc --noconfirm
-
-    echo ""
-    echo "╔══════════════════════════════════════════╗"
-    echo "║     All packages installed successfully! ║"
-    echo "╚══════════════════════════════════════════╝"
-    echo ""
-
-    echo ""
-    echo "╔══════════════════════════════════════════╗"
-    echo "║     Post installation tasks              ║"
-    echo "╚══════════════════════════════════════════╝"
-    echo ""
-
-    # ── Install vscodium theme extensions ────────────────
-    echo ""
-    echo "Installing VSCodium theme extensions..."
-    chmod +x "$HOME"/.config/hypr/scripts/vscodium-extensions.sh || true
-    "$HOME"/.config/hypr/scripts/vscodium-extensions.sh 2>/dev/null || true
+    configure_sudo_askpass
+    sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/open-in-terminal" /usr/local/bin/open-in-terminal
 
     # ── Make sure audio services are enabled ────────────────
     echo ""
@@ -1106,143 +1094,33 @@ section_core_rice() {
 }
 
 # ── section_hardware ──────────────────────────────────
-# NVIDIA package group and limine bootloader steps — both hardware-guarded
-# (D-58): NVIDIA only installs when an NVIDIA GPU is detected via lspci;
-# limine steps only run when limine is actually the installed bootloader.
-# Skipped entirely under --core-only.
 section_hardware() {
-    echo ""
-    echo "╔══════════════════════════════════════════╗"
-    echo "║     Hardware-specific setup              ║"
-    echo "╚══════════════════════════════════════════╝"
-    echo ""
-
-    if lspci | grep -qi nvidia; then
-        echo "NVIDIA GPU detected — installing NVIDIA packages..."
-        sudo pacman -Sy --needed --noconfirm "${NVIDIA_PKGS[@]}"
-        NVIDIA_INSTALLED=true
-    else
-        echo "No NVIDIA GPU detected — skipping NVIDIA packages."
-        NVIDIA_INSTALLED=false
+    if "$NVIDIA_STACK"; then
+        sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/kernel-module-verify" \
+            /usr/local/bin/kernel-module-verify
+        sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-kernel-module-verify.hook" \
+            /etc/pacman.d/hooks/99-kernel-module-verify.hook
     fi
 
-    # ── Fallback kernel (2026-07-28 black-screen incident) ──────
-    # Deliberately OUTSIDE the NVIDIA guard — a second bootable kernel is
-    # worth having whatever the GPU vendor.
-    #
-    # Ordering is load-bearing: this runs AFTER the NVIDIA block so the DKMS
-    # module is already registered when the LTS kernel lands, letting the alpm
-    # hook build for it in the same transaction chain; and BEFORE the limine
-    # block below so the regenerated limine.conf picks up the new entry.
-    # Verified on the reference host: installing linux-lts produced both the
-    # nvidia build for 6.18.40-2-lts and its own limine entry, unattended.
-    echo ""
-    echo "Installing fallback LTS kernel..."
-    sudo pacman -Sy --needed --noconfirm "${FALLBACK_KERNEL_PKGS[@]}"
-
-    # ── DKMS integrity guard (2026-07-28 black-screen incident) ──
-    # A pacman -Syu installed kernel 7.1.5-arch1-1 but the upstream DKMS
-    # alpm hook never built nvidia-open-dkms for it, and nothing reported
-    # the gap. With no driver claiming the GPU, Hyprland rendered on
-    # simpledrm (the EFI framebuffer) and the kernel oopsed in
-    # drm_fb_memcpy — black screen after login, found only at next boot.
-    #
-    # Two independent defects, both reproduced by this script until now:
-    #
-    #  1. kernel-modules-hook (AUR_PKGS above) preserves each running
-    #     kernel's module tree across upgrades — genuinely useful — but
-    #     ships its reaper, linux-modules-cleanup.service, DISABLED. On the
-    #     affected machine 13 orphaned trees accumulated (6.8 GB).
-    #  2. /usr/share/libalpm/scripts/dkms builds its work list by globbing
-    #     every /usr/lib/modules/*/build/. The orphans were complete trees
-    #     WITH headers, so none were filtered — the list grew from 1 kernel
-    #     to 14, iterated in arbitrary hash order with no priority for the
-    #     live kernel, and died before reaching it.
-    #
-    # kernel-module-verify enumerates kernels by their package-written
-    # `pkgbase` marker instead of by directory glob, so orphans cannot starve
-    # it, and runs as a PostTransaction hook sorting after 70-dkms-install.
-    #
-    # It checks BOTH module sources: DKMS registration, and — source-agnostic
-    # via `modinfo -k` — that each kernel can actually resolve its NVIDIA
-    # module. The second pass matters because Arch has dropped the proprietary
-    # kernel modules entirely (nvidia/nvidia-dkms/nvidia-lts are gone as of
-    # driver 610); the prebuilt survivors nvidia-open/nvidia-open-lts ship .ko
-    # files into usr/lib/modules/<exact-kver>/extramodules/ and register no
-    # DKMS module at all. A DKMS-only check passes vacuously on those systems.
-    echo ""
-    echo "Installing kernel module verification hook..."
-    sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/kernel-module-verify" \
-        /usr/local/bin/kernel-module-verify
-    sudo install -Dm644 "$REPO_DIR/system/etc/pacman.d/hooks/99-kernel-module-verify.hook" \
-        /etc/pacman.d/hooks/99-kernel-module-verify.hook
-
-    # Console-app launcher for the xdg wrapper entries. It goes to
-    # /usr/local/bin rather than a $HOME path because a .desktop `Exec=` line
-    # cannot contain `~` or `$HOME`, and hardcoding /home/<user> would make
-    # the entries break for any other username. xdg-open resolves the first
-    # Exec word with `command -v`, so an absolute system path always works.
-    echo "Installing the terminal-app launcher (open-in-terminal)..."
-    sudo install -Dm755 "$REPO_DIR/system/usr/local/bin/open-in-terminal" \
-        /usr/local/bin/open-in-terminal
-
-    # `enable` without --now: the reaper deletes module trees for kernels
-    # that are not running, which is a boot-time job, not a mid-install one.
-    # Guarded + non-fatal, matching the ollama precedent above, so a
-    # machine without kernel-modules-hook installed still completes cleanly.
+    # Run the module-tree cleanup on the next boot.
     if systemctl cat linux-modules-cleanup.service &>/dev/null; then
-        echo "Enabling linux-modules-cleanup (reaps orphaned kernel module trees)..."
-        sudo systemctl enable linux-modules-cleanup.service \
-            || echo "  ⚠ linux-modules-cleanup enable failed" >&2
-    else
-        echo "kernel-modules-hook not installed — skipping module-tree reaper."
+        sudo systemctl enable linux-modules-cleanup.service
     fi
 
-    echo ""
-    if command -v limine-install &>/dev/null; then
-        echo "Updating limine bootloader entries..."
-        # Pitfall 5/WR-08: back up before deleting, and use `rm -f` so a
-        # re-run where limine.conf is already gone doesn't abort the script
-        # under set -e. Never a bare `rm` without a prior backup.
-        if [[ -f /boot/limine/limine.conf ]]; then
-            sudo cp /boot/limine/limine.conf /boot/limine/limine.conf.bak
+    # Keep an existing network manager in control. Enable NetworkManager at
+    # boot on a fresh system without replacing the live connection.
+    local unit network_managed=false
+    for unit in systemd-networkd.service dhcpcd.service connman.service iwd.service; do
+        if systemctl is-active --quiet "$unit" || systemctl is-enabled --quiet "$unit"; then
+            network_managed=true
         fi
-        sudo rm -f /boot/limine/limine.conf
-        sudo limine-install --fallback
-        sudo limine-update
-        sudo limine-scan
-    else
-        echo "limine not detected — skipping bootloader update."
+    done
+    if ! "$network_managed"; then
+        sudo systemctl enable NetworkManager.service
     fi
+    sudo systemctl enable bluetooth.service
 }
 
-# ── section_personal ──────────────────────────────────
-# Hardcoded personal config (git identity, timezone) — not meaningful (and
-# potentially wrong) inside a disposable container/VM, so this section is
-# skipped under --core-only (D-61).
-# ── section_security ──────────────────────────────────
-# Quick task 260827-np1. Places the three root-owned pieces the Security
-# Center needs and enables the units that feed it. Runs in the core
-# section (not behind --core-only) because the shell's Security page is
-# part of the core rice and renders wrong without these.
-#
-# Nothing here turns the firewall ON. Installing a ruleset and enabling
-# a packet filter are different acts: the file is placed so the pane's
-# "Enable firewall" button has something valid to load, and the operator
-# makes the call. An installer that silently starts filtering a machine's
-# traffic is not a thing this repo should do unattended.
-
-# ── sudo askpass wiring (260829-vfi) ──────────────────────────────────
-# /etc/sudo.conf is package-owned and supports no drop-in directory, so
-# this is an idempotent append guarded the same way the [multilib] stanza
-# above is: check for the directive, add it only when absent.
-#
-# MEASURED, not assumed: with `Path askpass` set, PLAIN `sudo` uses the
-# helper automatically when no terminal is available — the `-A` flag is
-# NOT required. Verified by invalidating the timestamp and watching for
-# the helper process (the naive probe was blind twice first: `pgrep -x`
-# silently cannot match a process name over 15 characters, and a
-# `pgrep -f` pattern matched the probing shell's own command line).
 configure_sudo_askpass() {
     local helper=/usr/bin/lxqt-openssh-askpass
     [[ -x "$helper" ]] || { echo "  askpass helper not installed — skipping."; return 0; }
@@ -1267,29 +1145,6 @@ section_gaming() {
     echo "╚══════════════════════════════════════════╝"
     echo ""
 
-    # Ask the HARDWARE, every time, into a local of this section's own.
-    #
-    # The first version tested the global for emptiness on the assumption
-    # that --gaming-only would leave it unset. It does not: that global is
-    # initialised to the STRING "false" at the top of this script, which is
-    # not empty, so the detection never ran and the whole NVIDIA half of this
-    # section silently skipped on a machine with an RTX 3070 in it. It
-    # printed "No NVIDIA GPU" and installed nothing — a guard that fails
-    # closed and quietly, which is the worst shape a guard can have.
-    #
-    # A local named differently cannot repeat that: there is no inherited
-    # value to be wrong about, and `lspci` is the same test section_hardware
-    # itself uses, so a full run and a --gaming-only run agree by
-    # construction.
-    local has_nvidia=false
-    if lspci | grep -qi nvidia; then
-        has_nvidia=true
-    fi
-
-    echo "Installing gaming + virtualisation packages..."
-    sudo pacman -Sy --needed --noconfirm "${GAMING_PKGS[@]}"
-
-    # ── Gaming + VFIO passthrough system files (260829-vfi) ──────
     # /etc is root-owned, so these are installed rather than stowed —
     # the same convention as nftables.conf and the pacman hook above.
     #
@@ -1304,17 +1159,13 @@ section_gaming() {
     echo "Installing gaming tuning (sysctl + nvidia module options)..."
     sudo install -Dm644 "$REPO_DIR/system/etc/sysctl.d/99-gaming.conf" \
         /etc/sysctl.d/99-gaming.conf
-    if [[ "$has_nvidia" == true ]]; then
+    if "$NVIDIA_STACK"; then
         sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/nvidia-gaming.conf" \
             /etc/modprobe.d/nvidia-gaming.conf
-    else
-        echo "  No NVIDIA GPU — skipping nvidia-gaming.conf."
     fi
-    sudo sysctl --system >/dev/null
+    sudo sysctl -e -p /etc/sysctl.d/99-gaming.conf >/dev/null
 
-    # VFIO single-GPU passthrough. Guarded on an NVIDIA GPU being
-    # present because the hook scripts unload the nvidia module stack by
-    # name; on a non-NVIDIA host they would be inert at best.
+    # The original desktop uses late binding for VFIO passthrough.
     #
     # NOTE the deliberate absence of any vfio-pci `ids=` pin: this host
     # has no integrated GPU, so binding the card at boot would leave the
@@ -1322,7 +1173,7 @@ section_gaming() {
     # only, and the hook binds late. Do not "complete" it with an ids=
     # line — that is the single change that turns this from a working
     # setup into an unbootable desktop.
-    if [[ "$has_nvidia" == true ]]; then
+    if "$VFIO"; then
         echo ""
         echo "Installing VFIO passthrough hooks..."
         sudo install -Dm644 "$REPO_DIR/system/etc/modprobe.d/vfio.conf" \
@@ -1349,32 +1200,19 @@ section_gaming() {
         sudo install -d -o root -g root -m 0755 /var/lib/vm-drives
 
         sudo systemctl restart libvirtd 2>/dev/null || true
-        # Report the ACTUAL firmware state rather than a fixed reminder. The
-        # first version printed "additionally needs SVM enabled in UEFI"
-        # unconditionally, which read as an outstanding action on a host
-        # where SVM was already on — a message that is wrong half the time
-        # trains the operator to skip reading it.
-        if grep -qw svm /proc/cpuinfo; then
-            echo "  VFIO hooks installed. AMD-V is enabled — see"
-            echo "  docs/vfio-passthrough.md before the first VM start."
-        else
-            echo "  VFIO hooks installed. The passthrough VM additionally needs"
-            echo "  SVM enabled in UEFI — see docs/vfio-passthrough.md."
-        fi
+        echo "  VFIO hooks installed. See docs/vfio-passthrough.md before starting the VM."
     fi
 
-    # ── initramfs rebuild ────────────────────────────────────────
-    # modprobe.d options are read WHEN THE MODULE LOADS. On this host the
-    # nvidia modules are pulled into the initramfs by mkinitcpio's autodetect
-    # (verified: `lsinitcpio /boot/initramfs-linux.img` lists nvidia paths
-    # even though MODULES=() is empty), so nvidia loads EARLY and reads the
-    # initramfs's own copy of /etc/modprobe.d — not the one on the root
-    # filesystem. Without this rebuild, nvidia-gaming.conf is inert and the
-    # tuning silently does nothing.
-    if [[ "$has_nvidia" == true ]]; then
-        echo ""
-        echo "Rebuilding initramfs so the nvidia module options take effect..."
-        sudo mkinitcpio -P
+    if "$LIMINE" && command -v limine-update &>/dev/null; then
+        echo "Updating entries for the existing Limine installation..."
+        sudo limine-update
+    elif "$NVIDIA_STACK"; then
+        echo "Rebuilding initramfs for the NVIDIA module options..."
+        if [[ "$INITRAMFS" == dracut ]]; then
+            sudo dracut --regenerate-all --force
+        else
+            sudo mkinitcpio -P
+        fi
     fi
 
     # ── Secure Boot variable store for the Windows guest ─────────
@@ -1416,14 +1254,11 @@ section_gaming() {
     sudo systemctl enable --now libvirtd
     sudo virsh net-autostart default 2>/dev/null || true
     sudo virsh net-start default 2>/dev/null \
-        || echo "  (default network already active)"
+        || echo "  Check the libvirt default network with virsh net-info default."
 
     echo ""
     echo "Gaming setup complete."
-    if [[ "$has_nvidia" == true ]] && ! grep -qw svm /proc/cpuinfo; then
-        echo "  ⚠ AMD-V (SVM) is DISABLED in UEFI — the passthrough VM cannot"
-        echo "    run until it is enabled. See docs/vfio-passthrough.md."
-    fi
+
 }
 
 
@@ -1461,45 +1296,49 @@ section_security() {
         "$SRC/usr/share/polkit-1/actions/org.aorus.securitycenter.policy" \
         /usr/share/polkit-1/actions/org.aorus.securitycenter.policy
 
-    # ── 3. Firewall ruleset (placed, not activated) ──
-    # Back up whatever is there first — on a fresh Arch box that is the
-    # stock file, and the stock file is what we are deliberately
-    # replacing (its `forward policy drop` chain breaks Docker/k3d; see
-    # system/etc/nftables.conf's header for the measurement).
-    if [[ -f /etc/nftables.conf ]] && ! cmp -s "$SRC/etc/nftables.conf" /etc/nftables.conf; then
-        echo "Backing up existing /etc/nftables.conf -> /etc/nftables.conf.pre-dotfiles"
-        sudo cp -n /etc/nftables.conf /etc/nftables.conf.pre-dotfiles
+    if [[ "$PLATFORM" == native ]]; then
+        # ── 3. Firewall ruleset (placed, not activated) ──
+        # Back up whatever is there first — on a fresh Arch box that is the
+        # stock file, and the stock file is what we are deliberately
+        # replacing (its `forward policy drop` chain breaks Docker/k3d; see
+        # system/etc/nftables.conf's header for the measurement).
+        if [[ -f /etc/nftables.conf ]] && ! cmp -s "$SRC/etc/nftables.conf" /etc/nftables.conf; then
+            echo "Backing up existing /etc/nftables.conf -> /etc/nftables.conf.pre-dotfiles"
+            if [[ ! -e /etc/nftables.conf.pre-dotfiles ]]; then
+                sudo cp /etc/nftables.conf /etc/nftables.conf.pre-dotfiles
+            fi
+        fi
+        sudo install -Dm644 -o root -g root "$SRC/etc/nftables.conf" /etc/nftables.conf
+
+        # Validate what we just placed. A ruleset with `input policy drop`
+        # and a syntax error is how a machine loses its network, so a bad
+        # file must fail the install loudly here rather than at the moment
+        # the operator clicks Enable.
+        if ! sudo nft -c -f /etc/nftables.conf; then
+            echo "install.sh: /etc/nftables.conf failed validation — refusing to continue" >&2
+            exit 1
+        fi
+        echo "  /etc/nftables.conf installed and validated (NOT enabled — enable it from Settings → Security)"
+
+        # ── 4. Units ──
+        sudo install -Dm644 -o root -g root \
+            "$SRC/etc/systemd/system/smart-snapshot.service" \
+            /etc/systemd/system/smart-snapshot.service
+        sudo install -Dm644 -o root -g root \
+            "$SRC/etc/systemd/system/smart-snapshot.timer" \
+            /etc/systemd/system/smart-snapshot.timer
+        sudo systemctl daemon-reload
+
+        # smartd: the root-side monitor the operator chose as the privilege
+        # strategy. It watches SMART and warns; the timer below is what makes
+        # its subject matter renderable, since smartctl needs root even when
+        # smartd is running.
+        sudo systemctl enable --now smartd.service     || echo "  ⚠ smartd enable failed" >&2
+        sudo systemctl enable --now smart-snapshot.timer || echo "  ⚠ smart-snapshot.timer enable failed" >&2
+        # Prime the snapshot so the pane has data on first open instead of an
+        # empty device list for up to 15 minutes.
+        sudo systemctl start smart-snapshot.service    || echo "  ⚠ first SMART snapshot failed" >&2
     fi
-    sudo install -Dm644 -o root -g root "$SRC/etc/nftables.conf" /etc/nftables.conf
-
-    # Validate what we just placed. A ruleset with `input policy drop`
-    # and a syntax error is how a machine loses its network, so a bad
-    # file must fail the install loudly here rather than at the moment
-    # the operator clicks Enable.
-    if ! sudo nft -c -f /etc/nftables.conf; then
-        echo "install.sh: /etc/nftables.conf failed validation — refusing to continue" >&2
-        exit 1
-    fi
-    echo "  /etc/nftables.conf installed and validated (NOT enabled — enable it from Settings → Security)"
-
-    # ── 4. Units ──
-    sudo install -Dm644 -o root -g root \
-        "$SRC/etc/systemd/system/smart-snapshot.service" \
-        /etc/systemd/system/smart-snapshot.service
-    sudo install -Dm644 -o root -g root \
-        "$SRC/etc/systemd/system/smart-snapshot.timer" \
-        /etc/systemd/system/smart-snapshot.timer
-    sudo systemctl daemon-reload
-
-    # smartd: the root-side monitor the operator chose as the privilege
-    # strategy. It watches SMART and warns; the timer below is what makes
-    # its subject matter renderable, since smartctl needs root even when
-    # smartd is running.
-    sudo systemctl enable --now smartd.service     || echo "  ⚠ smartd enable failed" >&2
-    sudo systemctl enable --now smart-snapshot.timer || echo "  ⚠ smart-snapshot.timer enable failed" >&2
-    # Prime the snapshot so the pane has data on first open instead of an
-    # empty device list for up to 15 minutes.
-    sudo systemctl start smart-snapshot.service    || echo "  ⚠ first SMART snapshot failed" >&2
 
     # clamav signatures. Without this the scanner loads an empty database
     # and reports every scan clean — a false all-clear, worse than no
@@ -1512,17 +1351,6 @@ section_security() {
     # rkhunter's baseline. Without --propupd its first run reports every
     # system binary as "changed" against an empty baseline.
     sudo rkhunter --propupd --nocolors >/dev/null 2>&1 || true
-}
-
-section_personal() {
-    echo ""
-    echo "Configuring git..."
-    git config --global user.name yahiaEng
-    git config --global user.email eng-yahia-tarek@outlook.com
-
-    echo ""
-    echo "Setting timezone..."
-    sudo timedatectl set-timezone Africa/Cairo
 }
 
 # ── verify_packages ───────────────────────────────────
@@ -1559,73 +1387,96 @@ verify_packages() {
     echo "All ${#pkgs_ref[@]} packages verified installed."
 }
 
-# ── Main ──────────────────────────────────────────────
+section_wsl() {
+    sudo install -Dm755 "$REPO_DIR/wsl/custom-weaselway-session" /usr/local/bin/custom-weaselway-session
+    "$REPO_DIR/wsl/install-steam-launcher"
+    "$REPO_DIR/wsl/launch-desktop" --install-shortcuts
+}
 
-# --gaming-only short-circuits every other section. It exists so the gaming
-# and VFIO work can be applied to an already-provisioned host without
-# re-running a full install — which on this machine would mean re-walking the
-# AUR builds (AUR_PKGS_HOST measures tela-icon-theme alone at 21 minutes).
-if [[ "$GAMING_ONLY" == "true" ]]; then
-    section_gaming
-    verify_packages GAMING_PKGS
-    echo ""
-    echo "Next steps:"
-    echo "  1. ./stow.sh   (links the gaming package: MangoHud, gamemode, gamerun)"
-    echo "  2. Read docs/vfio-passthrough.md before starting the passthrough VM"
+# ── Main ──────────────────────────────────────────────
+VERIFY_PKGS=("${PACMAN_PKGS[@]}" "${AUR_PKGS[@]}")
+if "$GAMING_ONLY"; then
+    VERIFY_PKGS=("${GRAPHICS_PKGS[@]}" "${GAMING_PKGS[@]}")
+fi
+
+printf 'Environment: %s\n' "$([[ "$PLATFORM" == wsl ]] && echo 'Arch WSL2' || echo 'Native Arch')"
+if "$PLAN_ONLY"; then
+    if "$GAMING_ONLY"; then
+        printf 'Pacman: %s\n' "${VERIFY_PKGS[*]}"
+    else
+        printf 'Pacman: %s\nAUR: %s\n' "${PACMAN_PKGS[*]}" "${AUR_PKGS[*]}"
+    fi
+    if [[ "$PLATFORM" == wsl ]]; then
+        if ! "$CORE_ONLY"; then
+            if "$REPO_DIR/wsl/install-stack" --check; then
+                echo "Weaselway: reuse the installed stack and rebuild patched packages if upgraded."
+            else
+                echo "Weaselway: provision the stack for the running WSL2 kernel."
+            fi
+            if ! "$GAMING_ONLY"; then
+                echo "WSL setup: install the Hyprland session command and Windows shortcuts."
+            fi
+            echo "WSL gaming: install the Steam launcher for Weaselway."
+        fi
+    elif ! "$CORE_ONLY"; then
+        printf 'Native setup: NVIDIA driver %s, initramfs %s, Limine %s, desktop VFIO hooks %s.\n' \
+            "$NVIDIA_STACK" "$INITRAMFS" "$LIMINE" "$VFIO"
+    fi
     exit 0
 fi
 
-section_core_rice
-
-# Security Center (quick task 260827-np1) — inside the core set, not
-# behind --core-only: the shell ships a Settings → Security page, a
-# dashboard tab and a bar capsule, and all three render wrong without the
-# root-side helpers and the SMART snapshot timer this section installs.
-section_security
-
-if [[ "$CORE_ONLY" != "true" ]]; then
-    section_hardware
-    section_gaming
-    section_personal
+if (( EUID == 0 )) || ! grep -qx 'ID=arch' /etc/os-release || [[ "$(uname -m)" != x86_64 ]]; then
+    echo 'install.sh: run as a normal user with sudo on x86_64 Arch Linux.' >&2
+    exit 1
 fi
 
-# Verify exactly the packages the selected sections installed: the core
-# set always; the NVIDIA group additionally, but only when section_hardware
-# actually installed it (a --core-only run verifies the core set only —
-# D-65).
-VERIFY_PKGS=("${PACMAN_PKGS[@]}" "${AUR_PKGS[@]}")
-if [[ "$CORE_ONLY" != "true" ]]; then
-    VERIFY_PKGS+=("${FALLBACK_KERNEL_PKGS[@]}")
-    if [[ "$NVIDIA_INSTALLED" == "true" ]]; then
-        VERIFY_PKGS+=("${NVIDIA_PKGS[@]}")
+# Refresh sudo between long AUR and Weaselway builds.
+sudo -v
+while sudo -n true 2>/dev/null; do
+    sleep 50
+    kill -0 "$$" 2>/dev/null || exit
+done </dev/null >/dev/null 2>&1 &
+SUDO_KEEPALIVE_PID=$!
+trap 'kill "$SUDO_KEEPALIVE_PID" 2>/dev/null || true' EXIT
+enable_multilib
+
+if [[ "$PLATFORM" == wsl ]] && ! "$CORE_ONLY"; then
+    "$REPO_DIR/wsl/install-stack"
+fi
+
+if "$GAMING_ONLY"; then
+    sudo pacman -Syu --needed --noconfirm "${VERIFY_PKGS[@]}"
+    if [[ "$PLATFORM" == wsl ]]; then
+        "$REPO_DIR/wsl/install-stack"
+        "$REPO_DIR/wsl/install-steam-launcher"
+    else
+        section_gaming
+    fi
+else
+    section_core_rice
+    section_security
+    if ! "$CORE_ONLY"; then
+        if [[ "$PLATFORM" == wsl ]]; then
+            section_wsl
+        else
+            section_hardware
+            section_gaming
+        fi
     fi
 fi
 verify_packages VERIFY_PKGS
 
-# ── Kernel module soundness gate (2026-07-28 incident) ──────
-# Packages being present is not the same as every installed kernel being able
-# to load its driver — that gap is exactly what caused the black screen. Run
-# the guard once here so a fresh install reports its own soundness BEFORE the
-# first reboot, while the operator is still watching.
-#
-# Non-fatal by design: this script runs under `set -euo pipefail`, so an
-# unguarded non-zero exit would abort AFTER everything is already installed,
-# turning a useful warning into a confusing failure. Same `|| echo "  ⚠ ..."`
-# precedent as the ollama enable in section_core_rice.
-#
-# Skipped under --core-only: no hardware section ran, so there is no
-# kernel/driver work to check.
-if [[ "$CORE_ONLY" != "true" ]] && command -v kernel-module-verify &>/dev/null; then
-    echo ""
-    echo "Verifying kernel modules for all installed kernels..."
-    kernel-module-verify \
-        || echo "  ⚠ kernel module verification FAILED — see above before rebooting" >&2
+if [[ "$PLATFORM" == native ]] && ! "$CORE_ONLY" && ! "$GAMING_ONLY" && "$NVIDIA_STACK"; then
+    echo "Verifying NVIDIA modules for installed kernels..."
+    kernel-module-verify || echo "  ⚠ Kernel module verification failed. Check the output before rebooting." >&2
 fi
 
-echo "Next steps:"
-echo "  1. Run './stow.sh' to set up symlinks"
-echo "  2. One-time Node provisioning (fish shell): open a new fish shell"
-echo "     (self-bootstraps fisher + nvm.fish via config.fish), then run"
-echo "     'nvm install v24.18.0' to install the pinned default version"
-echo "  3. Select 'Hyprland (uwsm-managed)' in your display manager"
-echo "  4. Or from TTY: uwsm start hyprland-uwsm.desktop"
+echo "Run ./stow.sh to link the dotfiles."
+if [[ "$PLATFORM" == wsl ]]; then
+    if ! "$CORE_ONLY" && ! "$GAMING_ONLY"; then
+        echo "After a first Weaselway install, run wsl --shutdown in Windows PowerShell."
+        echo "Open Arch Linux (Hyprland) from the Windows Start menu."
+    fi
+elif ! "$CORE_ONLY" && ! "$GAMING_ONLY"; then
+    echo "Select Hyprland (uwsm-managed) in your display manager or run uwsm start hyprland-uwsm.desktop from a TTY."
+fi

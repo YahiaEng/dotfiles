@@ -1,0 +1,515 @@
+--- a/input.c
++++ b/input.c
+@@ -1,6 +1,7 @@
+ #define G_LOG_DOMAIN "input"
+ 
+ #include "input.h"
++#include "layout.h"
+ 
+ #include <errno.h>
+ #include <fcntl.h>
+@@ -21,6 +22,8 @@
+ #define TOUCHPAD_MAX_X (150 * TOUCHPAD_RESOLUTION)
+ #define TOUCHPAD_MAX_Y (100 * TOUCHPAD_RESOLUTION)
+ #define TOUCHPAD_SLOTS 5
++#define TOUCHSCREEN_SLOTS 10
++#define TOUCHSCREEN_RESOLUTION 200
+ 
+ /* The locks the client's keyboard has too, in the order of
+  * input_sync_locks()'s arguments. */
+@@ -32,10 +35,22 @@
+     { KEY_SCROLLLOCK, LED_SCROLLL },
+ };
+ 
++struct touch_device {
++    int fd;
++    bool direct;
++    uint16_t tool;
++    struct {
++        bool used;
++        uint32_t id;
++        int x, y;
++    } slots[TOUCHSCREEN_SLOTS];
++};
++
+ struct input {
+     int pointer_fd;
+     int keyboard_fd;
+-    int touchpad_fd; /* -1 if it could not be created */
++    struct touch_device touchpad;
++    struct touch_device touchscreens[LAYOUT_MAX_MONITORS];
+ 
+     /* The RDP callbacks write from different threads, the touch channel
+      * having one of its own; an event and its SYN_REPORT have to stay
+@@ -55,15 +70,7 @@
+     /* Wheel travel that did not add up to a whole notch yet. */
+     int wheel_rest[2];
+ 
+-    /* The fingers on the touchpad, by multitouch slot. */
+-    struct {
+-        bool used;
+-        uint32_t id;
+-        int x, y;
+-    } slots[TOUCHPAD_SLOTS];
+     int next_tracking_id;
+-    /* The BTN_TOOL_* that says how many there are, 0 for none. */
+-    uint16_t touchpad_tool;
+ };
+ 
+ static void
+@@ -147,41 +154,51 @@
+ }
+ 
+ static int
+-create_touchpad(void)
++create_touch_device(int output)
+ {
+     /* On USB and with an id of its own: libinput pairs a touchpad it takes
+      * to be built in with the keyboard and ignores it while keys are being
+      * pressed, which is for palms and has no business here. */
++    bool direct = output != INPUT_TOUCHPAD;
++    int max_x = direct ? POINTER_ABS_MAX : TOUCHPAD_MAX_X;
++    int max_y = direct ? POINTER_ABS_MAX : TOUCHPAD_MAX_Y;
++    int resolution = direct ? TOUCHSCREEN_RESOLUTION : TOUCHPAD_RESOLUTION;
+     struct uinput_setup setup = {
+-        .id = { .bustype = BUS_USB, .vendor = 0x1d6b, .product = 0x0106 },
++        .id = { .bustype = BUS_USB, .vendor = 0x1d6b,
++                .product = direct ? 0x0110 + output : 0x0106 },
+         .name = "Weaselway touchpad",
+     };
+     struct uinput_abs_setup axes[] = {
+-        { .code = ABS_X, .absinfo = { .maximum = TOUCHPAD_MAX_X, .resolution = TOUCHPAD_RESOLUTION } },
+-        { .code = ABS_Y, .absinfo = { .maximum = TOUCHPAD_MAX_Y, .resolution = TOUCHPAD_RESOLUTION } },
+-        { .code = ABS_MT_SLOT, .absinfo = { .maximum = TOUCHPAD_SLOTS - 1 } },
++        { .code = ABS_X, .absinfo = { .maximum = max_x, .resolution = resolution } },
++        { .code = ABS_Y, .absinfo = { .maximum = max_y, .resolution = resolution } },
++        { .code = ABS_MT_SLOT,
++          .absinfo = { .maximum = (direct ? TOUCHSCREEN_SLOTS : TOUCHPAD_SLOTS) - 1 } },
+         { .code = ABS_MT_TRACKING_ID, .absinfo = { .maximum = 65535 } },
+-        { .code = ABS_MT_POSITION_X,
+-          .absinfo = { .maximum = TOUCHPAD_MAX_X, .resolution = TOUCHPAD_RESOLUTION } },
+-        { .code = ABS_MT_POSITION_Y,
+-          .absinfo = { .maximum = TOUCHPAD_MAX_Y, .resolution = TOUCHPAD_RESOLUTION } },
++        { .code = ABS_MT_POSITION_X, .absinfo = { .maximum = max_x, .resolution = resolution } },
++        { .code = ABS_MT_POSITION_Y, .absinfo = { .maximum = max_y, .resolution = resolution } },
+     };
+-    static const int keys[] = { BTN_LEFT, BTN_TOUCH, BTN_TOOL_FINGER, BTN_TOOL_DOUBLETAP,
++    static const int keys[] = { BTN_LEFT, BTN_TOOL_FINGER, BTN_TOOL_DOUBLETAP,
+                                 BTN_TOOL_TRIPLETAP, BTN_TOOL_QUADTAP, BTN_TOOL_QUINTTAP };
+     int fd = open("/dev/uinput", O_WRONLY | O_CLOEXEC);
+ 
+     if (fd < 0)
+         return -1;
+ 
+-    /* A pointer device with multitouch slots and one button under the whole
+-     * surface is a clickpad, as every current laptop has one. */
+     if (ioctl(fd, UI_SET_EVBIT, EV_KEY) || ioctl(fd, UI_SET_EVBIT, EV_ABS) ||
+-        ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_POINTER) ||
+-        ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_BUTTONPAD))
++        ioctl(fd, UI_SET_KEYBIT, BTN_TOUCH))
+         goto fail;
+-    for (size_t i = 0; i < G_N_ELEMENTS(keys); i++) {
+-        if (ioctl(fd, UI_SET_KEYBIT, keys[i]))
++    if (direct) {
++        g_snprintf(setup.name, sizeof(setup.name), "Weaselway touchscreen %d", output + 1);
++        if (ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_DIRECT))
++            goto fail;
++    } else {
++        if (ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_POINTER) ||
++            ioctl(fd, UI_SET_PROPBIT, INPUT_PROP_BUTTONPAD))
+             goto fail;
++        for (size_t i = 0; i < G_N_ELEMENTS(keys); i++) {
++            if (ioctl(fd, UI_SET_KEYBIT, keys[i]))
++                goto fail;
++        }
+     }
+     for (size_t i = 0; i < G_N_ELEMENTS(axes); i++) {
+         if (ioctl(fd, UI_ABS_SETUP, &axes[i]))
+@@ -202,7 +219,9 @@
+     struct input *input = g_new0(struct input, 1);
+ 
+     g_mutex_init(&input->lock);
+-    input->touchpad_fd = -1;
++    input->touchpad.fd = -1;
++    for (int i = 0; i < LAYOUT_MAX_MONITORS; i++)
++        input->touchscreens[i] = (struct touch_device){ .fd = -1, .direct = true };
+     input->pointer_fd = create_pointer();
+     input->keyboard_fd = input->pointer_fd >= 0 ? create_keyboard() : -1;
+     if (input->pointer_fd < 0 || input->keyboard_fd < 0) {
+@@ -213,9 +232,14 @@
+         return NULL;
+     }
+ 
+-    input->touchpad_fd = create_touchpad();
++    input->touchpad.fd = create_touch_device(INPUT_TOUCHPAD);
++    for (int i = 0; i < LAYOUT_MAX_MONITORS; i++) {
++        input->touchscreens[i].fd = create_touch_device(i);
++        if (input->touchscreens[i].fd < 0)
++            g_warning("cannot create touchscreen %d: %s", i + 1, g_strerror(errno));
++    }
+     g_message("uinput pointer, keyboard%s created",
+-              input->touchpad_fd >= 0 ? " and touchpad" : " (but no touchpad)");
++              input->touchpad.fd >= 0 ? " and touchpad" : " (but no touchpad)");
+     return input;
+ }
+ 
+@@ -233,9 +257,16 @@
+         ioctl(input->keyboard_fd, UI_DEV_DESTROY);
+         close(input->keyboard_fd);
+     }
+-    if (input->touchpad_fd >= 0) {
+-        ioctl(input->touchpad_fd, UI_DEV_DESTROY);
+-        close(input->touchpad_fd);
++    if (input->touchpad.fd >= 0) {
++        ioctl(input->touchpad.fd, UI_DEV_DESTROY);
++        close(input->touchpad.fd);
++    }
++    for (int i = 0; i < LAYOUT_MAX_MONITORS; i++) {
++        int fd = input->touchscreens[i].fd;
++        if (fd >= 0) {
++            ioctl(fd, UI_DEV_DESTROY);
++            close(fd);
++        }
+     }
+     g_mutex_clear(&input->lock);
+     g_free(input);
+@@ -356,24 +387,27 @@
+ }
+ 
+ void
+-input_touchpad_contact(struct input *input, uint32_t id, bool down, double x, double y)
++input_touch_contact(struct input *input, int output, uint32_t id, bool down, double x, double y)
+ {
+-    int fd = input->touchpad_fd, slot = -1, unused = -1;
++    struct touch_device *touch = output == INPUT_TOUCHPAD ? &input->touchpad
++                                                         : &input->touchscreens[output];
++    int fd = touch->fd, slot = -1, unused = -1;
++    int slot_count = touch->direct ? TOUCHSCREEN_SLOTS : TOUCHPAD_SLOTS;
+ 
+     if (fd < 0)
+         return;
+ 
+     g_mutex_lock(&input->lock);
+-    for (int i = 0; i < TOUCHPAD_SLOTS; i++) {
+-        if (input->slots[i].used && input->slots[i].id == id)
++    for (int i = 0; i < slot_count; i++) {
++        if (touch->slots[i].used && touch->slots[i].id == id)
+             slot = i;
+-        else if (!input->slots[i].used && unused < 0)
++        else if (!touch->slots[i].used && unused < 0)
+             unused = i;
+     }
+ 
+     if (!down) {
+         if (slot >= 0) {
+-            input->slots[slot].used = false;
++            touch->slots[slot].used = false;
+             emit(fd, EV_ABS, ABS_MT_SLOT, slot);
+             emit(fd, EV_ABS, ABS_MT_TRACKING_ID, -1);
+         }
+@@ -385,15 +419,15 @@
+         emit(fd, EV_ABS, ABS_MT_SLOT, slot >= 0 ? slot : unused);
+         if (slot < 0) {
+             slot = unused;
+-            input->slots[slot].used = true;
+-            input->slots[slot].id = id;
++            touch->slots[slot].used = true;
++            touch->slots[slot].id = id;
+             input->next_tracking_id = (input->next_tracking_id + 1) & 0x7fff;
+             emit(fd, EV_ABS, ABS_MT_TRACKING_ID, input->next_tracking_id);
+         }
+-        input->slots[slot].x = (int)(x * TOUCHPAD_MAX_X + 0.5);
+-        input->slots[slot].y = (int)(y * TOUCHPAD_MAX_Y + 0.5);
+-        emit(fd, EV_ABS, ABS_MT_POSITION_X, input->slots[slot].x);
+-        emit(fd, EV_ABS, ABS_MT_POSITION_Y, input->slots[slot].y);
++        touch->slots[slot].x = (int)(x * (touch->direct ? POINTER_ABS_MAX : TOUCHPAD_MAX_X) + 0.5);
++        touch->slots[slot].y = (int)(y * (touch->direct ? POINTER_ABS_MAX : TOUCHPAD_MAX_Y) + 0.5);
++        emit(fd, EV_ABS, ABS_MT_POSITION_X, touch->slots[slot].x);
++        emit(fd, EV_ABS, ABS_MT_POSITION_Y, touch->slots[slot].y);
+     }
+     g_mutex_unlock(&input->lock);
+ }
+@@ -401,74 +435,86 @@
+ /* The single-touch half of the protocol and the end of the frame. With the
+  * lock held. */
+ static void
+-touchpad_frame_locked(struct input *input)
++touch_frame_locked(struct touch_device *touch)
+ {
+     static const uint16_t tools[] = { 0, BTN_TOOL_FINGER, BTN_TOOL_DOUBLETAP, BTN_TOOL_TRIPLETAP,
+                                       BTN_TOOL_QUADTAP, BTN_TOOL_QUINTTAP };
+-    int fd = input->touchpad_fd, count = 0, first = -1;
++    int fd = touch->fd, count = 0, first = -1;
++    int slot_count = touch->direct ? TOUCHSCREEN_SLOTS : TOUCHPAD_SLOTS;
+     uint16_t tool;
+ 
+-    for (int i = 0; i < TOUCHPAD_SLOTS; i++) {
+-        if (!input->slots[i].used)
++    for (int i = 0; i < slot_count; i++) {
++        if (!touch->slots[i].used)
+             continue;
+         if (first < 0)
+             first = i;
+         count++;
+     }
+ 
+-    tool = tools[count];
+-    if (tool != input->touchpad_tool) {
+-        if (input->touchpad_tool)
+-            emit(fd, EV_KEY, input->touchpad_tool, 0);
+-        if (!tool || !input->touchpad_tool)
++    tool = touch->direct ? (count ? BTN_TOUCH : 0) : tools[count];
++    if (tool != touch->tool) {
++        if (!touch->direct && touch->tool)
++            emit(fd, EV_KEY, touch->tool, 0);
++        if (!tool || !touch->tool)
+             emit(fd, EV_KEY, BTN_TOUCH, tool != 0);
+-        if (tool)
++        if (!touch->direct && tool)
+             emit(fd, EV_KEY, tool, 1);
+-        input->touchpad_tool = tool;
++        touch->tool = tool;
+     }
+     if (first >= 0) {
+-        emit(fd, EV_ABS, ABS_X, input->slots[first].x);
+-        emit(fd, EV_ABS, ABS_Y, input->slots[first].y);
++        emit(fd, EV_ABS, ABS_X, touch->slots[first].x);
++        emit(fd, EV_ABS, ABS_Y, touch->slots[first].y);
+     }
+     emit(fd, EV_SYN, SYN_REPORT, 0);
+ }
+ 
+ void
+-input_touchpad_frame(struct input *input)
++input_touch_frame(struct input *input, int output)
+ {
+-    if (input->touchpad_fd < 0)
++    struct touch_device *touch = output == INPUT_TOUCHPAD ? &input->touchpad
++                                                         : &input->touchscreens[output];
++    if (touch->fd < 0)
+         return;
+ 
+     g_mutex_lock(&input->lock);
+-    touchpad_frame_locked(input);
++    touch_frame_locked(touch);
+     g_mutex_unlock(&input->lock);
+ }
+ 
+ static void
+-touchpad_release_locked(struct input *input)
++touch_release_locked(struct touch_device *touch)
+ {
+     bool any = false;
++    int slot_count = touch->direct ? TOUCHSCREEN_SLOTS : TOUCHPAD_SLOTS;
+ 
+-    if (input->touchpad_fd < 0)
++    if (touch->fd < 0)
+         return;
+ 
+-    for (int i = 0; i < TOUCHPAD_SLOTS; i++) {
+-        if (!input->slots[i].used)
++    for (int i = 0; i < slot_count; i++) {
++        if (!touch->slots[i].used)
+             continue;
+-        input->slots[i].used = false;
+-        emit(input->touchpad_fd, EV_ABS, ABS_MT_SLOT, i);
+-        emit(input->touchpad_fd, EV_ABS, ABS_MT_TRACKING_ID, -1);
++        touch->slots[i].used = false;
++        emit(touch->fd, EV_ABS, ABS_MT_SLOT, i);
++        emit(touch->fd, EV_ABS, ABS_MT_TRACKING_ID, -1);
+         any = true;
+     }
+     if (any)
+-        touchpad_frame_locked(input);
++        touch_frame_locked(touch);
++}
++
++static void
++touch_release_all_locked(struct input *input)
++{
++    touch_release_locked(&input->touchpad);
++    for (int i = 0; i < LAYOUT_MAX_MONITORS; i++)
++        touch_release_locked(&input->touchscreens[i]);
+ }
+ 
+ void
+-input_touchpad_release(struct input *input)
++input_touch_release(struct input *input)
+ {
+     g_mutex_lock(&input->lock);
+-    touchpad_release_locked(input);
++    touch_release_all_locked(input);
+     g_mutex_unlock(&input->lock);
+ }
+ 
+@@ -490,6 +536,6 @@
+         }
+     }
+     emit(input->keyboard_fd, EV_SYN, SYN_REPORT, 0);
+-    touchpad_release_locked(input);
++    touch_release_all_locked(input);
+     g_mutex_unlock(&input->lock);
+ }
+--- a/input.h
++++ b/input.h
+@@ -1,6 +1,6 @@
+ /*
+  * weaselwayd's input devices: an absolute pointer, a keyboard and a
+- * multitouch touchpad on uinput. To the compositor they are ordinary evdev
++ * multitouch devices on uinput. To the compositor they are ordinary evdev
+  * devices that libinput picks up.
+  */
+ 
+@@ -29,17 +29,13 @@
+  * state in the session gets its key tapped. */
+ void input_sync_locks(struct input *input, bool num, bool caps, bool scroll);
+ 
+-/*
+- * The touchpad gets the fingers as they are on the client's pad, and libinput
+- * makes swipes and pinches of them like of any other touchpad's. A contact is
+- * named by the client's id for it; @x and @y are its place on the pad, 0 to 1.
+- * What changed takes effect with the frame that follows, so fingers that move
+- * together are seen to.
+- */
+-void input_touchpad_contact(struct input *input, uint32_t id, bool down, double x, double y);
+-void input_touchpad_frame(struct input *input);
+-/* Lift every finger, for a client that stopped saying where they are. */
+-void input_touchpad_release(struct input *input);
++/* Normalize contacts to the touchpad or the corresponding monitor's touchscreen.
++ * Changes take effect together on the frame that follows. */
++#define INPUT_TOUCHPAD (-1)
++void input_touch_contact(struct input *input, int output, uint32_t id, bool down, double x, double y);
++void input_touch_frame(struct input *input, int output);
++/* Lift all contacts when the client stops sending touch frames. */
++void input_touch_release(struct input *input);
+ 
+ /* Let go of everything still held, for when the client goes away. */
+ void input_release_all(struct input *input);
+--- a/rdp.c
++++ b/rdp.c
+@@ -164,7 +164,9 @@
+     /* cliprdr; see clipboard.h. */
+     struct clipboard *clipboard;
+ 
+-    /* MS-RDPEI: the fingers on the client's touchpad. */
++    /* MS-RDPEI: the fingers on the client's touch devices. */
++    /* RDP contact ids are 8-bit. Store output index + 1 until the contact lifts. */
++    uint8_t touch_outputs[256];
+     RdpeiServerContext *rdpei;
+     /* When the last touch frame came, while fingers are down; 0 otherwise.
+      * Under notes_lock. */
+@@ -926,8 +928,14 @@
+ 
+     /* The outputs past the last monitor show nothing any more. */
+     destroy_pools(peer_ctx, count);
+-    memcpy(server->wanted, wanted, sizeof(wanted));
++    g_mutex_lock(&peer_ctx->notes_lock);
++    if (server->config.input) {
++        memset(peer_ctx->touch_outputs, 0, sizeof(peer_ctx->touch_outputs));
++        input_touch_release(server->config.input);
++    }
++    memcpy(server->wanted, wanted, (size_t)count * sizeof(*wanted));
+     server->n_wanted = count;
++    g_mutex_unlock(&peer_ctx->notes_lock);
+     server->wanted_deadline = g_get_monotonic_time() + MS(SIZE_REQUEST_TIMEOUT_MS);
+     server->layout_request_pending = true;
+ }
+@@ -1286,15 +1294,9 @@
+ /* Touch (MS-RDPEI)                                                   */
+ /* ------------------------------------------------------------------ */
+ 
+-/*
+- * The client sends the contacts on its touchpad once three or more fingers
+- * are down; with fewer, Windows makes pointer motion and scrolling of them,
+- * which arrive as mouse events. They go to the uinput touchpad as they are,
+- * and it is libinput in the compositor that makes swipes and pinches of them.
+- *
+- * A contact's position is the finger's place on the pad, mapped onto the
+- * desktop: a fraction of the desktop's size is that fraction of the pad's.
+- */
++/* The Weaselway viewer includes the optional pressure field for its synthetic
++ * touchpad contacts. Direct touchscreen contacts omit it and use the touched
++ * monitor's coordinates. Existing viewers still send pressure for all contacts. */
+ 
+ /* Fingers the client has said nothing about for this long are lifted. Its own
+  * watchdog lifts them sooner; this is for the lift that got lost. */
+@@ -1313,8 +1315,10 @@
+     if (!input || width < 2 || height < 2)
+         return CHANNEL_RC_OK;
+ 
++    g_mutex_lock(&peer_ctx->notes_lock);
+     for (UINT16 f = 0; f < event->frameCount; f++) {
+         const RDPINPUT_TOUCH_FRAME *frame = &event->frames[f];
++        bool touchpad = false, touched[RDP_MAX_OUTPUTS] = { false };
+ 
+         for (UINT32 c = 0; c < frame->contactCount; c++) {
+             const RDPINPUT_CONTACT_DATA *contact = &frame->contacts[c];
+@@ -1327,14 +1331,43 @@
+             if (peer_ctx->server->config.verbose)
+                 g_debug("touch: contact %u %s at %d,%d", (unsigned)contact->contactId,
+                         up ? "up" : "down", (int)contact->x, (int)contact->y);
+-            input_touchpad_contact(input, contact->contactId, !up, contact->x / (width - 1),
+-                                   contact->y / (height - 1));
++            if (contact->fieldsPresent & CONTACT_DATA_PRESSURE_PRESENT) {
++                input_touch_contact(input, INPUT_TOUCHPAD, contact->contactId, !up,
++                                    contact->x / (width - 1), contact->y / (height - 1));
++                touchpad = true;
++                continue;
++            }
++
++            if (contact->contactId >= G_N_ELEMENTS(peer_ctx->touch_outputs))
++                continue;
++            uint8_t *route = &peer_ctx->touch_outputs[contact->contactId];
++            struct rdp_server *server = peer_ctx->server;
++            if (!up && (contact->contactFlags & RDPINPUT_CONTACT_FLAG_DOWN)) {
++                int monitor = layout_monitor_at(server->wanted, server->n_wanted, contact->x, contact->y);
++                if (monitor >= 0)
++                    *route = monitor + 1;
++            }
++            if (!*route)
++                continue;
++            int output = *route - 1;
++            const struct monitor *monitor = &server->wanted[output];
++            up = up || !(contact->contactFlags & RDPINPUT_CONTACT_FLAG_INCONTACT);
++            input_touch_contact(input, output, contact->contactId, !up,
++                                ((double)contact->x - monitor->x) / MAX(1, monitor->width - 1),
++                                ((double)contact->y - monitor->y) / MAX(1, monitor->height - 1));
++            touched[output] = true;
++            if (up)
++                *route = 0;
+         }
+         /* One frame is one instant; an event can carry several. */
+-        input_touchpad_frame(input);
++        if (touchpad)
++            input_touch_frame(input, INPUT_TOUCHPAD);
++        for (int i = 0; i < RDP_MAX_OUTPUTS; i++) {
++            if (touched[i])
++                input_touch_frame(input, i);
++        }
+     }
+ 
+-    g_mutex_lock(&peer_ctx->notes_lock);
+     peer_ctx->touch_last = g_get_monotonic_time();
+     g_mutex_unlock(&peer_ctx->notes_lock);
+     wake(peer_ctx->server);
+@@ -1394,16 +1427,17 @@
+     g_mutex_lock(&peer_ctx->notes_lock);
+     last = peer_ctx->touch_last;
+     expired = last && g_get_monotonic_time() - last >= MS(TOUCH_TIMEOUT_MS);
+-    if (expired)
++    if (expired) {
+         peer_ctx->touch_last = 0;
++        memset(peer_ctx->touch_outputs, 0, sizeof(peer_ctx->touch_outputs));
++        input_touch_release(peer_ctx->server->config.input);
++    }
+     g_mutex_unlock(&peer_ctx->notes_lock);
+ 
+     if (!last)
+         return -1;
+     if (!expired)
+         return last + MS(TOUCH_TIMEOUT_MS);
+-    /* Nothing is held when all fingers were lifted properly. */
+-    input_touchpad_release(peer_ctx->server->config.input);
+     return -1;
+ }
+ 

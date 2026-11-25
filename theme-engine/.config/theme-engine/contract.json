@@ -93,7 +93,9 @@
     "mode"
   ],
   "presence_only_files": [
-    "kitty-font.conf"
+    "kitty-font.conf",
+    "starship.toml",
+    "starship-prompt.toml"
   ],
   "engine_owned_files": [
     "logs",

@@ -78,5 +78,15 @@ fi
 # tearing observed, but that is one session, not a soak.
 export QSG_RENDER_LOOP=threaded
 
+# Direct compositor launches can bypass the UWSM environment.
+export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-gtk3}"
+
+# Qt Quick's distance-field text renders with incorrect colours on the
+# Weaselway D3D12 driver. Use native glyph rasterization on that driver.
+if [[ "${GALLIUM_DRIVER:-}" == d3d12 && "$(systemd-detect-virt 2>/dev/null)" == wsl ]]; then
+    export QML_DISABLE_DISTANCEFIELD="${QML_DISABLE_DISTANCEFIELD:-1}"
+    export DONT_PROMPT_WSL_INSTALL=1
+fi
+
 echo "quickshell-launch.sh: starting $(date -Is)" >>"$LOG"
 exec quickshell -p "$CONFIG_DIR" >>"$LOG" 2>&1

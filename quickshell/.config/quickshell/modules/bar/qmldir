@@ -80,6 +80,7 @@ AudioPopout 1.0 AudioPopout.qml
 EthernetPopout 1.0 EthernetPopout.qml
 WifiPopout 1.0 WifiPopout.qml
 BluetoothPopout 1.0 BluetoothPopout.qml
+singleton WindowsConnectivity 1.0 WindowsConnectivity.qml
 ClockPopout 1.0 ClockPopout.qml
 ResourcesPopout 1.0 ResourcesPopout.qml
 MediaPopout 1.0 MediaPopout.qml

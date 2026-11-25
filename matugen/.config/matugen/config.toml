@@ -163,8 +163,7 @@ output_path = "~/.local/state/theme/satty.toml"
 #
 # logo.color, all nine slots defined regardless of which art is active —
 # this is what makes star.txt's 25 "$7" runs theme automatically without the
-# template ever knowing which art was picked (the picker/selector seam — see
-# box-close.awk's own header for the other half of that boundary). Defining
+# template ever knowing which art was picked. Defining
 # all nine rather than only the slots today's arts use is deliberate: it is
 # what lets an art be added, or re-offered, without touching this template.
 # satan_cross.txt ("$2"/"$4"/"$5" runs) is the standing case in point — it
@@ -188,32 +187,9 @@ output_path = "~/.local/state/theme/satty.toml"
 # already trusts directly against surface/background (color5/13, color6/14)
 # at the same measured-safe contrast.
 #
-# The closed box (M-2/M-3/M-5): fastfetch has no value-width padding
-# (`--key-width`/`--key-padding-left` pad KEYS only — verified live, a
-# `{value:20}` format placeholder is silently ignored), so the right
-# border cannot be drawn by fastfetch's config alone; box-close.awk (a
-# post-filter, NOT part of this template) appends it. The template's only
-# box job is the left rule: the horizontal run lives in
-# `display.constants[0]` ONCE and every rule row references it via `{$1}`
-# (verified live) — the box width lives in exactly one place. Width (54
-# display columns: "┌" + 52 "─" + "┐") was set by measuring the widest
-# rendered content row on this host inside a real kitty window (the
-# `display` module's "2560x1440 in 27\", 165 Hz [External]" line, 49
-# columns SGR-stripped) plus a 5-column margin — not the retired
-# config.jsonc's hardcoded 38, which was already 9 columns too narrow for
-# that same row. Rule rows set `outputColor` directly to `outline`
-# (verified live that a `custom` module's own `outputColor` overrides
-# `display.color.output` for just that module) so the drawn left border
-# matches the colour box-close.awk re-emits by CAPTURING that same SGR
-# sequence from the line's own first "│" — never a second constant, so the
-# two can never drift apart.
-#
-# No post_hook — reload is owned solely by theme-engine/lib/reload.sh
-# (PIPE-02, D-04). fastfetch is read once per interactive shell start
-# (fish/.config/fish/config.fish's `fastfetch -c ...` greeting); an
-# already-open shell keeps its old greeting until its next launch, the
-# same "reads at shell start, existing shells are not re-themed live"
-# shape [templates.fish] directly above already documents.
+# The template defines the modules and colors. Fastfetch's renderer measures
+# the terminal and closes the box around the values at display time.
+# The next shell or manual Fastfetch invocation reads the generated theme.
 [templates.fastfetch]
 input_path = "~/.config/matugen/templates/fastfetch.jsonc"
 output_path = "~/.local/state/theme/fastfetch.jsonc"

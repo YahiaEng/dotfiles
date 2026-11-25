@@ -143,7 +143,7 @@ Item {
             SystemClock {
                 id: railDateClock
                 enabled: true
-                precision: SystemClock.Days
+                precision: SystemClock.Hours
             }
 
             Text {

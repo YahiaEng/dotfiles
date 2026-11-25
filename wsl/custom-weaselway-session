@@ -1,0 +1,9 @@
+#!/bin/sh
+
+export XDG_CURRENT_DESKTOP=Hyprland
+export AQ_DRM_DEVICES=/dev/dri/by-path/platform-dxgdrm-card
+export DONT_PROMPT_WSL_INSTALL=1
+
+# The seat's PAM session can give Hyprland CAP_WAKE_ALARM. Bubblewrap
+# rejects inherited capabilities, which breaks GTK image loaders.
+exec setpriv --ambient-caps=-all --inh-caps=-all Hyprland "$@"

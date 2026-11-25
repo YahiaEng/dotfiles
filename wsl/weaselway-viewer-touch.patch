@@ -1,0 +1,303 @@
+--- a/build-freerdp.sh
++++ b/build-freerdp.sh
+@@ -154,6 +154,7 @@
+     "${CXX_BINUTILS_ARGS[@]}" \
+     -DCMAKE_PREFIX_PATH="$SDL3_PREFIX;$SDL3_TTF_PREFIX;$OPENSSL_PREFIX" \
+     -DCMAKE_BUILD_TYPE=Release \
++    -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=OFF \
+     -DWITH_KRB5=OFF \
+     -DWITH_TIMEZONE_ICU=OFF \
+     -DWITH_WINPR_TOOLS=OFF \
+--- a/client/SDL/SDL3/sdl_freerdp.cpp
++++ b/client/SDL/SDL3/sdl_freerdp.cpp
+@@ -755,7 +755,7 @@
+ #if defined(_WIN32)
+ 	/* Registers on this thread, which runs the SDL event loop: the gesture
+ 	 * watchdog timer posts to it. */
+-	const bool touchpad = sdl->touchpadGestures() && sdl::win32::touchpad::initialize();
++	const bool touchpad = sdl::win32::touchpad::initialize(sdl->touchpadGestures());
+ 	if (sdl->touchpadGestures() && !touchpad)
+ 		WLog_WARN(SDL_TAG, "raw touchpad forwarding unavailable on this system");
+ #endif
+@@ -765,8 +765,7 @@
+ 	    [&]()
+ 	    {
+ #if defined(_WIN32)
+-		    if (touchpad)
+-			    sdl::win32::touchpad::shutdown();
++		    sdl::win32::touchpad::shutdown();
+ #endif
+ 		    sdl->cleanup();
+ 		    freerdp_del_signal_cleanup_handler(sdl->context(), sdl_term_handler);
+--- a/client/SDL/SDL3/sdl_touch.cpp
++++ b/client/SDL/SDL3/sdl_touch.cpp
+@@ -23,6 +23,10 @@
+ #include "sdl_context.hpp"
+ #include "sdl_prefs.hpp"
+ 
++#ifdef _WIN32
++#include "sdl_win32_touchpad.hpp"
++#endif
++
+ #include <winpr/wtypes.h>
+ #include <winpr/assert.h>
+ 
+@@ -65,11 +69,22 @@
+ 	return static_cast<UINT32>(val);
+ }
+ 
++// The daemon uses the optional pressure field to distinguish the existing
++// synthetic touchpad contacts from direct Windows touchscreen contacts.
++[[nodiscard]] static UINT32 sdl_touch_pressure_flag(const SDL_TouchFingerEvent& ev)
++{
++#ifdef _WIN32
++	if (ev.touchID == sdl::win32::touchpad::touchscreenId)
++		return 0;
++#endif
++	return FREERDP_TOUCH_HAS_PRESSURE;
++}
++
+ bool SdlTouch::touchUp(SdlContext* sdl, const SDL_TouchFingerEvent& ev)
+ {
+ 	WINPR_ASSERT(sdl);
+ 
+-	return freerdp_client_handle_touch(sdl->common(), FREERDP_TOUCH_UP | FREERDP_TOUCH_HAS_PRESSURE,
++	return freerdp_client_handle_touch(sdl->common(), FREERDP_TOUCH_UP | sdl_touch_pressure_flag(ev),
+ 	                                   static_cast<INT32>(ev.fingerID),
+ 	                                   sdl_scale_pressure(ev.pressure), static_cast<Sint32>(ev.x),
+ 	                                   static_cast<Sint32>(ev.y));
+@@ -80,7 +95,7 @@
+ 	WINPR_ASSERT(sdl);
+ 
+ 	return freerdp_client_handle_touch(
+-	    sdl->common(), FREERDP_TOUCH_CANCEL | FREERDP_TOUCH_HAS_PRESSURE,
++	    sdl->common(), FREERDP_TOUCH_CANCEL | sdl_touch_pressure_flag(ev),
+ 	    static_cast<INT32>(ev.fingerID), sdl_scale_pressure(ev.pressure), static_cast<Sint32>(ev.x),
+ 	    static_cast<Sint32>(ev.y));
+ }
+@@ -90,7 +105,7 @@
+ 	WINPR_ASSERT(sdl);
+ 
+ 	return freerdp_client_handle_touch(
+-	    sdl->common(), FREERDP_TOUCH_DOWN | FREERDP_TOUCH_HAS_PRESSURE,
++	    sdl->common(), FREERDP_TOUCH_DOWN | sdl_touch_pressure_flag(ev),
+ 	    static_cast<INT32>(ev.fingerID), sdl_scale_pressure(ev.pressure), static_cast<Sint32>(ev.x),
+ 	    static_cast<Sint32>(ev.y));
+ }
+@@ -100,7 +115,7 @@
+ 	WINPR_ASSERT(sdl);
+ 
+ 	return freerdp_client_handle_touch(
+-	    sdl->common(), FREERDP_TOUCH_MOTION | FREERDP_TOUCH_HAS_PRESSURE,
++	    sdl->common(), FREERDP_TOUCH_MOTION | sdl_touch_pressure_flag(ev),
+ 	    static_cast<INT32>(ev.fingerID), sdl_scale_pressure(ev.pressure), static_cast<Sint32>(ev.x),
+ 	    static_cast<Sint32>(ev.y));
+ }
+--- a/client/SDL/SDL3/sdl_win32_touchpad.cpp
++++ b/client/SDL/SDL3/sdl_win32_touchpad.cpp
+@@ -17,6 +17,16 @@
+  * limitations under the License.
+  */
+ 
++// The pointer API is available from Windows 8 onward.
++#if !defined(_WIN32_WINNT) || _WIN32_WINNT < 0x0602
++#undef _WIN32_WINNT
++#define _WIN32_WINNT 0x0602
++#endif
++#if !defined(WINVER) || WINVER < 0x0602
++#undef WINVER
++#define WINVER 0x0602
++#endif
++
+ #include "sdl_win32_touchpad.hpp"
+ 
+ #include <winpr/windows.h>
+@@ -752,6 +762,84 @@
+ 		msg->lParam |= static_cast<LPARAM>(KF_EXTENDED) << 16;
+ 	}
+ 
++	constexpr wchar_t kTouchWindowProperty[] = L"WeaselwayDirectTouchWindow";
++	std::unordered_map<UINT32, SDL_TouchFingerEvent> g_screenTouches;
++	bool g_forwardTouchpad = false;
++
++	bool handleScreenTouch(const MSG& msg)
++	{
++		if (msg.message >= WM_MOUSEFIRST && msg.message <= WM_MOUSELAST)
++		{
++			// Windows marks promoted touchscreen mouse messages with this signature.
++			const auto extra = static_cast<ULONG_PTR>(GetMessageExtraInfo());
++			return (extra & 0xFFFFFF80) == 0xFF515780 &&
++			       GetPropW(msg.hwnd, kTouchWindowProperty);
++		}
++
++		if (msg.message != WM_POINTERDOWN && msg.message != WM_POINTERUP &&
++		    msg.message != WM_POINTERUPDATE && msg.message != WM_POINTERCAPTURECHANGED)
++			return false;
++
++		const UINT32 id = GET_POINTERID_WPARAM(msg.wParam);
++		auto existing = g_screenTouches.find(id);
++		POINTER_INFO info{};
++		if (msg.message == WM_POINTERCAPTURECHANGED || !GetPointerInfo(id, &info))
++		{
++			if (existing == g_screenTouches.end())
++				return false;
++			SDL_Event canceled{};
++			canceled.tfinger = existing->second;
++			canceled.tfinger.type = SDL_EVENT_FINGER_CANCELED;
++			canceled.tfinger.timestamp = SDL_GetTicksNS();
++			g_screenTouches.erase(existing);
++			SDL_PushEvent(&canceled);
++			return true;
++		}
++
++		auto* window = static_cast<SDL_Window*>(GetPropW(msg.hwnd, kTouchWindowProperty));
++		if (!window || info.pointerType != PT_TOUCH)
++			return false;
++		if (msg.message != WM_POINTERDOWN && existing == g_screenTouches.end())
++			return true;
++
++		SDL_Event ev{};
++		ev.tfinger.timestamp = SDL_GetTicksNS();
++		ev.tfinger.touchID = sdl::win32::touchpad::touchscreenId;
++		ev.tfinger.fingerID = id;
++		ev.tfinger.windowID = SDL_GetWindowID(window);
++		if (existing != g_screenTouches.end())
++		{
++			ev.tfinger.windowID = existing->second.windowID;
++			ev.tfinger.x = existing->second.x;
++			ev.tfinger.y = existing->second.y;
++		}
++
++		POINT point = info.ptPixelLocation;
++		RECT rect{};
++		if (ScreenToClient(msg.hwnd, &point) && GetClientRect(msg.hwnd, &rect) &&
++		    rect.right > 0 && rect.bottom > 0)
++		{
++			ev.tfinger.x = static_cast<float>(point.x) / static_cast<float>(rect.right);
++			ev.tfinger.y = static_cast<float>(point.y) / static_cast<float>(rect.bottom);
++		}
++
++		if (info.pointerFlags & POINTER_FLAG_CANCELED)
++			ev.tfinger.type = SDL_EVENT_FINGER_CANCELED;
++		else if (msg.message == WM_POINTERUP)
++			ev.tfinger.type = SDL_EVENT_FINGER_UP;
++		else if (msg.message == WM_POINTERDOWN)
++			ev.tfinger.type = SDL_EVENT_FINGER_DOWN;
++		else
++			ev.tfinger.type = SDL_EVENT_FINGER_MOTION;
++
++		if (ev.tfinger.type == SDL_EVENT_FINGER_UP || ev.tfinger.type == SDL_EVENT_FINGER_CANCELED)
++			g_screenTouches.erase(id);
++		else
++			g_screenTouches[id] = ev.tfinger;
++		SDL_PushEvent(&ev);
++		return true;
++	}
++
+ 	bool SDLCALL sdl_win32_raw_input_hook(void* userdata, MSG* msg)
+ 	{
+ 		(void)userdata;
+@@ -761,10 +849,12 @@
+ 		if (msg)
+ 			fixNavigationKey(msg);
+ 
+-		if (!msg || (msg->message != WM_INPUT))
++		if (!msg)
+ 			return true;
+-
+-		handleRawInput(msg->lParam);
++		if (handleScreenTouch(*msg))
++			return false;
++		if (g_forwardTouchpad && msg->message == WM_INPUT)
++			handleRawInput(msg->lParam);
+ 		return true; /* never consume: Raw Input is a parallel tap, not exclusive */
+ 	}
+ } // namespace
+@@ -775,8 +865,22 @@
+ 	{
+ 		namespace touchpad
+ 		{
+-			bool initialize()
++			void bindScreenTouch(SDL_Window* window)
++			{
++				if (!window)
++					return;
++				auto hwnd = static_cast<HWND>(SDL_GetPointerProperty(SDL_GetWindowProperties(window),
++				                             SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr));
++				if (hwnd && SetPropW(hwnd, kTouchWindowProperty, window))
++					UnregisterTouchWindow(hwnd);
++			}
++
++			bool initialize(bool forwardGestures)
+ 			{
++				SDL_SetWindowsMessageHook(sdl_win32_raw_input_hook, nullptr);
++				if (!forwardGestures)
++					return true;
++
+ 				RAWINPUTDEVICE rid{};
+ 				rid.usUsagePage = HID_USAGE_PAGE_DIGITIZER;
+ 				rid.usUsage = HID_USAGE_DIGITIZER_TOUCH_PAD;
+@@ -792,7 +896,7 @@
+ 					return false;
+ 				}
+ 
+-				SDL_SetWindowsMessageHook(sdl_win32_raw_input_hook, nullptr);
++				g_forwardTouchpad = true;
+ 
+ 				/* See kContactStaleTimeoutMs's comment: a message-only
+ 				 * (hwndTarget=nullptr) timer, so it's independent of any
+@@ -818,6 +922,10 @@
+ 			void shutdown()
+ 			{
+ 				SDL_SetWindowsMessageHook(nullptr, nullptr);
++				g_screenTouches.clear();
++				if (!g_forwardTouchpad)
++					return;
++				g_forwardTouchpad = false;
+ 
+ 				if (g_staleWatchdogTimerId)
+ 				{
+--- a/client/SDL/SDL3/sdl_win32_touchpad.hpp
++++ b/client/SDL/SDL3/sdl_win32_touchpad.hpp
+@@ -19,6 +19,8 @@
+ 
+ #pragma once
+ 
++#include <SDL3/SDL_touch.h>
++
+ namespace sdl
+ {
+ 	namespace win32
+@@ -39,9 +41,11 @@
+ 		 * Enabled with /sdl-touchpad-gestures. */
+ 		namespace touchpad
+ 		{
+-			/* Registers the Raw Input device and installs the global WM_INPUT
+-			 * interception hook. Returns false if registration failed. */
+-			[[nodiscard]] bool initialize();
++			/* Installs pointer handling and optionally registers the raw touchpad.
++			 * Returns false if the requested touchpad registration failed. */
++			[[nodiscard]] bool initialize(bool forwardGestures);
++			void bindScreenTouch(SDL_Window* window);
++			inline constexpr SDL_TouchID touchscreenId = 0x4652445054534352ULL;
+ 			void shutdown();
+ 
+ 			/* Lifts all contacts of a gesture in progress. Called when the
+--- a/client/SDL/SDL3/sdl_window.cpp
++++ b/client/SDL/SDL3/sdl_window.cpp
+@@ -33,6 +33,7 @@
+ #if defined(_WIN32)
+ #include "sdl_d3d11_presenter.hpp"
+ #include "sdl_win32_vblank.hpp"
++#include "sdl_win32_touchpad.hpp"
+ #else
+ /* Never created, but the window holds pointers to them. */
+ class SdlD3D11Presenter
+@@ -85,6 +86,7 @@
+ 	std::ignore = SDL_SyncWindow(_window);
+ 
+ #if defined(_WIN32)
++	sdl::win32::touchpad::bindScreenTouch(_window);
+ 	if (presenter && presenterEnabled())
+ 	{
+ 		auto hwnd = SDL_GetPointerProperty(SDL_GetWindowProperties(_window),

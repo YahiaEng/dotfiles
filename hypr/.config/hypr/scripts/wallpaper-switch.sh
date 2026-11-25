@@ -5,10 +5,8 @@
 # ║  the fallback when the shell is not available        ║
 # ╚══════════════════════════════════════════════════════╝
 #
-# Every surface that offers "change the wallpaper" goes through this one
-# script — Super+W (keybinds.lua) and the launcher's Style ▸ Wallpaper entry
-# (MenuTree.qml) — so retargeting the picker is a change HERE, not a change
-# at each call site.
+# Super+W uses this entry point. Style ▸ Wallpaper switches directly to
+# the same carousel inside the already-open launcher.
 #
 # It opens the launcher's wallpaper CAROUSEL (quick task 260826-wl3): a strip
 # from the bar's bottom bulge that scrolls left/right and updates the desktop

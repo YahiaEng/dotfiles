@@ -40,12 +40,24 @@ SectionPopout {
     id: root
 
     property var bluetoothBackend: null
+    readonly property bool windowsManaged: WindowsConnectivity.enabled && !root.bluetoothBackend?.adapterPresent
+    readonly property var windowsBluetooth: root.windowsManaged ? WindowsConnectivity.bluetooth : null
+
+    onOpenedChanged: {
+        if (opened && windowsManaged)
+            WindowsConnectivity.refresh();
+    }
 
     sectionId: "bluetooth"
     popoutTitle: "Bluetooth"
     // The same three-way shape 18-08's bar entry uses, read off the same
     // properties, so the bar entry and this header can never disagree.
     popoutGlyph: {
+        if (root.windowsManaged) {
+            if (root.windowsBluetooth?.state !== "on")
+                return "bluetooth_disabled";
+            return root.windowsBluetooth.devices?.some(device => device.connected) ? "bluetooth_connected" : "bluetooth";
+        }
         if (!root.bluetoothBackend || !root.bluetoothBackend.adapterPresent)
             return "bluetooth_disabled";
         if (root.bluetoothBackend.adapterBlocked)
@@ -67,6 +79,8 @@ SectionPopout {
     readonly property bool _noAdapter: !root.bluetoothBackend || root.bluetoothBackend.readinessState === "empty"
 
     bodyState: {
+        if (root.windowsManaged)
+            return "populated";
         if (!root.bluetoothBackend || root.bluetoothBackend.readinessState === "pending")
             return "pending";
         if (root.bluetoothBackend.adapterBlocked)
@@ -82,8 +96,65 @@ SectionPopout {
     emptyStateGlyph: "bluetooth_disabled"
     emptyStateText: root._noAdapter ? "No adapter detected" : "No paired devices — add one in the dashboard"
 
-    wayfindingLabel: "Open Bluetooth settings"
-    onWayfindingActivated: PopoutController.requestPanel("bluetooth")
+    wayfindingLabel: root.windowsManaged ? "Open Windows Bluetooth settings" : "Open Bluetooth settings"
+    onWayfindingActivated: {
+        if (root.windowsManaged) {
+            PopoutController.close();
+            WindowsConnectivity.openSettings("bluetooth");
+        } else {
+            PopoutController.requestPanel("bluetooth");
+        }
+    }
+
+    Column {
+        visible: root.windowsManaged
+        width: parent.width
+        spacing: Design.spacingSm
+
+        Text {
+            width: parent.width
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            font.pixelSize: Design.fontBody
+            color: BarRoles.popoutFg
+            text: {
+                switch (root.windowsBluetooth?.state) {
+                case "on":
+                    return root.windowsBluetooth.devices?.length === 0 ? "On in Windows · no paired devices" : "On in Windows";
+                case "off": return "Bluetooth is off in Windows";
+                case "unavailable": return "Windows found no Bluetooth adapter";
+                default: return "Bluetooth is managed by Windows";
+                }
+            }
+        }
+
+        Repeater {
+            model: root.windowsBluetooth?.devices?.slice(0, Design.popoutListCap) ?? []
+
+            Row {
+                id: windowsDeviceRow
+                required property var modelData
+                width: parent.width
+                spacing: Design.spacingSm
+
+                Text {
+                    width: windowsDeviceRow.width - connectionLabel.width - windowsDeviceRow.spacing
+                    text: windowsDeviceRow.modelData.name
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                    font.pixelSize: Design.fontBody
+                    color: BarRoles.popoutFg
+                }
+                Text {
+                    id: connectionLabel
+                    text: windowsDeviceRow.modelData.connected ? "Connected" : "Paired"
+                    textFormat: Text.PlainText
+                    font.pixelSize: Design.fontLabel
+                    color: windowsDeviceRow.modelData.connected ? BarRoles.accent : BarRoles.capsuleFg
+                }
+            }
+        }
+    }
 
     property string _failedAddress: ""
     property string _failedReason: ""
@@ -108,7 +179,7 @@ SectionPopout {
     // ── The adapter toggle — the one action worth taking from the bar. ──
     Item {
         id: adapterTogglePill
-        visible: root.bodyState === "populated"
+        visible: root.bodyState === "populated" && !root.windowsManaged
         width: adapterToggleLabel.implicitWidth + Design.spacingLg * 2
         height: Design.iconSizeMd + Design.spacingSm * 2
 
@@ -139,7 +210,7 @@ SectionPopout {
     //    published order, no comparator sort anywhere. ───────────────────
     Column {
         id: deviceSection
-        visible: root.bodyState === "populated"
+        visible: root.bodyState === "populated" && !root.windowsManaged
         width: parent.width
         spacing: Design.spacingXs
 

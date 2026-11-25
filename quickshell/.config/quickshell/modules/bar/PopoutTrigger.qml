@@ -32,7 +32,9 @@ Item {
     // BarCapsule's own positioner.
     default property alias content: contentHost.data
 
-    readonly property bool pinned: PopoutController.pinnedSection === triggerRoot.sectionId
+    readonly property var hostBar: PopoutController.barForScreen(QsWindow.window?.screen)
+    readonly property bool ownsPopout: hostBar && PopoutController.activeBar === hostBar
+    readonly property bool pinned: ownsPopout && PopoutController.pinnedSection === triggerRoot.sectionId
 
     implicitWidth: contentHost.implicitWidth
     implicitHeight: contentHost.implicitHeight
@@ -62,9 +64,10 @@ Item {
 
     function publishAnchor() {
         var origin = triggerRoot.mapToItem(null, 0, 0);
-        triggerRoot._publishedCentre = BarEntryModel.isVertical
-            ? origin.y + triggerRoot.height / 2
-            : origin.x + triggerRoot.width / 2;
+        triggerRoot._publishedCentre = PopoutController.rootAlongOrigin
+            + (BarEntryModel.isVertical
+                ? origin.y + triggerRoot.height / 2
+                : origin.x + triggerRoot.width / 2);
     }
 
     // Left button only, and BUTTONS ONLY — this MouseArea deliberately
@@ -88,6 +91,8 @@ Item {
         hoverEnabled: false
 
         onClicked: {
+            if (!PopoutController.selectBar(triggerRoot.hostBar, true))
+                return;
             // Fresh anchor published before either path that can open —
             // the hover-entered path (dwell, armed from
             // triggerHoverHandler) and this click path — so the popout
@@ -136,9 +141,11 @@ Item {
 
         onHoveredChanged: {
             if (triggerHoverHandler.hovered) {
+                if (!PopoutController.selectBar(triggerRoot.hostBar, false))
+                    return;
                 triggerRoot.publishAnchor();
                 PopoutController.entryEntered(triggerRoot.sectionId);
-            } else {
+            } else if (triggerRoot.ownsPopout) {
                 PopoutController.entryExited(triggerRoot.sectionId);
             }
         }
@@ -154,7 +161,7 @@ Item {
         // Guarded on hovered because the leave event updates the point too,
         // and a leave is not a move within the entry.
         onPointChanged: {
-            if (triggerHoverHandler.hovered)
+            if (triggerHoverHandler.hovered && triggerRoot.ownsPopout)
                 PopoutController.entryMoved(triggerRoot.sectionId);
         }
     }
@@ -164,7 +171,7 @@ Item {
     // directly.
     LazyLoader {
         id: popoutLoader
-        active: PopoutController.openSection === triggerRoot.sectionId
+        active: triggerRoot.ownsPopout && PopoutController.openSection === triggerRoot.sectionId
         component: triggerRoot.popoutComponent
 
         onItemChanged: {

@@ -24,9 +24,6 @@
 
     "display": {
         "separator": "  ",
-        "constants": [
-            "────────────────────────────────────────────────────"
-        ],
         "color": {
             "keys": "{{colors.tertiary.default.hex}}",
             "title": "{{colors.primary.default.hex}}",
@@ -38,77 +35,77 @@
     "modules": [
         {
             "type": "custom",
-            "format": "┌{$1}┐",
+            "format": "┌─┐",
             "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "title",
-            "key": "│   user",
+            "key": "│   user   ",
             "format": "{user-name}@{host-name}"
         },
         {
             "type": "custom",
-            "format": "├{$1}┤",
+            "format": "├─┤",
             "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "os",
-            "key": "│   distro"
+            "key": "│   distro "
         },
         {
             "type": "kernel",
-            "key": "│   kernel"
+            "key": "│   kernel "
         },
         {
             "type": "packages",
-            "key": "│ 󰏖  pkgs"
+            "key": "│ 󰏖  pkgs   "
         },
         {
             "type": "uptime",
-            "key": "│ 󰅐  uptime"
+            "key": "│ 󰅐  uptime "
         },
         {
             "type": "custom",
-            "format": "├{$1}┤",
+            "format": "├─┤",
             "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "wm",
-            "key": "│   wm"
+            "key": "│   wm     "
         },
         {
             "type": "terminal",
-            "key": "│   term"
+            "key": "│   term   "
         },
         {
             "type": "shell",
-            "key": "│   shell"
+            "key": "│   shell  "
         },
         {
             "type": "terminalfont",
-            "key": "│   font"
+            "key": "│   font   "
         },
         {
             "type": "custom",
-            "format": "├{$1}┤",
+            "format": "├─┤",
             "outputColor": "{{colors.outline.default.hex}}"
         },
         {
             "type": "cpu",
-            "key": "│ 󰍛  cpu",
+            "key": "│   cpu    ",
             "showPeCoreCount": true
         },
         {
             "type": "gpu",
-            "key": "│ 󰢮  gpu"
+            "key": "│ 󰢮  gpu    "
         },
         {
             "type": "memory",
-            "key": "│   mem"
+            "key": "│ 󰍛  mem    "
         },
         {
             "type": "disk",
-            "key": "│ 󰋊  disk",
+            "key": "│ 󰋊  disk   ",
             "folders": "/"
         },
         {
@@ -117,7 +114,7 @@
         },
         {
             "type": "custom",
-            "format": "├{$1}┤",
+            "format": "├─┤",
             "outputColor": "{{colors.outline.default.hex}}"
         },
         {
@@ -127,7 +124,7 @@
         },
         {
             "type": "custom",
-            "format": "└{$1}┘",
+            "format": "└─┘",
             "outputColor": "{{colors.outline.default.hex}}"
         }
     ]

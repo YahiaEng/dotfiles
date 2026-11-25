@@ -1,6 +1,6 @@
 # 🍚 Hyprland Dotfiles — Material You + Multi-Theme Rice
 
-A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme switching and bar orientation switching through the native QML launcher's own pickers.
+A modular, Stow-managed Hyprland setup for native Arch Linux and Arch WSL2 featuring **Material You dynamic theming** (via Matugen + awww) alongside **6 hand-crafted static themes**, with theme switching and bar orientation switching through the native QML launcher's own pickers.
 
 ## ✨ Features
 
@@ -8,7 +8,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 - **6 static themes** — Catppuccin Mocha, Dracula, Rosé Pine, Gruvbox Dark, Tokyo Night, Nord
 - **Quickshell bar** — horizontal/vertical orientation switching, workspaces, media/connectivity capsule, tray, clock
 - **In-shell picker switching** — change themes and bar orientation on the fly, from the native QML launcher
-- **NVIDIA optimized** — env variables for 2160×1440 @ 165Hz
+- **Hardware-aware setup** — native GPU and display detection, plus Windows display and connectivity integration in Weaselway
 - **Smooth animations** — Material Design 3 inspired bezier curves
 - **GNU Stow managed** — clean symlink structure from `~/dotfiles` → `~/.config`
 - **Modular Hyprland config** — separate files for monitors, keybinds, animations, window rules
@@ -21,6 +21,7 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 | Status Bar      | Quickshell            |
 | Launcher        | Quickshell (native QML) |
 | Terminal        | Kitty                 |
+| Prompt          | Starship              |
 | Notifications   | Quickshell            |
 | Wallpaper       | awww                  |
 | Theming         | Matugen               |
@@ -33,19 +34,14 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 
 ```
 ~/dotfiles/
-├── install.sh                          # Package installer
+├── install.sh                          # Native Arch and Arch WSL2 installer
 ├── stow.sh                             # Symlink setup
+├── wsl/                                # Weaselway onboarding and Windows helpers
 ├── .stow-local-ignore
 │
 ├── hypr/.config/hypr/
-│   ├── hyprland.conf                   # Main config (sources modules)
-│   ├── env.conf                        # NVIDIA + Wayland env vars
-│   ├── monitors.conf                   # 2160x1440@165Hz
-│   ├── autostart.conf                  # Startup apps
-│   ├── animations.conf                 # Smooth bezier animations
-│   ├── keybinds.conf                   # All keybindings
-│   ├── windowrules.conf                # Float/opacity/layer rules
-│   ├── colors.conf                     # Active colors (auto-managed)
+│   ├── hyprland.lua                    # Main config
+│   ├── config/                         # Monitors, keybinds, animations and window rules
 │   ├── hypridle.conf
 │   └── scripts/
 │       ├── bar-orientation.sh          # Bar orientation switcher (invoked by the launcher's picker)
@@ -87,24 +83,68 @@ A modular, stow-managed Arch Linux rice featuring **Material You dynamic theming
 
 ## 🚀 Installation
 
+Start with an installed x86-64 Arch Linux system, a regular user with sudo, and internet access. Use the same checkout on either platform. The scripts detect the environment from the running kernel. They install packages and link configuration for the current user.
+
 ```bash
-# 1. Clone the repo
-git clone https://github.com/<your-user>/dotfiles.git ~/dotfiles
+git clone https://github.com/YahiaEng/dotfiles.git ~/dotfiles
 cd ~/dotfiles
-
-# 2. Install dependencies
-chmod +x install.sh stow.sh
+./install.sh --plan
 ./install.sh
-
-# 3. Create symlinks
 ./stow.sh
-
-# 4. Add wallpapers
-cp /path/to/your/wallpapers/*.jpg ~/Pictures/Wallpapers/
-
-# 5. Log into Hyprland
-# The theme-init script will apply the default (Catppuccin) theme on first login
 ```
+
+`--plan` shows the packages and platform-specific setup without making changes. Rerun the same install and Stow commands to update an existing checkout. Stow keeps your saved theme, monitor overrides, and local VSCodium settings. A fresh profile starts with Catppuccin. Add personal wallpapers under `~/Pictures/Wallpapers/` and use **Style → Wallpaper** to choose one.
+
+### Native Arch
+
+Keep your existing Arch bootloader and display manager. The installer selects Vulkan drivers from the detected PCI graphics devices, selects CPU microcode by vendor, and adds an LTS fallback kernel. It adds Limine integration for an existing Limine installation using its initramfs generator. The bundled single-GPU passthrough hooks target the original NVIDIA desktop's PCI layout and SDDM. The native shell uses NetworkManager, BlueZ and UPower for connectivity and battery status.
+
+Reboot after installing or changing kernel drivers. Log into **Hyprland (uwsm-managed)** in your display manager or run this from a TTY.
+
+```bash
+uwsm start hyprland-uwsm.desktop
+```
+
+Hyprland detects connected displays and chooses their preferred mode, placement and scale. Use **Setup → Display** to save per-output settings such as a higher refresh rate. If you manage boot entries manually, add the installed LTS kernel to your boot menu before relying on it for recovery.
+
+### Arch WSL2 with Weaselway
+
+For a new instance, run `wsl --install -d archlinux` in Windows PowerShell. Follow Weaselway's Arch instructions to create a regular sudo user and install Git and Python. Use an x86-64 WSL2 instance with systemd, WSLg and Windows interop enabled, plus a Windows graphics driver that exposes `/dev/dxg`. The pinned Weaselway release needs a dxgdrm build for the kernel reported by `uname -r`. [Weaselway's Arch setup](https://github.com/weaselway/weaselway/blob/v1.9.1/distro/README.md) · [dxgdrm kernel builds](https://github.com/weaselway/dxgdrm/releases/tag/v1.4.0)
+
+Run the same install and Stow commands above from a local Windows terminal opened into the distro as your regular user. The installer reuses an existing Weaselway stack or builds it using the pinned upstream Arch installer. It installs this repo's Hyprland session command, Windows Start menu shortcuts and Steam launcher. It can rebuild Weaselway's patched packages when an Arch upgrade replaces them.
+
+After first installing Weaselway, run `wsl --shutdown` from Windows PowerShell so the driver and user groups take effect. Then open **Arch Linux (Hyprland)** from the Windows Start menu or run the command below from a local WSL terminal.
+
+```bash
+~/dotfiles/wsl/launch-desktop
+```
+
+With Fish as the WSL login shell, opening Arch starts Hyprland on the connected displays. Each selected display gets one borderless viewer at its native resolution. Reopening Arch brings back the current viewer arrangement. For a terminal-only session, run `wsl.exe -d archlinux -- env ARCH_WSL_TERMINAL=1 fish -l` from Windows.
+
+| Action | Shortcut |
+| --- | --- |
+| Switch between Windows and Arch | **Ctrl + Alt + H**, or **System → Show Windows** in the Arch launcher |
+| Choose the Linux main display | **Arch Linux - Display settings** in Start, or **Setup → Display** in the Arch launcher |
+| Use Arch across both displays | **Arch Linux - Both displays** in Start |
+| Use Arch on one display and Windows on the other | **Arch Linux - Primary display** or **Arch Linux - External display** in Start |
+
+In Display settings, check the displays you want to use for Arch and choose the **Linux main display**. **Identify displays** briefly numbers the physical monitors. Your selection is saved when you apply it. The main Linux display gets notifications and the default dialogs. Every assigned display gets its own bar, workspace icons, and edge rails in the selected style.
+
+Changing the display assignment reconnects the viewer to the running Hyprland session. Hyprland follows the Windows monitor arrangement. Use **Super + left drag** to move a window, or **Super + Shift + arrow** to move it in a direction.
+
+From a terminal, use `wsl/launch-desktop --list-monitors` to find Windows display names. Pass an ordered list such as `wsl/launch-desktop --monitors DISPLAY2,DISPLAY1` with the main display first. Use `wsl/launch-desktop --disconnect` from a WSL terminal to disconnect the viewer. [Weaselway display architecture](https://github.com/weaselway/weaselway/blob/main/ARCHITECTURE.md)
+
+If Windows handles the Super shortcuts, focus the viewer and press **Right Ctrl + Right Shift + G** to toggle keyboard capture. Press **Right Ctrl + Right Shift + M** to return to Windows from the Linux lock screen, or **Right Ctrl + Right Shift + H** for the viewer's shortcuts. [Weaselway viewer input handling](https://github.com/weaselway/freerdp/blob/v1.3.0/client/SDL/SDL3/sdl_input.cpp)
+
+On x86-64 Arch WSL, install Ninja with `sudo pacman -S --needed ninja` if needed, then run `./wsl/install-touch` to build the Weaselway viewer and daemon with native touchscreen forwarding. The build uses the Arch development headers, CMake and Ninja. It disconnects the viewer after both builds succeed. Reopen Arch Linux from Start to use the touchscreen.
+
+Open Steam from the application menu. To refresh just the WSL Steam launcher on an existing install, run `./wsl/install-steam-launcher`. The launcher lets Mesa select GPU acceleration for 64-bit games and keeps Steam's web interface on its software path. Games launched this way get an 8 GB Mesa shader-cache limit. Hyprland also uses Weaselway's hardware cursor plane so Windows can move the pointer between streamed frames.
+
+If Firefox or Zen crashes with the Weaselway Mesa driver, merge the WSL browser policy into the browser's existing enterprise policies to use software WebRender and video decoding. [WSL browser policy](wsl/browser-graphics-policy.json)
+
+The Wi-Fi and Bluetooth hover cards read Windows state when the corresponding Linux device is absent. Their settings buttons open the matching Windows Settings page.
+
+The virtual displays default to 1× scale. The idle lock stays enabled while Windows handles display power and sleep. On an existing install, back up `~/.local/state/hypr/idle-overrides.conf` and reapply your idle settings from the Shell behaviour page to update the generated listeners. Run `ww-start-session stop` from the WSL terminal to end the session.
 
 ## ⌨️ Keybindings
 
@@ -117,12 +157,13 @@ cp /path/to/your/wallpapers/*.jpg ~/Pictures/Wallpapers/
 | `Super + V`          | Toggle floating           |
 | `Super + L`          | Lock screen               |
 | `Super + N`          | Toggle notification center|
-| `Super + Shift + T`  | **Theme switcher**        |
+| `Super + T`          | **Theme switcher**        |
 | `Super + B`          | **Bar orientation switcher**|
-| `Super + Shift + B`  | **Wallpaper picker**      |
+| `Super + W`          | **Wallpaper picker**      |
 | `Super + C`          | Clipboard history         |
-| `Print`              | Screenshot (full)         |
-| `Super + Print`      | Screenshot (area select)  |
+| `Print`              | Screenshot (area select)  |
+| `Shift + Print`      | Screenshot (window)       |
+| `Ctrl + Print`       | Screenshot (full)         |
 | `Super + 1-0`        | Switch workspace 1-10     |
 | `Super + Shift + 1-0`| Move window to workspace  |
 

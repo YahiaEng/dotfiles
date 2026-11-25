@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$(systemd-detect-virt 2>/dev/null)" != wsl ]]; then
+    printf '%s is available only inside Arch WSL2.\n' "${0##*/}" >&2
+    exit 1
+fi
+
+desktop_file="${XDG_DATA_HOME:-$HOME/.local/share}/applications/steam.desktop"
+source_file=/usr/share/applications/steam.desktop
+if [[ -f "$desktop_file" ]]; then
+    source_file="$desktop_file"
+fi
+
+mkdir -p "${desktop_file%/*}"
+staged="$(mktemp "$desktop_file.XXXXXXXX")"
+trap 'rm -f -- "$staged"' EXIT
+
+# Mesa can select D3D12 for 64-bit games and fall back to llvmpipe for
+# 32-bit Steam, where the Windows D3D12 libraries are unavailable.
+# Let Steam games keep more compiled Mesa shaders between launches.
+launcher='Exec=env -u LIBGL_ALWAYS_SOFTWARE -u GALLIUM_DRIVER MESA_SHADER_CACHE_MAX_SIZE=8G /usr/bin/steam -cef-disable-gpu'
+sed -E \
+    -e 's@^Exec=env LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=llvmpipe (/usr/bin/steam[[:blank:]])@Exec=\1@' \
+    -e 's@^Exec=env -u LIBGL_ALWAYS_SOFTWARE -u GALLIUM_DRIVER (MESA_SHADER_CACHE_MAX_SIZE=8G )?(/usr/bin/steam[[:blank:]])@Exec=\2@' \
+    -e 's@^Exec=/usr/bin/steam( -cef-disable-gpu)?([[:blank:]]|$)@'"$launcher"'\2@' \
+    "$source_file" > "$staged"
+if ! grep -Fq "$launcher" "$staged"; then
+    printf 'No standard Steam launch command found in %s\n' "$source_file" >&2
+    exit 1
+fi
+
+if ! cmp -s "$staged" "$desktop_file"; then
+    chmod 644 "$staged"
+    mv -f -- "$staged" "$desktop_file"
+fi

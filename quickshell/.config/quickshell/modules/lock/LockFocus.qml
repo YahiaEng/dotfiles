@@ -83,7 +83,7 @@ Item {
     SystemClock {
         id: focusDateClock
         enabled: true
-        precision: SystemClock.Days
+        precision: SystemClock.Hours
     }
 
     // ── Rest clock — shrinks and moves up on reveal ─────────────────────

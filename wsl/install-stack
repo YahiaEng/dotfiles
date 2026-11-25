@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+release=v1.9.1
+archive_sha256=f67bc0d9a28c5b471ec8d0b6a98e3d8d6847dfa0ec1fcbbc0499283c2c6b352b
+kernel="$(uname -r)"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/weaselway"
+versions_file="$state_dir/dotfiles-packages"
+
+stack_present() {
+    [[ -x /usr/local/bin/ww-start-session && -x /usr/local/bin/ww-start-viewer &&
+        -x /usr/local/bin/weaselwayd && -x /opt/weaselway/viewer/sdl-freerdp.exe &&
+        -r /opt/weaselway/dxgdrm/lib/modules/$kernel/extra/dxgdrm.ko &&
+        -r /etc/ld.so.conf.d/00-weaselway-mesa.conf ]] &&
+        systemctl cat weaselway-prep.service >/dev/null 2>&1 &&
+        systemctl --user cat weaselwayd.service >/dev/null 2>&1
+}
+
+stack_current() {
+    local versions
+    stack_present && versions="$(pacman -Q aquamarine hyprland freerdp)" || return 1
+    [[ ! -e "$versions_file" || "$(<"$versions_file")" == "$versions" ]]
+}
+
+record_versions() {
+    local versions staged
+    versions="$(pacman -Q aquamarine hyprland freerdp)"
+    staged="$(mktemp "$state_dir/dotfiles-packages.XXXXXXXX")"
+    printf '%s\n' "$versions" > "$staged"
+    mv -f -- "$staged" "$versions_file"
+}
+
+if [[ "${1:-}" == --check ]]; then
+    stack_current
+    exit
+fi
+
+if [[ "$(systemd-detect-virt)" != wsl || "$(uname -m)" != x86_64 || ! -c /dev/dxg ]]; then
+    echo 'Weaselway needs x86_64 WSL2 with a Windows driver that exposes /dev/dxg.' >&2
+    exit 1
+fi
+if [[ ! -d /run/systemd/system ]] || ! systemctl --user show-environment >/dev/null; then
+    echo 'Enable systemd in /etc/wsl.conf and reopen WSL as your normal user.' >&2
+    exit 1
+fi
+if ! command -v wslpath >/dev/null || [[ ! -x /mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe || ! -d /mnt/wslg ]]; then
+    echo 'Weaselway needs WSLg, Windows interop and the Windows C: drive mounted at /mnt/c.' >&2
+    exit 1
+fi
+# Save the baseline before pacman runs so an interrupted upgrade can
+# restore the patched packages on the next run.
+mkdir -p "$state_dir"
+exec 9>"$state_dir/dotfiles-install.lock"
+flock 9
+if [[ "${1:-}" != --refresh ]] && stack_current; then
+    if [[ ! -e "$versions_file" ]]; then
+        record_versions
+    fi
+    echo 'Reusing the installed Weaselway graphics and viewer stack.'
+    exit 0
+fi
+
+work="$(mktemp -d)"
+trap 'rm -rf -- "$work"' EXIT
+curl --fail --location --silent --show-error --retry 3 \
+    "https://codeload.github.com/weaselway/weaselway/tar.gz/refs/tags/$release" -o "$work/weaselway.tar.gz"
+printf '%s  %s\n' "$archive_sha256" "$work/weaselway.tar.gz" | sha256sum --check --status
+tar -xf "$work/weaselway.tar.gz" -C "$work"
+python3 "$work/weaselway-${release#v}/distro/install.py" --desktop hyprland --no-flatpak --no-bluetooth
+record_versions

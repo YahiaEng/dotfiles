@@ -205,7 +205,12 @@ hl.window_rule({
 -- Spike A). Compensating check: translucent kitty/yazi-fm/thunar/codium/zen
 -- windows at the end-of-phase human verification.
 
-hl.window_rule({ match = { class = [[^(kitty)$]] }, opacity = "0.88 0.85" })
+-- Start ordinary terminals tiled even when another window covers the workspace.
+hl.window_rule({
+    match = { class = [[^(kitty)$]] },
+    fullscreen_state = "0 0",
+    opacity = "0.88 0.85",
+})
 hl.window_rule({ match = { class = [[^(yazi-fm)$]] }, opacity = "0.92 0.90" })
 hl.window_rule({ match = { class = [[^(thunar)$]] }, opacity = "0.90 0.88" })
 hl.window_rule({ match = { class = [[^(code-url-handler)$]] }, opacity = "0.90 0.88" })
@@ -280,6 +285,8 @@ hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, animation = "fad
 -- pick one arbitrarily. The directional drop-down motion is done in QML on
 -- `panel` instead (see Launcher.qml), same shape as Dashboard.qml's own.
 hl.layer_rule({ match = { namespace = "quickshell-launcher" }, animation = "fade" })
+-- The bar popouts slide in QML from the trigger's edge.
+hl.layer_rule({ match = { namespace = "^quickshell-bar-(audio|wifi|bluetooth|clock|resources|media|ethernet|tray|updates)$" }, no_anim = true })
 -- Phase 15's standalone panels (D-15-02's accepted cost: destroy-then-
 -- summon is two animations rather than one morph, tuned here). Exact-match
 -- only, same reasoning as the drawer's own rule above — each panel picks

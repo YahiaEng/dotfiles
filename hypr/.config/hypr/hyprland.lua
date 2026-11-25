@@ -46,6 +46,7 @@ local tokens = require("lib.tokens").get()
 -- `tokens` above — the same "no module depends on another being loaded
 -- first" independence lib.overrides.get()'s own header requires.
 local overrides = require("lib.overrides").get()
+local weaselway = os.getenv("AQ_DRM_DEVICES") == "/dev/dri/by-path/platform-dxgdrm-card"
 -- `natural_scroll` is a boolean, which breaks the repo's usual
 -- `overrides.x or <literal>` idiom when the override is explicitly
 -- `false` (Lua's `and/or` ternary pattern silently reverts to the
@@ -90,6 +91,9 @@ require("config.monitors")
 require("config.autostart")
 require("config.animations")
 require("config.keybinds")
+if weaselway then
+    require("config.wsl-game-input")
+end
 require("config.windowrules")
 require("config.permissions")
 require("config.dynamic-cursors")
@@ -219,6 +223,8 @@ hl.config({
     -- (line 95) and stays unset for the same reason as dwindle.pseudotile
     -- above.
     misc = {
+        -- Let a restarted Quickshell replace an abandoned session lock.
+        allow_session_lock_restore = true,
         force_default_wallpaper = 0,
         disable_hyprland_logo = true,
         disable_splash_rendering = true,
@@ -228,11 +234,6 @@ hl.config({
         animate_mouse_windowdragging = true,
         enable_swallow = true,
         swallow_regex = "^(kitty)$",
-    },
-
-    -- cursor block — hyprland.conf lines 99-101.
-    cursor = {
-        no_hardware_cursors = true,
     },
 
     -- ── render (quick task 260818-nwo) ────────────────────────────────

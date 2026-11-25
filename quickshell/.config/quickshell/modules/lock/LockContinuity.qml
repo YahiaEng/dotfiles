@@ -42,7 +42,7 @@ Item {
         id: dateClock
 
         enabled: true
-        precision: SystemClock.Days
+        precision: SystemClock.Hours
     }
 
     ColumnLayout {

@@ -57,7 +57,6 @@ WALLPAPER_OWNER="$HOME/.config/hypr/scripts/wallpaper-visibility.sh"
 # needs to explicitly stop a real, still-playing mpvpaper process. Reset
 # at picker startup so a fresh session never inherits a stale marker.
 LIVE_SESSION_MARKER="$HOME/.cache/wallpaper-picker-live-session"
-rm -f "$LIVE_SESSION_MARKER"
 IMG_MATCH=(-iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif")
 ACTIVE_MARKER=" ●"
 # D-17: distinct from ACTIVE_MARKER by construction ("this one moves" vs
@@ -303,19 +302,12 @@ _list_wallpapers() {
     # Same bare `sort` as before, so the stills keep their existing relative
     # order under the current collation; only the live entries move.
     {
-        find "$WALLPAPER_DIR" -maxdepth 2 -type f \( "${IMG_MATCH[@]}" \) -printf '%P\n' 2>/dev/null
+        find -H "$WALLPAPER_DIR" -maxdepth 2 -xtype f \( "${IMG_MATCH[@]}" \) -printf '%P\n' 2>/dev/null
         find "$WALLPAPER_DIR" -mindepth 3 -maxdepth 3 -type f -path '*/live/*' -printf '%P\n' 2>/dev/null
     } | sort
 }
 
-# ── _active_relpath (Task 14) — the SAME active-detection algorithm the
-#    interactive ENUM_SCRIPT heredoc below already runs (copied, not
-#    re-derived): a still active pick resolves current.jpg directly under
-#    WALLPAPER_DIR; a live active pick resolves current.jpg under
-#    FRAME_DIR instead, so the recorded last-wallpaper/<theme> entry is
-#    the authority for that case, never a reverse-derivation of the frame
-#    filename. Prints nothing (empty) if neither resolves — an honest
-#    "no active wallpaper is recorded" rather than a guess.
+# Resolve both local stills and Stow links. Live picks use their recorded source.
 _active_relpath() {
     local wallpaper_dir_real frame_dir_real current_theme active_target
     wallpaper_dir_real=$(readlink -f "$WALLPAPER_DIR" 2>/dev/null || echo "$WALLPAPER_DIR")
@@ -340,7 +332,17 @@ _active_relpath() {
                 printf '%s\n' "$current_theme/$recorded"
             fi
         fi
+        return 0
     fi
+
+    # The canonical target of a stowed image can be outside Wallpapers.
+    local entry
+    while IFS= read -r -d '' entry; do
+        if [[ "$WALLPAPER_DIR/$entry" -ef "$active_target" ]]; then
+            printf '%s\n' "$entry"
+            return 0
+        fi
+    done < <(find -H "$WALLPAPER_DIR" -maxdepth 2 -type l -xtype f \( "${IMG_MATCH[@]}" \) -printf '%P\0' 2>/dev/null)
 }
 
 CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
@@ -366,9 +368,12 @@ case "${1:-}" in
         # genuinely external file becomes an external pick.
         WP_EXTERNAL_PATH=""
         if [[ "$REL" == /* ]]; then
+            _local="$(realpath -ms -- "$REL")"
             _abs="$(readlink -f -- "$REL" 2>/dev/null || echo "$REL")"
             _root="$(readlink -f -- "$WALLPAPER_DIR" 2>/dev/null || echo "$WALLPAPER_DIR")"
-            if [[ "$_abs" == "$_root"/* ]]; then
+            if [[ "$_local" == "$WALLPAPER_DIR"/* ]]; then
+                REL="${_local#"$WALLPAPER_DIR"/}"
+            elif [[ "$_abs" == "$_root"/* ]]; then
                 REL="${_abs#"$_root"/}"
             else
                 [[ -f "$_abs" && -r "$_abs" ]] \
@@ -403,6 +408,8 @@ case "${1:-}" in
         exit 0
         ;;
 esac
+
+rm -f "$LIVE_SESSION_MARKER"
 
 # ── Pipeline-themed fzf colors (THM-04/D-15) ─────────
 # Best-effort source of the engine-rendered fragment; the current
@@ -472,30 +479,12 @@ theme_display_name() {
 # The active wallpaper's entry gets the reserved marker glyph appended as a
 # suffix (stripped again by the preview/live scripts and the selection
 # handler before any path use).
-# Resolve the real (symlink-followed) Wallpapers dir once here — WALLPAPER_DIR
-# itself may sit behind a stow-managed directory symlink (e.g. ~/Pictures ->
-# dotfiles/wallpapers/Pictures), so `readlink -f current.jpg` resolves to
-# that real path, not the literal $WALLPAPER_DIR string. Compare against the
-# resolved base so the active-marker prefix match actually succeeds.
-WALLPAPER_DIR_REAL=$(readlink -f "$WALLPAPER_DIR" 2>/dev/null || echo "$WALLPAPER_DIR")
-# Same resolution for the frame directory (D-06/D-18) — after a live pick,
-# current.jpg resolves under HERE, not under WALLPAPER_DIR_REAL (17-02
-# handoff (b)). FRAME_DIR comes from the sourced library; fall back to its
-# known literal if the source above failed (fresh-install degradation).
-FRAME_DIR_REAL=$(readlink -f "${FRAME_DIR:-$HOME/.local/state/theme/wallpaper-frames}" 2>/dev/null || echo "${FRAME_DIR:-$HOME/.local/state/theme/wallpaper-frames}")
-
-# ── Current theme (moved above ENUM_SCRIPT — the active-entry regression
-# fix (17-02 handoff (b)) needs it interpolated into the generated script) ──
-CURRENT_THEME=$(cat "$STATE_FILE" 2>/dev/null || echo "")
-
 ENUM_SCRIPT=$(mktemp /tmp/wp-enum-XXXXXX.sh)
 cat > "$ENUM_SCRIPT" << ENUM
 #!/usr/bin/env bash
 MODE="\$1"
 WALLPAPER_DIR="$WALLPAPER_DIR"
-WALLPAPER_DIR_REAL="$WALLPAPER_DIR_REAL"
-FRAME_DIR_REAL="$FRAME_DIR_REAL"
-CURRENT_THEME="$CURRENT_THEME"
+STATE_FILE="$STATE_FILE"
 LAST_WALLPAPER_DIR="$LAST_WALLPAPER_DIR"
 ACTIVE_MARKER="$ACTIVE_MARKER"
 LIVE_MARKER="$LIVE_MARKER"
@@ -504,31 +493,13 @@ CURRENT_LINK="$CURRENT_LINK"
 # shellcheck source=/dev/null
 [[ -r "\$WALLPAPER_LIB" ]] && source "\$WALLPAPER_LIB"
 
-ACTIVE_RELPATH=""
-if [[ -f "\$CURRENT_LINK" ]]; then
-    ACTIVE_TARGET=\$(readlink -f "\$CURRENT_LINK" 2>/dev/null || echo "")
-    if [[ -n "\$ACTIVE_TARGET" && "\$ACTIVE_TARGET" == "\$WALLPAPER_DIR_REAL"/* ]]; then
-        ACTIVE_RELPATH="\${ACTIVE_TARGET#"\$WALLPAPER_DIR_REAL"/}"
-    elif [[ -n "\$ACTIVE_TARGET" && -n "\$FRAME_DIR_REAL" && "\$ACTIVE_TARGET" == "\$FRAME_DIR_REAL"/* && -n "\$CURRENT_THEME" ]]; then
-        # 17-02 handoff (b): current.jpg resolves under the frame dir for a
-        # live choice. The recorded state is the authority here, never a
-        # reverse-derivation of the frame filename.
-        if [[ -f "\$LAST_WALLPAPER_DIR/\$CURRENT_THEME" ]]; then
-            RECORDED=\$(head -n1 "\$LAST_WALLPAPER_DIR/\$CURRENT_THEME" 2>/dev/null || true)
-            if [[ -n "\$RECORDED" ]] && declare -F theme_engine_wallpaper_is_live_ref >/dev/null 2>&1 \\
-                && theme_engine_wallpaper_is_live_ref "\$RECORDED" \\
-                && [[ -f "\$WALLPAPER_DIR/\$CURRENT_THEME/\$RECORDED" ]]; then
-                ACTIVE_RELPATH="\$CURRENT_THEME/\$RECORDED"
-            fi
-        fi
-    fi
-fi
+$(declare -p IMG_MATCH)
+$(declare -f _active_relpath)
+ACTIVE_RELPATH=\$(_active_relpath)
 
 if [[ "\$MODE" == "full" ]]; then
-    # D-19-45: no `! -name` exclusion needed — the pointer no longer lives
-    # inside WALLPAPER_DIR at all, so nothing here can enumerate it.
-    LIST=\$(find "\$WALLPAPER_DIR" -maxdepth 2 \\
-        -type f \\( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \\) \\
+    LIST=\$(find -H "\$WALLPAPER_DIR" -maxdepth 2 \\
+        -xtype f \\( "\${IMG_MATCH[@]}" \\) \\
         -printf "%P\\n" 2>/dev/null | sort)
     # D-03: separate, unfiltered live/ enumeration pass — no -iname test
     # at all (D-01 defines "live" by folder, not extension), NEVER merged
@@ -536,8 +507,8 @@ if [[ "\$MODE" == "full" ]]; then
     LIVE_LIST=\$(find "\$WALLPAPER_DIR" -mindepth 3 -maxdepth 3 -type f -path '*/live/*' \\
         -printf "%P\\n" 2>/dev/null | sort)
 else
-    LIST=\$(find "\$WALLPAPER_DIR/\$MODE" -maxdepth 1 \\
-        -type f \\( -iname "*.jpg" -o -iname "*.jpeg" -o -iname "*.png" -o -iname "*.webp" -o -iname "*.gif" \\) \\
+    LIST=\$(find -H "\$WALLPAPER_DIR/\$MODE" -maxdepth 1 \\
+        -xtype f \\( "\${IMG_MATCH[@]}" \\) \\
         -printf "%f\\n" 2>/dev/null | sort | sed "s|^|\$MODE/|")
     LIVE_LIST=\$(find "\$WALLPAPER_DIR/\$MODE/live" -maxdepth 1 -type f \\
         -printf "%f\\n" 2>/dev/null | sort | sed "s|^|\$MODE/live/|")
@@ -579,7 +550,7 @@ if [[ -n "$CURRENT_THEME" && "$CURRENT_THEME" != "materialyou" && "$CURRENT_THEM
     THEME_FOLDER="$WALLPAPER_DIR/$CURRENT_THEME"
     THEME_HAS_IMAGES=0
     if [[ -d "$THEME_FOLDER" ]]; then
-        if find "$THEME_FOLDER" -maxdepth 1 -type f \( "${IMG_MATCH[@]}" \) -print -quit 2>/dev/null | grep -q .; then
+        if find -H "$THEME_FOLDER" -maxdepth 1 -xtype f \( "${IMG_MATCH[@]}" \) -print -quit 2>/dev/null | grep -q .; then
             THEME_HAS_IMAGES=1
         # D-03 live-only-theme fix: a theme whose wallpapers are ALL live
         # must not fall through to the unrestricted full library — mirrors

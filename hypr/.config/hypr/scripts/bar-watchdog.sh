@@ -115,6 +115,7 @@ import socket
 import subprocess
 import sys
 import time
+from pathlib import Path
 
 SOCKET_PATH = sys.argv[1]
 MODE = sys.argv[2]  # "watch" | "check" | "dry-run"
@@ -159,7 +160,7 @@ def log(msg):
     print(f"bar-watchdog: {msg}", flush=True)
 
 
-def bar_surface_present():
+def bar_surface_present(require_output=False):
     """Return True / False / None (INDETERMINATE)."""
     try:
         result = subprocess.run(
@@ -181,6 +182,9 @@ def bar_surface_present():
         return None
 
     if not isinstance(data, dict):
+        return None
+
+    if require_output and not any(name and name != "FALLBACK" for name in data):
         return None
 
     for monitor_entry in data.values():
@@ -242,13 +246,27 @@ def recover(dry_run):
 
 
 def evaluate(dry_run):
-    present = bar_surface_present()
+    present = bar_surface_present(require_output=True)
     if present is None:
         log("indeterminate — hyprctl layers -j unreadable/non-JSON, no action")
         return
     if present:
         log("bar surface present — no action")
         return
+
+    # Restarting the bar also destroys the session-lock client. Defer the
+    # repair until the controller has completed an authenticated unlock.
+    state = Path(SOCKET_PATH).with_name("quickshell-lock.state")
+    try:
+        if state.read_text().strip() == "locked":
+            log("session locked — deferring bar restart")
+            return True
+    except FileNotFoundError:
+        pass
+    except OSError as exc:
+        log(f"cannot read lock state — deferring bar restart: {exc}")
+        return True
+
     recover(dry_run)
 
 
@@ -301,7 +319,8 @@ while True:
         # Empty select result = the debounce expired -> clear the
         # pending deadline and evaluate.
         pending_deadline = None
-        evaluate(DRY_RUN)
+        if evaluate(DRY_RUN):
+            pending_deadline = time.monotonic() + max(5, MIN_INTERVAL)
         continue
 
     try:

@@ -608,6 +608,16 @@ _qsd_hyprctl_binds() {
     hyprctl binds 2>/dev/null
 }
 
+_qsd_shell_pids() {
+    local pid
+    pid=$(systemctl --user show quickshell.service -p MainPID --value 2>/dev/null)
+    if [[ "$pid" =~ ^[1-9][0-9]*$ ]]; then
+        printf '%s\n' "$pid"
+    else
+        pgrep -f 'quickshell -p'
+    fi
+}
+
 _qsd_layers_json() {
     if [[ -n "${QSD_FIXTURE_LAYERS_JSON:-}" ]]; then
         [[ -f "$QSD_FIXTURE_LAYERS_JSON" ]] || { echo "FATAL: QSD_FIXTURE_LAYERS_JSON names a nonexistent file: $QSD_FIXTURE_LAYERS_JSON" >&2; exit 1; }
@@ -908,7 +918,7 @@ _qsd_assert_panel_layers() {
     if [[ -n "$shell_pids_override" ]]; then
         shell_pids=" $shell_pids_override "
     else
-        shell_pids=" $(pgrep -f 'quickshell -p' | tr '\n' ' ') "
+        shell_pids=" $(_qsd_shell_pids | tr '\n' ' ') "
     fi
     while IFS=$'\t' read -r lvl ns pid; do
         [[ -z "$lvl" ]] && continue
@@ -1317,7 +1327,7 @@ _qsd_check_overview_namespace_conformance() {
         return
     fi
     local shell_pids res rc
-    shell_pids="$(pgrep -f 'quickshell -p' | tr '\n' ' ')"
+    shell_pids="$(_qsd_shell_pids | tr '\n' ' ')"
     res=$(_qsd_assert_overview_namespace "$(_qsd_layers_json)" "$shell_pids"); rc=$?
     check "overview-namespace-conformance (D-16-23 check 1, names quickshell-overview specifically — distinct from the family-wide namespace discipline check above): ${res}" "$rc"
 }
@@ -1535,15 +1545,19 @@ _qsd_reservation_equal() {
 # barHeight + barEdgeMargin, the right axis (index 2) is barColumnWidth +
 # barEdgeMargin; any other axis is an error, not a default.
 _qsd_expected_extent() {
-    local design="$1" axis="$2"
-    local bar_height bar_edge_margin bar_column_width
+    local design="$1" axis="$2" style="${3:-}"
+    local bar_height bar_edge_margin bar_column_width weld_rim=0
     bar_height=$(grep -oP 'readonly\s+property\s+int\s+barHeight\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
     bar_edge_margin=$(grep -oP 'readonly\s+property\s+int\s+barEdgeMargin\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
     bar_column_width=$(grep -oP 'readonly\s+property\s+int\s+barColumnWidth\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
     case "$axis" in
         1)
             [[ -n "$bar_height" && -n "$bar_edge_margin" ]] || return 1
-            echo $(( bar_height + bar_edge_margin ))
+            if [[ "$style" == continuous ]]; then
+                weld_rim=$(grep -oP 'readonly\s+property\s+int\s+edgeBarWeldRim\s*:\s*\K[0-9]+' -- "$design" | head -1)
+                [[ -n "$weld_rim" ]] || return 1
+            fi
+            echo $(( bar_height + bar_edge_margin + 2 * weld_rim ))
             return 0
             ;;
         2)
@@ -1661,7 +1675,7 @@ _qsd_restore_quickshell_layer_rules() {
     local attempt
     for ((attempt = 0; attempt < 60; attempt++)); do
         sleep 0.25
-        pgrep -f 'quickshell -p' >/dev/null 2>&1 && break
+        _qsd_shell_pids >/dev/null 2>&1 && break
     done
 }
 
@@ -1747,22 +1761,32 @@ _qsd_check_bar_reserved_zone_stability() {
     local design_path expected_extent="" extent_rc=1
     design_path=$(_qsd_design_qml_path)
     if [[ "$axis" == "1" || "$axis" == "2" ]]; then
-        expected_extent=$(_qsd_expected_extent "$design_path" "$axis"); extent_rc=$?
+        expected_extent=$(_qsd_expected_extent "$design_path" "$axis" "$(qs ipc call prefs get edgeBar.style 2>/dev/null)"); extent_rc=$?
     fi
 
-    local reservation_ok=1 reservation_reason=""
+    local reservation_ok=1 reservation_reason="" expected_axes=1
+    if jq -e 'any(.[]; .name == "Virtual-1")' <<<"$pre" >/dev/null; then
+        expected_axes=$(jq '[.[] | select(.name | test("^Virtual-[1-4]$"))] | length' <<<"$pre")
+    fi
     if [[ "$set_changed" != "0" ]]; then
         reservation_ok=0
         reservation_reason="monitor set changed mid-transition"
     elif [[ "$axes_changed" == "0" ]]; then
         reservation_ok=0
         reservation_reason="zero delta — the bar reserves nothing"
-    elif [[ "$axes_changed" != "1" ]]; then
+    elif [[ "$axes_changed" != "$expected_axes" ]]; then
         reservation_ok=0
-        reservation_reason="two or more axes moved — claiming an edge it does not occupy"
+        reservation_reason="expected one reservation change for each bar"
     elif [[ "$extent_rc" -ne 0 || "$delta" != "$expected_extent" ]]; then
         reservation_ok=0
         reservation_reason="measured delta does not equal the extent parsed from Design.qml"
+    elif [[ "$expected_axes" -gt 1 ]] && ! jq -e --argjson after "$post" --argjson axis "$axis" --argjson extent "$expected_extent" '
+        all(.[] | select(.name | test("^Virtual-[1-4]$"));
+            . as $before | ($after[] | select(.name == $before.name)) as $later
+            | ($before.reserved[$axis] - $later.reserved[$axis]) == $extent)
+    ' <<<"$pre" >/dev/null; then
+        reservation_ok=0
+        reservation_reason="a virtual output did not release the expected bar reservation"
     fi
 
     # ── Hot-reload half — runs on every plain invocation. Touch the bar's
@@ -2113,6 +2137,14 @@ _qsd_bar_family_layer_rows() {
 _qsd_assert_bar_surface_registry_live() {
     local json="$1" shell_pids="$2"
     local lvl ns pid permanent_count=0 off_level=0 wrong_pid=0 unmatched=0
+    local expected=1
+    if jq -e 'has("Virtual-1")' <<<"$json" >/dev/null; then
+        expected=$(jq '[keys[] | select(test("^Virtual-[1-4]$"))] | length' <<<"$json")
+        if ! jq -e 'all(to_entries[] | select(.key | test("^Virtual-[1-4]$"));
+            [.value.levels[][] | select(.namespace == "quickshell-bar")] | length == 1)' <<<"$json" >/dev/null; then
+            unmatched=$((unmatched + 1))
+        fi
+    fi
     while IFS=$'\t' read -r lvl ns pid; do
         [[ -z "$lvl" ]] && continue
         local matched=0 expected_level="" row r_file r_ns r_match r_level r_reserve r_life
@@ -2144,7 +2176,7 @@ _qsd_assert_bar_surface_registry_live() {
         esac
     done < <(_qsd_bar_family_layer_rows "$json")
     printf 'permanent=%s off-level=%s wrong-pid=%s unmatched=%s' "$permanent_count" "$off_level" "$wrong_pid" "$unmatched"
-    [[ "$permanent_count" -eq 1 && "$off_level" -eq 0 && "$wrong_pid" -eq 0 && "$unmatched" -eq 0 ]]
+    [[ "$permanent_count" -eq "$expected" && "$off_level" -eq 0 && "$wrong_pid" -eq 0 && "$unmatched" -eq 0 ]]
 }
 
 # Resolves a namespace's expected layer level: a bar-family row's own
@@ -2187,7 +2219,7 @@ _qsd_check_bar_surface_registry() {
     src_res=$(_qsd_assert_bar_surface_registry_source "$scan_root"); src_rc=$?
 
     local shell_pids live_res live_rc
-    shell_pids="$(pgrep -f 'quickshell -p' | tr '\n' ' ')"
+    shell_pids="$(_qsd_shell_pids | tr '\n' ' ')"
     live_res=$(_qsd_assert_bar_surface_registry_live "$(_qsd_layers_json)" "$shell_pids"); live_rc=$?
 
     local overall_rc=0
@@ -2414,6 +2446,8 @@ _qsd_assert_permissions_allowlist() {
         [[ "$trimmed" == --* ]] && continue
         p=$(grep -oP 'binary\s*=\s*"\K[^"]+' <<<"$trimmed" 2>/dev/null || true)
         [[ -z "$p" ]] && continue
+        # The optional cursor plugin is unavailable when hyprpm is absent.
+        [[ "$p" != /usr/bin/hyprpm || -e "$p" ]] || continue
         total=$((total + 1))
         case "$p" in
             *['*?[|']*) pattern=$((pattern + 1)) ;;
@@ -3089,7 +3123,7 @@ check "quickshell binary present on PATH" "$?"
 # ── 2. Shell process alive (D-06) — a headless root that renders
 #    nothing is also invisible when it fails to start or dies, so this
 #    is the load-bearing liveness proof. ─────────────────────────────
-pgrep -f 'quickshell -p' >/dev/null 2>&1
+_qsd_shell_pids >/dev/null 2>&1
 check "quickshell shell process alive (matches the launcher's exec'd invocation)" "$?"
 
 # ── 3. Launcher log healthy ──────────────────────────────────────────
@@ -3130,7 +3164,7 @@ fi
 if ! command -v hyprctl >/dev/null 2>&1 || ! command -v jq >/dev/null 2>&1; then
     echo "  [SKIP] namespace discipline (D-21): hyprctl or jq not found"
 else
-    SHELL_PIDS=" $(pgrep -f 'quickshell -p' | tr '\n' ' ') "
+    SHELL_PIDS=" $(_qsd_shell_pids | tr '\n' ' ') "
     LAYERS_JSON=$(hyprctl layers -j 2>/dev/null)
     OFF_LEVEL_COUNT=0
     WRONG_PID_COUNT=0
@@ -3316,7 +3350,15 @@ else
         # _qsd_cleanup directly.
         VOL_RESTORE_NEEDED=1
 
-        wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+ -l 1.0 >/dev/null 2>&1
+        VOL_STEP=5%+
+        # The PulseAudio ceiling is 65536. Probe down if raising would clip.
+        for raw_volume in "${VOL_ORIG_RAW[@]}"; do
+            if (( raw_volume >= 62259 )); then
+                VOL_STEP=5%-
+                break
+            fi
+        done
+        wpctl set-volume @DEFAULT_AUDIO_SINK@ "$VOL_STEP" -l 1.0 >/dev/null 2>&1
         sleep 0.3
         NEW_LINE=$(pactl get-sink-volume @DEFAULT_SINK@)
         mapfile -t VOL_NEW_RAW < <(printf '%s' "$NEW_LINE" | grep -oP '(?<=: )\d+(?=\s*/)')
@@ -3327,9 +3369,12 @@ else
             check "one-step-per-press volume probe: pactl get-sink-volume output did not match the expected numeric shape after the raise (baseline still restorable via the trap)" "1"
         else
             VOL_DELTA=$((VOL_NEW_RAW[0] - VOL_ORIG_RAW[0]))
+            (( VOL_DELTA < 0 )) && VOL_DELTA=$(( -VOL_DELTA ))
 
             mkdir -p "$STATE_DIR"
-            if [[ -f "$BASELINE_FILE" ]] && jq -e '.volume_step_delta_raw != null' "$BASELINE_FILE" >/dev/null 2>&1; then
+            if (( VOL_DELTA == 0 )); then
+                check "one-step-per-press volume probe: PipeWire did not change the measured sink volume" "1"
+            elif [[ -f "$BASELINE_FILE" ]] && jq -e '(.volume_step_delta_raw // 0) > 0' "$BASELINE_FILE" >/dev/null 2>&1; then
                 VOL_BASELINE=$(jq -r '.volume_step_delta_raw' "$BASELINE_FILE")
                 # Compare within a tolerance band, not by exact equality. This
                 # check exists to catch a *doubling* (two handlers firing per
@@ -3486,12 +3531,12 @@ else
     #    monitor count returns to baseline, DP-1's probe is still
     #    creatable, the shell process kept the same PID, and no
     #    crash/abort marker landed in the launcher log during the cycle.
-    QSD_PRE_REMOVE_PID=$(pgrep -x quickshell | head -1)
+    QSD_PRE_REMOVE_PID=$(_qsd_shell_pids | head -1)
     hyprctl output remove "$QSD_NEW_MONITOR" >/dev/null 2>&1
     HEADLESS_CREATED_NAME=""
     sleep 0.3
     QSD_AFTER_REMOVE_COUNT=$(hyprctl monitors -j | jq length)
-    QSD_POST_REMOVE_PID=$(pgrep -x quickshell | head -1)
+    QSD_POST_REMOVE_PID=$(_qsd_shell_pids | head -1)
 
     _qsd_dispatch_global "quickshell:probe"
     PROBE_SUMMONED_FOR_HEADLESS_TEST=1
