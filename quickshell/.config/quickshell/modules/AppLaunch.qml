@@ -7,13 +7,16 @@ import Quickshell.Io
 Singleton {
     readonly property bool softwareRendering: Quickshell.env("QUICKSHELL_SOFTWARE_RENDERING") === "1"
 
-    // Restore the original graphics environment, including unset values.
+    // Restore the original graphics and multimedia environment, including unset values.
     readonly property var environment: {
         if (!softwareRendering)
             return {};
 
         const result = { QUICKSHELL_SOFTWARE_RENDERING: null };
-        for (const name of ["GALLIUM_DRIVER", "LIBGL_ALWAYS_SOFTWARE", "QSG_RHI_BACKEND"]) {
+        for (const name of [
+            "GALLIUM_DRIVER", "LIBGL_ALWAYS_SOFTWARE", "QSG_RHI_BACKEND",
+            "QT_FFMPEG_DECODING_HW_DEVICE_TYPES", "QT_FFMPEG_ENCODING_HW_DEVICE_TYPES"
+        ]) {
             const original = "QUICKSHELL_APP_" + name;
             result[name] = Quickshell.env(original);
             result[original] = null;

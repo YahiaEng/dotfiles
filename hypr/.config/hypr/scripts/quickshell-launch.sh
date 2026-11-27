@@ -86,8 +86,9 @@ if [[ ( "${GALLIUM_DRIVER:-}" == d3d12 || "${AQ_DRM_DEVICES:-}" == /dev/dri/by-p
     # D3D12 device loss crashes Mesa during EGL context recovery, even
     # with Gallium threading disabled. Use llvmpipe for Qt Quick's OpenGL
     # renderer so the shell retains its shader effects.
-    for variable in GALLIUM_DRIVER LIBGL_ALWAYS_SOFTWARE QSG_RHI_BACKEND; do
-        # AppLaunch restores the inherited values for programs the shell opens.
+    # AppLaunch restores the inherited values for programs the shell opens.
+    for variable in GALLIUM_DRIVER LIBGL_ALWAYS_SOFTWARE QSG_RHI_BACKEND \
+        QT_FFMPEG_DECODING_HW_DEVICE_TYPES QT_FFMPEG_ENCODING_HW_DEVICE_TYPES; do
         if [[ -v "$variable" ]]; then
             export "QUICKSHELL_APP_${variable}=${!variable}"
         fi
@@ -96,6 +97,10 @@ if [[ ( "${GALLIUM_DRIVER:-}" == d3d12 || "${AQ_DRM_DEVICES:-}" == /dev/dri/by-p
     export QSG_RHI_BACKEND=opengl
     export LIBGL_ALWAYS_SOFTWARE=1
     export GALLIUM_DRIVER=llvmpipe
+    # Qt Multimedia probes both codec lists at startup. Empty lists keep
+    # wallpaper previews on software decoding and avoid WSL's Vulkan driver.
+    export QT_FFMPEG_DECODING_HW_DEVICE_TYPES=,
+    export QT_FFMPEG_ENCODING_HW_DEVICE_TYPES=,
     export DONT_PROMPT_WSL_INSTALL=1
 fi
 

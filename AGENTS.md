@@ -1,6 +1,6 @@
 # Dotfiles handoff
 
-Snapshot from 2026-11-27. This checkout at `~/dotfiles` serves a physical Arch desktop and the `archlinux` WSL2 distro. The current machine is WSL2. Hyprland 0.57.2, Quickshell 0.3.2, Fastfetch 2.71.0 and Kitty 0.51.1 were used for the checks below.
+Snapshot from 2026-11-28. This checkout at `~/dotfiles` serves a physical Arch desktop and the `archlinux` WSL2 distro. The current machine is WSL2. Hyprland 0.57.2, Quickshell 0.3.2, Fastfetch 2.71.0 and Kitty 0.51.1 were used for the checks below.
 
 Inspect `git status --short` first and preserve existing edits. Treat the verified fixes below as completed. The user will provide the next tasks in a fresh context.
 
@@ -63,6 +63,14 @@ The user marked this task done on 2026-11-27.
 - `hypr/.config/hypr/scripts/quickshell-launch.sh` selects llvmpipe software OpenGL for Quickshell in Weaselway. Qt Quick keeps its shader effects and uses the normal text renderer. `quickshell/.config/quickshell/modules/GradientPhase.qml` samples the shared bar and rail gradient at 20 Hz in that mode, reducing idle CPU use with both bars visible from about 70% to 28% of one core.
 - `quickshell/.config/quickshell/modules/AppLaunch.qml` restores the original graphics environment for apps and commands opened from Quickshell. A test app launched through the normal app picker reported D3D12 on Intel Arc 140V while the shell process loaded llvmpipe. Simulated launcher checks covered native Arch, WSL without Weaselway and both Weaselway detection paths.
 - Verified both bars, three cycles of the Updates, Resources, Wi-Fi and Bluetooth popouts, Settings → Display, a live Overview thumbnail and the volume indicator. Over 11 minutes of live checks across two launches produced no new crash reports. The device-loss trigger, longer-term stability and the physical Arch desktop remain open for verification.
+
+### Wallpaper picker crash
+
+The user marked this task done on 2026-11-28.
+
+- Opening the wallpaper picker created a Qt Multimedia player and triggered hardware decoder and encoder probes. The WSL Vulkan driver loaded D3D12 and aborted on a duplicate LLVM option registration. The stack is in `~/.cache/quickshell/crashes/18f1i1l5pt/report.txt`.
+- `hypr/.config/hypr/scripts/quickshell-launch.sh` sets `QT_FFMPEG_DECODING_HW_DEVICE_TYPES` and `QT_FFMPEG_ENCODING_HW_DEVICE_TYPES` to `,` in Weaselway. Both lists must be empty because the multimedia backend probes both on startup. Wallpaper video previews use software decoding, and `quickshell/.config/quickshell/modules/AppLaunch.qml` restores the inherited values for launched apps. [Qt Multimedia hardware acceleration settings](https://doc.qt.io/qt-6/advanced-ffmpeg-configuration.html)
+- Verified three opens through the **Super+W** launch path, **Style → Wallpaper**, and **Settings → Wallpaper** in the live WSL session. The shell stayed on the same PID with zero service restarts and no new crash reports. An isolated Quickshell instance played a sample MP4, and separate probes verified environment restoration and both Weaselway detection paths. The desktop had no live wallpapers in its library during the check. Live video tiles in the picker and the physical Arch desktop remain open for verification.
 
 ## Workspace Overview and Continuous bar
 
