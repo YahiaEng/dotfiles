@@ -1011,7 +1011,7 @@ Singleton {
             //    asks.
             var pmArgs = [root._aurHelper, "-S", "--needed", name];
             root.logLine("info", "Handing off to a terminal: " + pmArgs.join(" "));
-            Quickshell.execDetached([root._terminal(), "-e"].concat(pmArgs));
+            AppLaunch.execDetached([root._terminal(), "-e"].concat(pmArgs));
             root.transactionLaunched("install-icon-theme");
         }
     }
@@ -1258,13 +1258,13 @@ Singleton {
             if (plan.active)
                 root.logLine("warn", "Removing the ACTIVE " + kind + " (" + plan.target + ") — the desktop falls back once it is gone.");
             root.logLine("info", "Handing off to a terminal: " + root._aurHelper + " -Rs " + plan.packages.join(" "));
-            Quickshell.execDetached([root._terminal(), "-e", root._aurHelper, "-Rs"].concat(plan.packages));
+            AppLaunch.execDetached([root._terminal(), "-e", root._aurHelper, "-Rs"].concat(plan.packages));
             root.transactionLaunched(plan.forFonts ? "uninstall-font" : "uninstall-icon-theme");
         } else if (plan.kind === "userdir") {
             if (plan.active)
                 root.logLine("warn", "Deleting the ACTIVE " + kind + "'s user-dir copy (" + plan.target + ") — the desktop falls back once it is gone.");
             root.logLine("info", "Handing off to a terminal: rm -rvI " + plan.path);
-            Quickshell.execDetached([root._terminal(), "-e", "rm", "-rvI", plan.path]);
+            AppLaunch.execDetached([root._terminal(), "-e", "rm", "-rvI", plan.path]);
             root.transactionLaunched(plan.forFonts ? "uninstall-font" : "uninstall-icon-theme");
         }
         root.uninstallPlan = null;

@@ -584,7 +584,7 @@ Item {
 
                         TapHandler {
                             onTapped: {
-                                Qt.openUrlExternally(card._pendingLinkUrl);
+                                AppLaunch.openUrl(card._pendingLinkUrl);
                                 card._linkConfirmVisible = false;
                             }
                         }

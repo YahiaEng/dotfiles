@@ -152,7 +152,7 @@ Item {
         }
 
         if (row.command) {
-            Quickshell.execDetached(["sh", "-c", row.command]);
+            AppLaunch.execDetached(["sh", "-c", row.command]);
             if (typeof root.dismissCallback === "function")
                 root.dismissCallback();
         }

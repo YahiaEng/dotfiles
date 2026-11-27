@@ -575,6 +575,7 @@ BarCapsule {
     //    launch followed by a completion notification. ───────────────────
     Process {
         id: upgradeProcess
+        environment: AppLaunch.environment
         running: false
         // Configured terminal (quick task 260825-wj2 Task 2) — falls back
         // to the literal "kitty" this Process always launched, via Prefs'

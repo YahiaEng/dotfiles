@@ -84,7 +84,7 @@ Item {
         // execDetached, per this tree's standing rule: a component-scoped
         // Process is destroyed with the LazyLoader the instant the launcher
         // dismisses, killing the apply mid-flight.
-        Quickshell.execDetached([Quickshell.env("HOME") + "/.config/hypr/scripts/wallpaper-picker.sh", "--set", e.relpath]);
+        AppLaunch.execDetached([Quickshell.env("HOME") + "/.config/hypr/scripts/wallpaper-picker.sh", "--set", e.relpath]);
         if (root.dismissCallback)
             root.dismissCallback();
     }

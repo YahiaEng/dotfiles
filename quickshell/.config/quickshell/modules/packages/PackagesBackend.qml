@@ -740,7 +740,7 @@ Singleton {
     function upgradeAll(): bool {
         if (root.dbLocked)
             return false;
-        Quickshell.execDetached([root._terminal(), "-e", "paru", "-Syu"]);
+        AppLaunch.execDetached([root._terminal(), "-e", "paru", "-Syu"]);
         root.transactionLaunched("upgrade");
         return true;
     }
@@ -754,7 +754,7 @@ Singleton {
         // then installs one package against a system that has not been
         // upgraded. `--needed` turns a stale-database hit into a skip
         // rather than a same-version reinstall.
-        Quickshell.execDetached([root._terminal(), "-e", "paru", "-S", "--needed"].concat(safe));
+        AppLaunch.execDetached([root._terminal(), "-e", "paru", "-S", "--needed"].concat(safe));
         root.transactionLaunched("install");
         return true;
     }
@@ -765,7 +765,7 @@ Singleton {
             return false;
         // `-Rs`, matching previewRemoval above exactly — see its comment
         // for why this is not `-Rns`.
-        Quickshell.execDetached([root._terminal(), "-e", "paru", "-Rs"].concat(safe));
+        AppLaunch.execDetached([root._terminal(), "-e", "paru", "-Rs"].concat(safe));
         root.transactionLaunched("remove");
         root.queueClear();
         return true;
@@ -775,7 +775,7 @@ Singleton {
         var safe = root._validNames(names);
         if (!safe || root.dbLocked)
             return false;
-        Quickshell.execDetached([root._terminal(), "-e", "paru", "-D", "--asexplicit"].concat(safe));
+        AppLaunch.execDetached([root._terminal(), "-e", "paru", "-D", "--asexplicit"].concat(safe));
         root.transactionLaunched("mark");
         return true;
     }

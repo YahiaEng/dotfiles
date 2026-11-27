@@ -3,10 +3,7 @@
 // system default browser on Enter, matching the retired `websearch`
 // provider's own single-action behaviour.
 //
-// `Qt.openUrlExternally()` is the QML-native "hand this URL to the
-// default handler" call, already used elsewhere in this shell for the
-// identical purpose (NewsPane.qml, NotifCard.qml) — no new Process/binary
-// dependency needed for this mode.
+// Use the same default browser as the news and notification surfaces.
 //
 // Duck-typed interface Launcher.qml's generic keyboard-nav glue reads:
 // `currentIndex`, `count`, `activate()` — same one-row shape as
@@ -29,7 +26,7 @@ Item {
     function activate() {
         if (root.searchQuery.length === 0)
             return;
-        Qt.openUrlExternally("https://www.google.com/search?q=" + encodeURIComponent(root.searchQuery));
+        AppLaunch.openUrl("https://www.google.com/search?q=" + encodeURIComponent(root.searchQuery));
     }
 
     Rectangle {

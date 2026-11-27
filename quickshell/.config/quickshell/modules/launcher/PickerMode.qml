@@ -78,7 +78,7 @@ Item {
             command = [home + "/.config/hypr/scripts/record-toggle.sh", "--audio", value];
         else
             command = [home + "/.config/hypr/scripts/bar-orientation.sh", value];
-        Quickshell.execDetached(command);
+        AppLaunch.execDetached(command);
         if (typeof root.dismissCallback === "function")
             root.dismissCallback();
     }

@@ -20,6 +20,7 @@
 module qs.modules
 singleton Colours 1.0 Colours.qml
 singleton Motion 1.0 Motion.qml
+singleton AppLaunch 1.0 AppLaunch.qml
 # One shared scrolling-accent clock (quick task 260824-ns3). Both the edge
 # bar strips and the Continuous weld in Bar.qml read it, so a moving gradient
 # cannot drift between two surfaces that must join without a seam.

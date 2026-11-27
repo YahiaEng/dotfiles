@@ -219,6 +219,7 @@ PageBase {
         // be torn down mid-launch along with this page.
         Process {
             id: editorProc
+            environment: AppLaunch.environment
             command: idleSection._editorArgv()
         }
 

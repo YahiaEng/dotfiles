@@ -37,9 +37,18 @@ Singleton {
 
     // 0 -> 1, one full period per cycle. Consumers multiply by their own
     // period and use ShapeGradient.RepeatSpread, so a wrap is seamless.
-    property real phase: 0
+    readonly property real phase: _stepsPerCycle > 0
+        ? Math.floor(_animatedPhase * _stepsPerCycle) / _stepsPerCycle
+        : _animatedPhase
 
-    NumberAnimation on phase {
+    // Sample the bar and rail gradient at 20 Hz on the software renderer.
+    // The shared animation still completes in the same time.
+    readonly property int _stepsPerCycle: Quickshell.env("QUICKSHELL_SOFTWARE_RENDERING") === "1"
+        ? Math.max(1, Math.floor(Motion.borderRotateDuration / 50))
+        : 0
+    property real _animatedPhase: 0
+
+    NumberAnimation on _animatedPhase {
         running: Motion.motionEnabled
         from: 0
         to: 1

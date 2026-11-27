@@ -235,6 +235,7 @@ BarCapsule {
         // from the desktop-entry database ever reaches this array.
         Process {
             id: launchProcess
+            environment: AppLaunch.environment
             command: ["uwsm", "app", "--", cellItem.entry.desktopId]
         }
 

@@ -212,6 +212,7 @@ PageBase {
     }
     Process {
         id: nmConnectionEditorProcess
+        environment: AppLaunch.environment
         command: ["nm-connection-editor"]
     }
 

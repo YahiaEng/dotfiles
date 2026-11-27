@@ -136,7 +136,7 @@ Item {
             return;
 
         if (row._kind === "viewall")
-            Quickshell.execDetached([Quickshell.env("HOME") + "/.config/hypr/scripts/cheat-sheet-view-all.sh"]);
+            AppLaunch.execDetached([Quickshell.env("HOME") + "/.config/hypr/scripts/cheat-sheet-view-all.sh"]);
         else
             Quickshell.execDetached(["wl-copy", row.chord]);
 

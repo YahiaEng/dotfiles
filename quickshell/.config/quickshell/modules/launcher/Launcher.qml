@@ -465,7 +465,7 @@ PanelWindow {
         const idx = item ? item.currentIndex : 0;
         const entry = launcherWindow.filteredApps[idx];
         if (entry && entry.id && entry.id.length > 0) {
-            Quickshell.execDetached(["uwsm", "app", "--", entry.id + ".desktop"]);
+            AppLaunch.execDetached(["uwsm", "app", "--", entry.id + ".desktop"]);
             launcherWindow._bumpLaunchCount(entry);
         }
         launcherWindow._beginDismiss();
@@ -475,7 +475,7 @@ PanelWindow {
     // `DesktopEntry.id: QString`) — never `name` or a synthesised slug, so
     // the keyspace can't mix. `Prefs.setValue()` refuses every write until
     // its own load has settled (returns false, per its own contract) —
-    // that's fine here: `Quickshell.execDetached()` above already fired
+    // that's fine here: `AppLaunch.execDetached()` above already fired
     // (fire-and-forget, independent of this surface's own lifetime — see
     // the Item 1 fix comment above), so the launch itself never depends on
     // this succeeding, only the tally can drop.

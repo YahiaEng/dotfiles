@@ -81,13 +81,21 @@ export QSG_RENDER_LOOP=threaded
 # Direct compositor launches can bypass the UWSM environment.
 export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-gtk3}"
 
-if [[ "${GALLIUM_DRIVER:-}" == d3d12 && "$(systemd-detect-virt 2>/dev/null)" == wsl ]]; then
-    # Weaselway crash reports show D3D12 resource failures in Mesa's
-    # threaded context. Keep D3D12 rendering and bypass that worker.
-    export GALLIUM_THREAD="${GALLIUM_THREAD:-0}"
-
-    # Distance-field text renders with incorrect colours on this driver.
-    export QML_DISABLE_DISTANCEFIELD="${QML_DISABLE_DISTANCEFIELD:-1}"
+if [[ ( "${GALLIUM_DRIVER:-}" == d3d12 || "${AQ_DRM_DEVICES:-}" == /dev/dri/by-path/platform-dxgdrm-card ) &&
+      "$(systemd-detect-virt 2>/dev/null)" == wsl ]]; then
+    # D3D12 device loss crashes Mesa during EGL context recovery, even
+    # with Gallium threading disabled. Use llvmpipe for Qt Quick's OpenGL
+    # renderer so the shell retains its shader effects.
+    for variable in GALLIUM_DRIVER LIBGL_ALWAYS_SOFTWARE QSG_RHI_BACKEND; do
+        # AppLaunch restores the inherited values for programs the shell opens.
+        if [[ -v "$variable" ]]; then
+            export "QUICKSHELL_APP_${variable}=${!variable}"
+        fi
+    done
+    export QUICKSHELL_SOFTWARE_RENDERING=1
+    export QSG_RHI_BACKEND=opengl
+    export LIBGL_ALWAYS_SOFTWARE=1
+    export GALLIUM_DRIVER=llvmpipe
     export DONT_PROMPT_WSL_INSTALL=1
 fi
 

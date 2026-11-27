@@ -566,6 +566,7 @@ PanelWindow {
     // into a string, and never hands it to a shell interpreter.
     Process {
         id: advancedProcess
+        environment: AppLaunch.environment
         command: panelWindow.advancedCommand
     }
 

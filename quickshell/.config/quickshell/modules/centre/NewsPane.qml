@@ -1327,7 +1327,7 @@ Item {
                 hoverEnabled: true
                 // No "Open link?" confirm — see header for why this is a
                 // deliberate difference from NotifCard.qml, not a gap.
-                onClicked: Qt.openUrlExternally(headlineDelegate.modelData.link)
+                onClicked: AppLaunch.openUrl(headlineDelegate.modelData.link)
             }
         }
     }

@@ -844,6 +844,7 @@ BarCapsule {
         }
         Process {
             id: axisLaunchProcess
+            environment: AppLaunch.environment
             command: axisCell.isLauncherAxis
                 ? ["qs", "ipc", "call", "launcher", "open", axisCell.axis.launcherMode]
                 : [axisCell.scriptPath]

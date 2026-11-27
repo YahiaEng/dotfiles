@@ -146,7 +146,7 @@ Item {
         }
 
         if (node.command) {
-            Quickshell.execDetached(["sh", "-c", node.command]);
+            AppLaunch.execDetached(["sh", "-c", node.command]);
             if (typeof root.dismissCallback === "function")
                 root.dismissCallback();
         }

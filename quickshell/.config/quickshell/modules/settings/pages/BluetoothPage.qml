@@ -111,6 +111,7 @@ PageBase {
     }
     Process {
         id: bluemanManagerProcess
+        environment: AppLaunch.environment
         command: ["blueman-manager"]
     }
 
