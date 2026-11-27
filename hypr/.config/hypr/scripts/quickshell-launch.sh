@@ -81,9 +81,12 @@ export QSG_RENDER_LOOP=threaded
 # Direct compositor launches can bypass the UWSM environment.
 export QT_QPA_PLATFORMTHEME="${QT_QPA_PLATFORMTHEME:-gtk3}"
 
-# Qt Quick's distance-field text renders with incorrect colours on the
-# Weaselway D3D12 driver. Use native glyph rasterization on that driver.
 if [[ "${GALLIUM_DRIVER:-}" == d3d12 && "$(systemd-detect-virt 2>/dev/null)" == wsl ]]; then
+    # Weaselway crash reports show D3D12 resource failures in Mesa's
+    # threaded context. Keep D3D12 rendering and bypass that worker.
+    export GALLIUM_THREAD="${GALLIUM_THREAD:-0}"
+
+    # Distance-field text renders with incorrect colours on this driver.
     export QML_DISABLE_DISTANCEFIELD="${QML_DISABLE_DISTANCEFIELD:-1}"
     export DONT_PROMPT_WSL_INSTALL=1
 fi
