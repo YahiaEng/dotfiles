@@ -104,7 +104,7 @@ Control {
             anchors.right: parent.right
             spacing: Design.spacingXs
 
-            Text {
+            ShellText {
                 text: root.label
                 font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
@@ -118,6 +118,7 @@ Control {
             // is sized from the TextField's own implicitWidth/Height via
             // padding, never anchored against the field's geometry.
             TextField {
+                renderType: Design.shellTextRenderType
                 id: textField
                 width: parent.width
                 enabled: root.editable
@@ -182,7 +183,7 @@ Control {
                 Component.onCompleted: textField.text = root.text
             }
 
-            Text {
+            ShellText {
                 visible: root.subtext.length > 0
                 text: root.subtext
                 font.pixelSize: Design.settingsFontSub

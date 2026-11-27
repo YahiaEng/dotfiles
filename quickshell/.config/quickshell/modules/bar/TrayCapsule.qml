@@ -324,7 +324,7 @@ BarCapsule {
             // Fallback for the genuinely-empty/not-yet-resolved case,
             // occupying the identical cell geometry so the row never
             // reflows when an async icon resolves late.
-            Text {
+            ShellText {
                 anchors.centerIn: parent
                 text: "apps"
                 font.family: Design.symbolFontFamily
@@ -472,7 +472,7 @@ BarCapsule {
                 anchors.centerIn: parent
                 spacing: Design.spacingXs / 2
 
-                Text {
+                ShellText {
                     text: "expand_more"
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.barGlyphSize
@@ -481,7 +481,7 @@ BarCapsule {
                     color: root.contentColour
                 }
 
-                Text {
+                ShellText {
                     text: String(root.overflowCount)
                     font.pixelSize: Design.barBodySize
                     textFormat: Text.PlainText

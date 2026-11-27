@@ -46,6 +46,7 @@ Item {
         spacing: Design.spacingSm
 
         TextField {
+            renderType: Design.shellTextRenderType
             id: searchField
             width: parent.width
             placeholderText: "Search settings"
@@ -280,7 +281,7 @@ Item {
                                     }
                                 }
 
-                                Text {
+                                ShellText {
                                     id: navIcon
                                     anchors.centerIn: parent
                                     font.family: Design.symbolFontFamily
@@ -298,7 +299,7 @@ Item {
                                 width: Math.max(0, navRow.width - navIconChip.width - navRow.spacing)
                                 spacing: 0
 
-                                Text {
+                                ShellText {
                                     text: navItem.modelData.label
                                     font.pixelSize: Design.settingsFontRow
                                     font.weight: navItem.isCurrentPage ? Design.weightEmphasis : Design.weightBody
@@ -306,7 +307,7 @@ Item {
                                     elide: Text.ElideRight
                                     width: parent.width
                                 }
-                                Text {
+                                ShellText {
                                     text: navItem.modelData.description
                                     font.pixelSize: Design.settingsFontSub
                                     color: navItem.isCurrentPage ? Colours.onSecondaryContainer : Colours.onSurfaceVariant
@@ -366,14 +367,14 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 2
 
-                            Text {
+                            ShellText {
                                 text: resultItem.modelData.label
                                 font.pixelSize: Design.settingsFontRow
                                 color: Colours.onSurface
                                 elide: Text.ElideRight
                                 width: parent.width
                             }
-                            Text {
+                            ShellText {
                                 text: (PageRegistry.pages[resultItem.modelData.pageIdx] ? PageRegistry.pages[resultItem.modelData.pageIdx].label : "")
                                 font.pixelSize: Design.settingsFontSub
                                 color: Colours.onSurfaceVariant
@@ -391,7 +392,7 @@ Item {
                     }
                 }
 
-                Text {
+                ShellText {
                     visible: root.sState.searchResults.length === 0
                     text: "No matches"
                     font.pixelSize: Design.settingsFontRow

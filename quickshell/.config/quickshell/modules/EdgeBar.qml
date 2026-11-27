@@ -292,7 +292,8 @@ PanelWindow {
     // Brackets keep the inset: their arms are deliberately separate strokes
     // with rounded ends, not a closed frame.
     margins.left: edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin
-    margins.right: edgeBarWindow._vertical ? 0 : (edgeBarWindow.runsToCorner ? 0 : Design.edgeBarSideMargin)
+    margins.right: edgeBarWindow.fullRun || edgeBarWindow.runsToCorner
+        ? Design.edgeBarCornerInset : (edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin)
     margins.top: edgeBarWindow._vertical ? (edgeBarWindow.fullRun ? 0 : Design.edgeBarSideMargin) : 0
     margins.bottom: edgeBarWindow._vertical ? (edgeBarWindow.fullRun ? 0 : Design.edgeBarSideMargin) : 0
 

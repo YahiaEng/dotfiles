@@ -326,7 +326,7 @@ BarCapsule {
             // Font codepoint into the time string: every other glyph in this
             // file is a Material Symbols ligature, and mixing a second glyph
             // font into one pill would depend on font substitution to line up.
-            Text {
+            ShellText {
                 id: clockGlyphText
                 text: "schedule"
                 font.family: Design.symbolFontFamily
@@ -337,7 +337,7 @@ BarCapsule {
             }
 
             // Line 1 in both orientations: the time itself.
-            Text {
+            ShellText {
                 id: clockTimeText
                 font.pixelSize: Design.barBodySize
                 // weightBold — Athena's #clock rule is `font-weight: bold`
@@ -381,7 +381,7 @@ BarCapsule {
             // single line — and, per the shared chrome's own visibility
             // rule, an invisible child is excluded from the positioner's
             // spacing too.
-            Text {
+            ShellText {
                 id: clockDateText
                 visible: clockActionsCapsule.vertical
                 font.pixelSize: Design.barBodySize
@@ -478,7 +478,7 @@ BarCapsule {
             }
         }
 
-        Text {
+        ShellText {
             id: glyphText
             // Offset left by half the badge's footprint when badged, so the
             // glyph+count pair is optically centred in the widened cell
@@ -538,7 +538,7 @@ BarCapsule {
             x: clockActionsCapsule.vertical ? (parent.width - width) / 2 : (glyphText.x + glyphText.width + Design.spacingXs)
             y: clockActionsCapsule.vertical ? (glyphText.y + glyphText.height + Design.spacingXs) : (parent.height - height) / 2
 
-            Text {
+            ShellText {
                 id: badgeLabel
                 anchors.centerIn: parent
                 text: cellItem.badgeText

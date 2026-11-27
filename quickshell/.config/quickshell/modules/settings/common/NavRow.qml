@@ -48,7 +48,7 @@ Control {
         // Reserves no space at all when `icon` is empty (the default) —
         // `labelCol` anchors straight to `parent.left` in that case,
         // identical to this row's shape before this property existed.
-        Text {
+        ShellText {
             id: iconGlyph
             visible: root.icon.length > 0
             anchors.left: parent.left
@@ -68,14 +68,14 @@ Control {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
 
-            Text {
+            ShellText {
                 text: root.label
                 font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
                 elide: Text.ElideRight
                 width: parent.width
             }
-            Text {
+            ShellText {
                 visible: root.subtext.length > 0
                 text: root.subtext
                 font.pixelSize: Design.settingsFontSub
@@ -85,7 +85,7 @@ Control {
             }
         }
 
-        Text {
+        ShellText {
             id: chevron
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter

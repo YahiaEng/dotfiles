@@ -111,7 +111,7 @@ SectionPopout {
         width: parent.width
         spacing: Design.spacingSm
 
-        Text {
+        ShellText {
             width: parent.width
             textFormat: Text.PlainText
             elide: Text.ElideRight
@@ -137,7 +137,7 @@ SectionPopout {
                 width: parent.width
                 spacing: Design.spacingSm
 
-                Text {
+                ShellText {
                     width: windowsDeviceRow.width - connectionLabel.width - windowsDeviceRow.spacing
                     text: windowsDeviceRow.modelData.name
                     textFormat: Text.PlainText
@@ -145,7 +145,7 @@ SectionPopout {
                     font.pixelSize: Design.fontBody
                     color: BarRoles.popoutFg
                 }
-                Text {
+                ShellText {
                     id: connectionLabel
                     text: windowsDeviceRow.modelData.connected ? "Connected" : "Paired"
                     textFormat: Text.PlainText
@@ -188,7 +188,7 @@ SectionPopout {
             radius: height / 2
             color: BarRoles.popoutSurfaceVariant
         }
-        Text {
+        ShellText {
             id: adapterToggleLabel
             anchors.centerIn: parent
             textFormat: Text.PlainText
@@ -236,7 +236,7 @@ SectionPopout {
                         color: deviceRowMouseArea.containsMouse ? BarRoles.popoutSurfaceVariant : "transparent"
                     }
 
-                    Text {
+                    ShellText {
                         id: deviceNameText
                         anchors.left: parent.left
                         anchors.leftMargin: Design.spacingSm
@@ -250,7 +250,7 @@ SectionPopout {
                         color: BarRoles.popoutFg
                     }
 
-                    Text {
+                    ShellText {
                         id: deviceTrailingText
                         anchors.right: parent.right
                         anchors.rightMargin: Design.spacingSm
@@ -278,7 +278,7 @@ SectionPopout {
                 // the collapsed line's own name has scrolled off under
                 // elision — the same defence-in-depth 18-10 and 18-13 both
                 // give a peer-supplied string, applied a second time here.
-                Text {
+                ShellText {
                     id: deviceFailureText
                     visible: deviceRow.isFailedRow
                     width: parent.width
@@ -296,7 +296,7 @@ SectionPopout {
         Repeater {
             model: root._deviceRows
 
-            Text {
+            ShellText {
                 id: batteryLine
                 required property var modelData
                 visible: batteryLine.modelData && batteryLine.modelData.batteryAvailable === true
@@ -313,7 +313,7 @@ SectionPopout {
         // devices on an ENABLED adapter): this is the same fact the toggle
         // above already states, spelled out once more where the list
         // would otherwise sit blank.
-        Text {
+        ShellText {
             id: adapterOffListText
             visible: root._deviceRows.length === 0 && root.bluetoothBackend && !root.bluetoothBackend.adapterEnabled
             width: parent.width

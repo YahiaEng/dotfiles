@@ -91,7 +91,7 @@ BarCapsule {
         width: Design.barGlyphSize + Design.spacingXs * 2
         height: Design.barGlyphSize + Design.spacingXs * 2
 
-        Text {
+        ShellText {
             id: idleGlyph
             anchors.centerIn: parent
             text: "lightbulb"

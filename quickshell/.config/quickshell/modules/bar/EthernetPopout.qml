@@ -131,7 +131,7 @@ SectionPopout {
         width: parent.width
         spacing: Design.spacingXs
 
-        Text {
+        ShellText {
             width: parent.width
             text: root._stateText
             font.pixelSize: Design.fontBody
@@ -141,7 +141,7 @@ SectionPopout {
             textFormat: Text.PlainText
         }
 
-        Text {
+        ShellText {
             width: parent.width
             text: root._interfaceText + " · " + root._speedText
             font.pixelSize: Design.fontLabel
@@ -150,7 +150,7 @@ SectionPopout {
             textFormat: Text.PlainText
         }
 
-        Text {
+        ShellText {
             width: parent.width
             text: "MAC " + root._macText
             font.pixelSize: Design.fontLabel

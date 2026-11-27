@@ -104,7 +104,7 @@ Item {
                     }
                 }
 
-                Text {
+                ShellText {
                     anchors.centerIn: parent
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.settingsIconSize
@@ -123,7 +123,7 @@ Item {
             }
         }
 
-        Text {
+        ShellText {
             anchors.verticalCenter: parent.verticalCenter
             text: root.title
             font.pixelSize: Design.settingsFontTitle

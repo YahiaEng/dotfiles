@@ -207,7 +207,7 @@ BarCapsule {
         // longer exists. A missing glyph is now a font problem (the family
         // below), which shows as tofu and is a visible, diagnosable state
         // rather than a silently-substituted stock icon.
-        Text {
+        ShellText {
             anchors.centerIn: parent
             text: cellItem.entry.glyph ?? ""
             font.family: launcherCapsule.appGlyphFontFamily
@@ -275,7 +275,7 @@ BarCapsule {
         width: launcherCapsule.cellPitch
         height: launcherCapsule.cellPitch
 
-        Text {
+        ShellText {
             id: triggerGlyph
             anchors.centerIn: parent
             text: "apps"

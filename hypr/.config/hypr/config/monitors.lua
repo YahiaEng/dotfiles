@@ -2,11 +2,11 @@ local overrides = require("lib.overrides").get().monitors
 local weaselway = os.getenv("AQ_DRM_DEVICES") == "/dev/dri/by-path/platform-dxgdrm-card"
 local defaultScale = weaselway and 1 or "auto"
 
-local function setMonitor(output, monitor, position)
+local function setMonitor(output, monitor)
     hl.monitor({
         output = output,
         mode = monitor.mode or "preferred",
-        position = monitor.position or position or "auto",
+        position = monitor.position or "auto",
         scale = monitor.scale or defaultScale,
     })
 end
@@ -19,24 +19,26 @@ for output, monitor in pairs(overrides) do
     end
 end
 
--- Weaselway advertises the viewer's dimensions as the preferred DRM mode.
--- Keep a windowed viewer usable at small resolutions with a 1x default.
+-- The preferred DRM mode uses viewer pixels. The layout file carries the
+-- corresponding logical positions and per-display scales.
 if weaselway then
-    local positions = {}
+    local displays = {}
     local runtime = os.getenv("XDG_RUNTIME_DIR")
     local layout = runtime and io.open(runtime .. "/arch-hyprland-displays")
     if layout then
         for line in layout:lines() do
-            local output, position = line:match("^(Virtual%-[1-4]) (%d+x%d+)$")
-            if output then positions[output] = position end
+            local output, position, scale = line:match("^(Virtual%-[1-4]) (%d+x%d+) ([%d.]+)$")
+            if not output then
+                output, position = line:match("^(Virtual%-[1-4]) (%d+x%d+)$")
+            end
+            if output then displays[output] = { position = position, scale = tonumber(scale) } end
         end
         layout:close()
     end
     for i = 1, 4 do
         local output = "Virtual-" .. i
-        -- Windows positions and viewer pixels describe the same 1x layout.
-        local monitor = not positions[output] and type(overrides[output]) == "table" and overrides[output] or {}
-        setMonitor(output, monitor, positions[output])
+        local saved = overrides[output]
+        setMonitor(output, displays[output] or (type(saved) == "table" and saved or {}))
         hl.device({ name = "weaselway-touchscreen-" .. i, output = output })
     end
     hl.config({ cursor = { default_monitor = "Virtual-1", no_hardware_cursors = false } })
@@ -45,6 +47,7 @@ end
 -- ── Xwayland ─────────────────────────────────────────
 hl.config({
     xwayland = {
-        force_zero_scaling = true,
+        -- Let Hyprland scale legacy X11 surfaces in the WSL desktop too.
+        force_zero_scaling = not weaselway,
     },
 })

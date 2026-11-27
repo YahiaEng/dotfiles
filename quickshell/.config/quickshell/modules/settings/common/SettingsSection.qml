@@ -34,14 +34,14 @@ Column {
         spacing: Design.spacingSm
         visible: root.title.length > 0
 
-        Text {
+        ShellText {
             visible: root.icon.length > 0
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.iconSizeMd
             text: root.icon
             color: Colours.onSurfaceVariant
         }
-        Text {
+        ShellText {
             text: root.title
             font.pixelSize: Design.settingsFontRow
             font.weight: Design.weightEmphasis

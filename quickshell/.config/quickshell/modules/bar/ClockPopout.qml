@@ -134,7 +134,7 @@ SectionPopout {
             Repeater {
                 model: root._weekdayLabels
 
-                Text {
+                ShellText {
                     id: weekdayCell
                     required property var modelData
                     width: calendarBody.width / 7
@@ -169,7 +169,7 @@ SectionPopout {
                         radius: width / 2
                         color: dayCell.modelData.isToday ? BarRoles.accent : "transparent"
                     }
-                    Text {
+                    ShellText {
                         anchors.centerIn: parent
                         textFormat: Text.PlainText
                         text: dayCell.modelData.day

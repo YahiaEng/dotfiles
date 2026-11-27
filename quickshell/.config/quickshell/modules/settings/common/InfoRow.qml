@@ -63,13 +63,13 @@ Item {
             width: parent.width
             spacing: Design.spacingXs
 
-            Text {
+            ShellText {
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.iconSizeMd
                 text: root.icon
                 color: Colours.onSurfaceVariant
             }
-            Text {
+            ShellText {
                 width: parent.width - Design.iconSizeMd - Design.spacingXs
                 text: root.label
                 font.pixelSize: Design.settingsFontRow
@@ -77,7 +77,7 @@ Item {
                 wrapMode: Text.WordWrap
             }
         }
-        Text {
+        ShellText {
             visible: root.subtext.length > 0
             // The whole point of this row is to carry a sentence — it
             // must WRAP rather than elide, unlike every other row's

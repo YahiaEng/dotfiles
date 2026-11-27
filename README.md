@@ -132,6 +132,8 @@ In Display settings, **Automatically use connected displays** follows the active
 
 Moving or rotating a display in Windows updates its position and size in Arch. Adding or removing a display briefly reconnects the viewer to the running Hyprland session. If Arch is minimized, it applies display changes when you bring it back. Use **Super + left drag** to move a window, or **Super + Shift + arrow** to move it in a direction.
 
+Arch scales each display automatically using its resolution, physical pixel density when available, and Windows scale setting. The viewer stays at the display's native pixel size. In **Settings → Display**, choose a fixed scale for each display or select **Automatic**. Arch applies the scale live and saves it for that Windows monitor once Hyprland confirms the layout. Quickshell restarts if its bar surfaces fail to settle.
+
 From a terminal, use `wsl/launch-desktop --list-monitors` to find Windows display names. Pass an ordered list such as `wsl/launch-desktop --monitors DISPLAY2,DISPLAY1` with the main display first. Use `wsl/launch-desktop --disconnect` from a WSL terminal to disconnect the viewer. [Weaselway display architecture](https://github.com/weaselway/weaselway/blob/main/ARCHITECTURE.md)
 
 If Windows handles the Super shortcuts, focus the viewer and press **Right Ctrl + Right Shift + G** to toggle keyboard capture. Press **Right Ctrl + Right Shift + M** to return to Windows from the Linux lock screen, or **Right Ctrl + Right Shift + H** for the viewer's shortcuts. [Weaselway viewer input handling](https://github.com/weaselway/freerdp/blob/v1.3.0/client/SDL/SDL3/sdl_input.cpp)

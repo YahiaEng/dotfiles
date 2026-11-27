@@ -172,7 +172,7 @@ PageBase {
             onSelected: (value) => idleSection.applyListener("suspend", value)
         }
 
-        Text {
+        ShellText {
             visible: idleSection.lastError.length > 0
             width: parent.width
             wrapMode: Text.WordWrap

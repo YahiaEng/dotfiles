@@ -125,7 +125,7 @@ Control {
         // Reserves no space when `icon` is empty (the default) — see
         // NavRow.qml's identical shape, added the same task for the
         // identical reason.
-        Text {
+        ShellText {
             id: iconGlyph
             visible: root.icon.length > 0
             anchors.left: parent.left
@@ -145,14 +145,14 @@ Control {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
 
-            Text {
+            ShellText {
                 text: root.label
                 font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
                 elide: Text.ElideRight
                 width: parent.width
             }
-            Text {
+            ShellText {
                 visible: root.subtext.length > 0
                 text: root.subtext
                 font.pixelSize: Design.settingsFontSub
@@ -202,7 +202,7 @@ Control {
                 // not a repurposed "refresh"), spinning via
                 // `Motion.ambientDuration` — the loop-period token every
                 // OTHER indeterminate indicator in this shell uses.
-                Text {
+                ShellText {
                     visible: root.busy
                     anchors.verticalCenter: parent.verticalCenter
                     font.family: Design.symbolFontFamily
@@ -222,7 +222,7 @@ Control {
                 // Elides INTO the fixed pill rather than widening it. The
                 // full string stays readable in `optionsMenu` below, which
                 // sizes to its own longest entry.
-                Text {
+                ShellText {
                     id: valueText
                     anchors.verticalCenter: parent.verticalCenter
                     width: dropdownPill.width - Design.spacingLg * 2 - (root.busy ? Design.iconSizeMd + Design.spacingXs : 0)
@@ -329,11 +329,12 @@ Control {
                 id: menuItem
                 required property var modelData
                 text: modelData.display
+                enabled: modelData.enabled !== false
 
                 implicitWidth: optionsMenu.implicitWidth
                 implicitHeight: 40
 
-                contentItem: Text {
+                contentItem: ShellText {
                     text: menuItem.text
                     color: Colours.onSurfaceVariant
                     font.pixelSize: Design.settingsFontRow

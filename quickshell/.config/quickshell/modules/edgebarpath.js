@@ -91,6 +91,9 @@ function _shoulderSweep(x1, y1, x2, y2, r, expectedCx, expectedCy) {
 //                 strip does not terminate there, the bar carries it on.
 //                 Default false, so every existing caller — and the
 //                 committed golden — is byte-identical by construction.
+//   endFlareRadius, endRailThickness
+//                 On a square end, turn the inner face into the adjoining
+//                 rail. Draw the flare as part of the run's own outline.
 //   bulge         OPT-OUT (default true). false emits the flat run with
 //                 its two pill caps and NO centre excursion at all —
 //                 `b`, `xl`, `xr`, `f` and `rc` are then unread. Halo's
@@ -133,6 +136,7 @@ function buildOutline(params) {
     // the face it is supposed to meet and the outline would self-intersect —
     // the same class of silent breakage `bulge: false` exists to avoid.
     var squareEndRadius = params.squareEndRadius === undefined ? 0 : params.squareEndRadius;
+    var endFlareRadius = params.endFlareRadius || 0;
     var bulge = params.bulge === undefined ? true : !!params.bulge;
     var axis = params.axis || "horizontal";
     var vertical = axis === "vertical";
@@ -191,7 +195,18 @@ function buildOutline(params) {
         } else {
             p += " L " + P(along, Y(0));
         }
-        p += " L " + P(along, Y(t));
+        if (endFlareRadius > 0) {
+            var inner = along - params.endRailThickness;
+            var end = t + endFlareRadius;
+            var shoulder = inner - endFlareRadius;
+            p += " L " + P(along, Y(end));
+            p += " L " + P(inner, Y(end));
+            p += " A " + endFlareRadius + " " + endFlareRadius + " 0 0 "
+                + S(inner, Y(end), shoulder, Y(t), endFlareRadius, shoulder, Y(end))
+                + " " + P(shoulder, Y(t));
+        } else {
+            p += " L " + P(along, Y(t));
+        }
     } else {
         p += " L " + P(along - re, Y(0));
         // Right pill cap, as TWO quarter arcs through the cap's outermost

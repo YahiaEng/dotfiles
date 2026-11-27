@@ -400,6 +400,18 @@ console.log("── Group 9: Segmented merges WHOLE segments, never a half ─�
     }
 }
 
+console.log("── Continuous top bar corner ──");
+{
+    const path = buildOutline({
+        t: 50, re: 25, along: 1526, surfaceDepth: 70, bulge: false,
+        squareEnd: true, squareEndRadius: 26, endFlareRadius: 20, endRailThickness: 6,
+    });
+    check("bar and corner flare form one filled outline",
+        (path.match(/\bM\b/g) || []).length === 1);
+    check("the concave arc joins the inner rail face to the bar underside",
+        path.includes("L 1526 70 L 1520 70 A 20 20 0 0 0 1500 50 L 25 50"));
+}
+
 console.log("");
 console.log(total + " assertions, " + (total - failures) + " passed, " + failures + " failed");
 process.exit(failures > 0 ? 1 : 0);

@@ -292,7 +292,7 @@ PageBase {
                     onClicked: root.handleRowPress(networkRow.network)
                 }
 
-                Text {
+                ShellText {
                     id: strengthIcon
                     anchors.left: parent.left
                     anchors.leftMargin: Design.spacingSm
@@ -310,7 +310,7 @@ PageBase {
                     color: Colours.onSurfaceVariant
                 }
 
-                Text {
+                ShellText {
                     id: ssidText
                     anchors.left: strengthIcon.right
                     anchors.leftMargin: Design.spacingSm
@@ -345,7 +345,7 @@ PageBase {
                         spacing: Design.spacingSm
                         visible: networkRow.kind !== "enterprise"
 
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: networkRow.isPendingRow
                             font.family: Design.symbolFontFamily
@@ -362,7 +362,7 @@ PageBase {
                                 duration: Motion.ambientDuration
                             }
                         }
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !networkRow.isPendingRow
                             text: root.rowVerbLabel(networkRow.network)
@@ -374,7 +374,7 @@ PageBase {
                                 onClicked: root.handleRowPress(networkRow.network)
                             }
                         }
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: networkRow.isPendingRow
                             text: "Cancel"
@@ -388,7 +388,7 @@ PageBase {
                         }
                     }
 
-                    Text {
+                    ShellText {
                         visible: networkRow.forgetEligible
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Forget"
@@ -409,7 +409,7 @@ PageBase {
             // Enterprise — no field is offered because none could work
             // (P2). Static, never expands; the row's own press does
             // nothing (handleRowPress() early-returns above).
-            Text {
+            ShellText {
                 width: parent.width
                 visible: networkRow.kind === "enterprise"
                 text: "Use Advanced to connect"
@@ -425,6 +425,7 @@ PageBase {
                 visible: networkRow.isExpanded
 
                 TextField {
+                    renderType: Design.shellTextRenderType
                     id: passwordField
                     width: parent.width - connectAction.width - Design.spacingSm
                     height: 36
@@ -470,7 +471,7 @@ PageBase {
                         color: Colours.primary
                         opacity: connectAction.enabledNow ? 1 : 0.38
                     }
-                    Text {
+                    ShellText {
                         id: connectLabel
                         anchors.centerIn: parent
                         text: "Connect"
@@ -495,7 +496,7 @@ PageBase {
             // Row-scoped failure — renders whether or not the password
             // row is expanded; the field (if open) stays open and empty
             // for the correction.
-            Text {
+            ShellText {
                 width: parent.width
                 visible: networkRow.isFailedRow
                 text: root.failedText
@@ -509,7 +510,7 @@ PageBase {
                 visible: networkRow.isConfirmingForget
                 spacing: Design.spacingSm
 
-                Text {
+                ShellText {
                     width: parent.width - forgetYes.implicitWidth - forgetNo.implicitWidth - Design.spacingSm * 2
                     // Explicit plain-text pin — the SSID embedded in this
                     // confirm string is the same over-the-air value as
@@ -520,7 +521,7 @@ PageBase {
                     color: Colours.onSurface
                     wrapMode: Text.WordWrap
                 }
-                Text {
+                ShellText {
                     id: forgetYes
                     text: "Forget"
                     font.pixelSize: Design.settingsFontSub
@@ -535,7 +536,7 @@ PageBase {
                         }
                     }
                 }
-                Text {
+                ShellText {
                     id: forgetNo
                     text: "Cancel"
                     font.pixelSize: Design.settingsFontSub
@@ -592,7 +593,7 @@ PageBase {
                 spacing: Design.spacingXs
                 visible: root.wifiBackend && root.wifiBackend.scanning
 
-                Text {
+                ShellText {
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.settingsFontSub
                     text: "sync"
@@ -606,7 +607,7 @@ PageBase {
                         duration: Motion.ambientDuration
                     }
                 }
-                Text {
+                ShellText {
                     text: "Scanning for networks…"
                     font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
@@ -633,7 +634,7 @@ PageBase {
                 }
             }
 
-            Text {
+            ShellText {
                 visible: root.wifiBackend
                     ? (root.wifiBackend.wifiDevice !== null && !root.wifiBackend.currentNetwork && root.wifiBackend.savedNetworks.length === 0 && root.wifiBackend.otherNetworks.length === 0 && !root.wifiBackend.scanning)
                     : false

@@ -67,7 +67,7 @@ SectionPopout {
     // pending/empty popout shows the frame's placeholder alone rather
     // than a blank device label and an inert slider rendering underneath
     // it.
-    Text {
+    ShellText {
         visible: root.bodyState === "populated"
         width: parent.width
         text: root._deviceLabel
@@ -84,7 +84,7 @@ SectionPopout {
         height: Design.iconSizeMd
         spacing: Design.spacingMd
 
-        Text {
+        ShellText {
             id: audioMuteGlyph
             anchors.verticalCenter: parent.verticalCenter
             font.family: Design.symbolFontFamily
@@ -189,7 +189,7 @@ SectionPopout {
                 radius: Design.spacingSm
                 color: sinkMouseArea.containsMouse ? BarRoles.popoutSurfaceVariant : "transparent"
 
-                Text {
+                ShellText {
                     anchors.left: parent.left
                     anchors.leftMargin: Design.spacingSm
                     anchors.right: parent.right

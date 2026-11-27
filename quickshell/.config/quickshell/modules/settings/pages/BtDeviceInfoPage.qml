@@ -73,14 +73,14 @@ PageBase {
         width: parent ? parent.width : implicitWidth
         spacing: Design.spacingMd
 
-        Text {
+        ShellText {
             anchors.verticalCenter: parent.verticalCenter
             font.family: Design.symbolFontFamily
             font.pixelSize: Design.settingsIconSize
             text: root.deviceGlyph(root.device)
             color: Colours.onSurfaceVariant
         }
-        Text {
+        ShellText {
             anchors.verticalCenter: parent.verticalCenter
             // Explicit plain-text pin (T-15-08) — a device name is
             // attacker-controllable text arriving over the air.

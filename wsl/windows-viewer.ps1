@@ -56,17 +56,32 @@ public static class ArchViewerWindows {
         public int Flags;
         [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string DeviceName;
     }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct DisplayDevice {
+        public int Size;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)] public string Name;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Description;
+        public int Flags;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Id;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 128)] public string Key;
+    }
     public class Display {
         public string Name { get; set; }
+        public string Id { get; set; }
         public bool Primary { get; set; }
         public int X { get; set; }
         public int Y { get; set; }
         public int Width { get; set; }
         public int Height { get; set; }
+        public int ScalePercent { get; set; }
+        public double PanelDpi { get; set; }
     }
     [DllImport("user32.dll")] private static extern bool EnumWindows(Callback callback, IntPtr data);
     [DllImport("user32.dll")] private static extern bool EnumDisplayMonitors(IntPtr dc, IntPtr clip, MonitorCallback callback, IntPtr data);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern bool EnumDisplayDevices(string adapter, int index, ref DisplayDevice device, int flags);
+    [DllImport("shcore.dll")] private static extern int GetScaleFactorForMonitor(IntPtr monitor, out int scale);
+    [DllImport("shcore.dll")] private static extern int GetDpiForMonitor(IntPtr monitor, int type, out uint x, out uint y);
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr window, out uint pid);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr window);
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
@@ -86,15 +101,34 @@ public static class ArchViewerWindows {
     [DllImport("user32.dll")] private static extern IntPtr WindowFromPoint(Point point);
     [DllImport("user32.dll")] private static extern bool PostMessage(IntPtr window, uint msg, IntPtr w, IntPtr l);
 
+    private static string MonitorId(string adapter) {
+        var device = new DisplayDevice { Size = Marshal.SizeOf(typeof(DisplayDevice)) };
+        const int GetDeviceInterfaceName = 1, Active = 1;
+        for (int i = 0; EnumDisplayDevices(adapter, i, ref device, GetDeviceInterfaceName); i++) {
+            if ((device.Flags & Active) != 0 && !String.IsNullOrEmpty(device.Id)) {
+                using (var sha = System.Security.Cryptography.SHA256.Create())
+                    return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(device.Id.ToUpperInvariant()))).Replace("-", "");
+            }
+        }
+        return "-";
+    }
+
     public static Display[] Displays() {
         var displays = new List<Display>();
         EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (monitor, dc, bounds, data) => {
             var info = new MonitorInfo { Size = Marshal.SizeOf(typeof(MonitorInfo)) };
             if (GetMonitorInfo(monitor, ref info) && info.DeviceName.StartsWith(@"\\.\DISPLAY")) {
+                int scale;
+                uint dpiX, dpiY;
+                // MDT_RAW_DPI reports panel density without the Windows scale applied.
+                double panelDpi = GetDpiForMonitor(monitor, 2, out dpiX, out dpiY) == 0
+                    ? Math.Sqrt((double)dpiX * dpiY) : 0;
                 displays.Add(new Display {
-                    Name = info.DeviceName.Substring(4), Primary = (info.Flags & 1) != 0,
+                    Name = info.DeviceName.Substring(4), Id = MonitorId(info.DeviceName), Primary = (info.Flags & 1) != 0,
                     X = info.Bounds.Left, Y = info.Bounds.Top,
-                    Width = info.Bounds.Right - info.Bounds.Left, Height = info.Bounds.Bottom - info.Bounds.Top
+                    Width = info.Bounds.Right - info.Bounds.Left, Height = info.Bounds.Bottom - info.Bounds.Top,
+                    ScalePercent = GetScaleFactorForMonitor(monitor, out scale) == 0 ? scale : 0,
+                    PanelDpi = panelDpi
                 });
             }
             return true;
@@ -215,7 +249,8 @@ function Select-Displays($Screens, [switch] $Fallback) {
 
 function Format-Layout($Screens) {
     foreach ($screen in $Screens) {
-        '{0} {1} {2} {3} {4}' -f $screen.Name, $screen.X, $screen.Y, $screen.Width, $screen.Height
+        '{0} {1} {2} {3} {4} {5} {6} {7}' -f $screen.Name, $screen.X, $screen.Y, $screen.Width, $screen.Height,
+            $screen.ScalePercent, [int] $screen.PanelDpi, $screen.Id
     }
 }
 
@@ -225,7 +260,8 @@ if ($Action -in 'displays', 'layout', 'choose') {
     if ($Action -eq 'displays') {
         foreach ($screen in $screens) {
             $label = if ($screen.Primary) { ' primary' } else { '' }
-            '{0}{1} {2}x{3} at {4},{5}' -f $screen.Name, $label, $screen.Width, $screen.Height, $screen.X, $screen.Y
+            '{0}{1} {2}x{3} at {4},{5} ({6}% Windows scale, {7} PPI)' -f $screen.Name, $label,
+                $screen.Width, $screen.Height, $screen.X, $screen.Y, $screen.ScalePercent, [int] $screen.PanelDpi
         }
         return
     }
@@ -374,7 +410,7 @@ function Fit-ViewerWindows($Windows, $Displays) {
 if ($Action -in 'arrange', 'watch') {
     [void] [ArchViewerWindows]::SetThreadDpiAwarenessContext([IntPtr](-4))
     $displays = @(foreach ($row in ($Layout -split ';')) {
-        $displayName, $x, $y, $width, $height = $row -split ' '
+        $displayName, $x, $y, $width, $height = ($row -split ' ')[0..4]
         [ArchViewerWindows+Display] @{ Name = $displayName; X = $x; Y = $y; Width = $width; Height = $height }
     })
     if ($Handles) {

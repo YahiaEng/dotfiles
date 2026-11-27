@@ -217,14 +217,14 @@ BarCapsule {
             horizontalItemAlignment: Grid.AlignHCenter
             verticalItemAlignment: Grid.AlignVCenter
 
-            Text {
+            ShellText {
                 font.family: readoutItem.glyphFontFamily
                 font.pixelSize: Design.barGlyphSize
                 text: readoutItem.glyph
                 color: readoutItem.glyphColour
             }
 
-            Text {
+            ShellText {
                 visible: readoutItem.showValue
                 font.pixelSize: Design.barBodySize
                 font.weight: Design.weightBody
@@ -277,7 +277,7 @@ BarCapsule {
                 readonly property real overflow: Math.max(0, rotatedMetrics.width - height)
                 property real scroll: 0
 
-                Text {
+                ShellText {
                     id: rotatedValueText
                     // +90, so the title reads top-to-bottom down the column
                     // rather than bottom-to-top, matching the reading direction
@@ -872,7 +872,7 @@ BarCapsule {
                 // the CROSS-axis dimension, not the one this bug lives in).
                 height: root.vertical ? root.drawerCellPitch : audioStripHost.height
 
-                Text {
+                ShellText {
                     anchors.centerIn: parent
                     font.family: root.drawerGlyphFontFamily
                     font.pixelSize: Design.barGlyphSize

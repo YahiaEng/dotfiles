@@ -165,6 +165,10 @@ Singleton {
     // copied numbers — they are this shell's existing scale moved up one
     // step, which is what "slightly bigger" asked for.
     readonly property int settingsFontTitle: 24
+    // Curve rendering keeps glyphs smooth with the Weaselway D3D12
+    // distance-field workaround active, including on output scale changes.
+    readonly property int shellTextRenderType: Quickshell.env("QML_DISABLE_DISTANCEFIELD") === "1"
+        ? Text.CurveRendering : Text.QtRendering
     readonly property int settingsFontRow: 18
     readonly property int settingsFontSub: 14
 
@@ -871,6 +875,10 @@ Singleton {
     //    that is the rectangle a person actually sees; switch to 13 to
     //    align with the content box instead.
     readonly property int edgeBarSideMargin: 10
+    // Leave a gutter at the WSL viewer's edge while keeping the right
+    // rail within the same gap as the other edges.
+    readonly property int edgeBarCornerInset: Quickshell.env("DONT_PROMPT_WSL_INSTALL") === "1"
+        ? edgeBarSideMargin - edgeBarThickness : 0
 
     // The centre bulge's width per strip. R-round-7: the bulge must be the
     // SAME width as the surface that spawns from it, so the protrusion

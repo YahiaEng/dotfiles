@@ -608,7 +608,7 @@ PageBase {
         }
     }
 
-    Text {
+    ShellText {
         visible: root.lastError.length > 0
         width: parent.width
         wrapMode: Text.WordWrap

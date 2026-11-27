@@ -1,18 +1,9 @@
-// modules/settings/pages/DisplayPage.qml — page index 5 of the ten-page
-// layout (quick-260821-6z1 Task 2 split, D-05/PD-02). Carries the
-// per-monitor Resolution/Scale Repeater and the "Open nwg-displays"
-// escape hatch moved out of DisplayInputPage.qml (now retired),
-// byte-identical in behaviour to before the split — the Input section of
-// that page moved to its own InputPage.qml (index 6) instead. The data
-// this page needs is already in `hyprctl monitors -j` — the
-// `availableModes` list IS the resolution/refresh dropdown model, so
-// there is no probing, no `wlr-randr` and no `nwg-displays` parsing.
-// Every change calls hypr-overrides.sh, which owns validate -> apply live
-// -> verify -> persist (D-03) — this page writes nothing itself, and
-// reads nothing but `hyprctl -j` (read-only). Task 7 adds per-monitor
-// Position and a Primary-monitor picker.
+// Read the active modes, positions and scales from Hyprland. Native display
+// changes go through hypr-overrides.sh. In Weaselway the Windows viewer
+// owns display arrangement and applies automatic or saved per-display scales.
 import QtQuick
 import Quickshell
+import Quickshell.Hyprland
 import Quickshell.Io
 import ".."
 import "../common"
@@ -28,9 +19,29 @@ PageBase {
     //    successful apply so the model reflects the JUST-VERIFIED state,
     //    never an assumption. ─────────────────────────────────────────
     property var monitorsModel: []
+    property var windowsScales: ({})
+    property string scaleError: ""
+    readonly property bool weaselway: Quickshell.env("DONT_PROMPT_WSL_INSTALL") === "1"
+    readonly property string desktopLauncher: Quickshell.env("HOME") + "/dotfiles/wsl/launch-desktop"
 
     function _refreshMonitors() {
         monitorsListProc.running = true;
+        if (root.weaselway)
+            windowsScalesProc.running = true;
+    }
+
+    Connections {
+        target: Hyprland
+        function onRawEvent(event) {
+            if (["configreloaded", "monitoradded", "monitorremoved"].includes(event.name))
+                monitorRefresh.restart();
+        }
+    }
+
+    Timer {
+        id: monitorRefresh
+        interval: 200
+        onTriggered: root._refreshMonitors()
     }
 
     Process {
@@ -51,8 +62,24 @@ PageBase {
                 console.warn("DisplayPage: failed to parse hyprctl monitors -j: " + e);
             }
         }
-        Component.onCompleted: running = true
     }
+
+    Process {
+        id: windowsScalesProc
+        command: [root.desktopLauncher, "--display-scales"]
+        stdout: StdioCollector { id: windowsScalesOutput }
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode === 0) {
+                try {
+                    root.windowsScales = JSON.parse(windowsScalesOutput.text);
+                } catch (e) {
+                    console.warn("DisplayPage: invalid Windows scale options: " + e);
+                }
+            }
+        }
+    }
+
+    Component.onCompleted: root._refreshMonitors()
 
     // Shared trailing-zero trim ("165.00" -> "165", "119.88" unchanged) —
     // both call sites run through the exact same `.toFixed(2)` + trim
@@ -89,6 +116,31 @@ PageBase {
         }
     }
 
+    Process {
+        id: windowsScaleApplyProc
+        stderr: StdioCollector { id: windowsScaleError }
+        onExited: (exitCode, exitStatus) => {
+            if (exitCode !== 0)
+                root.scaleError = windowsScaleError.text.trim() || "The scale could not be applied.";
+            root._refreshMonitors();
+        }
+    }
+
+    function _scalePercent(scale) {
+        return root._trimTrailingZeros((scale * 100).toFixed(2)) + "%";
+    }
+
+    function _windowsScaleOptions(info) {
+        var opts = [{ value: "auto", display: "Automatic" }];
+        if (!info)
+            return opts;
+        for (var units of info.choices)
+            opts.push({ value: String(units), display: root._scalePercent(units / 120) });
+        if (info.saved !== null && !info.choices.includes(info.saved))
+            opts.push({ value: String(info.saved), display: root._scalePercent(info.saved / 120) + " (saved)", enabled: false });
+        return opts;
+    }
+
     function applyMonitorMode(output, mode) {
         monitorApplyProc.command = [Quickshell.env("HOME") + "/.config/hypr/scripts/hypr-overrides.sh", "monitor", output, "--mode", mode];
         monitorApplyProc.running = true;
@@ -104,6 +156,12 @@ PageBase {
         monitorApplyProc.running = true;
     }
 
+    function _logicalSize(mon) {
+        return mon.transform % 2 === 0
+            ? Qt.size(Math.round(mon.width / mon.scale), Math.round(mon.height / mon.scale))
+            : Qt.size(Math.round(mon.height / mon.scale), Math.round(mon.width / mon.scale));
+    }
+
     // Position options derived from the LIVE monitor set (Task 7,
     // D-01 bundle 4) — never free-form coordinates. Single-monitor hosts
     // get exactly one option (the origin); a second/third monitor adds
@@ -112,14 +170,16 @@ PageBase {
     // validates and verifies against .x/.y.
     function _positionOptions(mon) {
         var opts = [{ value: "0x0", display: "Origin (0, 0)" }];
+        var size = root._logicalSize(mon);
         for (var i = 0; i < root.monitorsModel.length; i++) {
             var other = root.monitorsModel[i];
             if (other.name === mon.name)
                 continue;
-            opts.push({ value: (other.x + other.width) + "x" + other.y, display: "Right of " + other.name });
-            opts.push({ value: (other.x - mon.width) + "x" + other.y, display: "Left of " + other.name });
-            opts.push({ value: other.x + "x" + (other.y + other.height), display: "Below " + other.name });
-            opts.push({ value: other.x + "x" + (other.y - mon.height), display: "Above " + other.name });
+            var otherSize = root._logicalSize(other);
+            opts.push({ value: (other.x + otherSize.width) + "x" + other.y, display: "Right of " + other.name });
+            opts.push({ value: (other.x - size.width) + "x" + other.y, display: "Left of " + other.name });
+            opts.push({ value: other.x + "x" + (other.y + otherSize.height), display: "Below " + other.name });
+            opts.push({ value: other.x + "x" + (other.y - size.height), display: "Above " + other.name });
         }
         return opts;
     }
@@ -130,8 +190,9 @@ PageBase {
         SettingsSection {
             id: monitorSection
             required property var modelData
+            readonly property var windowsScale: root.windowsScales[modelData.name]
 
-            title: modelData.name
+            title: modelData.name + (windowsScale ? " · " + windowsScale.name : "")
             icon: "desktop_windows"
 
             readonly property var resolutionOptions: {
@@ -155,6 +216,25 @@ PageBase {
             ]
 
             SelectRow {
+                visible: root.weaselway
+                label: "Scale"
+                subtext: root._scalePercent(monitorSection.modelData.scale) + " active · "
+                    + monitorSection.modelData.width + " × " + monitorSection.modelData.height
+                model: root._windowsScaleOptions(monitorSection.windowsScale)
+                currentValue: monitorSection.windowsScale && monitorSection.windowsScale.saved !== null
+                    ? String(monitorSection.windowsScale.saved) : "auto"
+                enabled: !!monitorSection.windowsScale
+                busy: windowsScaleApplyProc.running
+                onSelected: (value) => {
+                    if (monitorSection.windowsScale && !windowsScaleApplyProc.running) {
+                        root.scaleError = "";
+                        windowsScaleApplyProc.exec([root.desktopLauncher, "--display-scales", monitorSection.windowsScale.id, value]);
+                    }
+                }
+            }
+
+            SelectRow {
+                visible: !root.weaselway
                 label: "Resolution & refresh rate"
                 subtext: monitorSection.modelData.make + " " + monitorSection.modelData.model
                 model: monitorSection.resolutionOptions
@@ -162,6 +242,7 @@ PageBase {
                 onSelected: (value) => root.applyMonitorMode(monitorSection.modelData.name, value)
             }
             SelectRow {
+                visible: !root.weaselway
                 label: "Scale"
                 subtext: "Display scaling"
                 model: monitorSection.scaleOptions
@@ -169,6 +250,7 @@ PageBase {
                 onSelected: (value) => root.applyMonitorScale(monitorSection.modelData.name, value)
             }
             SelectRow {
+                visible: !root.weaselway
                 label: "Position"
                 subtext: "Where this monitor sits relative to the others"
                 model: root._positionOptions(monitorSection.modelData)
@@ -176,6 +258,32 @@ PageBase {
                 onSelected: (value) => root.applyMonitorPosition(monitorSection.modelData.name, value)
             }
         }
+    }
+
+    SettingsSection {
+        visible: root.weaselway
+        title: "Arrangement"
+        icon: "desktop_windows"
+
+        Process {
+            id: windowsDisplaysProc
+            command: [root.desktopLauncher, "--display-settings"]
+        }
+
+        NavRow {
+            label: "Open Arch Linux display settings"
+            subtext: "Choose connected displays and the Linux main display"
+            onActivated: {
+                windowsDisplaysProc.startDetached();
+                root.sState.close();
+            }
+        }
+    }
+
+    InfoRow {
+        visible: root.scaleError.length > 0
+        label: "Display scaling"
+        subtext: root.scaleError
     }
 
     // ── Arrangement — N-04 (measured this task, not anticipated by
@@ -186,6 +294,7 @@ PageBase {
     //    has no matching key either ("no such option"). An honest
     //    InfoRow instead of a knob that would silently no-op. ───────────
     SettingsSection {
+        visible: !root.weaselway
         title: "Arrangement"
         icon: "desktop_windows"
 
@@ -207,6 +316,7 @@ PageBase {
     //    completes — the exact race PowerMenu.qml's own header documents
     //    and fixes the same way. ────────────────────────────────────────
     SettingsSection {
+        visible: !root.weaselway
         title: "Advanced"
         icon: "open_in_new"
 

@@ -503,7 +503,7 @@ BarCapsule {
     // (numerals were being measured at 13 while everything painted at 16);
     // splitting them again is correct now only because the RENDER is split too,
     // driven by the same slotIdentityIsNumeral flag.
-    Text {
+    ShellText {
         id: slotIdentityGlyphMetrics
         visible: false
         text: workspaceCapsule.stateGlyphActive
@@ -511,7 +511,7 @@ BarCapsule {
         font.pixelSize: Design.barGlyphSize
         font.weight: Design.weightBody
     }
-    Text {
+    ShellText {
         id: slotIdentityNumeralMetrics
         visible: false
         // Worst-case two digits — this file's own dynamic tail
@@ -683,7 +683,7 @@ BarCapsule {
                 horizontalItemAlignment: Grid.AlignHCenter
                 verticalItemAlignment: Grid.AlignVCenter
 
-                Text {
+                ShellText {
                     width: Math.max(slotIdentityGlyphMetrics.width, slotIdentityNumeralMetrics.width)
                     horizontalAlignment: Text.AlignHCenter
                     // Same explicit one-glyph box + vertical centring the
@@ -770,7 +770,7 @@ BarCapsule {
                         readonly property var cellWindow: cellItem.showOverflow ? null : (cellItem.index < slotItem.slotWindows.length ? slotItem.slotWindows[cellItem.index] : null)
                         readonly property var cellGlyph: workspaceCapsule.glyphFor(workspaceCapsule.appIdFor(cellItem.cellWindow))
 
-                        Text {
+                        ShellText {
                             anchors.centerIn: parent
                             visible: !cellItem.showOverflow && cellItem.cellWindow !== null
                             text: cellItem.cellGlyph.text
@@ -779,7 +779,7 @@ BarCapsule {
                             color: slotItem.slotTextColour
                         }
 
-                        Text {
+                        ShellText {
                             anchors.centerIn: parent
                             visible: cellItem.showOverflow
                             // Clamped at two digits so the label can

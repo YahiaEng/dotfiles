@@ -139,7 +139,7 @@ PanelWindow {
         color: BarRoles.capsule
     }
 
-    Text {
+    ShellText {
         id: tipLabel
         anchors.centerIn: parent
         text: tooltipRoot.text

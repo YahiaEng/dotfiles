@@ -20,6 +20,8 @@ script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 powershell=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
 runtime="${XDG_RUNTIME_DIR:?Missing WSL user runtime directory}"
 profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/weaselway/displays"
+scale_file="${profile_file%/*}/display-scales.json"
+windows_layout_file="$runtime/arch-hyprland-displays-windows"
 display_list='DISPLAY[0-9]+(,DISPLAY[0-9]+){0,3}'
 profile_pattern="^(auto(,DISPLAY[0-9]+)?|manual,$display_list)$"
 saved_profile=auto
@@ -62,28 +64,75 @@ windows_action() {
 }
 
 apply_layout() {
-    local screen x y left top index=1 instance desired
+    local instance desired
     local path="$runtime/arch-hyprland-displays"
-    read -r _ left top _ <<< "$layout"
-    while read -r screen x y _width _height; do
-        if (( x < left )); then left="$x"; fi
-        if (( y < top )); then top="$y"; fi
-    done <<< "$layout"
-    desired="$(
-        while read -r screen x y _width _height; do
-            printf 'Virtual-%s %sx%s\n' "$index" "$((x - left))" "$((y - top))"
-            ((index += 1))
-        done <<< "$layout"
-    )"
+    desired="$(python3 "$script_dir/display-layout.py" --overrides "${1:-$scale_file}" <<< "$layout")" || return
+    if [[ ! -r "$windows_layout_file" || "$(<"$windows_layout_file")" != "$layout" ]]; then
+        printf '%s\n' "$layout" > "$windows_layout_file.tmp" &&
+            mv "$windows_layout_file.tmp" "$windows_layout_file" || return
+    fi
     if [[ ! -r "$path" || "$(<"$path")" != "$desired" ]]; then
-        printf '%s\n' "$desired" > "$path.tmp"
-        mv "$path.tmp" "$path"
-        instance="$(hyprctl instances -j | jq -r '.[0].instance // empty')"
+        printf '%s\n' "$desired" > "$path.tmp" && mv "$path.tmp" "$path" || return
+        instance="$(hyprctl instances -j | jq -r '.[0].instance // empty')" || return
         if [[ -n "$instance" ]]; then
             HYPRLAND_INSTANCE_SIGNATURE="$instance" hyprctl reload >/dev/null
         fi
     fi
 }
+
+check_quickshell_layout() {
+    local pid attempt
+    for attempt in {1..6}; do
+        pid="$(systemctl --user show -p MainPID --value quickshell.service)" || return
+        if [[ "$pid" != 0 ]] && timeout 1s qs ipc --pid "$pid" call bar status >/dev/null 2>&1 &&
+            python3 "$script_dir/display-layout.py" --overrides "$scale_file" --check-bars --previous-bars "$1" <<< "$layout"; then
+            return 0
+        fi
+        sleep .2
+    done
+    # The Display page owns this command. Queue the restart after the scale
+    # is saved so it can finish even when the page disappears.
+    systemctl --user --no-block restart quickshell.service 8>&-
+}
+
+set_display_scale() (
+    local pending layout instance bar_spans preview=false
+    exec 8>"$runtime/arch-hyprland-viewer-switch.lock"
+    if ! flock -w 12 8; then
+        printf 'The viewer is still changing layouts. Try again when it settles.\n' >&2
+        return 1
+    fi
+    if [[ ! -s "$windows_layout_file" ]]; then
+        printf 'The Windows display layout is unavailable.\n' >&2
+        return 1
+    fi
+    layout="$(<"$windows_layout_file")"
+    instance="$(hyprctl instances -j | jq -er '.[0].instance')" || return
+    export HYPRLAND_INSTANCE_SIGNATURE="$instance"
+    if systemctl --user is-active --quiet quickshell.service; then
+        bar_spans="$(python3 "$script_dir/display-layout.py" --overrides "$scale_file" --snapshot-bars <<< "$layout")"
+    fi
+    mkdir -p -- "${scale_file%/*}"
+    pending="$(mktemp "$scale_file.XXXXXXXX")" || return
+    trap '
+        if "$preview" && [[ -e "$pending" ]]; then
+            apply_layout || hyprctl reload >/dev/null
+        fi
+        rm -f -- "$pending"
+    ' EXIT
+    trap 'exit 1' HUP INT TERM
+    python3 "$script_dir/display-layout.py" --overrides "$scale_file" --set "$1" "$2" <<< "$layout" > "$pending" || return
+    preview=true
+    if ! apply_layout "$pending" ||
+        ! { python3 "$script_dir/display-layout.py" --overrides "$pending" --wait-live <<< "$layout" ||
+            { hyprctl reload >/dev/null &&
+                python3 "$script_dir/display-layout.py" --overrides "$pending" --wait-live <<< "$layout"; }; }; then
+        printf 'Hyprland did not apply the requested layout. The previous scale remains saved.\n' >&2
+        return 1
+    fi
+    mv -f -- "$pending" "$scale_file" || return
+    if [[ -n "${bar_spans:-}" ]]; then check_quickshell_layout "$bar_spans"; fi
+)
 
 start_weaselwayd() {
     local attempt socket restart=false
@@ -145,6 +194,22 @@ case "$mode" in
         ;;
     --list-monitors)
         windows_action displays
+        exit
+        ;;
+    --display-scales)
+        if (( $# == 1 )); then
+            if [[ -r "$windows_layout_file" ]]; then
+                python3 "$script_dir/display-layout.py" --overrides "$scale_file" --options < "$windows_layout_file"
+            else
+                printf '{}\n'
+            fi
+            exit
+        fi
+        if (( $# != 3 )); then
+            printf 'Usage: %s --display-scales [DISPLAY_ID SCALE]\n' "$0" >&2
+            exit 2
+        fi
+        set_display_scale "$2" "$3"
         exit
         ;;
     --disconnect|--hide)
@@ -230,7 +295,7 @@ start_viewer() {
     mapfile -t screens <<< "$layout"
     count="${#screens[@]}"
     if (( count == 1 )); then
-        read -r _screen _x _y width height <<< "${screens[0]}"
+        read -r _screen _x _y width height _dpi <<< "${screens[0]}"
         # Initial RDP negotiation caps the size. Let placement grow larger views.
         if (( width > 4096 || height > 2048 )); then width=800 height=500; fi
     fi
@@ -284,7 +349,9 @@ manage_viewer() {
         done
         kill -0 "$viewer_pid" 2>/dev/null || break
         if [[ "$(cut -d ' ' -f 1 <<< "$layout")" == "$(cut -d ' ' -f 1 <<< "$next_layout")" ]]; then
-            if windows_action arrange "$profile" "$next_layout" "$handles" >>"$log" 2>&1; then
+            # A DPI-only change keeps the existing Windows client bounds.
+            if [[ "$(cut -d ' ' -f 1-5 <<< "$layout")" == "$(cut -d ' ' -f 1-5 <<< "$next_layout")" ]] ||
+                windows_action arrange "$profile" "$next_layout" "$handles" >>"$log" 2>&1; then
                 layout="$next_layout"
                 apply_layout
             fi

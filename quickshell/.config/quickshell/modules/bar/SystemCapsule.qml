@@ -225,14 +225,14 @@ BarCapsule {
             columns: readoutItem.vertical ? 1 : -1
             spacing: Design.spacingXs
 
-            Text {
+            ShellText {
                 font.family: Design.symbolFontFamily
                 font.pixelSize: Design.barGlyphSize
                 text: readoutItem.glyph
                 color: readoutItem.severityColour
             }
 
-            Text {
+            ShellText {
                 font.pixelSize: Design.barBodySize
                 font.weight: Design.weightBody
                 color: readoutItem.severityColour

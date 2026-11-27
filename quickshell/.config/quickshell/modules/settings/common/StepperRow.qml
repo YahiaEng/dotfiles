@@ -120,14 +120,14 @@ Control {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
 
-            Text {
+            ShellText {
                 text: root.label
                 font.pixelSize: Design.settingsFontRow
                 color: Colours.onSurface
                 elide: Text.ElideRight
                 width: parent.width
             }
-            Text {
+            ShellText {
                 visible: root.subtext.length > 0
                 text: root.subtext
                 font.pixelSize: Design.settingsFontSub
@@ -162,7 +162,7 @@ Control {
                     width: Design.iconSizeMd
                     height: Design.iconSizeMd
 
-                    Text {
+                    ShellText {
                         anchors.centerIn: parent
                         text: "−"
                         font.pixelSize: Design.settingsFontRow
@@ -178,7 +178,7 @@ Control {
                     }
                 }
 
-                Text {
+                ShellText {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.value.toFixed(0) + root.valueSuffix
                     font.pixelSize: Design.settingsFontRow
@@ -191,7 +191,7 @@ Control {
                     width: Design.iconSizeMd
                     height: Design.iconSizeMd
 
-                    Text {
+                    ShellText {
                         anchors.centerIn: parent
                         text: "+"
                         font.pixelSize: Design.settingsFontRow

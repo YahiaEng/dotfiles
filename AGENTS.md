@@ -1,6 +1,6 @@
 # Dotfiles handoff
 
-Snapshot from 2026-11-25. This checkout at `~/dotfiles` serves a physical Arch desktop and the `archlinux` WSL2 distro. The current machine is WSL2. Hyprland 0.57.2, Quickshell 0.3.2, Fastfetch 2.71.0 and Kitty 0.51.1 were used for the checks below.
+Snapshot from 2026-11-27. This checkout at `~/dotfiles` serves a physical Arch desktop and the `archlinux` WSL2 distro. The current machine is WSL2. Hyprland 0.57.2, Quickshell 0.3.2, Fastfetch 2.71.0 and Kitty 0.51.1 were used for the checks below.
 
 Inspect `git status --short` first and preserve existing edits. Treat the verified fixes below as completed. The user will provide the next tasks in a fresh context.
 
@@ -38,9 +38,21 @@ The user marked this task done on 2026-11-25.
 The user marked this task done on 2026-11-25.
 
 - `wsl/launch-desktop` and `wsl/windows-viewer.ps1` follow the active Windows displays. The helper samples the physical display bounds, debounces changes, and fits each borderless viewer by its client area. The laptop viewer previously extended 11 pixels past each edge, clipping the Quickshell bar and rails.
-- A move or rotation updates the existing viewer windows. A change in the assigned displays or their order reconnects the viewer to the running Hyprland session. A minimized viewer picks up changes when it returns. The launcher writes normalized positions to `$XDG_RUNTIME_DIR/arch-hyprland-displays` for `hypr/.config/hypr/config/monitors.lua`, which applies the viewer's mode at 1× on managed outputs.
+- A move or rotation updates the existing viewer windows. A change in the assigned displays or their order reconnects the viewer to the running Hyprland session. A minimized viewer picks up changes when it returns.
 - The live profile in `~/.config/weaselway/displays` is `auto`. It follows the Windows main display as `Virtual-1`. Display settings also supports a fixed assignment or an explicit Linux main display. Older multi-display lists follow new displays and retain their saved main display. Use `wsl/launch-desktop --list-monitors` to read Windows display names and bounds.
-- Verified a live external portrait rotation, a switch to laptop-only, and the return to extended landscape through Windows while Hyprland stayed running. At handoff, the 1920×1200 laptop is `Virtual-1` at `1014,2160` and the 3840×2160 display is `Virtual-2` at `0,0` in Hyprland's normalized coordinates. Both viewer client areas match their Windows displays exactly. All six Quickshell bar and rail surfaces fit within their outputs. A physical cable unplug and replug was outside this verification.
+- Verified a live external portrait rotation, a switch to laptop-only, and the return to extended landscape through Windows while Hyprland stayed running. Both viewer client areas matched their Windows displays exactly. A physical cable unplug and replug was outside that verification.
+
+### Per-display scaling
+
+The user marked this task done on 2026-11-27.
+
+- `wsl/windows-viewer.ps1` reads each display's pixel bounds, Windows scale, panel density and monitor identity. `wsl/display-layout.py` chooses an automatic scale and computes the logical positions. `wsl/launch-desktop` stores the Windows snapshot in `$XDG_RUNTIME_DIR/arch-hyprland-displays-windows` and writes the logical positions and scales to `$XDG_RUNTIME_DIR/arch-hyprland-displays`. `hypr/.config/hypr/config/monitors.lua` reads the latter and keeps the preferred DRM mode at the viewer's native pixel size.
+- **Super+, → Display** in Quickshell offers **Automatic** and the manual scales supported at each output's resolution. `quickshell/.config/quickshell/modules/settings/pages/DisplayPage.qml` applies the choice through the launcher. Saved settings in `${XDG_CONFIG_HOME:-$HOME/.config}/weaselway/display-scales.json` follow the Windows monitor identity across output reordering. An unavailable saved scale falls back to automatic until the mode supports it again.
+- The launcher verifies live Hyprland dimensions, positions and scales before saving an override. A failed layout is retried, then rolled back if needed. The Quickshell check compares the bar and rails' anchored spans before and after scaling, which catches stale widths even when they fit within the new output. If the shell fails to settle, the launcher queues a restart of `quickshell.service`.
+- `modules/dashboard/ShellText.qml` uses Qt's curve renderer for bar, popout and Settings text when the WSL D3D12 distance-field workaround is active. `modules/Bar.qml` and `modules/edgebarpath.js` draw the Continuous top bar and its right corner as one outline. Hyprland omits backdrop blur on the solid right rail. `modules/EdgeBar.qml` and `modules/dashboard/Design.qml` give the joined WSL frame four logical pixels of clearance at the right edge.
+- `spotify/.config/spotify-flags.conf` is linked by `stow.sh` and makes the normal Spotify launcher use native Wayland. Verified Spotify switched from XWayland and received 120% on the external display. X11-only apps still use compositor scaling in WSL and can look soft above 100%.
+- Live checks covered pointer alignment, Kitty moving between 150% on the laptop and 200% on the 4K screen, external rotation and a viewer reconnect. Verified the laptop bar through 100% → 125% → 150% → 100%, the Updates card, and the corner at 125% and 200%. On the later 1920×1080 external display, the pre-fix Windows capture showed the bar flush with the edge. The follow-up capture showed the full frame with clearance at 100%. Simulated failures exercised layout rollback, Quickshell restart and stale-width detection. The edge-bar path suite passed all 125 assertions.
+- At handoff the laptop is `Virtual-1` at `0,1080`, 1920×1200 at manual 100%. The external monitor is `Virtual-2` at `12,0`, 1920×1080 at automatic 100%. Both services are active and Hyprland reports no config errors. Use `wsl/launch-desktop --list-monitors` for Windows bounds and DPI, and `wsl/launch-desktop --display-scales` for the active assignments and saved choices.
 
 ## Fixes and verification
 

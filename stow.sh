@@ -27,6 +27,7 @@ PACKAGES=(
     matugen
     nvim
     quickshell
+    spotify
     theme-engine
     thunar
     uwsm

@@ -228,7 +228,7 @@ SectionPopout {
                         }
                     }
 
-                    Text {
+                    ShellText {
                         id: rowLabel
                         anchors.verticalCenter: parent.verticalCenter
                         width: Design.popoutMaxWidth - Design.spacingMd * 2 - Design.iconSizeMd - Design.spacingSm

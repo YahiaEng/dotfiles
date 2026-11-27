@@ -337,7 +337,7 @@ PageBase {
             deviceApplyProc.running = true;
         }
 
-        Text {
+        ShellText {
             visible: devicesSection.devicesError.length > 0
             width: parent.width
             wrapMode: Text.WordWrap

@@ -97,7 +97,7 @@ SectionPopout {
                 width: parent.width
                 height: Design.iconSizeMd
 
-                Text {
+                ShellText {
                     id: rowGlyph
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
@@ -107,7 +107,7 @@ SectionPopout {
                     text: resourceRow.glyph
                     color: BarRoles.capsuleFg
                 }
-                Text {
+                ShellText {
                     anchors.left: rowGlyph.right
                     anchors.leftMargin: Design.spacingSm
                     anchors.verticalCenter: parent.verticalCenter
@@ -124,7 +124,7 @@ SectionPopout {
                 // will collapse them. The pending value is tinted with the
                 // accent role, which the frame's own state mapping already
                 // assigns to the not-yet-resolved state.
-                Text {
+                ShellText {
                     anchors.right: parent.right
                     anchors.verticalCenter: parent.verticalCenter
                     textFormat: Text.PlainText
@@ -156,7 +156,7 @@ SectionPopout {
                 }
             }
 
-            Text {
+            ShellText {
                 visible: resourceRow.metricState === "populated" && resourceRow.detailText.length > 0
                 textFormat: Text.PlainText
                 text: resourceRow.detailText

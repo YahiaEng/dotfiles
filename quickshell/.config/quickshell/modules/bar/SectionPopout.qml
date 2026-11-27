@@ -438,14 +438,14 @@ PanelWindow {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Design.spacingSm
 
-                Text {
+                ShellText {
                     font.family: Design.symbolFontFamily
                     font.pixelSize: Design.iconSizeMd
                     text: popoutWindow.popoutGlyph
                     textFormat: Text.PlainText
                     color: BarRoles.popoutFg
                 }
-                Text {
+                ShellText {
                     text: popoutWindow.popoutTitle
                     font.pixelSize: Design.fontHeading
                     font.weight: Design.weightEmphasis
@@ -491,7 +491,7 @@ PanelWindow {
                 : popoutWindow.bodyState === "failed" ? popoutWindow.failedStateText
                 : popoutWindow.emptyStateText
 
-            Text {
+            ShellText {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: statePlaceholder._glyph
                 font.family: Design.symbolFontFamily
@@ -499,7 +499,7 @@ PanelWindow {
                 textFormat: Text.PlainText
                 color: popoutWindow.stateColour(popoutWindow.bodyState)
             }
-            Text {
+            ShellText {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: statePlaceholder._text
                 font.pixelSize: Design.fontBody
@@ -543,7 +543,7 @@ PanelWindow {
                 color: BarRoles.popoutSurfaceVariant
                 opacity: popoutWindow.wayfindingAvailable ? 1 : popoutFoot.disabledOpacity
 
-                Text {
+                ShellText {
                     id: wayfindingLabelText
                     anchors.centerIn: parent
                     // "more_horiz" is a Material Symbols ligature, verified

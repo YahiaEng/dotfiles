@@ -101,6 +101,7 @@
 # Dashboard layouts stay selectable through `Prefs.getValue("dashboard.
 # layout.*")`.
 module qs.modules.dashboard
+ShellText 1.0 ShellText.qml
 singleton Design 1.0 Design.qml
 singleton WeatherPalette 1.0 WeatherPalette.qml
 singleton ToggleState 1.0 ToggleState.qml

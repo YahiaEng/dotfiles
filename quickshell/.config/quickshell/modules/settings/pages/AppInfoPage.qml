@@ -64,13 +64,13 @@ PageBase {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 2
 
-            Text {
+            ShellText {
                 text: root.app ? root.app.name : ""
                 font.pixelSize: Design.settingsFontTitle
                 font.weight: Design.weightEmphasis
                 color: Colours.onSurface
             }
-            Text {
+            ShellText {
                 readonly property string _detail: root.app ? ((root.app.comment || root.app.genericName) || "") : ""
                 visible: text.length > 0
                 text: _detail

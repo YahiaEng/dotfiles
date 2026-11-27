@@ -161,11 +161,8 @@ PanelWindow {
     // file has shipped the double-count version of that bug twice, hence
     // the explicit note.
     //
-    // Horizontal weld (quick task 260829-2ov): margins.left/right go to 0
-    // for the transposed reason — the slab spans the FULL screen width, the
-    // way the vertical weld's slab spans the full height. Neither is the
-    // anchored edge that carries the reservation (that is `margins.top`
-    // here), so `reserved` cannot move on this axis either.
+    // The horizontal slab and the right rail share the same end inset.
+    // The bar still reserves its band from the top edge.
     //
     // It matters that the slab reaches the screen's own corners rather than
     // stopping at `barSideMargin`. The top strip is inset by
@@ -176,7 +173,8 @@ PanelWindow {
     // the corner instead and the strip's end sits 10px inside the cap, where
     // the slab has already climbed to within ~5px of it.
     margins.top: barWindow.vertical ? (barWindow._continuousWeld ? 0 : Design.barSideMargin) : Design.barEdgeMargin
-    margins.right: barWindow.vertical ? Design.barEdgeMargin : (barWindow._continuousWeldH ? 0 : Design.barSideMargin)
+    margins.right: barWindow.vertical ? Design.barEdgeMargin
+        : (barWindow._continuousWeldH ? Design.edgeBarCornerInset : Design.barSideMargin)
     // margins.LEFT keeps `barSideMargin` in every case. Round 1 of this task
     // dropped it to 0 so the slab reached the screen corner, on the reasoning
     // that the top strip's own end would otherwise sit inside the slab's cap.
@@ -1271,33 +1269,14 @@ PanelWindow {
         }
     }
 
-    // 1b. The horizontal weld's slab (quick task 260829-2ov) — the same
-    //     object as `weldSlab` above with along and depth exchanged, and
-    //     with two things it does NOT have.
-    //
-    //     NO BULGE. `bulge: false` is an explicit branch in the path
-    //     builder and not "pass b = 0" — that file's own note: a zero-depth
-    //     bulge still emits four zero-radius arcs and a backwards face
-    //     segment, and self-intersects silently. The popout shelf stays a
-    //     vertical-only affordance (`popoutBulgeDepth` is gated on
-    //     `_continuousWeld`), so there is nothing to grow here.
-    //
-    //     NO STUBS. The weld stubs exist to close the joint where a
-    //     PERPENDICULAR rail meets the bar. The top strip is PARALLEL to a
-    //     horizontal bar and sits directly on this slab's top edge, so the
-    //     two already share a boundary — there is no joint to bridge.
-    //
-    //     The gradient is the STRIP's, through the same `_stripGradX1` /
-    //     `_stripPeriod` mapping the stubs use (both now orientation-aware).
-    //     That is what makes the rim colour-continuous with the rail
-    //     immediately above it at every x, rather than merely similar.
+    // 1b. The horizontal slab includes the dashboard bulge and the
+    // concave corner where its underside turns into the right rail.
     Shape {
-        id: weldSlabH
         visible: barWindow._continuousWeldH
         x: 0
         y: 0
         width: barWindow.width
-        height: barWindow._weldSlabDepth
+        height: barWindow._weldSlabDepth + barWindow._weldFlareOverhang
         preferredRendererType: Shape.CurveRenderer
 
         ShapePath {
@@ -1371,110 +1350,14 @@ PanelWindow {
                     // pill cap the VERTICAL frame already turns its own two
                     // screen corners with. Same corner, same number.
                     squareEndRadius: barWindow._weldOuterCornerRadius,
+                    // A single outline avoids a partially covered row
+                    // where the slab and flare meet at fractional scales.
+                    endFlareRadius: barWindow._weldFlareOverhang,
+                    endRailThickness: Design.edgeBarThickness,
                     surfaceDepth: barWindow._weldSlabDepth,
                     flip: false,
                     axis: "horizontal"
                 })
-            }
-        }
-    }
-
-    // 1c. The corner flare (quick task 260829-2ov) — the concave fillet
-    //     where this band's underside turns into the right rail's inner
-    //     face, so the silhouette reads as one outline through the corner
-    //     rather than as a 50px band butted against a 6px rail.
-    //
-    //     Drawn on a box spanning the FULL surface width, not just the
-    //     corner: that makes this Shape's local x identical to the slab's,
-    //     so it takes the same `_stripGradX1` gradient verbatim and the two
-    //     cannot drift. A corner-sized box would need the offset applied by
-    //     hand, which is one more thing to get wrong for no gain.
-    //
-    //     ── THE SWEEP FLAG IS DERIVED, NOT GUESSED ─────────────────────
-    //     The trap `edgebarpath.js` and `AttachedCorner.qml` both spell out:
-    //     the wrong flag selects the OTHER valid centre for the same
-    //     endpoints and radius, drawing a CONVEX lump that looks deliberate
-    //     and is wrong. Worked through that file's own `_arcCentre` (a
-    //     quarter arc, so inside its documented domain) for the arc from
-    //     (X, F) back to (X-F, 0):
-    //
-    //       sweepPositive = true  -> centre (X,   0)   <- not this one
-    //       sweepPositive = false -> centre (X-F, F)   <- the one wanted
-    //
-    //     and `_shoulderSweep` maps sweepPositive true to flag 1, so this is
-    //     flag 0. Checked numerically at F=20, X=2544 before being written.
-    Shape {
-        id: weldFlareH
-        visible: barWindow._continuousWeldH
-        x: 0
-        y: barWindow._weldSlabDepth
-        width: barWindow.width
-        height: barWindow._weldFlareOverhang
-        preferredRendererType: Shape.CurveRenderer
-
-        // The rail's inner face, in this surface's own coordinates. The rail
-        // is flush to the screen's right edge and this surface's right edge
-        // is too (margins.right is 0 while welded), so the two agree without
-        // any screen-space arithmetic.
-        readonly property real _corner: barWindow.width - Design.edgeBarThickness
-
-        ShapePath {
-            strokeWidth: -1
-            strokeColor: "transparent"
-            fillGradient: LinearGradient {
-                x1: barWindow._stripGradX1
-                y1: 0
-                x2: barWindow._stripGradX1 + barWindow._stripPeriod
-                y2: 0
-                spread: ShapeGradient.RepeatSpread
-                GradientStop {
-                    position: 0.0
-                    color: Colours.primary
-                }
-                GradientStop {
-                    position: 0.33
-                    color: Colours.secondary
-                }
-                GradientStop {
-                    position: 0.66
-                    color: Colours.tertiary
-                }
-                GradientStop {
-                    position: 1.0
-                    color: Colours.primary
-                }
-            }
-            PathSvg {
-                path: {
-                    const f = barWindow._weldFlareOverhang;
-                    const x = weldFlareH._corner;
-                    if (f <= 0)
-                        return "";
-                    // ── THE POLYGON RUNS PAST THE ARC, ON PURPOSE ───────
-                    // Operator round 3: "the top right flare has a weird
-                    // visual bug… missing pixels/colors". MEASURED at
-                    // x2530..2559, y48..79: exactly ONE row, y=56, carried
-                    // two single-pixel holes — x2554 and x2559 — while every
-                    // other row was solid. y=56 is where three edges land on
-                    // the same coordinate: this patch's right edge, the right
-                    // rail's left edge, and the rail's own first row. Each
-                    // antialiased to partial coverage and the desktop showed
-                    // through the sum.
-                    //
-                    // Butting geometry exactly is what produced it, so the
-                    // patch now runs to the surface's right edge instead of
-                    // stopping at the rail's inner face. Everything past `x`
-                    // is territory the rail paints anyway, in the same
-                    // gradient through the same mapping, so the overlap is
-                    // invisible — and an overlap cannot leave a seam.
-                    const w = barWindow.width;
-                    return "M " + (x - f) + " 0"
-                        + " L " + w + " 0"
-                        + " L " + w + " " + f
-                        + " L " + x + " " + f
-                        + " A " + f + " " + f + " 0 0 0 " + (x - f) + " 0"
-                        + " Z";
-                }
             }
         }
     }

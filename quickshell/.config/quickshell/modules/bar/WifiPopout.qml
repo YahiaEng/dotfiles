@@ -138,7 +138,7 @@ SectionPopout {
         width: parent.width
         spacing: Design.spacingSm
 
-        Text {
+        ShellText {
             id: currentGlyph
             anchors.verticalCenter: parent.verticalCenter
             font.family: Design.symbolFontFamily
@@ -148,7 +148,7 @@ SectionPopout {
             opacity: root._strengthOpacity(root._currentNetwork)
             color: BarRoles.capsuleFg
         }
-        Text {
+        ShellText {
             id: currentLabel
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width - currentGlyph.width - Design.spacingSm
@@ -175,7 +175,7 @@ SectionPopout {
             radius: height / 2
             color: BarRoles.popoutSurfaceVariant
         }
-        Text {
+        ShellText {
             id: radioToggleLabel
             anchors.centerIn: parent
             textFormat: Text.PlainText
@@ -201,7 +201,7 @@ SectionPopout {
         width: parent.width
         spacing: Design.spacingXs
 
-        Text {
+        ShellText {
             id: savedLabel
             textFormat: Text.PlainText
             text: "Saved networks"
@@ -232,7 +232,7 @@ SectionPopout {
                         color: savedRowMouseArea.containsMouse ? BarRoles.popoutSurfaceVariant : "transparent"
                     }
 
-                    Text {
+                    ShellText {
                         id: savedSecurityGlyph
                         anchors.left: parent.left
                         anchors.leftMargin: Design.spacingSm
@@ -244,7 +244,7 @@ SectionPopout {
                         color: BarRoles.capsuleFg
                     }
 
-                    Text {
+                    ShellText {
                         id: savedNameText
                         anchors.left: savedSecurityGlyph.right
                         anchors.leftMargin: Design.spacingSm
@@ -282,7 +282,7 @@ SectionPopout {
                     }
                 }
 
-                Text {
+                ShellText {
                     id: savedRowFailureText
                     visible: savedRow.isFailedRow
                     width: parent.width
@@ -298,7 +298,7 @@ SectionPopout {
         // The list's own empty case, section-true rather than blank: this
         // body never arms the scanner, so what it can honestly show is
         // what the shell already observes.
-        Text {
+        ShellText {
             id: savedEmptyText
             visible: root._savedRows.length === 0
             width: parent.width

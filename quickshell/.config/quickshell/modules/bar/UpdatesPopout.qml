@@ -99,7 +99,7 @@ SectionPopout {
                 width: parent.width
                 spacing: Design.spacingSm
 
-                Text {
+                ShellText {
                     id: nameText
                     anchors.verticalCenter: parent.verticalCenter
                     width: Math.min(implicitWidth, line.width * 0.45)
@@ -110,7 +110,7 @@ SectionPopout {
                     textFormat: Text.PlainText
                 }
 
-                Text {
+                ShellText {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: line.modelData.source === "aur"
                     text: "AUR"
@@ -119,7 +119,7 @@ SectionPopout {
                     textFormat: Text.PlainText
                 }
 
-                Text {
+                ShellText {
                     anchors.verticalCenter: parent.verticalCenter
                     width: line.width - nameText.width - Design.spacingSm * 2 - (line.modelData.source === "aur" ? 28 : 0)
                     horizontalAlignment: Text.AlignRight
@@ -135,7 +135,7 @@ SectionPopout {
             }
         }
 
-        Text {
+        ShellText {
             width: parent.width
             visible: root._updates.length > root._cap
             text: "and " + (root._updates.length - root._cap) + " more"
@@ -169,7 +169,7 @@ SectionPopout {
                 }
             }
 
-            Text {
+            ShellText {
                 anchors.centerIn: parent
                 text: PackagesBackend.dbLocked ? "pacman is already running" : "Update all"
                 font.pixelSize: Design.fontLabel

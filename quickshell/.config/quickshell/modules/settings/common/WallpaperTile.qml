@@ -234,7 +234,7 @@ Item {
                 color: Colours.surface
                 opacity: 0.85
 
-                Text {
+                ShellText {
                     anchors.centerIn: parent
                     font.family: Design.symbolFontFamily
                     font.pixelSize: 15
@@ -261,14 +261,14 @@ Item {
                     anchors.centerIn: parent
                     spacing: Design.spacingXs
 
-                    Text {
+                    ShellText {
                         anchors.verticalCenter: parent.verticalCenter
                         font.family: Design.symbolFontFamily
                         font.pixelSize: 13
                         color: Colours.onSurface
                         text: "folder_copy"
                     }
-                    Text {
+                    ShellText {
                         anchors.verticalCenter: parent.verticalCenter
                         font.pixelSize: 11
                         color: Colours.onSurface
@@ -329,7 +329,7 @@ Item {
             }
         }
 
-        Text {
+        ShellText {
             width: parent.width
             text: root.caption
             color: Colours.onSurfaceVariant

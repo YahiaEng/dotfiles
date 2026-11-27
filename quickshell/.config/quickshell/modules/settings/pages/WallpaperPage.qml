@@ -272,7 +272,7 @@ PageBase {
             applyProc.running = true;
         }
 
-        Text {
+        ShellText {
             visible: wallpaperSection.listError.length > 0
             width: parent.width
             wrapMode: Text.WordWrap
@@ -312,14 +312,14 @@ PageBase {
                         anchors.centerIn: parent
                         spacing: Design.spacingSm
 
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             font.family: Design.symbolFontFamily
                             font.pixelSize: 20
                             color: Colours.onPrimary
                             text: "photo_library"
                         }
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Browse"
                             color: Colours.onPrimary
@@ -360,14 +360,14 @@ PageBase {
                         anchors.centerIn: parent
                         spacing: Design.spacingSm
 
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             font.family: Design.symbolFontFamily
                             font.pixelSize: 20
                             color: Colours.onSurface
                             text: "shuffle"
                         }
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Random"
                             color: Colours.onSurface
@@ -424,7 +424,7 @@ PageBase {
             }
         }
 
-        Text {
+        ShellText {
             width: parent.width
             visible: wallpaperSection.tileModel.length > 0
             topPadding: Design.spacingSm
@@ -507,14 +507,14 @@ PageBase {
                 anchors.centerIn: parent
                 spacing: Design.spacingXs
 
-                Text {
+                ShellText {
                     anchors.horizontalCenter: parent.horizontalCenter
                     font.family: Design.symbolFontFamily
                     font.pixelSize: 44
                     color: Colours.outline
                     text: "hide_image"
                 }
-                Text {
+                ShellText {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: "No local wallpapers found"
                     color: Colours.outline

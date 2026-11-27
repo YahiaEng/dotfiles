@@ -341,7 +341,7 @@ SectionPopout {
                     visible: artImage.status === Image.Ready
                 }
 
-                Text {
+                ShellText {
                     id: artPlaceholderGlyph
                     anchors.centerIn: parent
                     visible: artImage.status !== Image.Ready
@@ -363,7 +363,7 @@ SectionPopout {
             // The full uncapped title — never Design.mediaTitleMaxChars,
             // the bar's own cap. This popout is deliberately the one place
             // the full title lives.
-            Text {
+            ShellText {
                 id: titleText
                 width: parent.width
                 elide: Text.ElideRight
@@ -373,7 +373,7 @@ SectionPopout {
                 font.weight: Design.weightEmphasis
                 color: BarRoles.popoutFg
             }
-            Text {
+            ShellText {
                 id: artistText
                 width: parent.width
                 elide: Text.ElideRight
@@ -453,7 +453,7 @@ SectionPopout {
                 radius: width / 2
                 color: BarRoles.popoutSurfaceVariant
             }
-            Text {
+            ShellText {
                 id: prevGlyph
                 anchors.centerIn: parent
                 textFormat: Text.PlainText
@@ -482,7 +482,7 @@ SectionPopout {
                 radius: width / 2
                 color: BarRoles.accent
             }
-            Text {
+            ShellText {
                 id: playPauseGlyph
                 anchors.centerIn: parent
                 textFormat: Text.PlainText
@@ -515,7 +515,7 @@ SectionPopout {
                 radius: width / 2
                 color: BarRoles.popoutSurfaceVariant
             }
-            Text {
+            ShellText {
                 id: nextGlyph
                 anchors.centerIn: parent
                 textFormat: Text.PlainText
@@ -537,7 +537,7 @@ SectionPopout {
 
     // ── The multi-player case — one line, not a list. Switching players
     //    is a detail-surface action. ─────────────────────────────────────
-    Text {
+    ShellText {
         id: multiPlayerText
         visible: root.bodyState === "populated" && root.mediaBackend && root.mediaBackend.players.length > 1
         width: parent.width

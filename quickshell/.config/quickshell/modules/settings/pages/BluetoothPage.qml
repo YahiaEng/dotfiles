@@ -180,7 +180,7 @@ PageBase {
                     onClicked: root.handleBtRowPress(deviceRow.device)
                 }
 
-                Text {
+                ShellText {
                     id: btGlyph
                     anchors.left: parent.left
                     anchors.leftMargin: Design.spacingSm
@@ -191,7 +191,7 @@ PageBase {
                     color: Colours.onSurfaceVariant
                 }
 
-                Text {
+                ShellText {
                     id: btNameText
                     anchors.left: btGlyph.right
                     anchors.leftMargin: Design.spacingSm
@@ -227,7 +227,7 @@ PageBase {
                         spacing: Design.spacingSm
                         visible: !deviceRow.isFailed
 
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: deviceRow.isPending
                             font.family: Design.symbolFontFamily
@@ -244,7 +244,7 @@ PageBase {
                                 duration: Motion.ambientDuration
                             }
                         }
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: !deviceRow.isPending
                             text: deviceRow.verb === "pair" ? "Pair" : deviceRow.verb === "connect" ? "Connect" : deviceRow.verb === "disconnect" ? "Disconnect" : ""
@@ -256,7 +256,7 @@ PageBase {
                                 onClicked: root.handleBtRowPress(deviceRow.device)
                             }
                         }
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             visible: deviceRow.isPendingPair
                             text: "Cancel"
@@ -279,7 +279,7 @@ PageBase {
                         visible: deviceRow.isFailed
                         spacing: Design.spacingSm
 
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             elide: Text.ElideRight
                             width: 140
@@ -288,7 +288,7 @@ PageBase {
                             font.pixelSize: Design.settingsFontSub
                             color: Colours.error
                         }
-                        Text {
+                        ShellText {
                             anchors.verticalCenter: parent.verticalCenter
                             text: "Retry"
                             font.pixelSize: Design.settingsFontRow
@@ -313,7 +313,7 @@ PageBase {
                     height: parent.height
                     visible: deviceRow.device !== null
 
-                    Text {
+                    ShellText {
                         anchors.centerIn: parent
                         font.family: Design.symbolFontFamily
                         font.pixelSize: Design.iconSizeMd
@@ -339,7 +339,7 @@ PageBase {
                     width: Design.iconSizeMd + Design.spacingSm
                     height: parent.height
 
-                    Text {
+                    ShellText {
                         anchors.centerIn: parent
                         font.family: Design.symbolFontFamily
                         font.pixelSize: Design.iconSizeMd
@@ -364,13 +364,13 @@ PageBase {
                 spacing: Design.spacingXs
                 visible: deviceRow.isExpanded
 
-                Text {
+                ShellText {
                     visible: deviceRow.batteryAvailable
                     text: deviceRow.device ? "Battery " + Math.round(deviceRow.device.battery) + "%" : ""
                     font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                 }
-                Text {
+                ShellText {
                     // Explicit plain-text pin (T-15-08) — the MAC
                     // address is over-the-air text like the name above.
                     textFormat: Text.PlainText
@@ -381,7 +381,7 @@ PageBase {
 
                 Row {
                     visible: !deviceRow.isConfirmingForget
-                    Text {
+                    ShellText {
                         text: "Forget"
                         font.pixelSize: Design.settingsFontSub
                         color: Colours.error
@@ -396,7 +396,7 @@ PageBase {
                     visible: deviceRow.isConfirmingForget
                     spacing: Design.spacingSm
 
-                    Text {
+                    ShellText {
                         width: parent.width - btForgetYes.implicitWidth - btForgetNo.implicitWidth - Design.spacingSm * 2
                         textFormat: Text.PlainText
                         text: "Forget " + (deviceRow.device ? deviceRow.device.deviceName : "") + "?"
@@ -404,7 +404,7 @@ PageBase {
                         color: Colours.onSurface
                         wrapMode: Text.WordWrap
                     }
-                    Text {
+                    ShellText {
                         id: btForgetYes
                         text: "Forget"
                         font.pixelSize: Design.settingsFontSub
@@ -419,7 +419,7 @@ PageBase {
                             }
                         }
                     }
-                    Text {
+                    ShellText {
                         id: btForgetNo
                         text: "Cancel"
                         font.pixelSize: Design.settingsFontSub
@@ -492,7 +492,7 @@ PageBase {
                 }
             }
 
-            Text {
+            ShellText {
                 visible: root.bluetoothBackend
                     ? (root.bluetoothBackend.connectedDevices.length === 0 && root.bluetoothBackend.pairedDevices.length === 0 && root.bluetoothBackend.discoveredDevices.length === 0 && !root.bluetoothBackend.discovering)
                     : false
@@ -508,7 +508,7 @@ PageBase {
                 // The ONLY call site of `startDiscovery()` on this page,
                 // matching BluetoothPanel.qml's own single-call-site
                 // discipline.
-                Text {
+                ShellText {
                     visible: !(root.bluetoothBackend && root.bluetoothBackend.discovering)
                     text: "Add device"
                     font.pixelSize: Design.settingsFontRow
@@ -520,13 +520,13 @@ PageBase {
                         onClicked: root.bluetoothBackend && root.bluetoothBackend.startDiscovery()
                     }
                 }
-                Text {
+                ShellText {
                     visible: root.bluetoothBackend ? root.bluetoothBackend.discovering : false
                     text: "Searching for devices…"
                     font.pixelSize: Design.settingsFontSub
                     color: Colours.onSurfaceVariant
                 }
-                Text {
+                ShellText {
                     visible: root.bluetoothBackend ? root.bluetoothBackend.discovering : false
                     text: "Stop"
                     font.pixelSize: Design.settingsFontSub
