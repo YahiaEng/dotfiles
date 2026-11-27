@@ -388,7 +388,8 @@ hl.layer_rule({ match = { namespace = "^quickshell-.*" }, blur = true })
 hl.layer_rule({ match = { namespace = "quickshell-dashboard" }, blur = true })
 -- The solid right rail overlaps the bar's corner flare. Blurring behind
 -- its antialiased edge darkens pixels inside the join at fractional scales.
-hl.layer_rule({ match = { namespace = "quickshell-baredge-right" }, blur = false })
+-- Arrange the two horizontal surfaces first so they reach the right rail.
+hl.layer_rule({ match = { namespace = "quickshell-baredge-right" }, blur = false, order = -1 })
 -- ignore_alpha (quick task 260818-nwo) — REQUIRED by the drawer's move to a
 -- full-screen layer surface. The surface now spans the output so the
 -- compositor cannot re-centre (and therefore jitter) it on a width change;

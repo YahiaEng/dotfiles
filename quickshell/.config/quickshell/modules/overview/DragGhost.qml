@@ -1,17 +1,10 @@
-// DragGhost.qml — the cursor-following still snapshot (Phase 16 Plan 06,
+// DragGhost.qml — the cursor-following window preview (Phase 16 Plan 06,
 // D-16-12/D-16-14). Overview.qml instantiates exactly one of these; the
 // drag session it belongs to lives in Overview.qml, not here — this type
 // only draws whatever session state it is told about.
 //
-// WHAT THIS IS NOT: a second capture path. The visible snapshot is a fresh
-// `WindowThumbnail` instance (`liveCapture: false`, a single explicit
-// `captureFrame()` call per drag) — the SAME type the grid itself uses,
-// with a different capture mode, per this plan's own
-// <assumption_delta_decision> ("It is not a fourth way to draw a window;
-// it is the general representation with a different capture mode and a
-// different transform"). Falling back to WindowThumbnail's own pending/
-// failed placeholder chrome when no frame has landed is therefore free —
-// it is the SAME state machine 16-05 already built, not a second one.
+// The ghost uses WindowThumbnail, just like the grid. It shows a still
+// image when capture is enabled and a window identity card in software mode.
 //
 // WHY A `Loader` AROUND THE INNER THUMBNAIL, NOT A PLAIN INSTANCE: this
 // ghost is reused across every drag in one summon (Overview.qml
@@ -34,6 +27,7 @@ Item {
     id: root
 
     property var toplevel: null
+    property bool captureEnabled: true
     // The origin tile's own on-screen bounds (scene coordinates) — where a
     // cancelled drag animates back to. Set once per drag by beginDrag(),
     // never by the live cursor-follow path.
@@ -58,7 +52,7 @@ Item {
     scale: root.liftScale
     transformOrigin: Item.Center
 
-    // ── The still snapshot, reusing WindowThumbnail's own type ───────────
+    // Reuse the grid's window preview for the drag.
     Loader {
         id: ghostLoader
         anchors.fill: parent
@@ -69,9 +63,8 @@ Item {
         id: ghostThumbComponent
         WindowThumbnail {
             toplevel: root.toplevel
-            // Never the live view (D-16-12) — a single explicit
-            // captureFrame() call (below, in beginDrag()) is the only way
-            // this instance ever gets a frame.
+            captureEnabled: root.captureEnabled
+            // Each drag uses a single frame when capture is enabled.
             liveCapture: false
             x: 0
             y: 0
@@ -91,7 +84,7 @@ Item {
     MultiEffect {
         anchors.fill: ghostLoader
         source: ghostLoader.item
-        visible: !!ghostLoader.item
+        visible: root.captureEnabled && !!ghostLoader.item
         shadowEnabled: true
         shadowColor: Qt.rgba(0, 0, 0, 0.35)
         shadowOpacity: 0.35

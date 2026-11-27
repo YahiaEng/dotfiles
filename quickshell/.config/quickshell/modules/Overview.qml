@@ -8,11 +8,9 @@
 // summons — plus D-16-05's always-present, visually distinct eleventh
 // scratchpad tile beneath the block. The whole assembly enters on a
 // row-level cascade (D-16-24): row 1, row 2, scratchpad — three bands, not
-// eleven. The fit arithmetic (16-UI-SPEC.md "Grid geometry" / "Spacing
-// Scale") is load-bearing and re-run in the comments beside the grid block
-// below on any tile/gap/border change.
+// eleven. The tiles shrink to fit the logical size of the layer surface.
 //
-// Every layer between Super+O and live pixels is wired end-to-end here:
+// Every layer between Super+Tab and live pixels is wired end-to-end here:
 // layer posture, scrim, focus grab, dismissal, click-to-focus-and-close,
 // and the `overview` IPC status verb — all inherited unchanged from the
 // tracer (16-02).
@@ -71,15 +69,13 @@ PanelWindow {
         if (overviewWindow._dismissing)
             return;
         overviewWindow._dismissing = true;
-
         function afterExit() {
             overviewWindow.entranceCascade.exitFinished.disconnect(afterExit);
             overviewWindow.dismissRequested();
         }
         overviewWindow.entranceCascade.exitFinished.connect(afterExit);
-        // Motion-off and empty-bands both land in `exitFinished` synchronously
-        // (Cascade.runExit()'s own early return), so the no-motion path still
-        // tears down on the same frame it used to.
+        // Reduced motion and the software-rendered overview complete the
+        // exit synchronously through the same signal.
         overviewWindow.entranceCascade.runExit();
     }
 
@@ -144,9 +140,11 @@ PanelWindow {
     // second trigger.
     Component.onCompleted: {
         Hyprland.refreshToplevels();
-        overviewWindow.entranceCascade.bands = [rowOne, rowTwo, scratchpadTile];
-        overviewWindow.entranceCascade.armed = true;
-        overviewWindow.entranceCascade.run();
+        if (!overviewWindow.softwareRendering) {
+            overviewWindow.entranceCascade.bands = [rowOne, rowTwo, scratchpadTile];
+            overviewWindow.entranceCascade.armed = true;
+            overviewWindow.entranceCascade.run();
+        }
         overviewWindow.seedSelectedTile();
     }
 
@@ -205,21 +203,23 @@ PanelWindow {
         onClicked: overviewWindow._beginDismiss()
     }
 
-    // Fixed tile geometry (16-UI-SPEC.md "Grid geometry") — named constants
-    // so the fit arithmetic below reads as arithmetic, not magic numbers.
-    readonly property int tileWidth: 480
-    readonly property int tileHeight: 270
-    // 480 / 2560 = 0.1875 on this host — computed, not hardcoded, per
-    // D-16-02, so a different monitor width still produces a correct scale.
-    readonly property real captureScale: overviewWindow.tileWidth / Hyprland.focusedMonitor.width
-
-    // Scratchpad tile geometry (D-16-05): ~0.625x a numbered tile, still
-    // 16:9. Its own captureScale (not the numbered tiles' one reused) so
-    // its windows render at the scratchpad's own smaller scale rather than
-    // being scaled twice.
-    readonly property int scratchpadWidth: 300
-    readonly property int scratchpadHeight: 169
-    readonly property real scratchpadCaptureScale: overviewWindow.scratchpadWidth / Hyprland.focusedMonitor.width
+    readonly property var outputMonitor: Hyprland.monitorFor(screen)
+    // WSL's shared-memory window copies stall the compositor. Use window
+    // metadata and static selection on the software-rendered shell.
+    readonly property bool softwareRendering: Quickshell.env("QUICKSHELL_SOFTWARE_RENDERING") === "1"
+    readonly property int columns: 5
+    readonly property real scratchpadRatio: 0.625
+    readonly property real tileWidth: {
+        const aspectRatio = 16 / 9;
+        const availableWidth = width - 2 * Design.spacingLg;
+        const availableHeight = height - 4 * Design.spacingLg - Design.spacingSm - modeIndicator.height;
+        return Math.max(0, Math.floor(Math.min(480,
+            (availableWidth - (columns - 1) * Design.spacingLg) / columns,
+            availableHeight * aspectRatio / (2 + scratchpadRatio))));
+    }
+    readonly property real tileHeight: tileWidth * 9 / 16
+    readonly property real scratchpadWidth: tileWidth * scratchpadRatio
+    readonly property real scratchpadHeight: tileHeight * scratchpadRatio
 
     // Resolves a fixed slot id (1..10) against Hyprland's live workspace
     // list, or returns null for an id Hyprland does not yet know about.
@@ -613,17 +613,13 @@ PanelWindow {
         overviewWindow._beginDismiss();
     }
 
-    // ── The fixed 5x2 numbered grid (D-16-01) ────────────────────────────
-    // Block width: 5*480 + 4*24 = 2496px; height: 2*270 + 24 = 564px;
-    // centred with a spacingLg (24px) scrim margin per side — 2544px total
-    // on this 2560px display, 16px spare (16-UI-SPEC.md's load-bearing fit
-    // arithmetic). Any change to tile width, gap or border must re-run it.
-    // A Column of two Rows (not a single Grid) keeps each row independently
-    // addressable as its own entrance-cascade band — plan 16-03 Task 2
-    // wires that up without restructuring this container.
+    // Centre the grid together with the indicator and scratchpad.
+    // Separate rows serve as separate entrance-cascade bands.
     Column {
         id: gridBlock
         anchors.centerIn: parent
+        anchors.verticalCenterOffset: (modeIndicator.height + Design.spacingSm
+            - overviewWindow.scratchpadHeight - Design.spacingLg) / 2
         spacing: Design.spacingLg
 
         Row {
@@ -632,14 +628,14 @@ PanelWindow {
 
             Repeater {
                 id: rowOneRepeater
-                model: 5
+                model: overviewWindow.columns
 
                 delegate: WorkspaceTile {
                     width: overviewWindow.tileWidth
                     height: overviewWindow.tileHeight
                     slotLabel: String(index + 1)
-                    captureScale: overviewWindow.captureScale
-                    monitor: Hyprland.focusedMonitor
+                    softwareRendering: overviewWindow.softwareRendering
+                    monitor: workspace?.monitor ?? overviewWindow.outputMonitor
                     workspace: overviewWindow.workspaceForSlot(index + 1)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 1)
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 1)
@@ -660,14 +656,14 @@ PanelWindow {
 
             Repeater {
                 id: rowTwoRepeater
-                model: 5
+                model: overviewWindow.columns
 
                 delegate: WorkspaceTile {
                     width: overviewWindow.tileWidth
                     height: overviewWindow.tileHeight
                     slotLabel: String(index + 6)
-                    captureScale: overviewWindow.captureScale
-                    monitor: Hyprland.focusedMonitor
+                    softwareRendering: overviewWindow.softwareRendering
+                    monitor: workspace?.monitor ?? overviewWindow.outputMonitor
                     workspace: overviewWindow.workspaceForSlot(index + 6)
                     isFocusedWorkspace: overviewWindow.isFocusedSlot(index + 6)
                     dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === (index + 6)
@@ -702,7 +698,7 @@ PanelWindow {
             horizontalCenter: gridBlock.horizontalCenter
             bottomMargin: Design.spacingSm
         }
-        width: modeIndicatorLabelText.implicitWidth + Design.spacingMd * 2
+        width: Math.min(parent.width, modeIndicatorLabelText.implicitWidth + Design.spacingMd * 2)
         height: modeIndicatorLabelText.implicitHeight + Design.spacingXs * 2
         radius: height / 2
         color: Colours.surfaceVariant
@@ -710,6 +706,9 @@ PanelWindow {
         Text {
             id: modeIndicatorLabelText
             anchors.centerIn: parent
+            width: Math.max(0, parent.width - Design.spacingMd * 2)
+            horizontalAlignment: Text.AlignHCenter
+            elide: Text.ElideRight
             text: overviewWindow.modeIndicatorText
             font.pixelSize: Design.fontLabel
             color: Colours.onSurfaceVariant
@@ -732,8 +731,8 @@ PanelWindow {
         width: overviewWindow.scratchpadWidth
         height: overviewWindow.scratchpadHeight
         isScratchpad: true
-        captureScale: overviewWindow.scratchpadCaptureScale
-        monitor: Hyprland.focusedMonitor
+        softwareRendering: overviewWindow.softwareRendering
+        monitor: workspace?.monitor ?? overviewWindow.outputMonitor
         workspace: overviewWindow.scratchpadWorkspace()
         dropTargetActive: overviewWindow.dragActive && overviewWindow.dropTargetToken === "special:magic"
         keyboardSelected: overviewWindow.selectedTile === 10
@@ -762,6 +761,7 @@ PanelWindow {
 
     DragGhost {
         id: dragGhost
+        captureEnabled: !overviewWindow.softwareRendering
     }
 
     function handleDragStarted(toplevel, globalPos, sourceSize) {
@@ -998,7 +998,8 @@ PanelWindow {
     // instead of on every tile. A mix of captured and denied windows never
     // reaches this (thumbnailsWithContent > 0 in that case) — exactly what
     // keeps UI-SPEC E5's partial case per-window-only.
-    readonly property bool wholeGridCatchVisible: overviewWindow.thumbnailCount > 0
+    readonly property bool wholeGridCatchVisible: !overviewWindow.softwareRendering
+        && overviewWindow.thumbnailCount > 0
         && overviewWindow.allSettled
         && overviewWindow.thumbnailsWithContent === 0
 
@@ -1073,7 +1074,7 @@ PanelWindow {
                 // <specifics> — the plain-language standing instruction),
                 // and never claims certainty the surface cannot have
                 // (T-16-21's repudiation mitigation).
-                text: "Screen capture looks blocked for every window — check Hyprland's screencopy permission, then reopen the overview (Super+O)."
+                text: "Screen capture looks blocked for every window — check Hyprland's screencopy permission, then reopen the overview (Super+Tab)."
             }
         }
     }

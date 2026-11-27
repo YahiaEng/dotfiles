@@ -131,10 +131,10 @@ function buildOutline(params) {
     // carried on by something else: the horizontal bar's band turning into
     // the right rail, and the bottom rail turning up into it.
     //
-    // MUST be <= t. The arc lands at depth `squareEndRadius`, and the inner
-    // face is at depth `t`, so a larger radius would put the arc's end past
-    // the face it is supposed to meet and the outline would self-intersect —
-    // the same class of silent breakage `bulge: false` exists to avoid.
+    // The outer arc must fit within the outline's depth at the join:
+    // t + endFlareRadius. At a constant-width turn the two arcs share a
+    // centre when the outer radius equals t + endFlareRadius and the
+    // adjoining rail is also t thick.
     var squareEndRadius = params.squareEndRadius === undefined ? 0 : params.squareEndRadius;
     var endFlareRadius = params.endFlareRadius || 0;
     var bulge = params.bulge === undefined ? true : !!params.bulge;

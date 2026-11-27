@@ -686,7 +686,7 @@ PanelWindow {
     // The outer radius of the two corners where the horizontal frame turns —
     // see the slab's `squareEndRadius` for the derivation (inner flare +
     // rail thickness, which is also the vertical frame's own corner radius).
-    readonly property real _weldOuterCornerRadius: Design.edgeBarWeldFlareRadius + Design.edgeBarThickness
+    readonly property real _weldOuterCornerRadius: Design.edgeBarWeldCornerRadius
 
     // ── The dashboard's landmark and dwell target (operator round 3) ─────
     // Width is the dashboard's own, exactly as `edgeBarBulgeWidthTop` gave

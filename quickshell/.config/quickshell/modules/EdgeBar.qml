@@ -295,7 +295,10 @@ PanelWindow {
     margins.right: edgeBarWindow.fullRun || edgeBarWindow.runsToCorner
         ? Design.edgeBarCornerInset : (edgeBarWindow._vertical ? 0 : Design.edgeBarSideMargin)
     margins.top: edgeBarWindow._vertical ? (edgeBarWindow.fullRun ? 0 : Design.edgeBarSideMargin) : 0
-    margins.bottom: edgeBarWindow._vertical ? (edgeBarWindow.fullRun ? 0 : Design.edgeBarSideMargin) : 0
+    // The right rail starts its join where the bottom corner becomes
+    // straight. Hyprland already subtracts the bottom rail's flat depth.
+    margins.bottom: edgeBarWindow._vertical
+        ? (edgeBarWindow.fullRun ? Design.edgeBarWeldFlareRadius : Design.edgeBarSideMargin) : 0
 
     // ── Surface depth vs PAINTED depth (operator round 10) ──────────────
     // These were the same number until the hover target was decoupled from
@@ -321,7 +324,9 @@ PanelWindow {
         + (edgeBarWindow._hasBulge
             ? (edgeBarWindow.animatedBulge ? edgeBarWindow._swellExtra : edgeBarWindow._staticBulgeExtra)
             : 0)
-    readonly property real _surfaceDepth: Math.max(edgeBarWindow._paintedDepth, Design.edgeBarHoverDepth)
+    readonly property real _hoverDepth: Math.max(edgeBarWindow._paintedDepth, Design.edgeBarHoverDepth)
+    readonly property real _surfaceDepth: edgeBarWindow.runsToCorner
+        ? Math.max(edgeBarWindow._hoverDepth, Design.edgeBarWeldCornerRadius) : edgeBarWindow._hoverDepth
 
     // Fixed axis = the surface's own depth; free axis = 0, the same
     // zero-is-inert idiom Bar.qml's own header documents for a doubly-
@@ -350,18 +355,11 @@ PanelWindow {
 
     // D-4 — the strip's own FLAT thickness alone, never thickness+bulge.
     //
-    // Two things reserve nothing at all:
-    //   - the right rail on any four-sided style, the DC-2 exception (see
-    //     the margins block above): it cannot both sit at the study's drawn
-    //     position and reserve, those being the same number;
-    //   - EVERY Brackets surface. The corners overhang entirely, which is
-    //     that shape's whole cost advantage — the study's own table scores
-    //     it at zero screen cost, and `reserved` measures [0,0,50,0] with
-    //     it selected (the 50 is the BAR's, not this file's).
-    // The registry row for this file is `reserve`, so the doctor's
-    // `exclusiveZone: 0` forward assertion (which fires only on `noreserve`
-    // rows) does not apply either way.
-    exclusiveZone: (edgeBarWindow._brackets || edgeBarWindow.edge === "right") ? 0 : edgeBarWindow._t
+    // The joined right rail reserves its painted thickness. Hyprland adds
+    // the anchored margin, leaving the configured window gap beyond it.
+    // Brackets and Halo's right rail keep their existing overhang.
+    exclusiveZone: (edgeBarWindow._brackets || (edgeBarWindow.edge === "right" && !edgeBarWindow.fullRun))
+        ? 0 : edgeBarWindow._t
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
 
@@ -630,19 +628,11 @@ PanelWindow {
         // the far end — the bar's own slab in the vertical orientation, the
         // right rail in the horizontal one.
         squareEnd: edgeBarWindow.style === "continuous",
-        // ── THE SCREEN-CORNER TURN (quick task 260829-2ov, operator round
-        //    3: "the top right and bottom right corners are sharp") ───────
-        // Only a run that ends AT a screen corner turns there; a run that
-        // ends INTO the bar is carried on and must stay butt-flat, which is
-        // what `runsToCorner` distinguishes. `edgeBarThickness` is the
-        // largest radius a run of that thickness can express at its own end
-        // — the arc lands at depth `squareEndRadius` and the inner face is
-        // at depth `t`, so anything larger self-intersects (the builder
-        // states this). A wider turn here would have to be a shape spanning
-        // BOTH rails, since neither surface reaches past its own reservation;
-        // the bar's own corner is bigger precisely because its band is
-        // deep enough to hold it alone.
-        squareEndRadius: edgeBarWindow.runsToCorner ? Design.edgeBarThickness : 0,
+        // Both arcs of the bottom turn live on this surface and meet the
+        // straight right rail at their common tangent.
+        squareEndRadius: edgeBarWindow.runsToCorner ? Design.edgeBarWeldCornerRadius : 0,
+        endFlareRadius: edgeBarWindow.runsToCorner ? Design.edgeBarWeldFlareRadius : 0,
+        endRailThickness: edgeBarWindow._t,
         // Halo's two vertical rails are plain runs (see `_hasBulge`).
         bulge: edgeBarWindow._hasBulge,
         xl: edgeBarWindow._xl,
@@ -903,18 +893,12 @@ PanelWindow {
         // admits no pointer input at all — which is correct: those rails
         // have no bulge to hover and nothing to summon.
         x: edgeBarWindow._vertical ? 0 : edgeBarWindow._xl
-        y: edgeBarWindow._vertical ? edgeBarWindow._xl : 0
-        // Fills the surface's depth on the depth axis. `_surfaceDepth` is
-        // the surface's own implicit depth, so this spans it exactly — for
-        // EVERY instance, since a mirrored edge ("bottom"/"right") is
-        // anchored on the far side and its surface therefore already starts
-        // where its hover region should. Deliberately not
-        // `edgeBarWindow.height`/`.width`: a layer surface's dimensions
-        // arrive in STAGES (100 -> 500 -> ... on this host, measured in
-        // round 5), so reading one here would size the region off a
-        // transient value.
-        width: edgeBarWindow._vertical ? edgeBarWindow._surfaceDepth : edgeBarWindow._wb
-        height: edgeBarWindow._vertical ? edgeBarWindow._wb : edgeBarWindow._surfaceDepth
+        y: edgeBarWindow._vertical ? edgeBarWindow._xl
+            : (edgeBarWindow._flip ? edgeBarWindow._surfaceDepth - edgeBarWindow._hoverDepth : 0)
+        // Keep the hover target at the edge when the corner needs extra
+        // surface depth farther inboard.
+        width: edgeBarWindow._vertical ? edgeBarWindow._hoverDepth : edgeBarWindow._wb
+        height: edgeBarWindow._vertical ? edgeBarWindow._wb : edgeBarWindow._hoverDepth
 
         // ── Hover reveal (quick task 260823-9ak, Task 5, R5/R6, P-3,
         //    T-9ak-01) — a HoverHandler and a dwell Timer, NOTHING else.

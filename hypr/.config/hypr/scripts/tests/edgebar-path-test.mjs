@@ -412,6 +412,16 @@ console.log("── Continuous top bar corner ──");
         path.includes("L 1526 70 L 1520 70 A 20 20 0 0 0 1500 50 L 25 50"));
 }
 
+console.log("── Continuous bottom rail corner ──");
+{
+    const path = buildOutline({
+        t: 6, re: 3, along: 1906, surfaceDepth: 26, flip: true, bulge: false,
+        squareEnd: true, squareEndRadius: 26, endFlareRadius: 20, endRailThickness: 6,
+    });
+    check("the concentric corner arcs meet the right rail across its full width",
+        path.includes("L 1880 26 A 26 26 0 0 0 1906 0 L 1906 0 L 1900 0 A 20 20 0 0 1 1880 20"));
+}
+
 console.log("");
 console.log(total + " assertions, " + (total - failures) + " passed, " + failures + " failed");
 process.exit(failures > 0 ? 1 : 0);

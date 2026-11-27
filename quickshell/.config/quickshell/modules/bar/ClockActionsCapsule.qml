@@ -120,24 +120,6 @@ BarCapsule {
         // safe.
         Rectangle {
             id: clockFillPill
-            // MEASURED 2026-08-12: centring on clockTriggerGrid put this pill at
-            // x=8.0 y=1176.0 (39.1x90) inside a cell at x=2.0 y=1182.0 — offset
-            // +6/-6, so it reached x=47.1 past the 44px column and started 6px
-            // above the capsule's own top edge. The grid sits 6px right of the
-            // cell's centre, so centring on the grid centres on the wrong thing.
-            // In vertical, centre on the CELL (this item's parent), which the
-            // trigger already sizes to the pill. Both branches name a real
-            // object — never `undefined`, which does not clear an anchor.
-            // KNOWN RESIDUAL (2026-08-12): in vertical this pill measured x=8.0
-            // y=1176.0 (39.1x90) inside a cell at x=2.0 y=1182.0 — offset +6/-6,
-            // reaching x=47.1 past the 44px column and 6px above the capsule's top.
-            // Centring on `parent` instead FIXED the geometry (measured x=2.0
-            // y=1182.0) but introduced "Binding loop detected for property
-            // implicitWidth/implicitHeight" at PopoutTrigger.qml[40]: the trigger
-            // sizes itself from childrenRect, so a child centred on it makes each
-            // depend on the other. Reverted — a loop is worse than the overhang.
-            // The fix needs the cell to reserve the pill's padding explicitly
-            // rather than inferring its size from the pill.
             anchors.centerIn: clockTriggerGrid
             // Upstream Athena states #clock as PADDING around its text
             // (`padding: 6px 10px 6px 16px`), not as a fixed height, so this
@@ -266,37 +248,9 @@ BarCapsule {
             // edge at all — the pill still centres on the Grid, the Grid
             // still takes a constant x — so there is no cycle to create.
             x: (clockActionsCapsule.vertical ? Design.barCapsulePadding * 2 : Design.spacingLg) / 2
-            // F1 (quick task 260812-69w) — Task 1's Probe A measured this
-            // Grid sitting flush at contentHost's own local y=0 by
-            // default, while clockFillPill (anchors.centerIn:
-            // clockTriggerGrid, barCapsulePadding*2 taller than this Grid)
-            // overhangs ABOVE that origin: contentHost.childrenRect.y
-            // measured -6. contentHost/triggerRoot's own implicitHeight
-            // (28, from childrenRect.height) correctly captures the pill's
-            // total SIZE but not that ORIGIN, so BarCapsule's outer Grid
-            // (which top-aligns this 28px cell against its 24px
-            // (cellPitch) ActionCell siblings — every sibling already
-            // vertically self-centres its own glyph at local
-            // cellPitch/2=12) rendered the clock's pill+text pair 4px
-            // higher than its siblings' content centre (measured: clock
-            // content sceneY=15 vs ActionCell content sceneY=19).
-            // Re-deriving the whole positioner's alignment mode
-            // (BarCapsule.qml's contentGrid) was rejected: a
-            // vertical-centre change there would ALSO re-centre every
-            // other row containing differing-height children (measured
-            // live: workspaces' own row mixes 16/20/22px children), moving
-            // capsules the operator never flagged — the acceptance bar
-            // requires those to show a delta of exactly 0. The fix
-            // therefore stays local: target this Grid's own vertical
-            // centre at cellPitch/2 (12), the SAME slot centre every
-            // ActionCell already centres its own glyph on, instead of at
-            // this cell's own (taller, pill-driven) box centre. Vertical
-            // orientation is untouched (0, matching its prior default) —
-            // Probe A only measured the horizontal misalignment the
-            // operator reported, and this Grid's vertical-mode shape
-            // (rows=-1, three stacked lines) is a different geometry this
-            // fix must not touch.
-            y: clockActionsCapsule.vertical ? 0 : (clockActionsCapsule.cellPitch - clockTriggerGrid.height) / 2
+            // Place the pill at the trigger's origin so its painted bounds
+            // match the cell Grid centres and the area that receives input.
+            y: Design.barCapsulePadding
             rows: clockActionsCapsule.vertical ? -1 : 1
             columns: clockActionsCapsule.vertical ? 1 : -1
             spacing: Design.spacingXs

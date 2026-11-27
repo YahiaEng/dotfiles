@@ -1151,11 +1151,13 @@ ShellRoot {
     // with the wl_surface itself on every dismissal path (D-14/D-32/D-36
     // zero-idle doctrine), the same guarantee the panels get from backend
     // gating by a different mechanism.
+    property var overviewScreen: null
     LazyLoader {
         id: overviewLoader
         active: false
 
         Overview {
+            screen: root.overviewScreen
             onDismissRequested: overviewLoader.active = false
         }
     }
@@ -1166,7 +1168,7 @@ ShellRoot {
     // where popping over a game is an interruption; the overview is a
     // navigation surface, and navigation is what is needed most while
     // trapped in a fullscreen app — `Super+2` already works while
-    // fullscreen, so refusing `Super+O` while allowing it would block the
+    // fullscreen, so refusing `Super+Tab` while allowing it would block the
     // escape hatch while leaving the fire exit open.
     //
     // The close half goes through `_dismissLoader()` (:480) rather than
@@ -1181,8 +1183,11 @@ ShellRoot {
     function toggleOverview() {
         if (overviewLoader.active)
             root._dismissLoader(overviewLoader);
-        else
+        else {
+            root.overviewScreen = Quickshell.screens.find(screen => screen.name === Hyprland.focusedMonitor?.name)
+                ?? root.mainScreen;
             overviewLoader.active = true;
+        }
     }
 
     // ── Launcher (quick task 260822-sht — the native QML launcher that
@@ -1390,19 +1395,9 @@ ShellRoot {
         function toggle(): string {
             var wasActive = overviewLoader.active;
             root.toggleOverview();
-            // The CLOSE half is asynchronous as of quick task 260825-v3u —
-            // the loader stays `active` until Overview's exit cascade
-            // finishes, so the plain after-read this used to do would
-            // report "nothing happened" on every successful close and
-            // silently break `qs ipc call overview toggle` for scripts.
-            // What genuinely changed on this frame is that a dismiss was
-            // ASKED FOR, which `Overview._dismissing` records synchronously
-            // inside `_beginDismiss()`. The open half is still synchronous
-            // and still read straight off the loader.
-            if (wasActive) {
-                var item = overviewLoader.item;
-                return (item && item._dismissing) ? "overview" : "";
-            }
+            // Dismissal can finish immediately or after the exit cascade.
+            if (wasActive)
+                return !overviewLoader.active || overviewLoader.item?._dismissing ? "overview" : "";
             return overviewLoader.active ? "overview" : "";
         }
 
@@ -1410,7 +1405,8 @@ ShellRoot {
             if (!overviewLoader.active || !overviewLoader.item)
                 return "active=false tiles=0 windows=0 withContent=0";
             var ov = overviewLoader.item;
-            return "active=true tiles=" + ov.tileCount + " windows=" + ov.thumbnailCount + " withContent=" + ov.thumbnailsWithContent;
+            return "active=true tiles=" + ov.tileCount + " windows=" + ov.thumbnailCount
+                + " withContent=" + ov.thumbnailsWithContent + (ov.softwareRendering ? " previewMode=icons" : "");
         }
     }
 

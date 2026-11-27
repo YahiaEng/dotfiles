@@ -34,7 +34,6 @@ import QtQuick
 // constraint).
 import QtQuick.Shapes
 import Quickshell
-import Quickshell.Hyprland
 import "../"
 import "../dashboard"
 
@@ -47,17 +46,16 @@ Item {
     // The string drawn as this tile's identity — "1".."10" for numbered
     // slots.
     property string slotLabel: ""
-    property real captureScale: 1
+    property bool softwareRendering: false
+    readonly property bool animateSelection: Motion.motionEnabled && !softwareRendering
     property bool isFocusedWorkspace: false
     // D-16-05, wired by plan 16-03 Task 2 — see header note above.
     property bool isScratchpad: false
 
-    // Multi-monitor honesty (D-16-04): a window's `at` coordinates are
-    // monitor-relative in real Hyprland geometry, so they must be offset by
-    // the owning monitor's own x/y before scaling into tile-local space —
-    // WindowThumbnail.qml does this arithmetic itself, this type only
-    // threads the monitor through.
-    property var monitor: Hyprland.focusedMonitor
+    property var monitor: null
+    readonly property var sourceScreen: Quickshell.screens.find(screen => screen.name === monitor?.name)
+    readonly property real captureScale: sourceScreen?.width > 0 && sourceScreen?.height > 0
+        ? Math.min(width / sourceScreen.width, height / sourceScreen.height) : 0
 
     // D-16-13/D-16-20: clicking a tile's empty area (behind every
     // thumbnail) focuses this tile's own workspace and closes the
@@ -253,13 +251,24 @@ Item {
     // preview is missing. An unoccupied tile has no thumbnail delegate at
     // all (the Repeater's model is empty), so drag — like tap — is simply
     // unavailable there; a structural consequence, not a guard.
+    // Window positions are in logical pixels. Fit the whole source screen
+    // inside the tile and centre it when the aspect ratios differ.
+    Item {
+        id: captureViewport
+        anchors.centerIn: parent
+        width: (root.sourceScreen?.width ?? 0) * root.captureScale
+        height: (root.sourceScreen?.height ?? 0) * root.captureScale
+    }
+
     Repeater {
         id: windowRepeater
+        parent: captureViewport
         model: root.workspace ? root.workspace.toplevels : null
 
         delegate: WindowThumbnail {
             id: thumbnailDelegate
             toplevel: modelData
+            captureEnabled: !root.softwareRendering
             captureScale: root.captureScale
             monitor: root.monitor
             keyboardSelected: index === root.selectedWindowIndex
@@ -400,7 +409,7 @@ Item {
     Shape {
         id: sweepRing
         anchors.fill: parent
-        visible: root.keyboardSelected && Motion.motionEnabled
+        visible: root.keyboardSelected && root.animateSelection
         // The default triangulating renderer re-tessellates this two-subpath
         // annulus as the gradient angle changes; CurveRenderer resolves the
         // fill per-fragment instead, which is what keeps an animated gradient
@@ -479,7 +488,7 @@ Item {
         color: "transparent"
         border.width: Design.borderWidth * 2
         border.color: Colours.secondary
-        visible: root.keyboardSelected && !Motion.motionEnabled
+        visible: root.keyboardSelected && !root.animateSelection
     }
 
     // Monitor badge: only rendered when 2+ displays are connected. This

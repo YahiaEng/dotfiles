@@ -15,10 +15,8 @@
 // - D-16-12's drag ghost reuses this exact type with `liveCapture: false`
 //   (a still `captureFrame()` snapshot, per 16-UI-SPEC.md's Drag visuals
 //   section) instead of building its own capture path.
-// - D-16-11 bakes exactly ONE mode into the shipped build (`live: true`
-//   everywhere, today) — `liveCapture` is not a user-facing runtime toggle
-//   and no settings surface should ever expose it as one. Recorded here so
-//   a future reader does not add that knob back in.
+// The software-rendered overview sets `captureEnabled: false` to show
+// the window's identity without reading back its pixels.
 //
 // Geometry (D-16-02): position/size are read from
 // `toplevel.lastIpcObject.at`/`.size`, offset by the owning monitor's own
@@ -56,6 +54,7 @@
 // onto this type is what keeps them cooperating instead of racing.
 import QtQuick
 import QtQuick.Effects
+import Quickshell
 import Quickshell.Wayland
 import "../"
 import "../dashboard"
@@ -69,6 +68,7 @@ Item {
     // The owning HyprlandMonitor — geometry is offset by its x/y before
     // scaling into tile-local space (D-16-04).
     property var monitor: null
+    property bool captureEnabled: true
     // The variant switch documented above. Defaults true: D-16-07 says live
     // on every window first.
     property bool liveCapture: true
@@ -107,6 +107,8 @@ Item {
     // this guard exists and what it protects against (a toplevel whose IPC
     // object hasn't landed yet, or has landed but is missing at/size keys).
     readonly property var ipc: root.toplevel ? root.toplevel.lastIpcObject : null
+    readonly property string appId: root.toplevel?.wayland?.appId || root.ipc?.class || ""
+    readonly property string windowLabel: root.toplevel?.title || root.appId || "Window"
     readonly property var at: (root.ipc && root.ipc.at) ? root.ipc.at : [0, 0]
     readonly property var size: (root.ipc && root.ipc.size) ? root.ipc.size : [0, 0]
     readonly property real monitorX: root.monitor ? root.monitor.x : 0
@@ -151,6 +153,7 @@ Item {
     MultiEffect {
         anchors.fill: shadowSource
         source: shadowSource
+        visible: root.captureEnabled
         shadowEnabled: true
         // Heavier than DragGhost's 0.35 elevation-3: these sit on a blurred
         // backdrop rather than over sharp desktop, and a light shadow simply
@@ -165,17 +168,22 @@ Item {
 
     // The single home of ScreencopyView in modules/overview/ (Task 1's
     // acceptance criteria assert this count directory-wide).
-    ScreencopyView {
-        id: captureView
+    Loader {
+        id: captureLoader
         anchors.fill: parent
-        // constraintSize is MANDATORY (16-02-SUMMARY.md's confirmed
-        // pattern) — without it, the view paints its captured buffer at
-        // native/source resolution instead of scaling into this item's own
-        // bounds, relying on an ancestor's clip:true to crop the overflow
-        // rather than genuinely scaling down.
-        constraintSize: Qt.size(root.width, root.height)
-        captureSource: root.toplevel ? root.toplevel.wayland : null
-        live: root.liveCapture
+        active: root.captureEnabled
+        sourceComponent: ScreencopyView {
+            constraintSize: Qt.size(root.width, root.height)
+            captureSource: root.toplevel?.wayland ?? null
+            live: root.liveCapture
+        }
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        visible: !root.captureEnabled
+        radius: root.shadowRadius
+        color: Colours.surfaceVariant
     }
 
     // Window-level keyboard selection outline — drawn over the capture
@@ -191,10 +199,9 @@ Item {
         visible: root.keyboardSelected
     }
 
-    // Exposed so WorkspaceTile.qml's aggregate counts can read this
-    // instance's live hasContent without a second lookup path — the same
-    // shape the tracer's inline delegate exposed via `captureView` alias.
-    readonly property bool hasContent: captureView.hasContent
+    // Count the rendered window representation in either preview mode.
+    readonly property bool hasContent: root.captureEnabled ? (captureLoader.item?.hasContent ?? false)
+        : !!root.toplevel && root.width > 0 && root.height > 0
 
     // Public single-shot capture trigger — DragGhost.qml's own inner
     // WindowThumbnail instance (liveCapture:false) calls this once per
@@ -203,7 +210,7 @@ Item {
     // reusing this type's own capture path rather than a second one
     // (D-16-11/16-04's single-capture-path gate).
     function captureFrame() {
-        captureView.captureFrame();
+        captureLoader.item?.captureFrame();
     }
 
     // ── D-16-20 tap / D-16-12 drag — both Pointer Handlers, same item ────
@@ -278,7 +285,7 @@ Item {
     Timer {
         id: settleTimer
         interval: root.settleTimeoutMs
-        running: !root._everPopulated
+        running: root.captureEnabled && !root._everPopulated
         repeat: false
         onTriggered: {
             if (!root._everPopulated)
@@ -290,7 +297,7 @@ Item {
     // frame has landed (sticky), "failed" once the settle timer has fired
     // with nothing having landed, "pending" otherwise. No fourth value is
     // possible from this formula.
-    readonly property string captureState: root._everPopulated ? "populated"
+    readonly property string captureState: (!root.captureEnabled || root._everPopulated) ? "populated"
         : (root._timedOut ? "failed" : "pending")
 
     // Settled once the state has reached a terminal non-pending value —
@@ -370,55 +377,85 @@ Item {
         }
     }
 
-    // ── failed: icon + the window's real title + one honest, non-
-    //    diagnostic line. Padded by Design.spacingMd, icon-to-label gap
-    //    Design.spacingXs. Degrades bottom-up at small sizes — the parent
-    //    tile clips regardless, but a stack that cannot fit its icon
-    //    should drop the reason line before the title and the title
-    //    before the icon, per this plan's own action text. ────────────────
+    // Show window identity in the software-rendered overview and when a
+    // native capture fails. Hide the lower lines first in small previews.
     Item {
-        id: failedState
+        id: identityCard
         anchors.fill: parent
-        visible: root.captureState === "failed"
+        visible: !root.captureEnabled || root.captureState === "failed"
 
-        readonly property real innerWidth: Math.max(0, failedState.width - Design.spacingMd * 2)
-        readonly property real innerHeight: Math.max(0, failedState.height - Design.spacingMd * 2)
-        readonly property bool canShowIcon: failedState.innerHeight >= failedIcon.implicitHeight
-        readonly property bool canShowTitle: failedState.canShowIcon
-            && failedState.innerHeight >= (failedIcon.implicitHeight + Design.spacingXs + failedTitle.implicitHeight)
-        readonly property bool canShowReason: failedState.canShowTitle
-            && failedState.innerHeight >= (failedIcon.implicitHeight + Design.spacingXs + failedTitle.implicitHeight + Design.spacingXs + failedReason.implicitHeight)
+        readonly property real innerWidth: Math.max(0, identityCard.width - Design.spacingMd * 2)
+        readonly property real innerHeight: Math.max(0, identityCard.height - Design.spacingMd * 2)
+        readonly property bool canShowIcon: identityCard.innerHeight >= previewIcon.implicitHeight
+        readonly property bool canShowTitle: identityCard.canShowIcon
+            && identityCard.innerHeight >= previewIcon.implicitHeight + Design.spacingXs + titleMetrics.height
+        readonly property bool canShowReason: root.captureEnabled && identityCard.canShowTitle
+            && identityCard.innerHeight >= previewIcon.implicitHeight + 2 * Design.spacingXs
+                + titleMetrics.height + reasonMetrics.height
+
+        FontMetrics {
+            id: titleMetrics
+            font: identityTitle.font
+        }
+
+        FontMetrics {
+            id: reasonMetrics
+            font: failedReason.font
+        }
 
         Column {
             anchors.centerIn: parent
-            width: failedState.innerWidth
+            width: identityCard.innerWidth
             spacing: Design.spacingXs
 
-            Text {
-                id: failedIcon
-                visible: failedState.canShowIcon
+            Item {
+                id: previewIcon
+                visible: identityCard.canShowIcon
                 anchors.horizontalCenter: parent.horizontalCenter
-                font.family: Design.symbolFontFamily
-                font.pixelSize: Design.iconSizeMd
-                text: "visibility_off"
-                color: root.stateColour("failed")
+                implicitWidth: Design.iconSizeMd
+                implicitHeight: root.captureEnabled ? previewGlyph.implicitHeight : Design.iconSizeMd
+
+                Image {
+                    id: appIcon
+                    anchors.fill: parent
+                    asynchronous: true
+                    fillMode: Image.PreserveAspectFit
+                    sourceSize: Qt.size(width, height)
+                    source: {
+                        if (root.captureEnabled || !root.appId || !previewIcon.visible)
+                            return "";
+                        const desktopEntry = DesktopEntries.heuristicLookup(root.appId);
+                        return Quickshell.iconPath(desktopEntry?.icon || root.appId, "application-x-executable");
+                    }
+                }
+
+                Text {
+                    id: previewGlyph
+                    anchors.centerIn: parent
+                    visible: appIcon.status !== Image.Ready
+                    font.family: Design.symbolFontFamily
+                    font.pixelSize: Design.iconSizeMd
+                    text: root.captureEnabled ? "visibility_off" : "web_asset"
+                    color: root.captureEnabled ? root.stateColour("failed") : Colours.onSurfaceVariant
+                }
             }
             Text {
-                id: failedTitle
-                visible: failedState.canShowTitle
+                id: identityTitle
+                visible: identityCard.canShowTitle
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 elide: Text.ElideRight
+                textFormat: Text.PlainText
                 // Always known from Hyprland IPC regardless of whether
                 // capture succeeded — exactly why it is the identifier
                 // used here, per this plan's own action text.
-                text: root.toplevel ? root.toplevel.title : ""
+                text: root.captureEnabled ? root.toplevel?.title ?? "" : root.windowLabel
                 font.pixelSize: Design.fontBody
                 color: Colours.onSurface
             }
             Text {
                 id: failedReason
-                visible: failedState.canShowReason
+                visible: identityCard.canShowReason
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 // Deliberately non-diagnostic (16-RESEARCH.md Q5): a

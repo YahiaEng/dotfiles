@@ -875,8 +875,7 @@ Singleton {
     //    that is the rectangle a person actually sees; switch to 13 to
     //    align with the content box instead.
     readonly property int edgeBarSideMargin: 10
-    // Leave a gutter at the WSL viewer's edge while keeping the right
-    // rail within the same gap as the other edges.
+    // Leave a gutter at the WSL viewer's edge.
     readonly property int edgeBarCornerInset: Quickshell.env("DONT_PROMPT_WSL_INSTALL") === "1"
         ? edgeBarSideMargin - edgeBarThickness : 0
 
@@ -1006,6 +1005,7 @@ Singleton {
     //    "is not a function"/undefined in this shell, and a fallback chain
     //    then turns it into a plausible wrong number.
     readonly property int edgeBarWeldFlareRadius: (barColumnWidth + 2 * edgeBarWeldRim) / 2 - edgeBarThickness
+    readonly property int edgeBarWeldCornerRadius: edgeBarWeldFlareRadius + edgeBarThickness
 
     // ── Halo (quick task 260824-ns3, Task 4) — the four-edge hairline ───
     //    The style draws all four screen edges at a thickness the other
