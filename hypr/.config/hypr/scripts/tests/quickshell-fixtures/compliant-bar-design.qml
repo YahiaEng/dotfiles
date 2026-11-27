@@ -14,4 +14,5 @@ QtObject {
     readonly property int barHeight: 40
     readonly property int barEdgeMargin: 6
     readonly property int barColumnWidth: 44
+    readonly property int edgeBarWeldRim: 4
 }

@@ -80,7 +80,7 @@ PanelWindow {
     // cannot get there; it is anchored left+right with a non-negative
     // `exclusiveZone`, and a layer-shell surface with a non-negative
     // exclusive zone is positioned INSIDE every other surface's zone, so
-    // the vertical bar's own 50px reservation already pins the strip's
+    // the vertical bar's reservation already pins the strip's
     // right end at the bar's left edge no matter what margin is set.
     // Setting the strip's own exclusiveZone negative to escape that would
     // surrender its own 6px reservation — one surface cannot do both. So
@@ -193,22 +193,11 @@ PanelWindow {
     //    a magic number — the fixed axis's ternary branch is what is
     //    load-bearing. ──────────────────────────────────────────────────
     //
-    // Continuous weld (Task 3): the surface widens LEFTWARD by
-    // `edgeBarSideMargin + barColumnWidth / 2` (10 + 22 = 32, both
-    // already-existing tokens — no new one added). `margins.right` and
-    // `exclusiveZone` below are BOTH unchanged, so a surface wider than
-    // its own exclusive zone overhangs into the client area — the exact
-    // idiom the edge bar's own bulge already uses. `reserved` must still
-    // measure `[0, 6, 50, 6]` afterwards; measured, not asserted (see the
-    // SUMMARY).
+    // The vertical surface widens leftward to hold the corner flares.
+    // Its exclusive zone covers the painted slab, leaving the flares
+    // free to extend into the window gap.
     //
-    // Horizontal weld (quick task 260829-2ov): the surface grows DOWNWARD by
-    // `2 * edgeBarWeldRim` so it can hold a slab that is one rim deeper than
-    // the bar's body on each face. `margins.top` and `exclusiveZone` are both
-    // untouched, so the reservation stays `Design.barEdgeMargin +
-    // Design.barHeight` = 48 and the extra 8px hangs into the client area —
-    // the same non-reserving overhang the vertical weld's leftward widening
-    // already relies on, and the same one the strips' own bulges use.
+    // The horizontal surface holds the slab and the flare below it.
     implicitHeight: barWindow.vertical
         ? 0
         : Design.barHeight + (barWindow._continuousWeldH ? 2 * Design.edgeBarWeldRim : 0)
@@ -224,61 +213,9 @@ PanelWindow {
     WlrLayershell.namespace: "quickshell-bar"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
     focusable: false
-    // LIVE-MEASURED CORRECTION (18-05's Task 2, found and fixed the same
-    // way 18-01's Task 2 found and fixed the original instance of this
-    // exact bug): the surface's own submitted exclusiveZone is its content
-    // extent ALONE — Design.barHeight horizontally, Design.barColumnWidth
-    // vertically — never plus the edge margin, because Hyprland's own
-    // reservation TOTAL is margins.<anchored-edge> + exclusiveZone, and
-    // margins.top/.right above ALREADY carry Design.barEdgeMargin on
-    // their respective axis. Folding it into exclusiveZone too would
-    // double-count it — reproduced live in 18-05 (co-existing reading
-    // [[0,98,0,0]] instead of the expected [[0,92,0,0]], the exact +6
-    // signature of the double-margin bug) before being corrected there.
-    // Total reservation = margins.<edge> + exclusiveZone. Horizontally
-    // that total is Design.barHeight + Design.barEdgeMargin = 48
-    // (42 + 6), live-confirmed 2026-08-12 as [[0,48,0,0]]. It read 46
-    // from 18-01 through 18-18, when barHeight was 40; Phase 18.1 raised
-    // it to upstream Athena's own "height": 42 (ATHENA-UPSTREAM-SPEC.md),
-    // which moved the reservation by the same 2px. Vertically it is
-    // Design.barColumnWidth + Design.barEdgeMargin = 50 — a SINGLE edge
-    // margin on whichever axis is anchored, never doubled into both
-    // terms. Both terms below are compile-time expressions over readonly
-    // property int tokens; no runtime value reaches either.
-    //
-    // ── Phase 18 Plan 15 (QBAR-07) — the content extent moved into its
-    //    own named property, `reservedZoneExtent`, and `exclusiveZone`
-    //    below now gates it on `zoneReserved` (declared further down,
-    //    beside `barRendered`) rather than submitting it unconditionally.
-    //    The right-hand side is the EXACT expression this property held
-    //    before this plan — moved, not re-derived; see the property's own
-    //    trailing comment for why it must stay content-only. ────────────
-    //
-    // ── THE HORIZONTAL WELD RESERVES ITS RIM (quick task 260829-2ov) ────
-    // MEASURED, and it corrected the assumption this task was planned on.
-    // `hyprctl layers` puts `quickshell-baredge-top` at **y=48** with a
-    // horizontal bar up — BELOW the bar, not above it. A layer surface with
-    // a non-negative exclusive zone is positioned inside every existing
-    // zone, and the bar's own 48 (6 + 42) is what it lands under. So the
-    // "top rail" is really the bar's UNDERSIDE rail in this orientation.
-    //
-    // With the plain 42 the strip's 6px run (48..54) and the slab's bottom
-    // rim (52..56) then OVERLAPPED, and near the ends the strip's straight
-    // band poked out past the slab's rounded cap — visibly unintentional.
-    // Reserving the whole slab instead lands the strip at 56, flush under
-    // the slab's bottom edge, and because both surfaces paint through the
-    // SAME `_stripGradX1`/`_stripPeriod` mapping the seam is invisible: rim
-    // and rail read as one 10px gradient edge, which is exactly the outcome
-    // the operator's chosen sketch describes.
-    //
-    // This is NOT the double-count this comment warns about. `margins.top`
-    // carries `barEdgeMargin` and this carries the surface's own extent —
-    // still one edge margin plus one content extent, the extent simply
-    // being the slab rather than the bar body, because the rim is opaque
-    // chrome and not an overhanging bulge.
-    readonly property int reservedZoneExtent: barWindow.vertical
-        ? Design.barColumnWidth
-        : (barWindow._continuousWeldH ? Design.barHeight + 2 * Design.edgeBarWeldRim : Design.barHeight) // content only — margins.<edge> above independently carries the single Design.barEdgeMargin; never add it here too, or the reservation doubles
+    // Reserve the painted depth through both rims in either Continuous
+    // orientation. Hyprland adds the anchored margin once to this zone.
+    readonly property int reservedZoneExtent: barWindow._welded ? barWindow._weldSlabDepth : barWindow._weldCoreDepth
     exclusiveZone: barWindow.zoneReserved ? barWindow.reservedZoneExtent : 0
     exclusionMode: ExclusionMode.Normal
     color: "transparent"
@@ -605,10 +542,7 @@ PanelWindow {
     // width instead (what round 1 did) leaves a 36px interior, and the
     // 44px widgets then straddle the rim: measured, the workspace group's
     // outer 4px on both sides came back blended with the gradient.
-    // The extra width is taken LEFTWARD into the surface's existing
-    // non-reserving overhang, so `margins.right` and `exclusiveZone` are
-    // untouched and `reserved` cannot move.
-    readonly property real _weldSlabWidth: Design.barColumnWidth + 2 * Design.edgeBarWeldRim
+    readonly property real _weldSlabWidth: barWindow._weldSlabDepth
     // Local x of the slab: flush to the surface's right edge.
     readonly property real _weldSlabX: barWindow.width - barWindow._weldSlabWidth
     // The rail runs to the bar's CENTRE LINE — the study's own
@@ -804,7 +738,7 @@ PanelWindow {
     //     `barSideMargin` otherwise.
     //   strip period — the top strip's width, which is what the strip itself
     //     uses as its period (`EdgeBar.qml`'s `_gradientPeriod: _ww`). A
-    //     vertical bar reserves 50 off that strip's right end; a horizontal
+    //     vertical bar reserves space at that strip's right end; a horizontal
     //     one reserves on the TOP edge instead, so it takes nothing off the
     //     strip's width and the period is just the screen less both side
     //     margins.
@@ -820,7 +754,8 @@ PanelWindow {
         : 0
     readonly property real _stripPeriod: barWindow.screen
         ? Math.max(1, barWindow.vertical
-            ? barWindow.screen.width - 2 * Design.edgeBarSideMargin - (Design.barColumnWidth + Design.barEdgeMargin)
+            ? barWindow.screen.width - 2 * Design.edgeBarSideMargin
+                - (barWindow.zoneReserved ? barWindow.reservedZoneExtent + barWindow.margins.right : 0)
             : barWindow.screen.width - 2 * Design.edgeBarSideMargin)
         : 1
     readonly property real _stripGradX1: GradientPhase.phase * barWindow._stripPeriod - (barWindow._barSurfaceX - Design.edgeBarSideMargin)

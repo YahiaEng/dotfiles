@@ -851,6 +851,9 @@ Singleton {
         id: actionProc
         running: false
         command: ["true"]
+        // pkexec rejects inherited SHELL aliases absent from /etc/shells.
+        // The root-owned helper already declares its interpreter.
+        environment: ({ "SHELL": null })
         stderr: StdioCollector {
             id: actionErrCollector
         }

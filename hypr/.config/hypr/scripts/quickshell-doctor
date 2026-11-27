@@ -1540,35 +1540,24 @@ _qsd_reservation_equal() {
 
 # Reads the expected reservation extent straight out of Design.qml's own
 # `readonly property int` tokens — never restated as a literal here, so a
-# future token change cannot drift away from this gate unnoticed. D-18-38:
-# a SINGLE edge margin, never doubled — the top axis (index 1) is
-# barHeight + barEdgeMargin, the right axis (index 2) is barColumnWidth +
-# barEdgeMargin; any other axis is an error, not a default.
+# future token change cannot drift away from this gate unnoticed. The
+# reservation includes the anchored margin and both painted rims in Continuous.
 _qsd_expected_extent() {
     local design="$1" axis="$2" style="${3:-}"
-    local bar_height bar_edge_margin bar_column_width weld_rim=0
-    bar_height=$(grep -oP 'readonly\s+property\s+int\s+barHeight\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
-    bar_edge_margin=$(grep -oP 'readonly\s+property\s+int\s+barEdgeMargin\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
-    bar_column_width=$(grep -oP 'readonly\s+property\s+int\s+barColumnWidth\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
+    local depth_token depth bar_edge_margin weld_rim=0
     case "$axis" in
-        1)
-            [[ -n "$bar_height" && -n "$bar_edge_margin" ]] || return 1
-            if [[ "$style" == continuous ]]; then
-                weld_rim=$(grep -oP 'readonly\s+property\s+int\s+edgeBarWeldRim\s*:\s*\K[0-9]+' -- "$design" | head -1)
-                [[ -n "$weld_rim" ]] || return 1
-            fi
-            echo $(( bar_height + bar_edge_margin + 2 * weld_rim ))
-            return 0
-            ;;
-        2)
-            [[ -n "$bar_column_width" && -n "$bar_edge_margin" ]] || return 1
-            echo $(( bar_column_width + bar_edge_margin ))
-            return 0
-            ;;
-        *)
-            return 1
-            ;;
+        1) depth_token=barHeight ;;
+        2) depth_token=barColumnWidth ;;
+        *) return 1 ;;
     esac
+    depth=$(grep -oP "readonly\\s+property\\s+int\\s+${depth_token}\\s*:\\s*\\K[0-9]+" -- "$design" 2>/dev/null | head -1)
+    bar_edge_margin=$(grep -oP 'readonly\s+property\s+int\s+barEdgeMargin\s*:\s*\K[0-9]+' -- "$design" 2>/dev/null | head -1)
+    [[ -n "$depth" && -n "$bar_edge_margin" ]] || return 1
+    if [[ "$style" == continuous ]]; then
+        weld_rim=$(grep -oP 'readonly\s+property\s+int\s+edgeBarWeldRim\s*:\s*\K[0-9]+' -- "$design" | head -1)
+        [[ -n "$weld_rim" ]] || return 1
+    fi
+    echo $(( depth + bar_edge_margin + 2 * weld_rim ))
 }
 
 # ── 18-17 Task 2 (QBAR-12, opt-in) — windowrules.lua quickshell layer-rule
@@ -2819,6 +2808,11 @@ run_self_test() {
     local right_extent
     right_extent=$(_qsd_expected_extent "$FIXTURES_DIR/compliant-bar-design.qml" 2)
     _qsd_st "compliant-bar-design.qml -> expected-extent parser resolves the right axis too (barColumnWidth + barEdgeMargin, extent=${right_extent:-<none>}), same single edge margin, never doubled" "$([[ -n "$right_extent" && "$right_extent" != "$extent" ]] && echo 0 || echo 1)"
+    local continuous_top continuous_right
+    continuous_top=$(_qsd_expected_extent "$FIXTURES_DIR/compliant-bar-design.qml" 1 continuous)
+    continuous_right=$(_qsd_expected_extent "$FIXTURES_DIR/compliant-bar-design.qml" 2 continuous)
+    _qsd_st "compliant-bar-design.qml -> Continuous includes both painted rims on either axis" \
+        "$([[ "$continuous_top" == "$((extent + 8))" && "$continuous_right" == "$((right_extent + 8))" ]] && echo 0 || echo 1)"
 
     post_json=$(cat -- "$FIXTURES_DIR/compliant-bar-reserved-post.json")
     diff_res=$(_qsd_reservation_diff "$pre_json" "$post_json")
