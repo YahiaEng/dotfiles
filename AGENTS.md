@@ -1,6 +1,6 @@
 # Dotfiles handoff
 
-Snapshot from 2026-11-28. This checkout at `~/dotfiles` serves a physical Arch desktop and the `archlinux` WSL2 distro. The current machine is WSL2. Hyprland 0.57.2, Quickshell 0.3.2, Fastfetch 2.71.0 and Kitty 0.51.1 were used for the checks below.
+Snapshot from 2026-11-28. This checkout at `~/dotfiles` serves a physical Arch desktop and the `archlinux` WSL2 distro. The dynamic cursors repair was verified on the physical desktop. The Weaselway checks below were run on WSL2. Hyprland 0.57.2, Quickshell 0.3.2, Fastfetch 2.71.0 and Kitty 0.51.1 were used for the checks below.
 
 Inspect `git status --short` first and preserve existing edits. Treat the verified fixes below as completed. The user will provide the next tasks in a fresh context.
 
@@ -13,6 +13,14 @@ After the user marks a task done, update this file with the outcome, relevant pa
 - Quickshell's root is `quickshell/.config/quickshell/shell.qml`. Its user service is `quickshell.service`. The launcher, bar, settings and lock each have their own components and IPC handlers. Use `systemctl --user restart quickshell.service` when a restart is needed.
 - Matugen templates live in `matugen/.config/matugen/templates/`. The theme engine generates and commits files under `~/.local/state/theme/`. Change the template or generator for durable fixes. To validate or deploy one template in isolation, stage a render with `theme_engine_generate` from `theme-engine/.config/theme-engine/lib/generate.sh` and inspect the staged file before installing it.
 - `install.sh` and `stow.sh` are the shared onboarding entry points. The [installation guide](README.md#installation) documents both launch paths.
+
+## Dynamic cursors
+
+The user marked this task done on 2026-11-28.
+
+- The physical Arch desktop had a cursor plugin built for Hyprland 0.56.2 and was missing Arch's separate `hyprpm` package. Installed the package and rebuilt the plugin for Hyprland 0.57.2. The live compositor reported tilt mode enabled, shake-to-find disabled, and no config errors.
+- `install.sh` includes `hyprpm` on native Arch and Arch WSL2. At compositor startup, `hypr/.config/hypr/scripts/theme-init.sh` starts `hyprpm-complete.sh` in the background. A matching build loads silently. When a rebuild is needed, Kitty opens for sudo authentication and the helper rebuilds, loads, and verifies the plugin. Failed builds retry at the next Hyprland login. Reconnecting the Weaselway viewer can reuse the running compositor.
+- Verified loading from cache without sudo in a fresh nested Hyprland session and captured the cursor tilting during pointer movement. Simulated a stale build, first install, disabled plugin, older running compositor, and failed rebuild. The WSL2 installer plan includes `hyprpm`. A live rebuild and visual tilt check through the Windows viewer remain open.
 
 ## Native Arch and Arch WSL2 onboarding
 

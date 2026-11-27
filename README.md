@@ -95,6 +95,8 @@ cd ~/dotfiles
 
 `--plan` shows the packages and platform-specific setup without making changes. Rerun the same install and Stow commands to update an existing checkout. Stow keeps your saved theme, monitor overrides, and local VSCodium settings. A fresh profile starts with Catppuccin. Add personal wallpapers under `~/Pictures/Wallpapers/` and use **Style → Wallpaper** to choose one.
 
+On native Arch and Arch WSL2, Hyprland loads dynamic cursors at startup. After a Hyprland upgrade, the next compositor login automatically opens a Kitty window if the plugin needs rebuilding. Enter your sudo password when prompted. The helper rebuilds and loads the plugin, then closes the window. A current build loads silently. On WSL2, reconnecting the Windows viewer can reuse the running compositor, so this check runs when the Linux desktop session itself starts.
+
 ### Native Arch
 
 Keep your existing Arch bootloader and display manager. The installer selects Vulkan drivers from the detected PCI graphics devices, selects CPU microcode by vendor, and adds an LTS fallback kernel. It adds Limine integration for an existing Limine installation using its initramfs generator. The bundled single-GPU passthrough hooks target the original NVIDIA desktop's PCI layout and SDDM. The native shell uses NetworkManager, BlueZ and UPower for connectivity and battery status.

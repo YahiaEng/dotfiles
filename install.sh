@@ -400,21 +400,8 @@ PACMAN_PKGS=(
     cava
     dart-sass
 
-    # ── hyprpm build toolchain (AMB-02/D-33 — Phase 17 plan 04) ──
-    # hyprpm is the optional build/load manager for the dynamic-cursors
-    # plugin below. Its own binary states its full requirement list
-    # verbatim: `strings /usr/bin/hyprpm | grep -i "Hyprpm requires"` ->
-    # "Hyprpm requires: cmake, cpio, pkg-config, git, g++, gcc"
-    # (17-RESEARCH.md Deep-Dive #4, verified against the installed
-    # hyprland 0.56.2-1 package this session). `pkg-config` is provided by
-    # `pkgconf`, `git` and `gcc`/`g++` are already present (gcc provides
-    # both), all conditionally-but-reliably declared elsewhere in this
-    # script — cmake and cpio were the two genuinely undeclared gaps,
-    # confirmed absent from the full PACMAN_PKGS array before this edit.
-    # cpio in particular was present on the reference host only
-    # transitively (via debugedit/dracut/virt-install) — exactly the
-    # host-only-state class the reproducibility constraint forbids, so it
-    # must be declared explicitly rather than relied upon.
+    # Arch packages the Hyprland plugin manager separately.
+    hyprpm
     cmake
     cpio
 
@@ -897,73 +884,9 @@ section_core_rice() {
     sudo systemctl enable --now ollama.service || echo "  ⚠ ollama enable failed" >&2
     echo ""
 
-    # ── D-33: optional dynamic-cursors hyprpm block (AMB-02) — BEGIN ──
-    # Phase 17 plan 04. hyprpm is the build/load manager for the optional
-    # `dynamic-cursors` plugin (D-32/D-35). This block is intentionally
-    # copied from the ollama warn-and-continue guard shape directly above
-    # (command-then-warn-on-stderr), NOT from
-    # verify_packages() below — that function's own comment states "No
-    # warn-and-continue path" and exists specifically to hard-fail on a
-    # missing REQUIRED package. Nothing in this block may ever be added
-    # to VERIFY_PKGS: doing so would convert an optional dependency into
-    # an install-abort and destroy AMB-02's criterion 2.
-    #
-    # Living inside section_core_rice is deliberate, not incidental: this
-    # is the exact section the `--core-only` container gate always runs,
-    # and a container has no compositor — so every failure path below is
-    # exercised on every gate run, not just once on a fresh desktop
-    # install. If hyprpm ever silently starts succeeding unattended here,
-    # that would be the surprise, not the routine warning.
-    #
-    # What this block does NOT do: it never widens sudo scope (no policy
-    # file, no NOPASSWD rule), and it never prompts — a hang is a worse
-    # failure than the abort criterion 2 already forbids (T-17-06,
-    # T-17-08). If credentials are unavailable it skips cleanly; the
-    # post-login completion helper (hyprpm-complete.sh) finishes the job
-    # once a real session exists (D-33's two-part design).
-    #
-    # HYPRPM_PLUGIN_URL is overridable from the environment SOLELY so
-    # D-34's fault injection (Phase 17 plan 04, Task 3) can exercise this
-    # literal shipped code path against a repository that cannot resolve,
-    # rather than a hand-copied paraphrase. The audited upstream URL
-    # below is the only value ever committed to this file (T-17-07).
-    HYPRPM_PLUGIN_URL="${HYPRPM_PLUGIN_URL:-https://github.com/virtcode/hypr-dynamic-cursors}"
-
-    # Non-interactive sudo credential check (RESEARCH.md A3, strengthened):
-    # hyprpm shells out to sudo internally for its root-owned state store
-    # at /var/cache/hyprpm/. A bare interactive `sudo -v` would still
-    # prompt for a password if the cached timestamp has expired — and a
-    # prompt in an unattended run is a hang, strictly worse than the
-    # abort criterion 2 forbids. `sudo -n -v` inside `if !` cannot trip
-    # `set -e`, and on failure this skips the plugin build entirely
-    # rather than risk blocking login.
-    if ! sudo -n -v 2>/dev/null; then
-        echo "  ⚠ dynamic-cursors: no cached sudo credentials — skipping optional plugin build (hypr/.config/hypr/scripts/hyprpm-complete.sh completes it after login)" >&2
-    else
-        echo "Registering hypr-dynamic-cursors plugin (optional)..."
-        # Guard registration behind a check for an already-registered
-        # repository so a re-run of install.sh (expected to be
-        # re-runnable) never emits a spurious warning here.
-        if ! hyprpm list 2>/dev/null | grep -q 'dynamic-cursors'; then
-            timeout 30 hyprpm add "$HYPRPM_PLUGIN_URL" || echo "  ⚠ hyprpm add dynamic-cursors failed" >&2
-        fi
-        # [Rule 1 fix, found live in Task 3's fault injection] every hyprpm
-        # call below is timeout-bounded: if a live Hyprland session is
-        # already running (a re-run of install.sh against an existing
-        # desktop, not just a fresh headless install) and
-        # ecosystem.enforce_permissions is on with no `plugin`-type grant
-        # for hyprpm, hyprpm's own load step pops a real GUI Allow/Deny
-        # dialog and BLOCKS until a human clicks it — live-reproduced this
-        # session, a bare `hyprpm reload` hung past 120s with no default
-        # action. A timeout bound is what keeps this block's own "never
-        # blocks" promise true even when that dialog has no one to answer
-        # it; the systemic fix (a `plugin` grant for hyprpm) lives in
-        # hypr/.config/hypr/config/permissions.lua and requires a Hyprland
-        # restart to take effect, per that file's own documented rule.
-        timeout 15 hyprpm enable dynamic-cursors || echo "  ⚠ hyprpm enable dynamic-cursors failed" >&2
-        timeout 180 hyprpm update || echo "  ⚠ hyprpm update (dynamic-cursors) failed — see above" >&2
-    fi
-    # ── D-33: optional dynamic-cursors hyprpm block (AMB-02) — END ──
+    # A TTY install can prepare the packages before the first Hyprland login.
+    "$REPO_DIR/hypr/.config/hypr/scripts/hyprpm-complete.sh" --install ||
+        echo "Optional dynamic cursors setup deferred until login." >&2
 
     # ── zellij plugins (quick task 260820-1kp) ──────────────────────────
     # Two .wasm plugins, fetched from pinned GitHub release assets.
